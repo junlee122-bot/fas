@@ -1,4 +1,4 @@
-import type { Commander, Division, ProductionLine, ResearchProject, Territory } from './types';
+import type { Commander, CovertOperation, DiplomaticRelation, Division, ProductionLine, ResearchProject, Territory } from './types';
 
 export const territories: Territory[] = [
   { id: 'britain', name: '영국 본토', region: '서유럽', x: 24, y: 25, controller: 'allies', value: 10, supply: 96, terrain: '도시', neighbors: ['channel', 'atlantic'], },
@@ -71,4 +71,18 @@ export const worldNews = [
   '몰타 항공대가 추축국 보급선을 다시 공격했습니다.',
   '북아프리카의 모래폭풍이 양측 작전을 지연시켰습니다.',
   '레지스탕스가 프랑스 철도망에 대한 파괴 공작을 수행했습니다.',
+];
+
+export const initialRelations: DiplomaticRelation[] = [
+  { id: 'usa', name: '미합중국', code: 'US', value: 92, status: '주요 동맹', color: '#667d93' },
+  { id: 'ussr', name: '소비에트 연방', code: 'SU', value: 61, status: '공동 교전국', color: '#965d56' },
+  { id: 'freefrance', name: '자유 프랑스', code: 'FR', value: 84, status: '망명 동맹', color: '#6e7f99' },
+  { id: 'turkey', name: '튀르키예', code: 'TR', value: 43, status: '중립', color: '#887456' },
+  { id: 'spain', name: '스페인국', code: 'ES', value: 27, status: '경계 중립', color: '#8f6b59' },
+];
+
+export const initialOperations: CovertOperation[] = [
+  { id: 'resistance', name: '프랑스 레지스탕스 지원', region: '점령 프랑스', risk: 28, progress: 72, active: true, icon: 'radio' },
+  { id: 'mincemeat', name: '민스미트 기만 작전', region: '지중해', risk: 46, progress: 34, active: true, icon: 'eye' },
+  { id: 'desert', name: '사막 장거리 정찰', region: '리비아', risk: 18, progress: 88, active: true, icon: 'crosshair' },
 ];

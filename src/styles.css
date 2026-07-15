@@ -456,6 +456,7 @@ button:focus-visible,
   stroke: #4b554c;
   stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
+  transition: fill 180ms ease, opacity 180ms ease;
 }
 
 .landmass path:nth-child(2),
@@ -504,6 +505,74 @@ button:focus-visible,
   stroke-width: 2;
   stroke-dasharray: 8 10;
   animation: supply-flow 18s linear infinite;
+}
+
+.layer-supply .landmass path,
+.layer-intelligence .landmass path {
+  fill: #202a28;
+  opacity: 0.72;
+}
+
+.layer-supply .supply-lines path {
+  stroke: rgba(112, 196, 203, 0.88);
+  stroke-width: 3;
+  filter: drop-shadow(0 0 4px rgba(89, 184, 194, 0.55));
+}
+
+.layer-supply .territory-marker.low-supply .territory-halo {
+  fill: rgba(194, 90, 70, 0.24);
+  stroke: #d57461;
+  stroke-width: 2;
+  animation: low-supply-pulse 1.8s ease-in-out infinite;
+}
+
+.layer-intelligence .front-lines,
+.layer-intelligence .supply-lines,
+.layer-intelligence .mountains {
+  opacity: 0.2;
+}
+
+.layer-intelligence .territory-marker.axis .territory-halo {
+  fill: rgba(194, 126, 75, 0.2);
+  stroke: #d7a36c;
+  stroke-dasharray: 3 3;
+  stroke-width: 2;
+}
+
+.layer-weather .landmass,
+.layer-weather .territory-marker,
+.layer-weather .front-lines {
+  opacity: 0.58;
+}
+
+.weather-zones circle {
+  fill: rgba(89, 142, 154, 0.2);
+  stroke: rgba(145, 197, 208, 0.75);
+  stroke-width: 2;
+  stroke-dasharray: 7 6;
+  filter: drop-shadow(0 0 12px rgba(82, 166, 180, 0.45));
+}
+
+.weather-zones svg {
+  color: #b9d3d7;
+}
+
+.weather-zones text,
+.layer-reading {
+  fill: #d6e0dc;
+  font: 700 9px 'IBM Plex Mono', monospace;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: #101715;
+  stroke-width: 3px;
+  pointer-events: none;
+}
+
+.supply-reading { fill: #79cbd2; }
+.intel-reading { fill: #ddb978; }
+
+@keyframes low-supply-pulse {
+  50% { transform: scale(1.18); opacity: 0.72; }
 }
 
 @keyframes supply-flow {

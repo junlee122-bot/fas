@@ -45,17 +45,22 @@ import {
 import {
   commanders,
   initialDivisions,
+  initialOperations,
   initialProduction,
+  initialRelations,
   initialResearch,
   territories as initialTerritories,
   worldNews,
 } from './data';
 import type {
   Division,
+  DiplomaticRelation,
+  CovertOperation,
   Faction,
   GameState,
   GameTab,
   Order,
+  MapLayer,
   ProductionLine,
   ResearchProject,
   Stockpile,
@@ -63,6 +68,7 @@ import type {
   WarEvent,
 } from './types';
 import type { CampaignOutcome } from './types';
+import { calculateDefensivePower, calculateEnemyPower, calculateProductionGains, selectThreatenedTerritory } from './engine';
 
 const SAVE_KEY = 'iron-dominion-campaign-v1';
 
@@ -166,6 +172,9 @@ export function App() {
   const [soundOn, setSoundOn] = useState(true);
   const [stockpile, setStockpile] = useState<Stockpile>(initialStockpile);
   const [campaignOutcome, setCampaignOutcome] = useState<CampaignOutcome>(null);
+  const [relations, setRelations] = useState<DiplomaticRelation[]>(initialRelations);
+  const [operations, setOperations] = useState<CovertOperation[]>(initialOperations);
+  const [mapLayer, setMapLayer] = useState<MapLayer>('political');
   const toastTimerRef = useRef<number | null>(null);
 
   const selectedTerritory = useMemo(
@@ -281,14 +290,15 @@ export function App() {
       if (project.id === 'penicillin') setGame((current) => ({ ...current, manpower: current.manpower + 120, warSupport: Math.min(100, current.warSupport + 3) }));
     });
 
+    const productionGains = calculateProductionGains(production, nextWeek);
     setStockpile((current) => ({
       ...current,
-      tanks: current.tanks + Math.round((production.find((line) => line.id === 'sherman')?.output ?? 0) * (production.find((line) => line.id === 'sherman')?.assigned ?? 0) / 5),
-      aircraft: current.aircraft + Math.round((production.find((line) => line.id === 'spitfire')?.output ?? 0) * (production.find((line) => line.id === 'spitfire')?.assigned ?? 0) / 5),
-      infantryEquipment: current.infantryEquipment + Math.round((production.find((line) => line.id === 'rifle')?.output ?? 0) * (production.find((line) => line.id === 'rifle')?.assigned ?? 0) / 5),
-      convoys: current.convoys + Math.max(0, Math.round((production.find((line) => line.id === 'convoy')?.output ?? 0) * (production.find((line) => line.id === 'convoy')?.assigned ?? 0) / 5) - (nextWeek % 2 === 0 ? 4 : 1)),
-      artillery: current.artillery + 72,
-      trucks: current.trucks + 110,
+      tanks: current.tanks + productionGains.tanks,
+      aircraft: current.aircraft + productionGains.aircraft,
+      infantryEquipment: current.infantryEquipment + productionGains.infantryEquipment,
+      convoys: current.convoys + productionGains.convoys,
+      artillery: current.artillery + productionGains.artillery,
+      trucks: current.trucks + productionGains.trucks,
     }));
 
     setProduction((current) => current.map((line) => ({ ...line, efficiency: Math.min(100, line.efficiency + (line.assigned > 0 ? 1 : 0)) })));
@@ -307,24 +317,11 @@ export function App() {
     }));
 
     if (nextWeek % 3 === 0) {
-      const threatenedTerritory = territories
-        .filter((territory) => territory.controller === 'allies' && territory.id !== currentOrder?.targetId)
-        .filter((territory) => territory.neighbors.some((neighborId) => territories.find((item) => item.id === neighborId)?.controller === 'axis'))
-        .sort((left, right) => {
-          const leftDefense = divisions.filter((division) => division.territoryId === left.id).reduce((sum, division) => sum + division.strength, 0) + left.supply;
-          const rightDefense = divisions.filter((division) => division.territoryId === right.id).reduce((sum, division) => sum + division.strength, 0) + right.supply;
-          return leftDefense - rightDefense;
-        })[0];
+      const threatenedTerritory = selectThreatenedTerritory(territories, divisions, currentOrder?.targetId);
 
       if (threatenedTerritory) {
-        const defender = divisions
-          .filter((division) => division.territoryId === threatenedTerritory.id)
-          .sort((left, right) => right.strength - left.strength)[0];
-        const defenderCommander = commanders.find((commander) => commander.id === defender?.commanderId);
-        const defensivePower = defender
-          ? defender.strength * 0.48 + defender.organization * 0.28 + (defenderCommander?.defense ?? 60) * 0.2 + threatenedTerritory.supply * 0.12
-          : threatenedTerritory.value * 4 + threatenedTerritory.supply * 0.18;
-        const enemyPower = game.enemyPressure * 0.7 + threatenedTerritory.value * 2.4 + Math.random() * 26;
+        const { defender, power: defensivePower } = calculateDefensivePower(threatenedTerritory, divisions, commanders);
+        const enemyPower = calculateEnemyPower(game.enemyPressure, threatenedTerritory.value, Math.random());
 
         if (enemyPower > defensivePower) {
           const fallbackId = threatenedTerritory.neighbors.find((neighborId) => territories.find((item) => item.id === neighborId)?.controller === 'allies');
@@ -368,9 +365,9 @@ export function App() {
 
   useEffect(() => {
     if (showBriefing) return;
-    const payload = { version: 2, game, territories, divisions, research, production, events, orders, stockpile, campaignOutcome, objectiveProgress, torchAuthorized, completedDecisions, doctrine };
+    const payload = { version: 3, game, territories, divisions, research, production, events, orders, stockpile, relations, operations, campaignOutcome, objectiveProgress, torchAuthorized, completedDecisions, doctrine };
     localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
-  }, [campaignOutcome, completedDecisions, divisions, doctrine, events, game, objectiveProgress, orders, production, research, showBriefing, stockpile, territories, torchAuthorized]);
+  }, [campaignOutcome, completedDecisions, divisions, doctrine, events, game, objectiveProgress, operations, orders, production, relations, research, showBriefing, stockpile, territories, torchAuthorized]);
 
   useEffect(() => {
     if (showBriefing || campaignOutcome) return;
@@ -408,6 +405,8 @@ export function App() {
       setEvents(data.events ?? initialEvents);
       setOrders(data.orders ?? []);
       setStockpile({ ...initialStockpile, ...(data.stockpile ?? {}) });
+      setRelations(data.relations ?? initialRelations);
+      setOperations(data.operations ?? initialOperations);
       setCampaignOutcome(data.campaignOutcome ?? null);
       setObjectiveProgress(data.objectiveProgress ?? 28);
       setTorchAuthorized(data.torchAuthorized ?? false);
@@ -430,6 +429,9 @@ export function App() {
     setEvents(initialEvents);
     setOrders([]);
     setStockpile(initialStockpile);
+    setRelations(initialRelations);
+    setOperations(initialOperations);
+    setMapLayer('political');
     setCampaignOutcome(null);
     setObjectiveProgress(28);
     setTorchAuthorized(false);
@@ -640,6 +642,8 @@ export function App() {
             orders={orders}
             selectedTerritoryId={selectedTerritoryId}
             planningMode={planningMode}
+            layer={mapLayer}
+            intelNetwork={game.intelNetwork}
             onSelect={selectTerritory}
           />
           <div className="map-top-left">
@@ -653,10 +657,10 @@ export function App() {
             </div>
           </div>
           <div className="map-toolbar">
-            <button className="active"><Map size={15} /> 정치</button>
-            <button><Shield size={15} /> 보급</button>
-            <button><CloudRain size={15} /> 기상</button>
-            <button><Eye size={15} /> 정보</button>
+            <button aria-pressed={mapLayer === 'political'} className={mapLayer === 'political' ? 'active' : ''} onClick={() => setMapLayer('political')}><Map size={15} /> 정치</button>
+            <button aria-pressed={mapLayer === 'supply'} className={mapLayer === 'supply' ? 'active' : ''} onClick={() => setMapLayer('supply')}><Shield size={15} /> 보급</button>
+            <button aria-pressed={mapLayer === 'weather'} className={mapLayer === 'weather' ? 'active' : ''} onClick={() => setMapLayer('weather')}><CloudRain size={15} /> 기상</button>
+            <button aria-pressed={mapLayer === 'intelligence'} className={mapLayer === 'intelligence' ? 'active' : ''} onClick={() => setMapLayer('intelligence')}><Eye size={15} /> 정보</button>
           </div>
           {planningMode && (
             <div className="planning-banner">
@@ -752,8 +756,8 @@ export function App() {
             )}
             {activeTab === 'industry' && <IndustryPanel production={production} stockpile={stockpile} factories={game.factories} onAdjust={adjustFactories} />}
             {activeTab === 'research' && <ResearchPanel research={research} onToggle={toggleResearch} />}
-            {activeTab === 'diplomacy' && <DiplomacyPanel game={game} setGame={setGame} notify={notify} />}
-            {activeTab === 'intelligence' && <IntelligencePanel game={game} setGame={setGame} notify={notify} addEvent={addEvent} />}
+            {activeTab === 'diplomacy' && <DiplomacyPanel game={game} relations={relations} setRelations={setRelations} setGame={setGame} notify={notify} />}
+            {activeTab === 'intelligence' && <IntelligencePanel game={game} operations={operations} setOperations={setOperations} setGame={setGame} notify={notify} addEvent={addEvent} />}
           </div>
         </section>
       </main>
@@ -804,12 +808,14 @@ function Metric({ label, value, icon, tone = 'allied' }: { label: string; value:
   );
 }
 
-function MapBoard({ territories, divisions, orders, selectedTerritoryId, planningMode, onSelect }: {
+function MapBoard({ territories, divisions, orders, selectedTerritoryId, planningMode, layer, intelNetwork, onSelect }: {
   territories: Territory[];
   divisions: Division[];
   orders: Order[];
   selectedTerritoryId: string;
   planningMode: boolean;
+  layer: MapLayer;
+  intelNetwork: number;
   onSelect: (id: string) => void;
 }) {
   const divisionGroups = divisions.reduce<Record<string, Division[]>>((groups, division) => {
@@ -817,7 +823,7 @@ function MapBoard({ territories, divisions, orders, selectedTerritoryId, plannin
     return groups;
   }, {});
   return (
-    <svg className={'strategic-map ' + (planningMode ? 'planning' : '')} viewBox="0 0 1200 760" role="img" aria-label="유럽과 지중해 전략 지도">
+    <svg className={'strategic-map layer-' + layer + (planningMode ? ' planning' : '')} viewBox="0 0 1200 760" role="img" aria-label="유럽과 지중해 전략 지도">
       <defs>
         <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
           <path d="M 44 0 L 0 0 0 44" fill="none" stroke="rgba(255,255,255,.025)" strokeWidth="1" />
@@ -864,6 +870,14 @@ function MapBoard({ territories, divisions, orders, selectedTerritoryId, plannin
         <path d="M740 615 C840 600 914 570 1008 546" />
       </g>
 
+      {layer === 'weather' && (
+        <g className="weather-zones" aria-label="전구 기상 상황">
+          <g transform="translate(470 210)"><circle r="70" /><CloudRain size={28} x={-14} y={-28} /><text y="22">RAIN FRONT</text></g>
+          <g transform="translate(750 630)"><circle r="78" /><CloudRain size={28} x={-14} y={-28} /><text y="22">SANDSTORM</text></g>
+          <g transform="translate(930 160)"><circle r="62" /><CloudRain size={28} x={-14} y={-28} /><text y="22">SNOW FRONT</text></g>
+        </g>
+      )}
+
       {orders.map((order) => {
         const origin = territories.find((item) => item.id === order.fromId);
         const target = territories.find((item) => item.id === order.targetId);
@@ -889,7 +903,7 @@ function MapBoard({ territories, divisions, orders, selectedTerritoryId, plannin
         return (
           <g
             key={territory.id}
-            className={'territory-marker ' + territory.controller + (selected ? ' selected' : '')}
+            className={'territory-marker ' + territory.controller + (selected ? ' selected' : '') + (territory.supply < 50 ? ' low-supply' : '')}
             transform={'translate(' + x + ' ' + y + ')'}
             role="button"
             tabIndex={0}
@@ -901,6 +915,12 @@ function MapBoard({ territories, divisions, orders, selectedTerritoryId, plannin
             <circle className="territory-halo" r={territory.value > 8 ? 22 : 18} />
             <circle className="territory-core" r={territory.value > 8 ? 11 : 9} />
             <text className="territory-name" y="-23">{territory.name}</text>
+            {layer === 'supply' && <text className="layer-reading supply-reading" y="35">{territory.supply}%</text>}
+            {layer === 'intelligence' && (
+              <text className="layer-reading intel-reading" y="35">
+                {territory.controller === 'axis' ? '추정 ' + Math.max(22, Math.min(99, Math.round(intelNetwork - territory.value + 18))) + '%' : '확인'}
+              </text>
+            )}
             {group.length > 0 && (
               <g className="unit-counter" transform="translate(16 12)" filter="url(#shadow)">
                 <rect x="0" y="0" width="43" height="28" rx="3" />
@@ -1162,14 +1182,13 @@ function ResearchPanel({ research, onToggle }: { research: ResearchProject[]; on
   );
 }
 
-function DiplomacyPanel({ game, setGame, notify }: { game: GameState; setGame: React.Dispatch<React.SetStateAction<GameState>>; notify: (message: string) => void }) {
-  const [relations, setRelations] = useState([
-    { id: 'usa', name: '미합중국', code: 'US', value: 92, status: '주요 동맹', color: '#667d93' },
-    { id: 'ussr', name: '소비에트 연방', code: 'SU', value: 61, status: '공동 교전국', color: '#965d56' },
-    { id: 'freefrance', name: '자유 프랑스', code: 'FR', value: 84, status: '망명 동맹', color: '#6e7f99' },
-    { id: 'turkey', name: '튀르키예', code: 'TR', value: 43, status: '중립', color: '#887456' },
-    { id: 'spain', name: '스페인국', code: 'ES', value: 27, status: '경계 중립', color: '#8f6b59' },
-  ]);
+function DiplomacyPanel({ game, relations, setRelations, setGame, notify }: {
+  game: GameState;
+  relations: DiplomaticRelation[];
+  setRelations: React.Dispatch<React.SetStateAction<DiplomaticRelation[]>>;
+  setGame: React.Dispatch<React.SetStateAction<GameState>>;
+  notify: (message: string) => void;
+}) {
   const influence = (id: string, name: string) => {
     if (game.politicalPower < 8) return notify('정치력이 부족합니다.');
     setGame((current) => ({ ...current, politicalPower: current.politicalPower - 8 }));
@@ -1201,12 +1220,14 @@ function DiplomacyPanel({ game, setGame, notify }: { game: GameState; setGame: R
   );
 }
 
-function IntelligencePanel({ game, setGame, notify, addEvent }: { game: GameState; setGame: React.Dispatch<React.SetStateAction<GameState>>; notify: (message: string) => void; addEvent: (title: string, detail: string, tone: WarEvent['tone'], week: number) => void }) {
-  const [operations, setOperations] = useState([
-    { id: 'resistance', name: '프랑스 레지스탕스 지원', region: '점령 프랑스', risk: 28, progress: 72, active: true, icon: <Radio size={19} /> },
-    { id: 'mincemeat', name: '민스미트 기만 작전', region: '지중해', risk: 46, progress: 34, active: true, icon: <Eye size={19} /> },
-    { id: 'desert', name: '사막 장거리 정찰', region: '리비아', risk: 18, progress: 88, active: true, icon: <Crosshair size={19} /> },
-  ]);
+function IntelligencePanel({ game, operations, setOperations, setGame, notify, addEvent }: {
+  game: GameState;
+  operations: CovertOperation[];
+  setOperations: React.Dispatch<React.SetStateAction<CovertOperation[]>>;
+  setGame: React.Dispatch<React.SetStateAction<GameState>>;
+  notify: (message: string) => void;
+  addEvent: (title: string, detail: string, tone: WarEvent['tone'], week: number) => void;
+}) {
   const launchOperation = () => {
     if (game.politicalPower < 10) return notify('정보 작전에 필요한 정치력이 부족합니다.');
     setGame((current) => ({ ...current, politicalPower: current.politicalPower - 10 }));
@@ -1220,7 +1241,7 @@ function IntelligencePanel({ game, setGame, notify, addEvent }: { game: GameStat
         <div className="deck-section-heading"><div><span className="eyebrow">SPECIAL OPERATIONS EXECUTIVE</span><h3>비밀 작전</h3></div><em>요원 18명 가용</em></div>
         {operations.map((operation) => (
           <div className="covert-row" key={operation.id}>
-            <i>{operation.icon}</i>
+            <i>{operation.icon === 'radio' ? <Radio size={19} /> : operation.icon === 'eye' ? <Eye size={19} /> : <Crosshair size={19} />}</i>
             <div className="covert-name"><strong>{operation.name}</strong><span>{operation.region}</span></div>
             <div className="covert-progress"><span>준비도 {operation.progress}%</span><ProgressBar value={operation.progress} tone={operation.risk > 40 ? 'gold' : 'green'} thin /></div>
             <span className={'risk ' + (operation.risk > 40 ? 'medium' : 'low')}>위험 {operation.risk}%</span>

@@ -1,6 +1,7 @@
 export type Faction = 'allies' | 'axis' | 'neutral';
 export type DivisionType = 'infantry' | 'armor' | 'airborne' | 'marine';
 export type GameTab = 'command' | 'army' | 'industry' | 'research' | 'diplomacy' | 'intelligence';
+export type MapLayer = 'political' | 'supply' | 'weather' | 'intelligence';
 
 export interface Territory {
   id: string;
@@ -73,6 +74,25 @@ export interface Stockpile {
   convoys: number;
   artillery: number;
   trucks: number;
+}
+
+export interface DiplomaticRelation {
+  id: string;
+  name: string;
+  code: string;
+  value: number;
+  status: string;
+  color: string;
+}
+
+export interface CovertOperation {
+  id: string;
+  name: string;
+  region: string;
+  risk: number;
+  progress: number;
+  active: boolean;
+  icon: 'radio' | 'eye' | 'crosshair';
 }
 
 export type CampaignOutcome = 'victory' | 'defeat' | null;
