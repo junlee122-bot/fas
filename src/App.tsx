@@ -24,11 +24,9 @@ import {
   Minus,
   Pause,
   Plane,
-  Play,
   Plus,
   Radio,
   RotateCcw,
-  Save,
   Settings,
   Shield,
   ShieldAlert,
@@ -43,10 +41,7 @@ import {
   Zap,
 } from 'lucide-react';
 import {
-  commanders,
-  initialDivisions,
   initialOperations,
-  initialProduction,
   initialRelations,
   initialResearch,
   territories as initialTerritories,
@@ -56,21 +51,41 @@ import type {
   Division,
   DiplomaticRelation,
   CovertOperation,
+  CareerRole,
+  CareerState,
+  Commander,
   Faction,
   GameState,
   GameTab,
   Order,
   MapLayer,
+  NationId,
+  NationProfile,
   ProductionLine,
   ResearchProject,
   Stockpile,
   Territory,
+  TheaterId,
   WarEvent,
 } from './types';
 import type { CampaignOutcome } from './types';
 import { calculateDefensivePower, calculateEnemyPower, calculateProductionGains, selectThreatenedTerritory } from './engine';
+import {
+  careerRoles,
+  createCampaignDivisions,
+  createCampaignProduction,
+  createCareerCommanders,
+  createCareerState,
+  createCovertOperations,
+  createDiplomaticRelations,
+  getNation,
+  getRole,
+} from './campaign';
+import { CampaignSetup } from './CampaignSetup';
 
 const SAVE_KEY = 'iron-dominion-campaign-v1';
+const DEFAULT_NATION_ID: NationId = 'britain';
+const DEFAULT_ROLE_ID = 'britain-tier2';
 
 const initialGame: GameState = {
   week: 0,
@@ -98,6 +113,10 @@ const initialStockpile: Stockpile = {
   artillery: 3840,
   trucks: 12600,
 };
+
+const defaultNation = getNation(DEFAULT_NATION_ID);
+const defaultDivisions = createCampaignDivisions(defaultNation);
+const defaultProduction = createCampaignProduction(defaultNation);
 
 const initialEvents: WarEvent[] = [
   { id: 1, week: 0, title: '전쟁 내각 소집', detail: '북아프리카와 지중해의 주도권을 되찾을 작전안을 제출하십시오.', tone: 'neutral' },
@@ -152,14 +171,14 @@ function ResourceChip({ icon, value, label, delta }: { icon: React.ReactNode; va
 export function App() {
   const [game, setGame] = useState<GameState>(initialGame);
   const [territories, setTerritories] = useState<Territory[]>(initialTerritories);
-  const [divisions, setDivisions] = useState<Division[]>(initialDivisions);
+  const [divisions, setDivisions] = useState<Division[]>(defaultDivisions);
   const [research, setResearch] = useState<ResearchProject[]>(initialResearch);
-  const [production, setProduction] = useState<ProductionLine[]>(initialProduction);
+  const [production, setProduction] = useState<ProductionLine[]>(defaultProduction);
   const [events, setEvents] = useState<WarEvent[]>(initialEvents);
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState<GameTab>('command');
-  const [selectedTerritoryId, setSelectedTerritoryId] = useState('egypt');
-  const [selectedDivisionId, setSelectedDivisionId] = useState('7arm');
+  const [selectedTerritoryId, setSelectedTerritoryId] = useState(defaultNation.capitalTerritoryId);
+  const [selectedDivisionId, setSelectedDivisionId] = useState(defaultDivisions[0].id);
   const [planningMode, setPlanningMode] = useState(false);
   const [speed, setSpeed] = useState(0);
   const [showBriefing, setShowBriefing] = useState(true);
@@ -175,7 +194,21 @@ export function App() {
   const [relations, setRelations] = useState<DiplomaticRelation[]>(initialRelations);
   const [operations, setOperations] = useState<CovertOperation[]>(initialOperations);
   const [mapLayer, setMapLayer] = useState<MapLayer>('political');
+  const [setupNationId, setSetupNationId] = useState<NationId>(DEFAULT_NATION_ID);
+  const [setupRoleId, setSetupRoleId] = useState(DEFAULT_ROLE_ID);
+  const [career, setCareer] = useState<CareerState>(() => createCareerState(DEFAULT_NATION_ID, DEFAULT_ROLE_ID));
+  const [activeTheater, setActiveTheater] = useState<TheaterId>('europe');
   const toastTimerRef = useRef<number | null>(null);
+
+  const playerNation = getNation(career.nationId);
+  const careerRole = getRole(career.roleId, career.nationId);
+  const playerFaction = playerNation.alignment;
+  const enemyFaction: Exclude<Faction, 'neutral'> = playerFaction === 'allies' ? 'axis' : 'allies';
+  const careerCommanders = useMemo(() => createCareerCommanders(playerNation, careerRole), [careerRole, playerNation]);
+  const theaterTerritories = useMemo(
+    () => territories.filter((territory) => (territory.theater ?? 'europe') === activeTheater),
+    [activeTheater, territories],
+  );
 
   const selectedTerritory = useMemo(
     () => territories.find((territory) => territory.id === selectedTerritoryId) ?? territories[0],
@@ -185,7 +218,7 @@ export function App() {
     () => divisions.find((division) => division.id === selectedDivisionId) ?? divisions[0],
     [divisions, selectedDivisionId],
   );
-  const selectedCommander = commanders.find((commander) => commander.id === selectedDivision.commanderId) ?? commanders[0];
+  const selectedCommander = careerCommanders.find((commander) => commander.id === selectedDivision.commanderId) ?? careerCommanders[0];
   const campaignDate = getCampaignDate(game.week);
   const hasSave = Boolean(localStorage.getItem(SAVE_KEY));
 
@@ -213,9 +246,9 @@ export function App() {
     if (currentOrder) {
       const division = divisions.find((item) => item.id === currentOrder.divisionId);
       const target = territories.find((item) => item.id === currentOrder.targetId);
-      const commander = commanders.find((item) => item.id === division?.commanderId);
+      const commander = careerCommanders.find((item) => item.id === division?.commanderId);
       if (division && target && commander) {
-        if (target.controller === 'allies') {
+        if (target.controller === playerFaction) {
           setDivisions((current) => current.map((item) => item.id === division.id ? {
             ...item,
             territoryId: target.id,
@@ -231,7 +264,7 @@ export function App() {
           const defensePower = 57 + target.value * 2.8 + (target.terrain === '산악' || target.terrain === '요새' ? 18 : 0) + Math.random() * 24;
           const victory = attackPower >= defensePower;
           if (victory) {
-          setTerritories((current) => current.map((item) => item.id === target.id ? { ...item, controller: 'allies', supply: Math.max(35, item.supply - 12) } : item));
+          setTerritories((current) => current.map((item) => item.id === target.id ? { ...item, controller: playerFaction, ownerId: playerNation.id, supply: Math.max(35, item.supply - 12) } : item));
           setDivisions((current) => current.map((item) => item.id === division.id ? {
             ...item,
             territoryId: target.id,
@@ -316,16 +349,34 @@ export function App() {
       enemyPressure: Math.min(100, current.enemyPressure + (nextWeek % 4 === 0 ? 2 : 0)),
     }));
 
+    const careerGain = currentOrder ? 7 : 3;
+    const promotionRole = careerRole.tier > 1
+      ? careerRoles.find((role) => role.nationId === career.nationId && role.tier === careerRole.tier - 1)
+      : undefined;
+    const earnsPromotion = Boolean(promotionRole && career.experience + careerGain >= 100);
+    setCareer((current) => ({
+      ...current,
+      roleId: earnsPromotion && promotionRole ? promotionRole.id : current.roleId,
+      experience: earnsPromotion ? 35 : Math.min(100, current.experience + careerGain),
+      reputation: Math.min(100, current.reputation + (currentOrder ? 2 : 1)),
+      councilTrust: Math.max(10, Math.min(100, current.councilTrust + (game.victoryScore >= 50 ? 1 : -1))),
+      legacy: Math.min(100, current.legacy + (currentOrder ? 2 : 0)),
+    }));
+    if (earnsPromotion && promotionRole) {
+      addEvent('전시 승진 — ' + promotionRole.title, '전구 성과가 인정되어 더 넓은 권한과 책임을 부여받았습니다.', 'good', nextWeek);
+      notify('승진했습니다: ' + promotionRole.title);
+    }
+
     if (nextWeek % 3 === 0) {
-      const threatenedTerritory = selectThreatenedTerritory(territories, divisions, currentOrder?.targetId);
+      const threatenedTerritory = selectThreatenedTerritory(territories, divisions, currentOrder?.targetId, playerFaction, activeTheater);
 
       if (threatenedTerritory) {
-        const { defender, power: defensivePower } = calculateDefensivePower(threatenedTerritory, divisions, commanders);
+        const { defender, power: defensivePower } = calculateDefensivePower(threatenedTerritory, divisions, careerCommanders);
         const enemyPower = calculateEnemyPower(game.enemyPressure, threatenedTerritory.value, Math.random());
 
         if (enemyPower > defensivePower) {
-          const fallbackId = threatenedTerritory.neighbors.find((neighborId) => territories.find((item) => item.id === neighborId)?.controller === 'allies');
-          setTerritories((current) => current.map((territory) => territory.id === threatenedTerritory.id ? { ...territory, controller: 'axis', supply: Math.max(20, territory.supply - 18) } : territory));
+          const fallbackId = threatenedTerritory.neighbors.find((neighborId) => territories.find((item) => item.id === neighborId)?.controller === playerFaction);
+          setTerritories((current) => current.map((territory) => territory.id === threatenedTerritory.id ? { ...territory, controller: enemyFaction, supply: Math.max(20, territory.supply - 18) } : territory));
           setDivisions((current) => current.map((division) => division.territoryId === threatenedTerritory.id ? {
             ...division,
             territoryId: fallbackId ?? division.territoryId,
@@ -335,13 +386,13 @@ export function App() {
           } : division));
           setGame((current) => ({ ...current, victoryScore: Math.max(0, current.victoryScore - threatenedTerritory.value), warSupport: Math.max(20, current.warSupport - 2), enemyPressure: Math.min(100, current.enemyPressure + 3) }));
           setObjectiveProgress((current) => Math.max(0, current - threatenedTerritory.value * 2));
-          addEvent('적 반격 성공 — ' + threatenedTerritory.name, '추축군이 전선을 돌파했습니다. 예비대를 투입해 방어선을 복구해야 합니다.', 'bad', nextWeek);
+          addEvent('적 반격 성공 — ' + threatenedTerritory.name, '적군이 전선을 돌파했습니다. 예비대를 투입해 방어선을 복구해야 합니다.', 'bad', nextWeek);
         } else {
           if (defender) {
             setDivisions((current) => current.map((division) => division.id === defender.id ? { ...division, strength: Math.max(30, division.strength - 3), organization: Math.max(30, division.organization - 9), experience: Math.min(100, division.experience + 2) } : division));
           }
           setGame((current) => ({ ...current, commandPoints: Math.min(100, current.commandPoints + 3), enemyPressure: Math.max(25, current.enemyPressure - 2) }));
-          addEvent('적 반격 격퇴 — ' + threatenedTerritory.name, '연합군 방어선이 추축군의 공세를 저지했습니다.', 'good', nextWeek);
+          addEvent('적 반격 격퇴 — ' + threatenedTerritory.name, playerNation.shortName + ' 방어선이 적의 공세를 저지했습니다.', 'good', nextWeek);
         }
       }
     }
@@ -354,7 +405,7 @@ export function App() {
       setGame((current) => ({ ...current, stability: Math.max(45, current.stability - 1) }));
       addEvent('국내 전시 피로', '장기 배급과 공습 경보로 국민 피로가 누적되고 있습니다.', 'bad', nextWeek);
     }
-  }, [addEvent, divisions, doctrine, game.enemyPressure, game.week, notify, orders, production, research, territories]);
+  }, [activeTheater, addEvent, career.experience, career.nationId, careerCommanders, careerRole.tier, divisions, doctrine, enemyFaction, game.enemyPressure, game.victoryScore, game.week, notify, orders, playerFaction, playerNation.id, playerNation.shortName, production, research, territories]);
 
   useEffect(() => {
     if (speed === 0 || showBriefing) return;
@@ -365,31 +416,59 @@ export function App() {
 
   useEffect(() => {
     if (showBriefing) return;
-    const payload = { version: 3, game, territories, divisions, research, production, events, orders, stockpile, relations, operations, campaignOutcome, objectiveProgress, torchAuthorized, completedDecisions, doctrine };
+    const payload = { version: 4, game, territories, divisions, research, production, events, orders, stockpile, relations, operations, campaignOutcome, objectiveProgress, torchAuthorized, completedDecisions, doctrine, career, activeTheater, selectedTerritoryId, selectedDivisionId };
     localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
-  }, [campaignOutcome, completedDecisions, divisions, doctrine, events, game, objectiveProgress, operations, orders, production, relations, research, showBriefing, stockpile, territories, torchAuthorized]);
+  }, [activeTheater, campaignOutcome, career, completedDecisions, divisions, doctrine, events, game, objectiveProgress, operations, orders, production, relations, research, selectedDivisionId, selectedTerritoryId, showBriefing, stockpile, territories, torchAuthorized]);
 
   useEffect(() => {
     if (showBriefing || campaignOutcome) return;
-    const alliedTerritories = territories.filter((territory) => territory.controller === 'allies').length;
-    const axisTerritories = territories.filter((territory) => territory.controller === 'axis').length;
-    if (game.victoryScore >= 90 || alliedTerritories >= 19 || axisTerritories <= 5) {
+    const playerTerritoryCount = theaterTerritories.filter((territory) => territory.controller === playerFaction).length;
+    const enemyTerritoryCount = theaterTerritories.filter((territory) => territory.controller === enemyFaction).length;
+    if (game.victoryScore >= 90 || playerTerritoryCount >= Math.ceil(theaterTerritories.length * 0.72) || enemyTerritoryCount <= 2) {
       setCampaignOutcome('victory');
       setSpeed(0);
-      addEvent('전략적 승리', '추축국의 전쟁 수행 능력이 붕괴했습니다. 유럽 해방을 위한 길이 열렸습니다.', 'good', game.week);
+      addEvent('전략적 승리', playerNation.shortName + '이(가) 전구의 주도권을 장악했습니다. 새로운 국제 질서를 결정할 시간이 왔습니다.', 'good', game.week);
     } else if (game.victoryScore <= 8 || game.warSupport <= 22 || game.stability <= 28 || (game.week >= 156 && game.victoryScore < 62)) {
       setCampaignOutcome('defeat');
       setSpeed(0);
-      addEvent('전략적 패배', '연합국의 전쟁 수행 능력이 한계에 도달했습니다. 전쟁 내각이 사임을 요구합니다.', 'bad', game.week);
+      addEvent('전략적 패배', playerNation.shortName + '의 전쟁 수행 능력이 한계에 도달했습니다. 지도부가 당신의 해임을 논의합니다.', 'bad', game.week);
     }
-  }, [addEvent, campaignOutcome, game.stability, game.victoryScore, game.warSupport, game.week, showBriefing, territories]);
+  }, [addEvent, campaignOutcome, enemyFaction, game.stability, game.victoryScore, game.warSupport, game.week, playerFaction, playerNation.shortName, showBriefing, theaterTerritories]);
 
   const startCampaign = () => {
+    const nation = getNation(setupNationId);
+    const role = getRole(setupRoleId, setupNationId);
+    const newCareer = createCareerState(nation.id, role.id);
+    const newDivisions = createCampaignDivisions(nation);
+    const doctrineBonus: Partial<GameState> = doctrine === 'methodical'
+      ? { factories: (nation.modifiers.factories ?? initialGame.factories) + 3, steel: (nation.modifiers.steel ?? initialGame.steel) + 13 }
+      : doctrine === 'maneuver'
+        ? { fuel: (nation.modifiers.fuel ?? initialGame.fuel) + 22, commandPoints: initialGame.commandPoints + 8 }
+        : { politicalPower: (nation.modifiers.politicalPower ?? initialGame.politicalPower) + 16, stability: (nation.modifiers.stability ?? initialGame.stability) + 4 };
+
+    setGame({ ...initialGame, ...nation.modifiers, ...doctrineBonus });
+    setTerritories(initialTerritories.map((territory) => ({ ...territory })));
+    setDivisions(newDivisions);
+    setResearch(initialResearch.map((project) => ({ ...project })));
+    setProduction(createCampaignProduction(nation));
+    setEvents([
+      { id: Date.now(), week: 0, title: '취임 — ' + role.title, detail: '당신이 ' + nation.name + '의 ' + role.title + ' 직무를 인수했습니다. 원래 역사와 다른 명령을 내릴 수 있습니다.', tone: 'good' },
+      { id: Date.now() + 1, week: 0, title: '세계는 하나의 전장', detail: '유럽의 결정이 아시아의 보급과 외교를 바꾸고, 태평양의 결과가 유럽의 전후 질서를 흔듭니다.', tone: 'neutral' },
+    ]);
+    setOrders([]);
+    setStockpile(initialStockpile);
+    setRelations(createDiplomaticRelations(nation.id));
+    setOperations(createCovertOperations(nation.defaultTheater));
+    setCareer(newCareer);
+    setActiveTheater(nation.defaultTheater);
+    setSelectedTerritoryId(nation.capitalTerritoryId);
+    setSelectedDivisionId(newDivisions[0].id);
+    setObjectiveProgress(22);
+    setTorchAuthorized(false);
+    setCompletedDecisions([]);
+    setCampaignOutcome(null);
     setShowBriefing(false);
-    if (doctrine === 'methodical') setGame((current) => ({ ...current, factories: 33, steel: 125 }));
-    if (doctrine === 'maneuver') setGame((current) => ({ ...current, fuel: 96, commandPoints: 50 }));
-    if (doctrine === 'coalition') setGame((current) => ({ ...current, politicalPower: 102, stability: 82 }));
-    notify('연합군 최고사령부가 작전을 개시했습니다.');
+    notify(nation.shortName + ' · ' + role.title + '로 취임했습니다.');
   };
 
   const continueCampaign = () => {
@@ -397,16 +476,28 @@ export function App() {
     if (!raw) return;
     try {
       const data = JSON.parse(raw);
+      const restoredCareer: CareerState = data.career ?? createCareerState(DEFAULT_NATION_ID, DEFAULT_ROLE_ID);
+      const restoredNation = getNation(restoredCareer.nationId);
+      const savedTerritories: Territory[] = data.territories ?? [];
+      const mergedTerritories = initialTerritories.map((territory) => ({ ...territory, ...(savedTerritories.find((saved) => saved.id === territory.id) ?? {}) }));
+      const restoredDivisions: Division[] = data.divisions ?? createCampaignDivisions(restoredNation);
+      const migratedDivisions = data.version >= 4 ? restoredDivisions : restoredDivisions.map((division, index) => ({ ...division, commanderId: index % 3 === 0 ? 'player' : index % 3 === 1 ? 'staff-alpha' : 'staff-beta' }));
       setGame({ ...initialGame, ...(data.game ?? {}) });
-      setTerritories(data.territories ?? initialTerritories);
-      setDivisions(data.divisions ?? initialDivisions);
+      setTerritories(mergedTerritories);
+      setDivisions(migratedDivisions);
       setResearch(data.research ?? initialResearch);
-      setProduction(data.production ?? initialProduction);
+      setProduction(data.production ?? createCampaignProduction(restoredNation));
       setEvents(data.events ?? initialEvents);
       setOrders(data.orders ?? []);
       setStockpile({ ...initialStockpile, ...(data.stockpile ?? {}) });
-      setRelations(data.relations ?? initialRelations);
-      setOperations(data.operations ?? initialOperations);
+      setRelations(data.relations ?? createDiplomaticRelations(restoredNation.id));
+      setOperations(data.operations ?? createCovertOperations(restoredNation.defaultTheater));
+      setCareer(restoredCareer);
+      setSetupNationId(restoredCareer.nationId);
+      setSetupRoleId(restoredCareer.roleId);
+      setActiveTheater(data.activeTheater ?? restoredNation.defaultTheater);
+      setSelectedTerritoryId(data.selectedTerritoryId ?? restoredNation.capitalTerritoryId);
+      setSelectedDivisionId(data.selectedDivisionId ?? migratedDivisions[0]?.id);
       setCampaignOutcome(data.campaignOutcome ?? null);
       setObjectiveProgress(data.objectiveProgress ?? 28);
       setTorchAuthorized(data.torchAuthorized ?? false);
@@ -423,14 +514,20 @@ export function App() {
     localStorage.removeItem(SAVE_KEY);
     setGame(initialGame);
     setTerritories(initialTerritories);
-    setDivisions(initialDivisions);
+    setDivisions(defaultDivisions);
     setResearch(initialResearch);
-    setProduction(initialProduction);
+    setProduction(defaultProduction);
     setEvents(initialEvents);
     setOrders([]);
     setStockpile(initialStockpile);
     setRelations(initialRelations);
     setOperations(initialOperations);
+    setSetupNationId(DEFAULT_NATION_ID);
+    setSetupRoleId(DEFAULT_ROLE_ID);
+    setCareer(createCareerState(DEFAULT_NATION_ID, DEFAULT_ROLE_ID));
+    setActiveTheater('europe');
+    setSelectedTerritoryId(defaultNation.capitalTerritoryId);
+    setSelectedDivisionId(defaultDivisions[0].id);
     setMapLayer('political');
     setCampaignOutcome(null);
     setObjectiveProgress(28);
@@ -450,8 +547,8 @@ export function App() {
         notify('인접한 지역만 작전 목표로 지정할 수 있습니다.');
         return;
       }
-      if (target.controller === 'allies') {
-        notify('이미 연합군이 통제하는 지역입니다.');
+      if (target.controller === playerFaction) {
+        notify('이미 아군이 통제하는 지역입니다.');
         return;
       }
       if (game.commandPoints < 5) {
@@ -488,16 +585,21 @@ export function App() {
       notify('정치력 또는 지휘 점수가 부족합니다.');
       return;
     }
-    const torchDivisions = divisions.filter((division) => ['1arm', '1inf'].includes(division.id));
+    const operationDivisions = divisions.slice(0, 2);
+    const operationTarget = territories.find((territory) => territory.id === playerNation.strategicTargets[0]);
+    if (!operationTarget) {
+      notify('작전 목표를 설정할 수 없습니다.');
+      return;
+    }
     setOrders((current) => [
       ...current,
-      ...torchDivisions.map((division) => ({ divisionId: division.id, fromId: 'atlantic', targetId: 'morocco', startedWeek: game.week })),
+      ...operationDivisions.map((division) => ({ divisionId: division.id, fromId: division.territoryId, targetId: operationTarget.id, startedWeek: game.week })),
     ]);
-    setDivisions((current) => current.map((division) => ['1arm', '1inf'].includes(division.id) ? { ...division, status: 'moving' } : division));
+    setDivisions((current) => current.map((division) => operationDivisions.some((item) => item.id === division.id) ? { ...division, status: 'moving' } : division));
     setGame((current) => ({ ...current, politicalPower: current.politicalPower - 20, commandPoints: current.commandPoints - 10 }));
     setTorchAuthorized(true);
-    addEvent('횃불 작전 승인', '미·영 연합 상륙함대가 모로코와 알제리 해안으로 출항했습니다.', 'good', game.week);
-    notify('횃불 작전이 개시되었습니다. 다음 주에 상륙합니다.');
+    addEvent(playerNation.majorOperation + ' 승인', playerNation.majorOperationDetail, 'good', game.week);
+    notify(playerNation.majorOperation + '이(가) 개시되었습니다.');
   };
 
   const enactDecision = (id: string, title: string, cost: number, effect: () => void) => {
@@ -546,7 +648,7 @@ export function App() {
       if (division.commanderId === commanderId) return { ...division, commanderId: previousCommanderId };
       return division;
     }));
-    const commander = commanders.find((item) => item.id === commanderId);
+    const commander = careerCommanders.find((item) => item.id === commanderId);
     addEvent('지휘관 인사 발령', (commander?.name ?? '신임 지휘관') + '이(가) ' + targetDivision.name + ' 지휘를 맡았습니다.', 'neutral', game.week);
     notify('지휘관 배치를 변경했습니다.');
   };
@@ -573,6 +675,42 @@ export function App() {
     notify(division.name + ' 야전 훈련 완료');
   };
 
+  const changeSetupNation = (nationId: NationId) => {
+    const defaultRole = careerRoles.find((role) => role.nationId === nationId && role.tier === 2);
+    setSetupNationId(nationId);
+    if (defaultRole) setSetupRoleId(defaultRole.id);
+  };
+
+  const switchTheater = (theater: TheaterId) => {
+    setActiveTheater(theater);
+    setPlanningMode(false);
+    const divisionInTheater = divisions.find((division) => {
+      const territory = territories.find((item) => item.id === division.territoryId);
+      return (territory?.theater ?? 'europe') === theater;
+    });
+    const focusTerritory = divisionInTheater
+      ? territories.find((territory) => territory.id === divisionInTheater.territoryId)
+      : territories.find((territory) => (territory.theater ?? 'europe') === theater && territory.controller === playerFaction)
+        ?? territories.find((territory) => (territory.theater ?? 'europe') === theater);
+    if (focusTerritory) setSelectedTerritoryId(focusTerritory.id);
+    if (divisionInTheater) setSelectedDivisionId(divisionInTheater.id);
+  };
+
+  const chooseAlternatePath = (pathId: string) => {
+    if (career.alternatePathId) return;
+    const path = playerNation.paths.find((item) => item.id === pathId);
+    if (!path) return;
+    setCareer((current) => ({ ...current, alternatePathId: path.id, reputation: Math.min(100, current.reputation + 8), councilTrust: Math.min(100, current.councilTrust + 5), legacy: Math.min(100, current.legacy + 14) }));
+    if (path.tone === 'reform') setGame((current) => ({ ...current, stability: Math.min(100, current.stability + 7), politicalPower: current.politicalPower + 6 }));
+    if (path.tone === 'hardline') setGame((current) => ({ ...current, factories: current.factories + 3, warSupport: Math.min(100, current.warSupport + 5), stability: Math.max(20, current.stability - 3) }));
+    if (path.tone === 'international') {
+      setGame((current) => ({ ...current, politicalPower: current.politicalPower + 12, treasury: Math.max(0, current.treasury - 100) }));
+      setRelations((current) => current.map((relation) => ({ ...relation, value: Math.min(100, relation.value + 8) })));
+    }
+    addEvent('대체역사 분기 — ' + path.title, path.summary + ' ' + path.effect, 'good', game.week);
+    notify(path.title + ': 이제 역사가 다른 방향으로 흐릅니다.');
+  };
+
   const tabItems: { id: GameTab; label: string; icon: React.ReactNode }[] = [
     { id: 'command', label: '최고사령부', icon: <Shield size={17} /> },
     { id: 'army', label: '육군', icon: <Swords size={17} /> },
@@ -587,11 +725,12 @@ export function App() {
       <header className="topbar">
         <div className="brand-block">
           <button className="icon-button menu-button" aria-label="메뉴"><Menu size={19} /></button>
-          <div className="brand-mark"><span>ID</span></div>
+          <div className="brand-mark" style={{ borderColor: playerNation.accent }}><span>{playerNation.code}</span></div>
           <div className="brand-copy">
             <strong>IRON DOMINION</strong>
-            <span>ALLIED HIGH COMMAND · 1942</span>
+            <span>{playerNation.code} · ALTERNATE HISTORY · 1942</span>
           </div>
+          <div className="career-rank-chip"><small>TIER {careerRole.tier}</small><strong>{careerRole.title}</strong></div>
         </div>
 
         <div className="resource-row">
@@ -604,7 +743,7 @@ export function App() {
         </div>
 
         <div className="time-controls">
-          <div className="weather"><CloudRain size={15} /><span>유럽<br /><b>비 · 11°C</b></span></div>
+          <div className="weather"><CloudRain size={15} /><span>{activeTheater === 'asia' ? '아시아·태평양' : '유럽'}<br /><b>{activeTheater === 'asia' ? '몬순 · 29°C' : '비 · 11°C'}</b></span></div>
           <div className="date-block"><strong>{campaignDate.full}</strong><span>제 {game.week + 1}주 · {campaignDate.day}</span></div>
           <button className={'speed-button ' + (speed === 0 ? 'active' : '')} onClick={() => setSpeed(0)} aria-label="일시 정지"><Pause size={14} /></button>
           {[1, 2, 3].map((item) => (
@@ -616,8 +755,8 @@ export function App() {
 
       <aside className="left-rail">
         <div className="nation-emblem">
-          <div className="flag-union"><span>✦</span></div>
-          <small>연합국</small>
+          <div className="flag-union" style={{ background: playerNation.color }}><span>{playerNation.code}</span></div>
+          <small>{playerNation.shortName}</small>
         </div>
         <nav className="primary-nav" aria-label="게임 메뉴">
           {tabItems.map((tab) => (
@@ -637,18 +776,23 @@ export function App() {
       <main className="war-room">
         <section className="map-section">
           <MapBoard
-            territories={territories}
+            territories={theaterTerritories}
             divisions={divisions}
             orders={orders}
             selectedTerritoryId={selectedTerritoryId}
             planningMode={planningMode}
             layer={mapLayer}
+            theater={activeTheater}
             intelNetwork={game.intelNetwork}
             onSelect={selectTerritory}
           />
           <div className="map-top-left">
             <span className="eyebrow">전역 지도</span>
-            <h1>유럽 · 지중해 전구</h1>
+            <h1>{activeTheater === 'asia' ? '아시아 · 태평양 전구' : '유럽 · 지중해 전구'}</h1>
+            <div className="theater-switch" role="group" aria-label="전구 선택">
+              <button aria-pressed={activeTheater === 'europe'} className={activeTheater === 'europe' ? 'active' : ''} onClick={() => switchTheater('europe')}>EUROPE</button>
+              <button aria-pressed={activeTheater === 'asia'} className={activeTheater === 'asia' ? 'active' : ''} onClick={() => switchTheater('asia')}>ASIA · PACIFIC</button>
+            </div>
             <div className="map-legend">
               <span><i className="dot allies" /> 연합국</span>
               <span><i className="dot axis" /> 추축국</span>
@@ -670,7 +814,7 @@ export function App() {
             </div>
           )}
           <div className="theater-score">
-            <div><span>연합군 전황</span><strong>{game.victoryScore}</strong></div>
+            <div><span>{playerNation.shortName} 전황</span><strong>{game.victoryScore}</strong></div>
             <ProgressBar value={game.victoryScore} />
             <div className="score-labels"><span>후퇴</span><span>승리</span></div>
           </div>
@@ -678,20 +822,22 @@ export function App() {
 
         <aside className="intel-panel">
           <div className="panel-heading">
-            <div><span className="eyebrow">WAR CABINET</span><h2>전쟁 내각</h2></div>
+            <div><span className="eyebrow">NATIONAL COMMAND</span><h2>{playerNation.shortName} 지휘부</h2></div>
             <button className="icon-button" aria-label="전쟁 전문 열기" onClick={() => setShowJournal(true)}><Radio size={17} /></button>
           </div>
 
           <section className="prime-objective">
             <div className="objective-top"><span>최우선 목표</span><em>D-14</em></div>
-            <h3>지중해의 운명을 결정하라</h3>
-            <p>북아프리카의 추축군을 격파하고 지중해 수송로를 완전히 확보하십시오.</p>
+            <h3>{playerNation.majorOperation}</h3>
+            <p>{playerNation.majorOperationDetail}</p>
             <ProgressBar value={objectiveProgress} tone="gold" />
             <div className="objective-footer"><span>작전 달성도</span><strong>{objectiveProgress}%</strong></div>
             <ul>
-              <li className={territories.find((item) => item.id === 'libya')?.controller === 'allies' ? 'done' : ''}><CheckCircle2 size={14} /> 리비아 전선 돌파</li>
-              <li className={territories.find((item) => item.id === 'tunisia')?.controller === 'allies' ? 'done' : ''}><CheckCircle2 size={14} /> 튀니지 항구 확보</li>
-              <li className={torchAuthorized ? 'done' : ''}><CheckCircle2 size={14} /> 횃불 작전 개시</li>
+              {playerNation.strategicTargets.map((targetId) => {
+                const target = territories.find((territory) => territory.id === targetId);
+                return <li key={targetId} className={target?.controller === playerFaction ? 'done' : ''}><CheckCircle2 size={14} /> {target?.name ?? targetId} 확보</li>;
+              })}
+              <li className={torchAuthorized ? 'done' : ''}><CheckCircle2 size={14} /> {playerNation.majorOperation} 개시</li>
             </ul>
           </section>
 
@@ -734,6 +880,12 @@ export function App() {
                 onDecision={enactDecision}
                 setGame={setGame}
                 setDivisions={setDivisions}
+                nation={playerNation}
+                role={careerRole}
+                career={career}
+                playerFaction={playerFaction}
+                activeTheater={activeTheater}
+                onChoosePath={chooseAlternatePath}
               />
             )}
             {activeTab === 'army' && (
@@ -742,6 +894,7 @@ export function App() {
                 divisions={divisions}
                 selectedDivision={selectedDivision}
                 selectedCommander={selectedCommander}
+                commanders={careerCommanders}
                 territories={territories}
                 orders={orders}
                 onSelectDivision={(id) => {
@@ -754,10 +907,10 @@ export function App() {
                 onTrain={trainDivision}
               />
             )}
-            {activeTab === 'industry' && <IndustryPanel production={production} stockpile={stockpile} factories={game.factories} onAdjust={adjustFactories} />}
+            {activeTab === 'industry' && <IndustryPanel production={production} stockpile={stockpile} factories={game.factories} activeTheater={activeTheater} onAdjust={adjustFactories} />}
             {activeTab === 'research' && <ResearchPanel research={research} onToggle={toggleResearch} />}
             {activeTab === 'diplomacy' && <DiplomacyPanel game={game} relations={relations} setRelations={setRelations} setGame={setGame} notify={notify} />}
-            {activeTab === 'intelligence' && <IntelligencePanel game={game} operations={operations} setOperations={setOperations} setGame={setGame} notify={notify} addEvent={addEvent} />}
+            {activeTab === 'intelligence' && <IntelligencePanel game={game} operations={operations} setOperations={setOperations} setGame={setGame} notify={notify} addEvent={addEvent} nation={playerNation} activeTheater={activeTheater} />}
           </div>
         </section>
       </main>
@@ -775,10 +928,14 @@ export function App() {
       </div>
 
       {showBriefing && (
-        <BriefingModal
+        <CampaignSetup
+          nationId={setupNationId}
+          roleId={setupRoleId}
           doctrine={doctrine}
-          setDoctrine={setDoctrine}
           hasSave={hasSave}
+          onNationChange={changeSetupNation}
+          onRoleChange={setSetupRoleId}
+          onDoctrineChange={setDoctrine}
           onStart={startCampaign}
           onContinue={continueCampaign}
         />
@@ -788,6 +945,8 @@ export function App() {
           outcome={campaignOutcome}
           game={game}
           territories={territories}
+          nation={playerNation}
+          playerFaction={playerFaction}
           onJournal={() => setShowJournal(true)}
           onRestart={resetCampaign}
         />
@@ -808,13 +967,14 @@ function Metric({ label, value, icon, tone = 'allied' }: { label: string; value:
   );
 }
 
-function MapBoard({ territories, divisions, orders, selectedTerritoryId, planningMode, layer, intelNetwork, onSelect }: {
+function MapBoard({ territories, divisions, orders, selectedTerritoryId, planningMode, layer, theater, intelNetwork, onSelect }: {
   territories: Territory[];
   divisions: Division[];
   orders: Order[];
   selectedTerritoryId: string;
   planningMode: boolean;
   layer: MapLayer;
+  theater: TheaterId;
   intelNetwork: number;
   onSelect: (id: string) => void;
 }) {
@@ -823,7 +983,7 @@ function MapBoard({ territories, divisions, orders, selectedTerritoryId, plannin
     return groups;
   }, {});
   return (
-    <svg className={'strategic-map layer-' + layer + (planningMode ? ' planning' : '')} viewBox="0 0 1200 760" role="img" aria-label="유럽과 지중해 전략 지도">
+    <svg className={'strategic-map theater-' + theater + ' layer-' + layer + (planningMode ? ' planning' : '')} viewBox="0 0 1200 760" role="img" aria-label={theater === 'asia' ? '아시아와 태평양 전략 지도' : '유럽과 지중해 전략 지도'}>
       <defs>
         <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
           <path d="M 44 0 L 0 0 0 44" fill="none" stroke="rgba(255,255,255,.025)" strokeWidth="1" />
@@ -840,41 +1000,43 @@ function MapBoard({ territories, divisions, orders, selectedTerritoryId, plannin
         <path d="M-20 675 C165 565 270 690 420 600 S700 615 850 540 1060 590 1240 475" />
         <path d="M20 165 C160 105 235 170 340 115 S620 105 745 48 1030 80 1190 22" />
       </g>
-      <g className="landmass">
-        <path d="M256 92 L330 45 390 60 418 115 470 142 520 130 560 84 610 52 650 70 665 135 725 160 770 148 845 103 938 90 1080 120 1190 205 1200 470 1110 480 1040 445 965 474 902 455 850 422 790 430 730 408 680 435 625 412 575 380 520 398 470 365 420 388 365 345 320 335 292 285 245 248 225 198 Z" />
-        <path d="M120 348 L205 315 285 332 330 385 312 455 265 502 178 515 105 470 72 410 Z" />
-        <path d="M178 535 L325 520 465 540 565 515 670 530 760 505 875 520 985 500 1115 530 1200 580 1200 760 90 760 72 650 Z" />
-        <path d="M555 405 L610 422 640 482 620 535 585 515 568 465 Z" />
-        <path d="M650 445 L710 435 753 475 730 520 675 508 Z" />
-        <path d="M804 480 L890 470 965 510 925 550 850 540 Z" />
-      </g>
-      <g className="mountains" opacity="0.35">
-        <path d="M430 365 l18 -24 18 26 19 -31 19 32 22 -25 20 24" />
-        <path d="M835 428 l20 -28 20 27 22 -35 25 36 20 -29 24 29" />
-        <path d="M180 500 l20 -25 18 22 20 -29 24 30 19 -21" />
-      </g>
-      <g className="sea-labels">
-        <text x="115" y="370" transform="rotate(-18 115 370)">NORTH ATLANTIC</text>
-        <text x="516" y="585">MEDITERRANEAN SEA</text>
-        <text x="372" y="213">NORTH SEA</text>
-        <text x="830" y="365">EASTERN FRONT</text>
-      </g>
-      <g className="front-lines">
-        <path className="western" d="M302 214 C330 245 320 280 360 315 S410 360 432 398" />
-        <path className="eastern" d="M760 182 C795 230 780 286 817 330 S804 405 852 455" />
-        <path className="africa" d="M595 650 C660 620 724 648 786 625" />
-      </g>
-      <g className="supply-lines">
-        <path d="M135 340 C182 270 205 235 255 190" />
-        <path d="M135 340 C110 455 180 548 292 590" />
-        <path d="M740 615 C840 600 914 570 1008 546" />
-      </g>
+      {theater === 'europe' ? (
+        <>
+          <g className="landmass">
+            <path d="M256 92 L330 45 390 60 418 115 470 142 520 130 560 84 610 52 650 70 665 135 725 160 770 148 845 103 938 90 1080 120 1190 205 1200 470 1110 480 1040 445 965 474 902 455 850 422 790 430 730 408 680 435 625 412 575 380 520 398 470 365 420 388 365 345 320 335 292 285 245 248 225 198 Z" />
+            <path d="M120 348 L205 315 285 332 330 385 312 455 265 502 178 515 105 470 72 410 Z" />
+            <path d="M178 535 L325 520 465 540 565 515 670 530 760 505 875 520 985 500 1115 530 1200 580 1200 760 90 760 72 650 Z" />
+            <path d="M555 405 L610 422 640 482 620 535 585 515 568 465 Z" />
+            <path d="M650 445 L710 435 753 475 730 520 675 508 Z" />
+            <path d="M804 480 L890 470 965 510 925 550 850 540 Z" />
+          </g>
+          <g className="mountains" opacity="0.35"><path d="M430 365 l18 -24 18 26 19 -31 19 32 22 -25 20 24" /><path d="M835 428 l20 -28 20 27 22 -35 25 36 20 -29 24 29" /><path d="M180 500 l20 -25 18 22 20 -29 24 30 19 -21" /></g>
+          <g className="sea-labels"><text x="115" y="370" transform="rotate(-18 115 370)">NORTH ATLANTIC</text><text x="516" y="585">MEDITERRANEAN SEA</text><text x="372" y="213">NORTH SEA</text><text x="830" y="365">EASTERN FRONT</text></g>
+          <g className="front-lines"><path className="western" d="M302 214 C330 245 320 280 360 315 S410 360 432 398" /><path className="eastern" d="M760 182 C795 230 780 286 817 330 S804 405 852 455" /><path className="africa" d="M595 650 C660 620 724 648 786 625" /></g>
+          <g className="supply-lines"><path d="M135 340 C182 270 205 235 255 190" /><path d="M135 340 C110 455 180 548 292 590" /><path d="M740 615 C840 600 914 570 1008 546" /></g>
+        </>
+      ) : (
+        <>
+          <g className="landmass asia-landmass">
+            <path d="M50 180 L180 135 310 150 395 110 510 128 620 95 745 118 835 170 875 260 840 350 760 398 690 470 590 500 520 455 430 470 350 430 265 450 190 410 110 350 48 275 Z" />
+            <path d="M170 480 L255 455 335 495 385 575 355 660 270 700 185 640 135 555 Z" />
+            <path d="M475 525 L545 510 610 560 590 640 520 670 465 610 Z" />
+            <path d="M655 575 L715 555 760 610 735 680 675 665 640 620 Z" />
+            <path d="M805 590 L865 570 910 625 882 690 825 675 790 630 Z" />
+            <path d="M1030 390 L1090 365 1140 410 1120 465 1060 478 1015 438 Z" />
+          </g>
+          <g className="mountains" opacity="0.38"><path d="M285 405 l22 -30 20 27 23 -38 25 40 24 -30 28 31" /><path d="M485 325 l22 -28 22 27 25 -36 28 37 22 -29" /><path d="M610 220 l19 -25 20 22 20 -31 24 30" /></g>
+          <g className="sea-labels"><text x="210" y="730">INDIAN OCEAN</text><text x="690" y="520">SOUTH CHINA SEA</text><text x="940" y="330">PACIFIC OCEAN</text><text x="470" y="82">ASIAN MAINLAND</text></g>
+          <g className="front-lines"><path className="western" d="M410 270 C455 310 430 360 485 405 S540 440 565 500" /><path className="eastern" d="M690 220 C720 270 705 330 745 380" /><path className="africa" d="M500 650 C590 620 690 665 790 630" /></g>
+          <g className="supply-lines"><path d="M195 430 C300 500 410 560 525 650" /><path d="M870 430 C930 390 1010 405 1100 425" /><path d="M720 640 C830 610 945 540 1080 440" /></g>
+        </>
+      )}
 
       {layer === 'weather' && (
         <g className="weather-zones" aria-label="전구 기상 상황">
-          <g transform="translate(470 210)"><circle r="70" /><CloudRain size={28} x={-14} y={-28} /><text y="22">RAIN FRONT</text></g>
-          <g transform="translate(750 630)"><circle r="78" /><CloudRain size={28} x={-14} y={-28} /><text y="22">SANDSTORM</text></g>
-          <g transform="translate(930 160)"><circle r="62" /><CloudRain size={28} x={-14} y={-28} /><text y="22">SNOW FRONT</text></g>
+          <g transform={theater === 'asia' ? 'translate(420 570)' : 'translate(470 210)'}><circle r="70" /><CloudRain size={28} x={-14} y={-28} /><text y="22">{theater === 'asia' ? 'MONSOON' : 'RAIN FRONT'}</text></g>
+          <g transform={theater === 'asia' ? 'translate(830 650)' : 'translate(750 630)'}><circle r="78" /><CloudRain size={28} x={-14} y={-28} /><text y="22">{theater === 'asia' ? 'TYPHOON' : 'SANDSTORM'}</text></g>
+          <g transform={theater === 'asia' ? 'translate(670 155)' : 'translate(930 160)'}><circle r="62" /><CloudRain size={28} x={-14} y={-28} /><text y="22">{theater === 'asia' ? 'SIBERIAN COLD' : 'SNOW FRONT'}</text></g>
         </g>
       )}
 
@@ -908,13 +1070,18 @@ function MapBoard({ territories, divisions, orders, selectedTerritoryId, plannin
             role="button"
             tabIndex={0}
             onClick={() => onSelect(territory.id)}
-            onKeyDown={(event) => event.key === 'Enter' && onSelect(territory.id)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return;
+              event.preventDefault();
+              onSelect(territory.id);
+            }}
             aria-label={territory.name + ', ' + factionLabels[territory.controller]}
           >
             {selected && <circle className="selection-ring" r="31" />}
             <circle className="territory-halo" r={territory.value > 8 ? 22 : 18} />
             <circle className="territory-core" r={territory.value > 8 ? 11 : 9} />
             <text className="territory-name" y="-23">{territory.name}</text>
+            {layer === 'political' && territory.ownerId && <text className="layer-reading owner-reading" y="35">{getNation(territory.ownerId).code}</text>}
             {layer === 'supply' && <text className="layer-reading supply-reading" y="35">{territory.supply}%</text>}
             {layer === 'intelligence' && (
               <text className="layer-reading intel-reading" y="35">
@@ -938,7 +1105,7 @@ function MapBoard({ territories, divisions, orders, selectedTerritoryId, plannin
   );
 }
 
-function CommandPanel({ game, territories, divisions, orders, torchAuthorized, completedDecisions, onAuthorizeTorch, onDecision, setGame, setDivisions }: {
+function CommandPanel({ game, territories, divisions, orders, torchAuthorized, completedDecisions, onAuthorizeTorch, onDecision, setGame, setDivisions, nation, role, career, playerFaction, activeTheater, onChoosePath }: {
   game: GameState;
   territories: Territory[];
   divisions: Division[];
@@ -949,16 +1116,53 @@ function CommandPanel({ game, territories, divisions, orders, torchAuthorized, c
   onDecision: (id: string, title: string, cost: number, effect: () => void) => void;
   setGame: React.Dispatch<React.SetStateAction<GameState>>;
   setDivisions: React.Dispatch<React.SetStateAction<Division[]>>;
+  nation: NationProfile;
+  role: CareerRole;
+  career: CareerState;
+  playerFaction: Exclude<Faction, 'neutral'>;
+  activeTheater: TheaterId;
+  onChoosePath: (pathId: string) => void;
 }) {
-  const fronts = [
-    { name: '북아프리카', detail: '알라메인 · 리비아', strength: 72, status: '우세', tone: 'good', count: divisions.filter((division) => ['egypt', 'libya', 'tunisia'].includes(division.territoryId)).length },
-    { name: '서부 유럽', detail: '영불 해협 · 대서양', strength: 41, status: '대치', tone: 'neutral', count: divisions.filter((division) => ['britain', 'atlantic', 'channel'].includes(division.territoryId)).length },
-    { name: '동부 전선', detail: '발트 · 우크라이나', strength: 29, status: '위기', tone: 'bad', count: 0 },
-  ];
+  const frontDefinitions = activeTheater === 'asia'
+    ? [
+      { name: '중국·버마 전선', detail: '윈난 · 버마 · 아삼', ids: ['china_interior', 'yunnan', 'burma', 'assam'], strength: 58 },
+      { name: '남서 태평양', detail: '뉴기니 · 솔로몬', ids: ['new_guinea', 'coral_sea', 'solomons'], strength: 46 },
+      { name: '중부 태평양', detail: '미드웨이 · 하와이', ids: ['midway', 'hawaii', 'japan_home'], strength: 63 },
+    ]
+    : [
+      { name: '북아프리카', detail: '이집트 · 리비아 · 튀니지', ids: ['egypt', 'libya', 'tunisia'], strength: 64 },
+      { name: '서부 유럽', detail: '영불 해협 · 대서양', ids: ['britain', 'atlantic', 'channel', 'france'], strength: 51 },
+      { name: '동부 전선', detail: '발트 · 우크라이나 · 캅카스', ids: ['baltic', 'ukraine', 'caucasus'], strength: 44 },
+    ];
+  const fronts = frontDefinitions.map((front) => {
+    const controlled = front.ids.filter((id) => territories.find((territory) => territory.id === id)?.controller === playerFaction).length;
+    const tone = controlled >= 3 ? 'good' : controlled >= 1 ? 'neutral' : 'bad';
+    return { ...front, tone, status: tone === 'good' ? '우세' : tone === 'neutral' ? '대치' : '위기', count: divisions.filter((division) => front.ids.includes(division.territoryId)).length };
+  });
+  const theaterTerritories = territories.filter((territory) => (territory.theater ?? 'europe') === activeTheater);
+  const selectedPath = nation.paths.find((path) => path.id === career.alternatePathId);
   return (
     <div className="command-grid">
+      <section className="deck-section career-dossier">
+        <div className="career-profile-mark" style={{ background: nation.color, borderColor: nation.accent }}>{nation.code}</div>
+        <div className="career-profile-copy"><span className="eyebrow">YOUR WARTIME CAREER</span><h3>{role.title}</h3><p>TIER {role.tier} · {role.scope} · {role.expectation}</p></div>
+        <div className="career-meters">
+          <div><span>평판</span><ProgressBar value={career.reputation} tone="gold" thin /><strong>{career.reputation}</strong></div>
+          <div><span>지도부 신임</span><ProgressBar value={career.councilTrust} tone={career.councilTrust > 55 ? 'green' : 'axis'} thin /><strong>{career.councilTrust}</strong></div>
+          <div><span>{role.tier === 1 ? '역사적 유산' : '승진 심사'}</span><ProgressBar value={role.tier === 1 ? career.legacy : career.experience} thin /><strong>{role.tier === 1 ? career.legacy : career.experience}%</strong></div>
+        </div>
+        <div className="career-paths">
+          <span>{selectedPath ? '채택한 국가 진로' : '대체역사 국가 진로를 선택하십시오'}</span>
+          {nation.paths.map((path) => (
+            <button key={path.id} className={career.alternatePathId === path.id ? 'selected' : ''} disabled={Boolean(career.alternatePathId)} onClick={() => onChoosePath(path.id)}>
+              <strong>{path.title}</strong><small>{path.effect}</small>
+            </button>
+          ))}
+        </div>
+      </section>
+
       <section className="deck-section front-overview">
-        <div className="deck-section-heading"><div><span className="eyebrow">THEATERS</span><h3>전구 현황</h3></div><em>{territories.filter((item) => item.controller === 'allies').length}/27 지역 통제</em></div>
+        <div className="deck-section-heading"><div><span className="eyebrow">THEATERS</span><h3>{activeTheater === 'asia' ? '아시아·태평양 전황' : '유럽·지중해 전황'}</h3></div><em>{theaterTerritories.filter((item) => item.controller === playerFaction).length}/{theaterTerritories.length} 지역 통제</em></div>
         <div className="front-list">
           {fronts.map((front) => (
             <div className="front-row" key={front.name}>
@@ -975,8 +1179,8 @@ function CommandPanel({ game, territories, divisions, orders, torchAuthorized, c
         <div className="operation-visual"><Anchor size={28} /><span>JOINT OPERATION</span></div>
         <div className="operation-body">
           <div className="classified">TOP SECRET · MOST IMMEDIATE</div>
-          <h3>횃불 작전</h3>
-          <p>미·영 연합군을 모로코와 알제리에 상륙시켜 북아프리카 추축군을 양쪽에서 압박합니다.</p>
+          <h3>{nation.majorOperation}</h3>
+          <p>{nation.majorOperationDetail}</p>
           <div className="operation-meta"><span><Clock3 size={13} /> 2주</span><span><Users size={13} /> 2개 사단</span><span><ShieldAlert size={13} /> 중간 위험</span></div>
           <button className={torchAuthorized ? 'approved' : ''} onClick={onAuthorizeTorch} disabled={torchAuthorized}>
             {torchAuthorized ? <><Check size={15} /> 작전 진행 중</> : <>작전 승인 <span>20 <Landmark size={12} /> · 10 CP</span></>}
@@ -994,11 +1198,11 @@ function CommandPanel({ game, territories, divisions, orders, torchAuthorized, c
           onClick={() => onDecision('bonds', '전시 채권 발행', 12, () => setGame((current) => ({ ...current, treasury: current.treasury + 240, stability: current.stability - 2 })))}
         />
         <DecisionCard
-          title="북아프리카 우선 보급"
+          title="전구 우선 보급"
           detail="전체 사단 보급 +12% · 연료 -18K"
           cost={16}
           done={completedDecisions.includes('supply')}
-          onClick={() => onDecision('supply', '북아프리카 우선 보급', 16, () => {
+          onClick={() => onDecision('supply', '전구 우선 보급', 16, () => {
             setDivisions((current) => current.map((division) => ({ ...division, supply: Math.min(100, division.supply + 12) })));
             setGame((current) => ({ ...current, fuel: Math.max(0, current.fuel - 18) }));
           })}
@@ -1033,11 +1237,12 @@ function DecisionCard({ title, detail, cost, done, onClick }: { title: string; d
   );
 }
 
-function ArmyPanel({ game, divisions, selectedDivision, selectedCommander, territories, orders, onSelectDivision, onIssueOffensive, onAssignCommander, onTrain }: {
+function ArmyPanel({ game, divisions, selectedDivision, selectedCommander, commanders, territories, orders, onSelectDivision, onIssueOffensive, onAssignCommander, onTrain }: {
   game: GameState;
   divisions: Division[];
   selectedDivision: Division;
-  selectedCommander: (typeof commanders)[number];
+  selectedCommander: Commander;
+  commanders: Commander[];
   territories: Territory[];
   orders: Order[];
   onSelectDivision: (id: string) => void;
@@ -1116,7 +1321,7 @@ function ArmyPanel({ game, divisions, selectedDivision, selectedCommander, terri
   );
 }
 
-function IndustryPanel({ production, stockpile, factories, onAdjust }: { production: ProductionLine[]; stockpile: Stockpile; factories: number; onAdjust: (id: string, amount: number) => void }) {
+function IndustryPanel({ production, stockpile, factories, activeTheater, onAdjust }: { production: ProductionLine[]; stockpile: Stockpile; factories: number; activeTheater: TheaterId; onAdjust: (id: string, amount: number) => void }) {
   const used = production.reduce((sum, line) => sum + line.assigned, 0);
   return (
     <div className="industry-layout">
@@ -1143,7 +1348,7 @@ function IndustryPanel({ production, stockpile, factories, onAdjust }: { product
           <div><span>야포</span><strong>{formatNumber(stockpile.artillery)}</strong><em className="good">+72/주</em></div>
           <div><span>트럭</span><strong>{formatNumber(stockpile.trucks)}</strong><em className="good">+110/주</em></div>
         </div>
-        <div className="convoy-warning"><AlertTriangle size={15} /><span><strong>대서양 수송 손실</strong>유보트 활동으로 수송 효율이 11% 감소했습니다.</span></div>
+        <div className="convoy-warning"><AlertTriangle size={15} /><span><strong>{activeTheater === 'asia' ? '태평양 수송 손실' : '대서양 수송 손실'}</strong>{activeTheater === 'asia' ? '잠수함과 장거리 항공대 활동으로 수송 효율이 9% 감소했습니다.' : '잠수함 활동으로 수송 효율이 11% 감소했습니다.'}</span></div>
       </section>
     </div>
   );
@@ -1220,13 +1425,15 @@ function DiplomacyPanel({ game, relations, setRelations, setGame, notify }: {
   );
 }
 
-function IntelligencePanel({ game, operations, setOperations, setGame, notify, addEvent }: {
+function IntelligencePanel({ game, operations, setOperations, setGame, notify, addEvent, nation, activeTheater }: {
   game: GameState;
   operations: CovertOperation[];
   setOperations: React.Dispatch<React.SetStateAction<CovertOperation[]>>;
   setGame: React.Dispatch<React.SetStateAction<GameState>>;
   notify: (message: string) => void;
   addEvent: (title: string, detail: string, tone: WarEvent['tone'], week: number) => void;
+  nation: NationProfile;
+  activeTheater: TheaterId;
 }) {
   const launchOperation = () => {
     if (game.politicalPower < 10) return notify('정보 작전에 필요한 정치력이 부족합니다.');
@@ -1251,9 +1458,9 @@ function IntelligencePanel({ game, operations, setOperations, setGame, notify, a
       </section>
       <section className="deck-section enigma-card">
         <div className="enigma-rings"><LockKeyhole size={28} /></div>
-        <span className="eyebrow">ULTRA · EYES ONLY</span>
-        <h3>에니그마 해독</h3>
-        <p>북아프리카 군단의 통신망을 추적하고 있습니다.</p>
+        <span className="eyebrow">{nation.code} SIGNALS · EYES ONLY</span>
+        <h3>전구 암호 해독</h3>
+        <p>{activeTheater === 'asia' ? '태평양 함대와 대륙군의 통신망을 추적하고 있습니다.' : '유럽과 지중해의 적 지휘망을 추적하고 있습니다.'}</p>
         <div className="decode-value">{Math.round(game.intelNetwork)}<small>%</small></div>
         <ProgressBar value={game.intelNetwork} tone="green" />
         <div className="intel-bonus"><Eye size={14} /> 적 보급량과 전투 계획 일부 공개</div>
@@ -1262,74 +1469,27 @@ function IntelligencePanel({ game, operations, setOperations, setGame, notify, a
   );
 }
 
-function BriefingModal({ doctrine, setDoctrine, hasSave, onStart, onContinue }: {
-  doctrine: 'coalition' | 'methodical' | 'maneuver';
-  setDoctrine: (value: 'coalition' | 'methodical' | 'maneuver') => void;
-  hasSave: boolean;
-  onStart: () => void;
-  onContinue: () => void;
-}) {
-  const choices = [
-    { id: 'coalition' as const, icon: <Handshake size={23} />, title: '대연합 전략', detail: '정치력 +16 · 안정도 +4%', quote: '동맹과 조율해 전 세계의 힘을 하나로 모읍니다.' },
-    { id: 'methodical' as const, icon: <Factory size={23} />, title: '물량과 준비', detail: '군수 공장 +3 · 강철 +13K', quote: '충분한 보급과 압도적 화력으로 확실히 전진합니다.' },
-    { id: 'maneuver' as const, icon: <Zap size={23} />, title: '기동전 교리', detail: '연료 +22K · 지휘 점수 +8', quote: '적이 대응하기 전에 전선을 돌파하고 포위합니다.' },
-  ];
-  return (
-    <div className="modal-backdrop">
-      <div className="briefing-modal" role="dialog" aria-modal="true" aria-labelledby="campaign-briefing-title">
-        <div className="briefing-image">
-          <div className="briefing-map-lines" />
-          <div className="briefing-stamp">MOST SECRET<br /><strong>BIGOT</strong></div>
-          <div className="briefing-quote">“이제 전쟁의 흐름을<br />바꿀 시간이 왔습니다.”</div>
-          <div className="briefing-signature">W. S. Churchill</div>
-        </div>
-        <div className="briefing-content">
-          <span className="eyebrow">ALLIED HIGH COMMAND · 25 OCT 1942</span>
-          <h1 id="campaign-briefing-title">지휘관님,<br />세계가 결단을 기다립니다.</h1>
-          <p className="briefing-lead">엘 알라메인에서 반격이 시작되었습니다. 동부에서는 스탈린그라드가 버티고 있고, 대서양 건너 미군은 첫 대규모 상륙전을 준비 중입니다. 북아프리카를 장악하고 유럽으로 돌아갈 길을 여십시오.</p>
-          <div className="campaign-objectives">
-            <div><i>01</i><span><strong>아프리카 확보</strong>리비아와 튀니지의 추축군 격파</span></div>
-            <div><i>02</i><span><strong>유럽 귀환</strong>시칠리아를 교두보로 남부 전선 개방</span></div>
-            <div><i>03</i><span><strong>대연합 유지</strong>연합국의 전쟁 지지와 보급망 관리</span></div>
-          </div>
-          <span className="choice-label">지휘 교리를 선택하십시오</span>
-          <div className="doctrine-choices">
-            {choices.map((choice) => (
-              <button key={choice.id} className={doctrine === choice.id ? 'selected' : ''} onClick={() => setDoctrine(choice.id)}>
-                <i>{choice.icon}</i><strong>{choice.title}</strong><span>{choice.detail}</span><small>{choice.quote}</small>
-                {doctrine === choice.id && <CheckCircle2 size={17} />}
-              </button>
-            ))}
-          </div>
-          <div className="briefing-actions">
-            {hasSave && <button className="continue-button" onClick={onContinue}><Save size={16} /> 저장된 캠페인 계속</button>}
-            <button className="start-button" onClick={onStart}><Play size={16} fill="currentColor" /> 최고사령부 입장</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CampaignOutcomeModal({ outcome, game, territories, onJournal, onRestart }: {
+function CampaignOutcomeModal({ outcome, game, territories, nation, playerFaction, onJournal, onRestart }: {
   outcome: Exclude<CampaignOutcome, null>;
   game: GameState;
   territories: Territory[];
+  nation: NationProfile;
+  playerFaction: Exclude<Faction, 'neutral'>;
   onJournal: () => void;
   onRestart: () => void;
 }) {
-  const alliedTerritories = territories.filter((territory) => territory.controller === 'allies').length;
+  const controlledTerritories = territories.filter((territory) => territory.controller === playerFaction).length;
   const isVictory = outcome === 'victory';
   return (
     <div className={'outcome-backdrop ' + outcome}>
       <section className="outcome-modal" role="dialog" aria-modal="true" aria-labelledby="campaign-outcome-title">
         <div className="outcome-seal">{isVictory ? <Star size={34} /> : <ShieldAlert size={34} />}</div>
-        <span className="eyebrow">ALLIED HIGH COMMAND · FINAL COMMUNIQUÉ</span>
-        <h1 id="campaign-outcome-title">{isVictory ? '유럽 해방의 길이 열렸습니다' : '전쟁 내각이 신임을 잃었습니다'}</h1>
-        <p>{isVictory ? '연합군은 전략적 주도권을 완전히 장악했습니다. 이제 추축국 본토를 향한 최후의 진격이 시작됩니다.' : '연합국의 전쟁 수행 능력이 임계점 아래로 떨어졌습니다. 작전 우선순위와 보급 체계를 재검토해야 합니다.'}</p>
+        <span className="eyebrow">{nation.code} NATIONAL COMMAND · FINAL COMMUNIQUÉ</span>
+        <h1 id="campaign-outcome-title">{isVictory ? nation.shortName + '이(가) 새로운 역사의 주도권을 잡았습니다' : '지도부가 당신의 해임을 결정했습니다'}</h1>
+        <p>{isVictory ? '원래 역사에는 없던 세력 균형이 탄생했습니다. 이제 당신이 선택한 국가 진로가 전후 세계의 규칙이 됩니다.' : '전쟁 수행 능력과 지도부 신임이 임계점 아래로 떨어졌습니다. 다음 커리어에서는 다른 보직과 국가 진로를 선택할 수 있습니다.'}</p>
         <div className="outcome-stats">
           <div><span>최종 전황</span><strong>{game.victoryScore}</strong></div>
-          <div><span>통제 지역</span><strong>{alliedTerritories}/27</strong></div>
+          <div><span>통제 지역</span><strong>{controlledTerritories}/{territories.length}</strong></div>
           <div><span>지휘 기간</span><strong>{game.week + 1}주</strong></div>
           <div><span>전쟁 지지도</span><strong>{game.warSupport}%</strong></div>
         </div>

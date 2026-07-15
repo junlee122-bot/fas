@@ -86,7 +86,7 @@ button:focus-visible,
   right: 0;
   height: 68px;
   display: grid;
-  grid-template-columns: 290px minmax(520px, 1fr) auto;
+  grid-template-columns: 390px minmax(480px, 1fr) auto;
   align-items: stretch;
   border-bottom: 1px solid var(--line-bright);
   background: linear-gradient(180deg, #18201e 0%, #111715 100%);
@@ -1617,11 +1617,182 @@ button:focus-visible,
 
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, -10px); } }
 
+.career-rank-chip {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-left: auto;
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+}
+
+.career-rank-chip small { font: 600 6px 'IBM Plex Mono', monospace; color: var(--gold); }
+.career-rank-chip strong { max-width: 112px; overflow: hidden; font-size: 7px; color: #aeb9b3; text-overflow: ellipsis; white-space: nowrap; }
+
+.theater-switch {
+  display: flex;
+  width: max-content;
+  margin: -3px 0 8px;
+  pointer-events: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(8, 13, 13, 0.72);
+}
+
+.theater-switch button {
+  height: 23px;
+  padding: 0 9px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  font: 600 6px 'IBM Plex Mono', monospace;
+  color: #75837d;
+  background: transparent;
+  cursor: pointer;
+}
+
+.theater-switch button:last-child { border-right: 0; }
+.theater-switch button.active { color: #ead39b; background: rgba(198, 168, 107, 0.12); }
+.owner-reading { fill: #d8c48f; letter-spacing: .08em; }
+
+.career-dossier {
+  grid-column: 1 / -1;
+  min-height: 118px;
+  display: grid;
+  grid-template-columns: 62px minmax(235px, .85fr) minmax(230px, .8fr) minmax(430px, 1.5fr);
+  align-items: center;
+  gap: 13px;
+  padding: 12px 14px;
+  border-color: rgba(198, 168, 107, 0.22);
+  background: linear-gradient(110deg, rgba(198, 168, 107, 0.06), rgba(55, 78, 77, 0.09) 48%, rgba(255, 255, 255, 0.012));
+}
+
+.career-profile-mark {
+  width: 54px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  font: 700 17px 'Oswald', sans-serif;
+  color: #f0e8d7;
+  border: 2px solid;
+  clip-path: polygon(50% 0, 96% 16%, 90% 78%, 50% 100%, 10% 78%, 4% 16%);
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, .4);
+}
+
+.career-profile-copy h3 { margin: 2px 0 4px; font: 500 17px 'Oswald', 'Noto Sans KR', sans-serif; color: #e5e1d7; }
+.career-profile-copy p { margin: 0; font-size: 7px; line-height: 1.55; color: var(--muted); }
+.career-meters { display: grid; gap: 8px; padding: 0 13px; border-right: 1px solid var(--line); border-left: 1px solid var(--line); }
+.career-meters > div { display: grid; grid-template-columns: 62px 1fr 27px; align-items: center; gap: 7px; }
+.career-meters span { font-size: 7px; color: #8f9c95; }
+.career-meters strong { font: 600 8px 'IBM Plex Mono', monospace; text-align: right; color: #d3d8d3; }
+.career-paths { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.career-paths > span { grid-column: 1 / -1; font: 600 6px 'IBM Plex Mono', monospace; color: var(--gold); letter-spacing: .08em; }
+.career-paths button { min-height: 52px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; padding: 7px 9px; text-align: left; border: 1px solid var(--line); color: #bbc4be; background: rgba(255,255,255,.018); cursor: pointer; }
+.career-paths button:hover:not(:disabled) { border-color: rgba(198, 168, 107, .42); background: rgba(198, 168, 107, .07); }
+.career-paths button.selected { border-color: rgba(110, 157, 127, .45); background: rgba(110, 157, 127, .08); }
+.career-paths button:disabled:not(.selected) { opacity: .32; }
+.career-paths strong { font-size: 8px; }
+.career-paths small { font-size: 6px; color: var(--gold); }
+
+.campaign-setup-modal {
+  position: relative;
+  width: min(1180px, calc(100vw - 44px));
+  height: min(700px, calc(100vh - 44px));
+  min-height: 590px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+  border: 1px solid rgba(204, 190, 157, 0.38);
+  background:
+    linear-gradient(rgba(255,255,255,.012) 1px, transparent 1px) 0 0 / 100% 25px,
+    linear-gradient(145deg, #18211e, #111715 70%);
+  box-shadow: 0 36px 110px rgba(0,0,0,.78);
+  animation: briefing-in 480ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+.setup-header {
+  position: relative;
+  z-index: 2;
+  min-height: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  padding: 23px 30px 19px;
+  border-bottom: 1px solid var(--line-bright);
+  background: linear-gradient(90deg, rgba(198,168,107,.07), transparent 58%);
+}
+
+.setup-header h1 { margin: 4px 0 6px; font: 500 29px 'Oswald', 'Noto Sans KR', sans-serif; color: #eee9dd; letter-spacing: -.01em; }
+.setup-header p { max-width: 740px; margin: 0; font-size: 9px; line-height: 1.7; color: #8e9a93; }
+.setup-era { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid rgba(102, 146, 157, .25); color: #89b0b9; background: rgba(62, 104, 111, .08); }
+.setup-era span { display: flex; flex-direction: column; gap: 3px; font: 500 7px 'IBM Plex Mono', monospace; }
+.setup-era strong { font-size: 8px; color: #bed1d1; }
+
+.setup-body { position: relative; z-index: 2; min-height: 0; display: grid; grid-template-columns: 47% 53%; }
+.setup-body > section { min-width: 0; min-height: 0; overflow: auto; padding: 18px 23px; scrollbar-width: thin; }
+.setup-nations { border-right: 1px solid var(--line-bright); background: rgba(255,255,255,.008); }
+.setup-section-title { display: flex; align-items: center; gap: 9px; margin-bottom: 11px; }
+.setup-section-title > span { width: 25px; height: 25px; display: grid; place-items: center; font: 700 8px 'IBM Plex Mono', monospace; color: var(--gold); border: 1px solid rgba(198,168,107,.28); background: rgba(198,168,107,.06); }
+.setup-section-title > div { display: flex; flex-direction: column; gap: 2px; }
+.setup-section-title strong { font-size: 9px; color: #d4d9d4; }
+.setup-section-title small { font-size: 6px; color: var(--faint); }
+.setup-section-title.compact { margin-top: 13px; }
+
+.nation-choice-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.nation-choice-grid button { position: relative; min-height: 54px; display: grid; grid-template-columns: 34px 1fr; align-items: center; gap: 8px; padding: 6px 8px; text-align: left; border: 1px solid var(--line); color: #aeb8b2; background: rgba(255,255,255,.014); cursor: pointer; }
+.nation-choice-grid button:hover { border-color: var(--line-bright); background: rgba(255,255,255,.027); }
+.nation-choice-grid button.selected { border-color: rgba(198,168,107,.48); background: linear-gradient(140deg, rgba(198,168,107,.1), rgba(198,168,107,.02)); }
+.nation-choice-grid button > i { width: 32px; height: 32px; display: grid; place-items: center; font: 700 9px 'IBM Plex Mono', monospace; color: #f0e8da; border: 1px solid; font-style: normal; }
+.nation-choice-grid button > span { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.nation-choice-grid strong { overflow: hidden; font-size: 8px; color: #d1d6d1; text-overflow: ellipsis; white-space: nowrap; }
+.nation-choice-grid small { font-size: 5px; color: var(--faint); }
+.nation-choice-grid button > svg { position: absolute; top: 4px; right: 4px; color: var(--gold-bright); }
+
+.nation-brief { margin-top: 10px; padding: 10px 12px; border-left: 3px solid; background: rgba(255,255,255,.018); }
+.nation-brief > div { display: flex; align-items: center; gap: 9px; }
+.nation-brief > div > i { width: 29px; height: 29px; display: grid; place-items: center; font: 700 8px 'IBM Plex Mono', monospace; color: #eee7d9; font-style: normal; }
+.nation-brief span { display: flex; flex-direction: column; gap: 2px; }
+.nation-brief strong { font-size: 9px; color: #d6d9d4; }
+.nation-brief small { font-size: 6px; color: var(--gold); }
+.nation-brief p { margin: 7px 0 0; font-size: 7px; line-height: 1.6; color: var(--muted); }
+
+.role-choice-list { display: grid; gap: 6px; }
+.role-choice-list button { position: relative; min-height: 62px; display: grid; grid-template-columns: 36px 1fr auto; align-items: center; gap: 10px; padding: 8px 10px; text-align: left; border: 1px solid var(--line); color: #9da9a2; background: rgba(255,255,255,.013); cursor: pointer; }
+.role-choice-list button:hover { border-color: var(--line-bright); background: rgba(255,255,255,.027); }
+.role-choice-list button.selected { border-color: rgba(198,168,107,.5); background: linear-gradient(90deg, rgba(198,168,107,.1), rgba(198,168,107,.02)); }
+.role-choice-list button > i { width: 34px; height: 34px; display: grid; place-items: center; color: var(--gold); border: 1px solid rgba(198,168,107,.2); background: rgba(198,168,107,.05); }
+.role-choice-list button > span { display: flex; flex-direction: column; gap: 3px; }
+.role-choice-list span small { font: 600 6px 'IBM Plex Mono', monospace; color: var(--gold); }
+.role-choice-list span strong { font-size: 9px; color: #d3d7d3; }
+.role-choice-list span em { font-size: 6px; color: var(--faint); }
+.role-tier { font: 500 9px 'IBM Plex Mono', monospace; color: var(--gold); letter-spacing: .08em; }
+.career-ladder-note { display: flex; align-items: center; gap: 9px; margin-top: 8px; padding: 8px 10px; color: #78a6af; border: 1px solid rgba(88,139,149,.2); background: rgba(72,124,133,.06); }
+.career-ladder-note span { display: flex; flex-direction: column; gap: 2px; font-size: 6px; line-height: 1.45; color: #758983; }
+.career-ladder-note strong { font-size: 7px; color: #a9c1c1; }
+
+.setup-doctrines { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.setup-doctrines button { min-height: 48px; display: flex; align-items: center; gap: 7px; padding: 7px 8px; text-align: left; border: 1px solid var(--line); color: #85938c; background: rgba(255,255,255,.012); cursor: pointer; }
+.setup-doctrines button.selected { color: var(--gold-bright); border-color: rgba(198,168,107,.46); background: rgba(198,168,107,.08); }
+.setup-doctrines button > span { display: flex; flex-direction: column; gap: 2px; }
+.setup-doctrines strong { font-size: 7px; color: #cbd1cc; }
+.setup-doctrines small { font-size: 5px; color: var(--faint); }
+
+.setup-footer { position: relative; z-index: 2; min-height: 67px; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 23px; border-top: 1px solid var(--line-bright); background: #121916; }
+.alternate-history-promise { display: flex; align-items: center; gap: 9px; color: var(--gold); }
+.alternate-history-promise span { display: flex; flex-direction: column; gap: 2px; font-size: 6px; color: #7f8d86; }
+.alternate-history-promise strong { font-size: 7px; color: #c5b58e; }
+.setup-actions { display: flex; gap: 7px; }
+.setup-actions button { height: 38px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 16px; border: 1px solid var(--line-bright); font-size: 8px; color: #aab4ae; background: rgba(255,255,255,.025); cursor: pointer; }
+.setup-actions button:hover { filter: brightness(1.1); }
+.setup-actions .start-button { min-width: 165px; color: #151914; border-color: var(--gold); background: linear-gradient(180deg, #d4b975, #a8884c); }
+.setup-watermark { position: absolute; right: -36px; bottom: -55px; z-index: 0; color: rgba(198,168,107,.025); pointer-events: none; }
+
 @media (max-width: 1360px) {
   .resource-chip { min-width: 80px; padding: 0 8px; }
   .resource-icon { width: 23px; height: 23px; }
   .resource-chip:nth-last-child(-n+2) { display: none; }
-  .topbar { grid-template-columns: 270px minmax(400px, 1fr) auto; }
+  .topbar { grid-template-columns: 320px minmax(400px, 1fr) auto; }
+  .career-rank-chip { display: none; }
   .war-room { grid-template-columns: minmax(700px, 1fr) 285px; }
   .intel-panel { padding: 14px 12px 20px; }
 }
@@ -1636,6 +1807,15 @@ button:focus-visible,
   .dispatches { margin-top: 9px; }
   .briefing-modal { min-height: 570px; }
   .briefing-content { padding-top: 27px; padding-bottom: 22px; }
+  .campaign-setup-modal { min-height: 0; }
+  .setup-header { min-height: 94px; padding-top: 16px; padding-bottom: 14px; }
+  .setup-header h1 { font-size: 25px; }
+  .setup-body > section { padding-top: 13px; padding-bottom: 13px; }
+  .nation-choice-grid button { min-height: 48px; }
+  .role-choice-list button { min-height: 50px; padding-top: 5px; padding-bottom: 5px; }
+  .career-ladder-note { margin-top: 5px; padding-top: 5px; padding-bottom: 5px; }
+  .setup-section-title.compact { margin-top: 7px; margin-bottom: 7px; }
+  .setup-doctrines button { min-height: 40px; padding-top: 5px; padding-bottom: 5px; }
 }
 
 @media (max-height: 680px) {

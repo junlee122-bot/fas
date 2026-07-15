@@ -1,4 +1,4 @@
-import type { Commander, Division, ProductionLine, Territory } from './types';
+import type { Commander, Division, Faction, ProductionLine, Territory, TheaterId } from './types';
 
 export interface ProductionGains {
   infantryEquipment: number;
@@ -30,10 +30,16 @@ export function selectThreatenedTerritory(
   territories: Territory[],
   divisions: Division[],
   excludedTargetId?: string,
+  defendedFaction: Exclude<Faction, 'neutral'> = 'allies',
+  theater: TheaterId = 'europe',
 ) {
   return territories
-    .filter((territory) => territory.controller === 'allies' && territory.id !== excludedTargetId)
-    .filter((territory) => territory.neighbors.some((neighborId) => territories.find((item) => item.id === neighborId)?.controller === 'axis'))
+    .filter((territory) => territory.controller === defendedFaction && territory.id !== excludedTargetId)
+    .filter((territory) => (territory.theater ?? 'europe') === theater)
+    .filter((territory) => territory.neighbors.some((neighborId) => {
+      const neighbor = territories.find((item) => item.id === neighborId);
+      return neighbor?.controller !== defendedFaction && neighbor?.controller !== 'neutral';
+    }))
     .sort((left, right) => {
       const leftDefense = divisions.filter((division) => division.territoryId === left.id).reduce((sum, division) => sum + division.strength, 0) + left.supply;
       const rightDefense = divisions.filter((division) => division.territoryId === right.id).reduce((sum, division) => sum + division.strength, 0) + right.supply;

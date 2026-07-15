@@ -2,6 +2,10 @@ export type Faction = 'allies' | 'axis' | 'neutral';
 export type DivisionType = 'infantry' | 'armor' | 'airborne' | 'marine';
 export type GameTab = 'command' | 'army' | 'industry' | 'research' | 'diplomacy' | 'intelligence';
 export type MapLayer = 'political' | 'supply' | 'weather' | 'intelligence';
+export type TheaterId = 'europe' | 'asia';
+export type NationId = 'britain' | 'usa' | 'ussr' | 'germany' | 'japan' | 'china' | 'india' | 'freefrance' | 'italy';
+export type CareerBranch = 'military' | 'politics' | 'intelligence';
+export type CareerTier = 1 | 2 | 3;
 
 export interface Territory {
   id: string;
@@ -14,6 +18,58 @@ export interface Territory {
   supply: number;
   terrain: string;
   neighbors: string[];
+  theater?: TheaterId;
+  ownerId?: NationId;
+}
+
+export interface AlternatePath {
+  id: string;
+  title: string;
+  summary: string;
+  effect: string;
+  tone: 'reform' | 'hardline' | 'international';
+}
+
+export interface NationProfile {
+  id: NationId;
+  name: string;
+  shortName: string;
+  code: string;
+  alignment: Exclude<Faction, 'neutral'>;
+  color: string;
+  accent: string;
+  defaultTheater: TheaterId;
+  capitalTerritoryId: string;
+  strategicTargets: string[];
+  summary: string;
+  challenge: string;
+  majorOperation: string;
+  majorOperationDetail: string;
+  formations: [string, string, string];
+  equipment: [string, string, string, string];
+  modifiers: Partial<GameState>;
+  paths: AlternatePath[];
+}
+
+export interface CareerRole {
+  id: string;
+  nationId: NationId;
+  title: string;
+  branch: CareerBranch;
+  tier: CareerTier;
+  scope: string;
+  authority: number;
+  expectation: string;
+}
+
+export interface CareerState {
+  nationId: NationId;
+  roleId: string;
+  reputation: number;
+  councilTrust: number;
+  experience: number;
+  legacy: number;
+  alternatePathId: string | null;
 }
 
 export interface Commander {
