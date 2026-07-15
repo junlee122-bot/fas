@@ -1246,6 +1246,14 @@ button:focus-visible,
 .condition-row { display: grid; grid-template-columns: 43px 1fr 25px; align-items: center; gap: 6px; margin: 5px 9px; }
 .condition-row span { font-size: 6px; color: var(--faint); }
 .condition-row strong { font: 500 6px 'IBM Plex Mono', monospace; color: var(--muted); }
+.commander-actions { display: grid; grid-template-columns: minmax(140px, 1fr) 96px; gap: 6px; margin: 8px; padding-top: 7px; border-top: 1px solid var(--line); }
+.commander-actions label { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.commander-actions label > span { font-size: 6px; color: var(--faint); }
+.commander-actions select { width: 100%; height: 28px; padding: 0 6px; border: 1px solid var(--line); border-radius: 0; font-size: 7px; color: #cbd1cd; background: #151d1a; }
+.commander-actions button { height: 28px; align-self: end; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 0 6px; border: 1px solid rgba(198, 168, 107, 0.28); font-size: 6px; color: var(--gold-bright); background: rgba(198, 168, 107, 0.06); cursor: pointer; }
+.commander-actions button:hover { background: rgba(198, 168, 107, 0.12); }
+.commander-actions button:disabled { opacity: 0.35; cursor: not-allowed; }
+.commander-actions button em { font: 500 5px 'IBM Plex Mono', monospace; color: var(--gold); }
 
 .industry-layout { display: grid; grid-template-columns: minmax(700px, 2fr) minmax(330px, 0.9fr); gap: 10px; min-width: 1060px; }
 .factory-summary { display: grid; grid-template-columns: 30px 90px 1fr; align-items: center; gap: 8px; margin: 6px 10px; padding: 6px 8px; color: var(--gold); border: 1px solid rgba(198, 168, 107, 0.18); background: rgba(198, 168, 107, 0.04); }
@@ -1463,6 +1471,42 @@ button:focus-visible,
   background: rgba(4, 7, 6, 0.58);
   backdrop-filter: blur(2px);
 }
+
+.outcome-backdrop {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(4, 8, 7, 0.86);
+  backdrop-filter: blur(8px);
+}
+
+.outcome-modal {
+  width: min(620px, 90vw);
+  padding: 34px 38px 30px;
+  text-align: center;
+  border: 1px solid rgba(198, 168, 107, 0.36);
+  background: linear-gradient(145deg, #1b2420, #111815);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.7);
+  animation: briefing-in 420ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.outcome-backdrop.defeat .outcome-modal { border-color: rgba(169, 95, 81, 0.42); }
+.outcome-seal { width: 68px; height: 68px; display: grid; place-items: center; margin: 0 auto 16px; color: var(--gold-bright); border: 1px solid rgba(198, 168, 107, 0.38); border-radius: 50%; background: rgba(198, 168, 107, 0.08); box-shadow: 0 0 0 7px rgba(198, 168, 107, 0.035); }
+.outcome-backdrop.defeat .outcome-seal { color: var(--axis-bright); border-color: rgba(169, 95, 81, 0.42); background: rgba(169, 95, 81, 0.08); }
+.outcome-modal h1 { margin: 7px 0 10px; font: 500 29px 'Oswald', 'Noto Sans KR', sans-serif; color: #eeeae0; }
+.outcome-modal > p { max-width: 470px; margin: 0 auto; font-size: 9px; line-height: 1.75; color: var(--muted); }
+.outcome-stats { display: grid; grid-template-columns: repeat(4, 1fr); margin: 24px 0 22px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.outcome-stats > div { display: flex; flex-direction: column; gap: 4px; padding: 13px 8px; border-right: 1px solid var(--line); }
+.outcome-stats > div:last-child { border-right: 0; }
+.outcome-stats span { font-size: 6px; color: var(--faint); }
+.outcome-stats strong { font: 600 15px 'Oswald', sans-serif; color: #d8dcd6; }
+.outcome-actions { display: flex; justify-content: center; gap: 8px; }
+.outcome-actions button { height: 36px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 15px; border: 1px solid var(--line-bright); font-size: 8px; color: #aeb8b2; background: rgba(255, 255, 255, 0.025); cursor: pointer; }
+.outcome-actions button:hover { color: #e2e4df; background: rgba(255, 255, 255, 0.05); }
+.outcome-actions button.primary { color: #171a15; border-color: var(--gold); background: linear-gradient(180deg, #d3b773, #a9894e); }
 
 .war-journal { width: 420px; height: 100%; display: flex; flex-direction: column; border-left: 1px solid var(--line-bright); background: #141b19; box-shadow: -20px 0 60px rgba(0, 0, 0, 0.5); animation: journal-in 260ms ease both; }
 @keyframes journal-in { from { transform: translateX(100%); } }

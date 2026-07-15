@@ -66,6 +66,17 @@ export interface ProductionLine {
   icon: string;
 }
 
+export interface Stockpile {
+  infantryEquipment: number;
+  tanks: number;
+  aircraft: number;
+  convoys: number;
+  artillery: number;
+  trucks: number;
+}
+
+export type CampaignOutcome = 'victory' | 'defeat' | null;
+
 export interface WarEvent {
   id: number;
   week: number;
@@ -93,4 +104,8 @@ export interface GameState {
   commandPoints: number;
   treasury: number;
   victoryScore: number;
+  airPower: number;
+  navalPower: number;
+  intelNetwork: number;
+  enemyPressure: number;
 }
