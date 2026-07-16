@@ -8,6 +8,8 @@ import type {
   NationId,
   NationProfile,
   ProductionLine,
+  StaffCandidate,
+  StaffMember,
   TheaterId,
 } from './types';
 
@@ -131,6 +133,26 @@ const startingPositions: Record<NationId, [string, string, string]> = {
   india: ['india', 'assam', 'ceylon'], freefrance: ['levant', 'britain', 'malta'], italy: ['italy', 'sicily', 'libya'],
 };
 
+const staffNames: Record<NationId, [string, string, string, string, string, string, string, string, string, string]> = {
+  britain: ['Arthur Pembroke', 'Eleanor Finch', 'Thomas Reed', 'William Carter', 'Henry Ashford', 'James Harrington', 'Margaret Shaw', 'Charles Webb', 'George Sinclair', 'Edward Blake'],
+  usa: ['Robert Hale', 'Evelyn Brooks', 'Thomas Mercer', 'William Grant', 'Helen Foster', 'James Walker', 'Laura Bennett', 'George Reed', 'Frank Dawson', 'Alice Morgan'],
+  ussr: ['Alexei Voronin', 'Irina Sokolova', 'Mikhail Orlov', 'Viktor Belov', 'Nina Petrova', 'Sergei Lebedev', 'Elena Morozova', 'Pavel Antonov', 'Boris Volkov', 'Vera Kuznetsova'],
+  germany: ['Friedrich Keller', 'Anna Weiss', 'Otto Brandt', 'Karl Neumann', 'Elsa Richter', 'Wilhelm Hartmann', 'Greta Vogel', 'Hans Becker', 'Ernst Kruger', 'Marta Hoffmann'],
+  japan: ['Masao Takeda', 'Aiko Fujimori', 'Kenji Mori', 'Hiroshi Okada', 'Reiko Ishida', 'Taro Nishimura', 'Yumi Kato', 'Akira Endo', 'Shigeru Sato', 'Emiko Hayashi'],
+  china: ['Lin Zhiyuan', 'Chen Rui', 'Zhao Ming', 'Liu Wen', 'Wu Lan', 'Xu Jian', 'He Fang', 'Guo Peng', 'Deng Yun', 'Sun Qiao'],
+  india: ['Arjun Mehta', 'Leela Rao', 'Vikram Singh', 'Farah Khan', 'Dev Patel', 'Maya Iyer', 'Rohan Das', 'Nisha Bose', 'Kabir Sen', 'Anita Nair'],
+  freefrance: ['Luc Moreau', 'Claire Dubois', 'Henri Laurent', 'Elise Bernard', 'Marcel Girard', 'Pierre Lambert', 'Jeanne Roux', 'Alain Fournier', 'Sophie Marchand', 'Rene Valois'],
+  italy: ['Carlo Venturi', 'Sofia Bianchi', 'Marco De Luca', 'Lucia Romano', 'Enzo Ferri', 'Giovanni Conti', 'Elena Rossi', 'Paolo Greco', 'Bianca Marino', 'Matteo Ricci'],
+};
+
+const staffDepartments: Array<Pick<StaffMember, 'id' | 'role' | 'department' | 'specialty'>> = [
+  { id: 'chief-operations', role: '작전참모장', department: 'operations', specialty: '전구 계획 · 상대 분석' },
+  { id: 'chief-logistics', role: '군수총감', department: 'logistics', specialty: '보급망 · 수송 손실 관리' },
+  { id: 'chief-armaments', role: '무기조달국장', department: 'armaments', specialty: '생산 계약 · 장비 표준화' },
+  { id: 'chief-personnel', role: '인사·훈련국장', department: 'personnel', specialty: '지휘관 육성 · 부대 사기' },
+  { id: 'political-liaison', role: '정치연락관', department: 'political', specialty: '지도부 신임 · 예산 협상' },
+];
+
 export function getNation(id: NationId) {
   return nations.find((nation) => nation.id === id) ?? nations[0];
 }
@@ -159,6 +181,50 @@ export function createCareerCommanders(nation: NationProfile, role: CareerRole):
     { id: 'staff-alpha', name: nation.shortName + ' 작전참모단', rank: '선임 참모진', initials: 'A1', color: '#69766f', command: 75, attack: 78, defense: 72, logistics: 76, trait: '전구 실무', specialty: '공세 계획 · 조정', fatigue: 24, loyalty: 82 },
     { id: 'staff-beta', name: nation.shortName + ' 군수참모단', rank: '전구 참모진', initials: 'L2', color: '#786f5d', command: 71, attack: 66, defense: 77, logistics: 89, trait: '보급 우선', specialty: '군수 · 회복', fatigue: 17, loyalty: 86 },
   ];
+}
+
+export function createStaffRoster(nationId: NationId): StaffMember[] {
+  const nation = getNation(nationId);
+  const names = staffNames[nationId];
+  return staffDepartments.map((department, index) => {
+    const ability = 68 + ((nation.code.charCodeAt(0) + index * 7) % 19);
+    return {
+      ...department,
+      name: names[index],
+      candidateName: names[index + 5],
+      ability,
+      potential: Math.min(99, ability + 7 + (index % 3)),
+      loyalty: 64 + ((nation.code.charCodeAt(1) + index * 5) % 24),
+      workload: 31 + index * 8,
+      weeklyCost: 4 + Math.floor(ability / 20),
+      delegated: index < 2,
+      grade: index === 0 ? 2 : 1,
+      development: 24 + index * 16,
+    };
+  });
+}
+
+export function createStaffCandidates(nationId: NationId): StaffCandidate[] {
+  const nation = getNation(nationId);
+  const names = staffNames[nationId];
+  return staffDepartments.map((department, index) => {
+    const ability = 64 + ((nation.code.charCodeAt(1) + index * 9) % 22);
+    return {
+      id: nationId + '-candidate-' + department.department,
+      name: names[index + 5],
+      role: department.role,
+      department: department.department,
+      ability,
+      potential: Math.min(99, ability + 8 + (index % 4)),
+      loyalty: 52 + ((nation.code.charCodeAt(0) + index * 7) % 34),
+      weeklyCost: 5 + Math.floor(ability / 18),
+      signingCost: 42 + ability,
+      interest: 48 + ((nation.code.charCodeAt(0) + index * 11) % 38),
+      knowledge: 15 + index * 8,
+      status: 'unscouted',
+      specialty: department.specialty,
+    };
+  });
 }
 
 export function createCampaignDivisions(nation: NationProfile): Division[] {

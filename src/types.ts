@@ -1,11 +1,14 @@
 export type Faction = 'allies' | 'axis' | 'neutral';
 export type DivisionType = 'infantry' | 'armor' | 'airborne' | 'marine';
-export type GameTab = 'command' | 'army' | 'industry' | 'research' | 'diplomacy' | 'intelligence';
+export type GameTab = 'command' | 'organization' | 'army' | 'industry' | 'research' | 'diplomacy' | 'intelligence';
 export type MapLayer = 'political' | 'supply' | 'weather' | 'intelligence';
 export type TheaterId = 'europe' | 'asia';
 export type NationId = 'britain' | 'usa' | 'ussr' | 'germany' | 'japan' | 'china' | 'india' | 'freefrance' | 'italy';
 export type CareerBranch = 'military' | 'politics' | 'intelligence';
 export type CareerTier = 1 | 2 | 3;
+export type SupplyPolicy = 'balanced' | 'frontline' | 'reserve';
+export type StaffDepartment = 'operations' | 'logistics' | 'armaments' | 'personnel' | 'political';
+export type PolicyDomain = 'economy' | 'doctrine' | 'society' | 'diplomacy';
 
 export interface Territory {
   id: string;
@@ -70,6 +73,82 @@ export interface CareerState {
   experience: number;
   legacy: number;
   alternatePathId: string | null;
+}
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  candidateName: string;
+  role: string;
+  department: StaffDepartment;
+  ability: number;
+  potential: number;
+  loyalty: number;
+  workload: number;
+  weeklyCost: number;
+  specialty: string;
+  delegated: boolean;
+  grade: 1 | 2 | 3;
+  development: number;
+}
+
+export type StaffCandidateStatus = 'unscouted' | 'scouting' | 'shortlisted' | 'signed';
+
+export interface StaffCandidate {
+  id: string;
+  name: string;
+  role: string;
+  department: StaffDepartment;
+  ability: number;
+  potential: number;
+  loyalty: number;
+  weeklyCost: number;
+  signingCost: number;
+  interest: number;
+  knowledge: number;
+  status: StaffCandidateStatus;
+  specialty: string;
+}
+
+export interface StrategicPolicy {
+  id: string;
+  domain: PolicyDomain;
+  title: string;
+  description: string;
+  effect: string;
+  attackBonus?: number;
+  defenseBonus?: number;
+  productionMultiplier?: number;
+  supplyRecovery?: number;
+  gameDelta: Partial<Record<keyof GameState, number>>;
+}
+
+export interface CouncilChoiceEffect {
+  gameDelta?: Partial<Record<keyof GameState, number>>;
+  divisionSupply?: number;
+  divisionOrganization?: number;
+  productionEfficiency?: number;
+  relationChange?: number;
+  careerReputation?: number;
+  careerTrust?: number;
+  enemyTerritorySupply?: number;
+}
+
+export interface CouncilChoice {
+  id: string;
+  title: string;
+  description: string;
+  result: string;
+  effect: CouncilChoiceEffect;
+}
+
+export interface CouncilEvent {
+  id: string;
+  title: string;
+  category: string;
+  briefing: string;
+  stakes: string;
+  choices: [CouncilChoice, CouncilChoice, CouncilChoice];
 }
 
 export interface Commander {

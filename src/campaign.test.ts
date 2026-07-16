@@ -5,6 +5,8 @@ import {
   createCampaignProduction,
   createCareerState,
   createDiplomaticRelations,
+  createStaffRoster,
+  createStaffCandidates,
   getNation,
   nations,
 } from './campaign';
@@ -38,6 +40,23 @@ describe('alternate-history career setup', () => {
     const career = createCareerState('china', 'china-tier3');
     expect(career.experience).toBeLessThan(100);
     expect(career.reputation).toBeLessThan(createCareerState('china', 'china-tier1').reputation);
+  });
+
+  it('builds a complete nation-specific backroom staff team', () => {
+    nations.forEach((nation) => {
+      const staff = createStaffRoster(nation.id);
+      expect(staff).toHaveLength(5);
+      expect(new Set(staff.map((member) => member.department)).size).toBe(5);
+      expect(new Set(staff.flatMap((member) => [member.name, member.candidateName])).size).toBe(10);
+      staff.forEach((member) => {
+        expect(member.potential).toBeGreaterThanOrEqual(member.ability);
+        expect(member.loyalty).toBeGreaterThan(0);
+      });
+      const candidates = createStaffCandidates(nation.id);
+      expect(candidates).toHaveLength(5);
+      expect(new Set(candidates.map((candidate) => candidate.department)).size).toBe(5);
+      candidates.forEach((candidate) => expect(candidate.knowledge).toBeLessThan(100));
+    });
   });
 });
 

@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   Anchor,
   BookOpen,
+  BriefcaseBusiness,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -63,7 +64,10 @@ import type {
   NationProfile,
   ProductionLine,
   ResearchProject,
+  StaffCandidate,
+  StaffMember,
   Stockpile,
+  SupplyPolicy,
   Territory,
   TheaterId,
   WarEvent,
@@ -78,10 +82,15 @@ import {
   createCareerState,
   createCovertOperations,
   createDiplomaticRelations,
+  createStaffRoster,
+  createStaffCandidates,
   getNation,
   getRole,
 } from './campaign';
 import { CampaignSetup } from './CampaignSetup';
+import { OrganizationPanel } from './OrganizationPanel';
+import { CouncilEventModal } from './CouncilEventModal';
+import { councilEvents, strategicPolicies } from './choices';
 
 const SAVE_KEY = 'iron-dominion-campaign-v1';
 const DEFAULT_NATION_ID: NationId = 'britain';
@@ -138,6 +147,22 @@ const typeMeta = {
 };
 
 const formatNumber = (value: number) => new Intl.NumberFormat('ko-KR').format(Math.max(0, Math.round(value)));
+
+const percentageGameFields = new Set<keyof GameState>([
+  'stability', 'warSupport', 'commandPoints', 'victoryScore', 'airPower', 'navalPower', 'intelNetwork', 'enemyPressure',
+]);
+
+function applyGameDelta(current: GameState, delta: Partial<Record<keyof GameState, number>> = {}) {
+  const next = { ...current };
+  const numeric = next as unknown as Record<string, number>;
+  Object.entries(delta).forEach(([key, amount]) => {
+    if (typeof amount !== 'number') return;
+    const typedKey = key as keyof GameState;
+    const updated = numeric[key] + amount;
+    numeric[key] = percentageGameFields.has(typedKey) ? Math.max(0, Math.min(100, updated)) : Math.max(0, updated);
+  });
+  return next;
+}
 
 function getCampaignDate(week: number) {
   const date = new Date(Date.UTC(1942, 9, 25 + week * 7));
@@ -198,6 +223,15 @@ export function App() {
   const [setupRoleId, setSetupRoleId] = useState(DEFAULT_ROLE_ID);
   const [career, setCareer] = useState<CareerState>(() => createCareerState(DEFAULT_NATION_ID, DEFAULT_ROLE_ID));
   const [activeTheater, setActiveTheater] = useState<TheaterId>('europe');
+  const [staff, setStaff] = useState<StaffMember[]>(() => createStaffRoster(DEFAULT_NATION_ID));
+  const [staffCandidates, setStaffCandidates] = useState<StaffCandidate[]>(() => createStaffCandidates(DEFAULT_NATION_ID));
+  const [developmentFocusId, setDevelopmentFocusId] = useState<string | null>(null);
+  const [supplyPolicy, setSupplyPolicy] = useState<SupplyPolicy>('balanced');
+  const [procurementFocusId, setProcurementFocusId] = useState<string | null>('rifle');
+  const [priorityDivisionId, setPriorityDivisionId] = useState(defaultDivisions[0].id);
+  const [selectedPolicies, setSelectedPolicies] = useState<string[]>([]);
+  const [pendingCouncilEventId, setPendingCouncilEventId] = useState<string | null>(null);
+  const [resolvedCouncilChoices, setResolvedCouncilChoices] = useState<string[]>([]);
   const toastTimerRef = useRef<number | null>(null);
 
   const playerNation = getNation(career.nationId);
@@ -205,6 +239,14 @@ export function App() {
   const playerFaction = playerNation.alignment;
   const enemyFaction: Exclude<Faction, 'neutral'> = playerFaction === 'allies' ? 'axis' : 'allies';
   const careerCommanders = useMemo(() => createCareerCommanders(playerNation, careerRole), [careerRole, playerNation]);
+  const activePolicies = useMemo(() => strategicPolicies.filter((policy) => selectedPolicies.includes(policy.id)), [selectedPolicies]);
+  const policyAttackBonus = activePolicies.reduce((total, policy) => total + (policy.attackBonus ?? 0), 0);
+  const policyDefenseBonus = activePolicies.reduce((total, policy) => total + (policy.defenseBonus ?? 0), 0);
+  const policyProductionMultiplier = activePolicies.reduce((total, policy) => total * (policy.productionMultiplier ?? 1), 1);
+  const policySupplyRecovery = activePolicies.reduce((total, policy) => total + (policy.supplyRecovery ?? 0), 0);
+  const delegatedDepartments = useMemo(() => new Set(staff.filter((member) => member.delegated).map((member) => member.department)), [staff]);
+  const staffWeeklyCost = staff.reduce((total, member) => total + member.weeklyCost, 0);
+  const pendingCouncilEvent = councilEvents.find((event) => event.id === pendingCouncilEventId) ?? null;
   const theaterTerritories = useMemo(
     () => territories.filter((territory) => (territory.theater ?? 'europe') === activeTheater),
     [activeTheater, territories],
@@ -260,7 +302,8 @@ export function App() {
           notify(division.name + '이(가) ' + target.name + '에 합류했습니다.');
         } else {
           const doctrineBonus = doctrine === 'maneuver' && division.type === 'armor' ? 14 : doctrine === 'methodical' ? 7 : 4;
-          const attackPower = division.strength * 0.52 + division.organization * 0.25 + commander.attack * 0.2 + doctrineBonus + Math.random() * 22;
+          const priorityBonus = division.id === priorityDivisionId ? 5 : 0;
+          const attackPower = division.strength * 0.52 + division.organization * 0.25 + commander.attack * 0.2 + doctrineBonus + policyAttackBonus + priorityBonus + Math.random() * 22;
           const defensePower = 57 + target.value * 2.8 + (target.terrain === '산악' || target.terrain === '요새' ? 18 : 0) + Math.random() * 24;
           const victory = attackPower >= defensePower;
           if (victory) {
@@ -294,13 +337,21 @@ export function App() {
     }
 
     setDivisions((current) => current.map((division) => {
-      if (division.status !== 'recovering') return division;
-      const recoveredOrganization = Math.min(100, division.organization + 11);
+      const isPriority = division.id === priorityDivisionId;
+      const personnelBonus = delegatedDepartments.has('personnel') ? 1 : 0;
+      const logisticsBonus = delegatedDepartments.has('logistics') ? 1 : 0;
+      if (division.status !== 'recovering') {
+        if (supplyPolicy === 'frontline' && (division.status === 'moving' || division.status === 'combat')) {
+          return { ...division, supply: Math.min(100, division.supply + 3 + logisticsBonus) };
+        }
+        return isPriority ? { ...division, organization: Math.min(100, division.organization + 1), supply: Math.min(100, division.supply + 1) } : division;
+      }
+      const recoveredOrganization = Math.min(100, division.organization + 11 + personnelBonus + (isPriority ? 2 : 0));
       return {
         ...division,
         organization: recoveredOrganization,
-        strength: Math.min(100, division.strength + 2),
-        supply: Math.min(100, division.supply + 4),
+        strength: Math.min(100, division.strength + 2 + (supplyPolicy === 'reserve' ? 1 : 0)),
+        supply: Math.min(100, division.supply + 4 + policySupplyRecovery + logisticsBonus + (supplyPolicy === 'reserve' ? 2 : 0)),
         status: recoveredOrganization >= 70 ? 'ready' : 'recovering',
       };
     }));
@@ -324,26 +375,30 @@ export function App() {
     });
 
     const productionGains = calculateProductionGains(production, nextWeek);
+    const focusMultiplier = (lineId: string) => procurementFocusId === lineId ? 1.12 : 1;
     setStockpile((current) => ({
       ...current,
-      tanks: current.tanks + productionGains.tanks,
-      aircraft: current.aircraft + productionGains.aircraft,
-      infantryEquipment: current.infantryEquipment + productionGains.infantryEquipment,
-      convoys: current.convoys + productionGains.convoys,
-      artillery: current.artillery + productionGains.artillery,
-      trucks: current.trucks + productionGains.trucks,
+      tanks: current.tanks + Math.round(productionGains.tanks * policyProductionMultiplier * focusMultiplier('sherman')),
+      aircraft: current.aircraft + Math.round(productionGains.aircraft * policyProductionMultiplier * focusMultiplier('spitfire')),
+      infantryEquipment: current.infantryEquipment + Math.round(productionGains.infantryEquipment * policyProductionMultiplier * focusMultiplier('rifle')),
+      convoys: current.convoys + Math.round(productionGains.convoys * policyProductionMultiplier * focusMultiplier('convoy')),
+      artillery: current.artillery + Math.round(productionGains.artillery * policyProductionMultiplier),
+      trucks: current.trucks + Math.round(productionGains.trucks * policyProductionMultiplier),
     }));
 
-    setProduction((current) => current.map((line) => ({ ...line, efficiency: Math.min(100, line.efficiency + (line.assigned > 0 ? 1 : 0)) })));
+    setProduction((current) => current.map((line) => ({
+      ...line,
+      efficiency: Math.min(100, line.efficiency + (line.assigned > 0 ? 1 : 0) + (line.id === procurementFocusId ? 1 : 0) + (delegatedDepartments.has('armaments') ? 1 : 0)),
+    })));
     setGame((current) => ({
       ...current,
       week: current.week + 1,
       manpower: current.manpower + 18,
-      politicalPower: Math.min(200, current.politicalPower + 3),
-      fuel: Math.max(0, Math.min(200, current.fuel + 8 - current.factories * 0.18)),
+      politicalPower: Math.min(200, current.politicalPower + 3 + (delegatedDepartments.has('political') ? 1 : 0)),
+      fuel: Math.max(0, Math.min(200, current.fuel + 8 - current.factories * 0.18 - (supplyPolicy === 'frontline' ? 2 : 0))),
       steel: Math.min(240, current.steel + 9),
-      commandPoints: Math.min(100, current.commandPoints + 6),
-      treasury: current.treasury + 54 - current.factories,
+      commandPoints: Math.min(100, current.commandPoints + 6 + (delegatedDepartments.has('operations') ? 2 : 0)),
+      treasury: Math.max(0, current.treasury + 54 - current.factories - staffWeeklyCost),
       airPower: Math.min(100, current.airPower + (nextWeek % 4 === 0 ? 1 : 0)),
       navalPower: Math.max(20, Math.min(100, current.navalPower + (nextWeek % 3 === 0 ? 1 : 0))),
       enemyPressure: Math.min(100, current.enemyPressure + (nextWeek % 4 === 0 ? 2 : 0)),
@@ -371,7 +426,8 @@ export function App() {
       const threatenedTerritory = selectThreatenedTerritory(territories, divisions, currentOrder?.targetId, playerFaction, activeTheater);
 
       if (threatenedTerritory) {
-        const { defender, power: defensivePower } = calculateDefensivePower(threatenedTerritory, divisions, careerCommanders);
+        const { defender, power } = calculateDefensivePower(threatenedTerritory, divisions, careerCommanders);
+        const defensivePower = power + policyDefenseBonus + (defender?.id === priorityDivisionId ? 5 : 0);
         const enemyPower = calculateEnemyPower(game.enemyPressure, threatenedTerritory.value, Math.random());
 
         if (enemyPower > defensivePower) {
@@ -405,7 +461,24 @@ export function App() {
       setGame((current) => ({ ...current, stability: Math.max(45, current.stability - 1) }));
       addEvent('국내 전시 피로', '장기 배급과 공습 경보로 국민 피로가 누적되고 있습니다.', 'bad', nextWeek);
     }
-  }, [activeTheater, addEvent, career.experience, career.nationId, careerCommanders, careerRole.tier, divisions, doctrine, enemyFaction, game.enemyPressure, game.victoryScore, game.week, notify, orders, playerFaction, playerNation.id, playerNation.shortName, production, research, territories]);
+    setStaff((current) => current.map((member) => ({
+      ...member,
+      workload: Math.max(8, Math.min(100, member.workload + (member.delegated ? 3 : -2))),
+      loyalty: member.delegated && member.workload >= 85 ? Math.max(20, member.loyalty - 2) : member.loyalty,
+      development: Math.min(100, member.development + (member.delegated ? 6 : 3) + (member.id === developmentFocusId ? 7 : 0) - (member.workload >= 85 ? 2 : 0)),
+    })));
+    setStaffCandidates((current) => current.map((candidate) => candidate.status === 'scouting' ? {
+      ...candidate,
+      knowledge: Math.min(100, candidate.knowledge + 18 + (delegatedDepartments.has('personnel') ? 5 : 0)),
+    } : candidate));
+    if (nextWeek % 4 === 0 && !pendingCouncilEventId) {
+      const unresolvedEvent = councilEvents.find((event) => !resolvedCouncilChoices.some((record) => record.startsWith(event.id + ':')));
+      const councilEvent = unresolvedEvent ?? councilEvents[(Math.floor(nextWeek / 4) - 1) % councilEvents.length];
+      setPendingCouncilEventId(councilEvent.id);
+      setSpeed(0);
+      addEvent('긴급 의제 소집 — ' + councilEvent.category, councilEvent.title, 'bad', nextWeek);
+    }
+  }, [activeTheater, addEvent, career.experience, career.nationId, careerCommanders, careerRole.tier, delegatedDepartments, developmentFocusId, divisions, doctrine, enemyFaction, game.enemyPressure, game.victoryScore, game.week, notify, orders, pendingCouncilEventId, playerFaction, playerNation.id, playerNation.shortName, policyAttackBonus, policyDefenseBonus, policyProductionMultiplier, policySupplyRecovery, priorityDivisionId, procurementFocusId, production, research, resolvedCouncilChoices, staffWeeklyCost, supplyPolicy, territories]);
 
   useEffect(() => {
     if (speed === 0 || showBriefing) return;
@@ -416,9 +489,9 @@ export function App() {
 
   useEffect(() => {
     if (showBriefing) return;
-    const payload = { version: 4, game, territories, divisions, research, production, events, orders, stockpile, relations, operations, campaignOutcome, objectiveProgress, torchAuthorized, completedDecisions, doctrine, career, activeTheater, selectedTerritoryId, selectedDivisionId };
+    const payload = { version: 6, game, territories, divisions, research, production, events, orders, stockpile, relations, operations, campaignOutcome, objectiveProgress, torchAuthorized, completedDecisions, doctrine, career, activeTheater, selectedTerritoryId, selectedDivisionId, staff, staffCandidates, developmentFocusId, supplyPolicy, procurementFocusId, priorityDivisionId, selectedPolicies, pendingCouncilEventId, resolvedCouncilChoices };
     localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
-  }, [activeTheater, campaignOutcome, career, completedDecisions, divisions, doctrine, events, game, objectiveProgress, operations, orders, production, relations, research, selectedDivisionId, selectedTerritoryId, showBriefing, stockpile, territories, torchAuthorized]);
+  }, [activeTheater, campaignOutcome, career, completedDecisions, developmentFocusId, divisions, doctrine, events, game, objectiveProgress, operations, orders, pendingCouncilEventId, priorityDivisionId, procurementFocusId, production, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, showBriefing, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized]);
 
   useEffect(() => {
     if (showBriefing || campaignOutcome) return;
@@ -451,6 +524,15 @@ export function App() {
     setDivisions(newDivisions);
     setResearch(initialResearch.map((project) => ({ ...project })));
     setProduction(createCampaignProduction(nation));
+    setStaff(createStaffRoster(nation.id));
+    setStaffCandidates(createStaffCandidates(nation.id));
+    setDevelopmentFocusId(null);
+    setSupplyPolicy('balanced');
+    setProcurementFocusId('rifle');
+    setPriorityDivisionId(newDivisions[0].id);
+    setSelectedPolicies([]);
+    setPendingCouncilEventId(null);
+    setResolvedCouncilChoices([]);
     setEvents([
       { id: Date.now(), week: 0, title: '취임 — ' + role.title, detail: '당신이 ' + nation.name + '의 ' + role.title + ' 직무를 인수했습니다. 원래 역사와 다른 명령을 내릴 수 있습니다.', tone: 'good' },
       { id: Date.now() + 1, week: 0, title: '세계는 하나의 전장', detail: '유럽의 결정이 아시아의 보급과 외교를 바꾸고, 태평양의 결과가 유럽의 전후 질서를 흔듭니다.', tone: 'neutral' },
@@ -492,6 +574,15 @@ export function App() {
       setStockpile({ ...initialStockpile, ...(data.stockpile ?? {}) });
       setRelations(data.relations ?? createDiplomaticRelations(restoredNation.id));
       setOperations(data.operations ?? createCovertOperations(restoredNation.defaultTheater));
+      setStaff((data.staff ?? createStaffRoster(restoredNation.id)).map((member: StaffMember) => ({ ...member, grade: member.grade ?? 1, development: member.development ?? 20 })));
+      setStaffCandidates(data.staffCandidates ?? createStaffCandidates(restoredNation.id));
+      setDevelopmentFocusId(data.developmentFocusId ?? null);
+      setSupplyPolicy(data.supplyPolicy ?? 'balanced');
+      setProcurementFocusId(data.procurementFocusId ?? 'rifle');
+      setPriorityDivisionId(data.priorityDivisionId ?? migratedDivisions[0]?.id ?? '');
+      setSelectedPolicies(data.selectedPolicies ?? []);
+      setPendingCouncilEventId(data.pendingCouncilEventId ?? null);
+      setResolvedCouncilChoices(data.resolvedCouncilChoices ?? []);
       setCareer(restoredCareer);
       setSetupNationId(restoredCareer.nationId);
       setSetupRoleId(restoredCareer.roleId);
@@ -522,6 +613,15 @@ export function App() {
     setStockpile(initialStockpile);
     setRelations(initialRelations);
     setOperations(initialOperations);
+    setStaff(createStaffRoster(DEFAULT_NATION_ID));
+    setStaffCandidates(createStaffCandidates(DEFAULT_NATION_ID));
+    setDevelopmentFocusId(null);
+    setSupplyPolicy('balanced');
+    setProcurementFocusId('rifle');
+    setPriorityDivisionId(defaultDivisions[0].id);
+    setSelectedPolicies([]);
+    setPendingCouncilEventId(null);
+    setResolvedCouncilChoices([]);
     setSetupNationId(DEFAULT_NATION_ID);
     setSetupRoleId(DEFAULT_ROLE_ID);
     setCareer(createCareerState(DEFAULT_NATION_ID, DEFAULT_ROLE_ID));
@@ -711,8 +811,226 @@ export function App() {
     notify(path.title + ': 이제 역사가 다른 방향으로 흐릅니다.');
   };
 
+  const meetStaff = (staffId: string) => {
+    const member = staff.find((item) => item.id === staffId);
+    if (!member || game.politicalPower < 4) {
+      notify('참모 면담에는 정치력 4가 필요합니다.');
+      return;
+    }
+    setGame((current) => ({ ...current, politicalPower: current.politicalPower - 4 }));
+    setStaff((current) => current.map((item) => item.id === staffId ? {
+      ...item,
+      loyalty: Math.min(100, item.loyalty + 8),
+      workload: Math.max(5, item.workload - 12),
+    } : item));
+    addEvent('참모 면담 — ' + member.name, member.specialty + ' 현안을 직접 조율했습니다. 충성도가 오르고 업무 부담이 줄었습니다.', 'good', game.week);
+    notify(member.name + '과(와) 면담했습니다.');
+  };
+
+  const toggleStaffDelegation = (staffId: string) => {
+    const member = staff.find((item) => item.id === staffId);
+    if (!member) return;
+    setStaff((current) => current.map((item) => item.id === staffId ? { ...item, delegated: !item.delegated } : item));
+    notify(member.role + (member.delegated ? ' 권한을 회수했습니다.' : '에게 주간 업무를 위임했습니다.'));
+  };
+
+  const changeDevelopmentFocus = (staffId: string) => {
+    const member = staff.find((item) => item.id === staffId);
+    if (!member) return;
+    setDevelopmentFocusId((current) => current === staffId ? null : staffId);
+    notify(developmentFocusId === staffId ? '집중 육성 지정을 해제했습니다.' : member.name + '을(를) 집중 육성합니다.');
+  };
+
+  const upgradeStaff = (staffId: string) => {
+    const member = staff.find((item) => item.id === staffId);
+    if (!member || member.development < 100 || member.grade >= 3) return;
+    if (game.politicalPower < 8 || game.treasury < 50) {
+      notify('승급에는 정치력 8과 재정 £50M이 필요합니다.');
+      return;
+    }
+    setGame((current) => ({ ...current, politicalPower: current.politicalPower - 8, treasury: current.treasury - 50 }));
+    setStaff((current) => current.map((item) => item.id === staffId ? {
+      ...item,
+      grade: Math.min(3, item.grade + 1) as 1 | 2 | 3,
+      development: 0,
+      ability: Math.min(item.potential, item.ability + 4),
+      potential: Math.min(99, item.potential + 1),
+      loyalty: Math.min(100, item.loyalty + 5),
+      workload: Math.min(100, item.workload + 8),
+      weeklyCost: item.weeklyCost + 1,
+    } : item));
+    addEvent('참모 승급 — ' + member.name, member.specialty + ' 역량이 한 단계 전문화됐습니다. 능력과 주급, 조직 내 영향력이 함께 상승합니다.', 'good', game.week);
+    notify(member.name + '이(가) 등급 ' + (member.grade + 1) + '로 승급했습니다.');
+  };
+
+  const scoutCandidate = (candidateId: string) => {
+    const candidate = staffCandidates.find((item) => item.id === candidateId);
+    if (!candidate || candidate.status === 'signed') return;
+    const scoutingCapacity = delegatedDepartments.has('personnel') ? 3 : 2;
+    const activeAssignments = staffCandidates.filter((item) => item.status === 'scouting').length;
+    if (candidate.status !== 'scouting' && activeAssignments >= scoutingCapacity) {
+      notify('조사 슬롯이 모두 사용 중입니다. 인사 권한을 위임하면 슬롯이 1개 늘어납니다.');
+      return;
+    }
+    if (game.politicalPower < 2) {
+      notify('정밀 조사 착수에는 정치력 2가 필요합니다.');
+      return;
+    }
+    setGame((current) => ({ ...current, politicalPower: current.politicalPower - 2 }));
+    setStaffCandidates((current) => current.map((item) => item.id === candidateId ? {
+      ...item,
+      status: 'scouting',
+      knowledge: Math.min(100, item.knowledge + 8),
+    } : item));
+    addEvent('인재 조사 — ' + candidate.name, candidate.role + ' 후보에 대한 경력·평판·충성도 검증을 시작했습니다.', 'neutral', game.week);
+    notify(candidate.name + ' 정밀 조사를 시작했습니다.');
+  };
+
+  const toggleCandidateShortlist = (candidateId: string) => {
+    const candidate = staffCandidates.find((item) => item.id === candidateId);
+    if (!candidate || candidate.status === 'signed' || candidate.knowledge < 35) return;
+    setStaffCandidates((current) => current.map((item) => item.id === candidateId ? {
+      ...item,
+      status: item.status === 'shortlisted' ? 'unscouted' : 'shortlisted',
+    } : item));
+    notify(candidate.name + (candidate.status === 'shortlisted' ? '을(를) 관심 명단에서 제외했습니다.' : '을(를) 최종 관심 명단에 올렸습니다.'));
+  };
+
+  const recruitCandidate = (candidateId: string) => {
+    const candidate = staffCandidates.find((item) => item.id === candidateId);
+    if (!candidate || candidate.status === 'signed' || candidate.knowledge < 55) return;
+    if (game.treasury < candidate.signingCost || game.politicalPower < 6) {
+      notify('영입에는 정치력 6과 계약금 £' + candidate.signingCost + 'M이 필요합니다.');
+      return;
+    }
+    const persuasion = candidate.interest + Math.round(career.reputation * 0.25) + (candidate.status === 'shortlisted' ? 6 : 0);
+    setGame((current) => ({ ...current, politicalPower: current.politicalPower - (persuasion >= 66 ? 6 : 3), treasury: persuasion >= 66 ? current.treasury - candidate.signingCost : current.treasury }));
+    if (persuasion < 66) {
+      setStaffCandidates((current) => current.map((item) => item.id === candidateId ? { ...item, interest: Math.min(100, item.interest + 9), signingCost: item.signingCost + 12 } : item));
+      addEvent('영입 협상 결렬 — ' + candidate.name, '후보가 권한과 처우에 확신하지 못했습니다. 재협상 가능하지만 요구 계약금이 올랐습니다.', 'bad', game.week);
+      notify('협상이 결렬됐습니다. 관심도가 상승했지만 요구 조건도 높아졌습니다.');
+      return;
+    }
+    const incumbent = staff.find((member) => member.department === candidate.department);
+    setStaff((current) => current.map((member) => member.department === candidate.department ? {
+      ...member,
+      name: candidate.name,
+      candidateName: incumbent?.name ?? member.candidateName,
+      ability: candidate.ability,
+      potential: candidate.potential,
+      loyalty: candidate.loyalty,
+      workload: 18,
+      weeklyCost: candidate.weeklyCost,
+      specialty: candidate.specialty,
+      delegated: false,
+      grade: 1,
+      development: 0,
+    } : member));
+    setStaffCandidates((current) => current.map((item) => item.id === candidateId ? { ...item, status: 'signed' } : item));
+    addEvent('신임 참모 영입 — ' + candidate.name, (incumbent?.name ?? '전임자') + '을(를) 대신해 ' + candidate.role + ' 직무를 맡습니다.', 'good', game.week);
+    notify(candidate.name + ' 영입 협상이 타결됐습니다.');
+  };
+
+  const setPriorityFormation = (divisionId: string) => {
+    if (priorityDivisionId === divisionId) return;
+    if (game.commandPoints < 3) {
+      notify('핵심 편제 변경에는 지휘 점수 3이 필요합니다.');
+      return;
+    }
+    const division = divisions.find((item) => item.id === divisionId);
+    setGame((current) => ({ ...current, commandPoints: current.commandPoints - 3 }));
+    setPriorityDivisionId(divisionId);
+    addEvent('핵심 편제 지정', (division?.name ?? '신규 편제') + '에 최우선 보충·훈련·참모 지원이 배정됩니다.', 'neutral', game.week);
+    notify((division?.name ?? '편제') + '을(를) 핵심 편제로 지정했습니다.');
+  };
+
+  const setProcurementFocus = (lineId: string) => {
+    if (procurementFocusId === lineId) return;
+    if (game.politicalPower < 5) {
+      notify('조달 우선순위 변경에는 정치력 5가 필요합니다.');
+      return;
+    }
+    const line = production.find((item) => item.id === lineId);
+    setGame((current) => ({ ...current, politicalPower: current.politicalPower - 5 }));
+    setProcurementFocusId(lineId);
+    addEvent('조달 포커스 변경 — ' + (line?.name ?? lineId), '선택 장비의 주간 산출량이 12% 증가하고 생산 효율이 더 빠르게 상승합니다.', 'good', game.week);
+    notify((line?.name ?? '장비') + ' 우선 조달을 승인했습니다.');
+  };
+
+  const changeSupplyPolicy = (policy: SupplyPolicy) => {
+    if (supplyPolicy === policy) return;
+    if (game.commandPoints < 4) {
+      notify('보급 방침 변경에는 지휘 점수 4가 필요합니다.');
+      return;
+    }
+    setGame((current) => ({ ...current, commandPoints: current.commandPoints - 4 }));
+    setSupplyPolicy(policy);
+    const label = policy === 'frontline' ? '전선 우선' : policy === 'reserve' ? '전략 예비' : '균형 배분';
+    addEvent('보급 방침 — ' + label, '군수참모부가 새로운 배분 기준을 전 전구에 하달했습니다.', 'neutral', game.week);
+    notify(label + ' 보급 방침을 적용했습니다.');
+  };
+
+  const selectStrategicPolicy = (policyId: string) => {
+    const policy = strategicPolicies.find((item) => item.id === policyId);
+    if (!policy || selectedPolicies.includes(policy.id)) return;
+    const existing = strategicPolicies.find((item) => item.domain === policy.domain && selectedPolicies.includes(item.id));
+    if (existing) {
+      notify('이 국가 운영 영역은 이미 ' + existing.title + ' 원칙을 채택했습니다.');
+      return;
+    }
+    setSelectedPolicies((current) => [...current, policy.id]);
+    setGame((current) => applyGameDelta(current, policy.gameDelta));
+    if (policy.domain === 'diplomacy') {
+      setRelations((current) => current.map((relation) => {
+        const delta = policy.id === 'diplomacy-aid' ? 6 : policy.id === 'diplomacy-pragmatic' ? 3 : relation.status.includes('공동') || relation.status.includes('동맹') ? 5 : -3;
+        return { ...relation, value: Math.max(0, Math.min(100, relation.value + delta)) };
+      }));
+    }
+    addEvent('국가 원칙 채택 — ' + policy.title, policy.description + ' ' + policy.effect, 'good', game.week);
+    notify(policy.title + ' 원칙이 장기 시뮬레이션에 적용됩니다.');
+  };
+
+  const resolveCouncilChoice = (choiceId: string) => {
+    const councilEvent = councilEvents.find((event) => event.id === pendingCouncilEventId);
+    const choice = councilEvent?.choices.find((item) => item.id === choiceId);
+    if (!councilEvent || !choice) return;
+    const effect = choice.effect;
+    setGame((current) => applyGameDelta(current, effect.gameDelta));
+    if (effect.divisionSupply || effect.divisionOrganization) {
+      setDivisions((current) => current.map((division) => ({
+        ...division,
+        supply: Math.max(0, Math.min(100, division.supply + (effect.divisionSupply ?? 0))),
+        organization: Math.max(0, Math.min(100, division.organization + (effect.divisionOrganization ?? 0))),
+      })));
+    }
+    if (effect.productionEfficiency) {
+      setProduction((current) => current.map((line) => ({ ...line, efficiency: Math.min(100, line.efficiency + (effect.productionEfficiency ?? 0)) })));
+    }
+    if (effect.relationChange) {
+      setRelations((current) => current.map((relation) => ({ ...relation, value: Math.max(0, Math.min(100, relation.value + (effect.relationChange ?? 0))) })));
+    }
+    if (effect.careerReputation || effect.careerTrust) {
+      setCareer((current) => ({
+        ...current,
+        reputation: Math.max(0, Math.min(100, current.reputation + (effect.careerReputation ?? 0))),
+        councilTrust: Math.max(0, Math.min(100, current.councilTrust + (effect.careerTrust ?? 0))),
+      }));
+    }
+    if (effect.enemyTerritorySupply) {
+      setTerritories((current) => current.map((territory) => territory.controller === enemyFaction ? {
+        ...territory,
+        supply: Math.max(0, Math.min(100, territory.supply + (effect.enemyTerritorySupply ?? 0))),
+      } : territory));
+    }
+    setResolvedCouncilChoices((current) => [...current, councilEvent.id + ':' + choice.id + ':' + game.week]);
+    setPendingCouncilEventId(null);
+    addEvent('국가 의제 결론 — ' + choice.title, choice.result, 'neutral', game.week);
+    notify(choice.title + ': 선택의 결과가 전쟁 전체에 반영됐습니다.');
+  };
+
   const tabItems: { id: GameTab; label: string; icon: React.ReactNode }[] = [
     { id: 'command', label: '최고사령부', icon: <Shield size={17} /> },
+    { id: 'organization', label: '조직 운영', icon: <BriefcaseBusiness size={17} /> },
     { id: 'army', label: '육군', icon: <Swords size={17} /> },
     { id: 'industry', label: '군수 생산', icon: <Factory size={17} /> },
     { id: 'research', label: '연구', icon: <FlaskConical size={17} /> },
@@ -888,6 +1206,34 @@ export function App() {
                 onChoosePath={chooseAlternatePath}
               />
             )}
+            {activeTab === 'organization' && (
+              <OrganizationPanel
+                game={game}
+                nation={playerNation}
+                staff={staff}
+                candidates={staffCandidates}
+                divisions={divisions}
+                commanders={careerCommanders}
+                production={production}
+                stockpile={stockpile}
+                supplyPolicy={supplyPolicy}
+                procurementFocusId={procurementFocusId}
+                priorityDivisionId={priorityDivisionId}
+                selectedPolicies={selectedPolicies}
+                developmentFocusId={developmentFocusId}
+                onMeetStaff={meetStaff}
+                onToggleDelegation={toggleStaffDelegation}
+                onSetPriorityDivision={setPriorityFormation}
+                onSetProcurementFocus={setProcurementFocus}
+                onSetSupplyPolicy={changeSupplyPolicy}
+                onSelectPolicy={selectStrategicPolicy}
+                onSetDevelopmentFocus={changeDevelopmentFocus}
+                onUpgradeStaff={upgradeStaff}
+                onScoutCandidate={scoutCandidate}
+                onToggleShortlist={toggleCandidateShortlist}
+                onRecruitCandidate={recruitCandidate}
+              />
+            )}
             {activeTab === 'army' && (
               <ArmyPanel
                 game={game}
@@ -950,6 +1296,9 @@ export function App() {
           onJournal={() => setShowJournal(true)}
           onRestart={resetCampaign}
         />
+      )}
+      {pendingCouncilEvent && !showBriefing && !campaignOutcome && (
+        <CouncilEventModal event={pendingCouncilEvent} onChoose={resolveCouncilChoice} />
       )}
       {showJournal && <WarJournal events={events} onClose={() => setShowJournal(false)} />}
       {toast && <div className="toast"><Radio size={16} /><span>{toast}</span></div>}
