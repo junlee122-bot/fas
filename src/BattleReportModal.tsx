@@ -1,4 +1,4 @@
-import { CheckCircle2, Eye, Package, ShieldAlert, Star, Swords, Target, X } from 'lucide-react';
+import { Award, CheckCircle2, Eye, Package, ShieldAlert, Star, Swords, Target, TrendingUp, X } from 'lucide-react';
 import type { BattlePhase, BattleReport } from './types';
 
 interface BattleReportModalProps {
@@ -50,6 +50,14 @@ export function BattleReportModal({ report, onClose }: BattleReportModalProps) {
             </article>
           ))}
         </div>
+
+        {(report.commanderXpGained || report.battleHonor) && (
+          <div className="battle-development-awards">
+            {report.commanderXpGained && <div><TrendingUp size={17} /><span>지휘관 실전 경험<strong>+{report.commanderXpGained} XP</strong></span></div>}
+            {report.battleHonor && <div><Award size={17} /><span>부대 전투명예<strong>{report.battleHonor}</strong></span></div>}
+            <p>전투 경험은 지휘관 복무 레벨과 선택형 특기로, 전투명예는 부대의 영구 작전 기록으로 이어집니다.</p>
+          </div>
+        )}
 
         <footer>
           <div><ShieldAlert size={16} /><span>아군 전력 손실<strong>-{report.attackerStrengthLoss}</strong></span></div>

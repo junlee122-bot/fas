@@ -11,6 +11,7 @@ export type StaffDepartment = 'operations' | 'logistics' | 'armaments' | 'person
 export type PolicyDomain = 'economy' | 'doctrine' | 'society' | 'diplomacy';
 export type BattleStance = 'cautious' | 'balanced' | 'aggressive';
 export type BattlePhaseTone = 'advantage' | 'contested' | 'setback';
+export type CommanderSkillId = 'operational-planner' | 'breakthrough-specialist' | 'defense-in-depth' | 'master-logistician';
 
 export interface Territory {
   id: string;
@@ -180,7 +181,18 @@ export interface BattleReport {
   defenderStrengthLoss: number;
   organizationLoss: number;
   supplySpent: number;
+  commanderXpGained?: number;
+  battleHonor?: string;
   summary: string;
+}
+
+export interface CommanderDevelopment {
+  commanderId: string;
+  xp: number;
+  battles: number;
+  victories: number;
+  fatigue: number;
+  skills: CommanderSkillId[];
 }
 
 export interface Commander {
@@ -210,6 +222,7 @@ export interface Division {
   territoryId: string;
   commanderId: string;
   status: 'ready' | 'moving' | 'combat' | 'recovering';
+  battleHonors?: string[];
 }
 
 export interface ResearchProject {

@@ -801,6 +801,7 @@ button:focus-visible,
   border: 1px solid rgba(198, 168, 107, 0.5);
   background: rgba(35, 31, 23, 0.94);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
 }
 
 .planning-banner div {
@@ -811,7 +812,7 @@ button:focus-visible,
 
 .planning-banner strong { font-size: 10px; }
 .planning-banner span { font-size: 8px; color: #c0b696; }
-.planning-banner button { border: 0; color: var(--muted); background: transparent; cursor: pointer; }
+.planning-banner button { border: 0; color: var(--muted); background: transparent; cursor: pointer; pointer-events: auto; }
 
 .theater-score {
   position: absolute;
@@ -1259,6 +1260,52 @@ button:focus-visible,
   gap: 10px;
   min-width: 1120px;
 }
+
+.commander-development-panel { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(390px, .9fr) minmax(650px, 1.6fr); overflow: hidden; border: 1px solid var(--line); background: rgba(255,255,255,.012); }
+.commander-development-panel > header { grid-column: 1 / -1; min-height: 43px; display: flex; align-items: center; justify-content: space-between; padding: 6px 11px; border-bottom: 1px solid var(--line); background: linear-gradient(90deg, rgba(198,168,107,.055), transparent 50%); }
+.commander-development-panel > header > div { display: flex; flex-direction: column; gap: 2px; }
+.commander-development-panel > header span { font: 600 5px 'IBM Plex Mono', monospace; color: var(--gold); letter-spacing: .1em; }
+.commander-development-panel > header h3 { font-size: 10px; color: #cdd3cf; }
+.commander-development-panel > header em { padding: 4px 6px; font-size: 5px; color: var(--gold-bright); border: 1px solid rgba(198,168,107,.22); background: rgba(198,168,107,.05); }
+.officer-progress-card { min-height: 111px; display: grid; grid-template-columns: 40px 1fr; grid-template-rows: 1fr auto; gap: 7px 9px; padding: 9px 10px; border-right: 1px solid var(--line); }
+.officer-level { grid-row: 1; width: 38px; height: 43px; display: grid; place-items: center; align-content: center; color: var(--gold); border: 1px solid rgba(198,168,107,.28); background: rgba(198,168,107,.055); }
+.officer-level span { font: 500 5px 'IBM Plex Mono', monospace; color: var(--faint); }
+.officer-level strong { font: 600 17px 'Oswald', sans-serif; }
+.officer-progress-copy { display: flex; flex-direction: column; gap: 5px; }
+.officer-progress-copy > div:first-child { display: flex; justify-content: space-between; gap: 8px; }
+.officer-progress-copy strong { font-size: 8px; color: #cdd3cf; }
+.officer-progress-copy > div:first-child span { font: 500 5px 'IBM Plex Mono', monospace; color: var(--gold); }
+.officer-progress-copy small { font-size: 5px; line-height: 1.45; color: var(--faint); }
+.officer-xp-track { height: 5px; overflow: hidden; background: rgba(255,255,255,.035); }
+.officer-xp-track > span { height: 100%; display: block; background: linear-gradient(90deg, #8f7847, var(--gold-bright)); box-shadow: 0 0 9px rgba(198,168,107,.28); }
+.officer-progress-card dl { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; border: 1px solid var(--line); }
+.officer-progress-card dl > div { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px; border-right: 1px solid var(--line); }
+.officer-progress-card dl > div:last-child { border-right: 0; }
+.officer-progress-card dt { font-size: 5px; color: var(--faint); }
+.officer-progress-card dd { margin: 0; font: 600 7px 'IBM Plex Mono', monospace; color: #c9d0cc; }
+.officer-progress-card dd.warning { color: var(--axis-bright); }
+.officer-progress-card > button { grid-column: 1 / -1; height: 25px; display: flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid rgba(109,143,163,.24); font-size: 6px; color: var(--allied-bright); background: rgba(109,143,163,.055); cursor: pointer; }
+.officer-progress-card > button:hover { background: rgba(109,143,163,.11); }
+.officer-progress-card > button:disabled { opacity: .34; cursor: not-allowed; }
+.officer-progress-card > button em { font: 500 5px 'IBM Plex Mono', monospace; color: var(--gold); }
+.officer-skill-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
+.officer-skill-grid > button { min-height: 111px; display: grid; grid-template-columns: 27px 1fr; align-content: center; gap: 7px; padding: 8px; text-align: left; border: 0; border-right: 1px solid var(--line); color: #7d8983; background: transparent; cursor: pointer; }
+.officer-skill-grid > button:last-child { border-right: 0; }
+.officer-skill-grid > button:hover:not(:disabled) { background: rgba(198,168,107,.055); }
+.officer-skill-grid > button.selected { background: linear-gradient(155deg, rgba(110,157,127,.085), transparent 68%); }
+.officer-skill-grid > button:disabled:not(.selected) { opacity: .5; cursor: not-allowed; }
+.officer-skill-grid > button > i { width: 26px; height: 26px; display: grid; place-items: center; color: var(--gold); border: 1px solid rgba(198,168,107,.2); }
+.officer-skill-grid > button.selected > i { color: var(--green); border-color: rgba(110,157,127,.26); }
+.officer-skill-grid > button > span { display: flex; flex-direction: column; gap: 3px; }
+.officer-skill-grid strong { font-size: 7px; color: #cbd1cd; }
+.officer-skill-grid small { font-size: 5px; line-height: 1.4; color: var(--faint); }
+.officer-skill-grid em { font-size: 5px; color: var(--gold); }
+.officer-skill-grid .selected em { color: var(--green); }
+.battle-honors-strip { grid-column: 1 / -1; min-height: 34px; display: grid; grid-template-columns: 190px 1fr; align-items: center; border-top: 1px solid var(--line); background: rgba(255,255,255,.008); }
+.battle-honors-strip > span { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-size: 6px; color: var(--gold); }
+.battle-honors-strip > div { min-height: 34px; display: flex; align-items: center; gap: 5px; padding: 4px 7px; border-left: 1px solid var(--line); }
+.battle-honors-strip em { display: flex; align-items: center; gap: 4px; padding: 4px 6px; font-size: 5px; color: #c7b57f; border: 1px solid rgba(198,168,107,.19); background: rgba(198,168,107,.035); }
+.battle-honors-strip small { font-size: 5px; color: var(--faint); }
 
 .battle-doctrine-panel { grid-column: 1 / -1; display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px; }
 .battle-stance-block, .battle-history-block { overflow: hidden; border: 1px solid var(--line); background: rgba(255,255,255,.014); }
@@ -1997,6 +2044,11 @@ button:focus-visible,
 .phase-score > span { height: 100%; display: block; background: var(--allied-bright); border-right: 2px solid var(--gold); }
 .phase-score-labels { display: flex; justify-content: space-between; margin-top: 5px; font: 500 5px 'IBM Plex Mono', monospace; color: var(--faint); }
 .battle-phase > p { margin: 19px 0 0; font-size: 7px; line-height: 1.7; color: #89968f; }
+.battle-development-awards { min-height: 54px; display: grid; grid-template-columns: 180px 220px 1fr; align-items: center; border-top: 1px solid var(--line); background: linear-gradient(90deg, rgba(198,168,107,.05), transparent 60%); }
+.battle-development-awards > div { min-height: 35px; display: flex; align-items: center; gap: 8px; padding: 0 14px; color: var(--gold); border-right: 1px solid var(--line); }
+.battle-development-awards > div > span { display: flex; flex-direction: column; gap: 2px; font-size: 5px; color: var(--faint); }
+.battle-development-awards > div strong { font: 600 9px 'Oswald', sans-serif; color: #d2c18e; }
+.battle-development-awards > p { margin: 0; padding: 0 14px; font-size: 6px; line-height: 1.55; color: var(--faint); }
 .battle-report-modal > footer { min-height: 72px; display: grid; grid-template-columns: repeat(4, 1fr) 140px; align-items: center; border-top: 1px solid var(--line-bright); background: #111714; }
 .battle-report-modal > footer > div { min-height: 45px; display: flex; align-items: center; gap: 8px; padding: 0 13px; color: var(--gold); border-right: 1px solid var(--line); }
 .battle-report-modal > footer span { display: flex; flex-direction: column; gap: 2px; font-size: 5px; color: var(--faint); }

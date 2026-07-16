@@ -57,6 +57,8 @@ import type {
   CareerRole,
   CareerState,
   Commander,
+  CommanderDevelopment,
+  CommanderSkillId,
   Faction,
   GameState,
   GameTab,
@@ -96,6 +98,18 @@ import { councilEvents, strategicPolicies } from './choices';
 import { resolveBattle } from './combat';
 import { BattleReportModal } from './BattleReportModal';
 import { BattleDoctrinePanel } from './BattleDoctrinePanel';
+import { CommanderDevelopmentPanel } from './CommanderDevelopmentPanel';
+import {
+  applyCommanderDevelopment,
+  createCommanderDevelopment,
+  getAvailableSkillPoints,
+  getBattleHonor,
+  getCommanderRecord,
+  recordBattleExperience,
+  recoverCommanderFatigue,
+  restCommander,
+  unlockCommanderSkill,
+} from './development';
 
 const SAVE_KEY = 'iron-dominion-campaign-v1';
 const DEFAULT_NATION_ID: NationId = 'britain';
@@ -131,6 +145,7 @@ const initialStockpile: Stockpile = {
 const defaultNation = getNation(DEFAULT_NATION_ID);
 const defaultDivisions = createCampaignDivisions(defaultNation);
 const defaultProduction = createCampaignProduction(defaultNation);
+const defaultCommanderDevelopment = createCommanderDevelopment(createCareerCommanders(defaultNation, getRole(DEFAULT_ROLE_ID, DEFAULT_NATION_ID)));
 
 const initialEvents: WarEvent[] = [
   { id: 1, week: 0, title: '전쟁 내각 소집', detail: '북아프리카와 지중해의 주도권을 되찾을 작전안을 제출하십시오.', tone: 'neutral' },
@@ -240,6 +255,7 @@ export function App() {
   const [battleStance, setBattleStance] = useState<BattleStance>('balanced');
   const [battleReports, setBattleReports] = useState<BattleReport[]>([]);
   const [pendingBattleReportId, setPendingBattleReportId] = useState<string | null>(null);
+  const [commanderDevelopment, setCommanderDevelopment] = useState<CommanderDevelopment[]>(defaultCommanderDevelopment);
   const toastTimerRef = useRef<number | null>(null);
 
   const playerNation = getNation(career.nationId);
@@ -247,6 +263,10 @@ export function App() {
   const playerFaction = playerNation.alignment;
   const enemyFaction: Exclude<Faction, 'neutral'> = playerFaction === 'allies' ? 'axis' : 'allies';
   const careerCommanders = useMemo(() => createCareerCommanders(playerNation, careerRole), [careerRole, playerNation]);
+  const effectiveCommanders = useMemo(() => careerCommanders.map((commander) => {
+    const assignedDivision = divisions.find((division) => division.commanderId === commander.id);
+    return applyCommanderDevelopment(commander, getCommanderRecord(commanderDevelopment, commander), assignedDivision?.type);
+  }), [careerCommanders, commanderDevelopment, divisions]);
   const activePolicies = useMemo(() => strategicPolicies.filter((policy) => selectedPolicies.includes(policy.id)), [selectedPolicies]);
   const policyAttackBonus = activePolicies.reduce((total, policy) => total + (policy.attackBonus ?? 0), 0);
   const policyDefenseBonus = activePolicies.reduce((total, policy) => total + (policy.defenseBonus ?? 0), 0);
@@ -269,7 +289,8 @@ export function App() {
     () => divisions.find((division) => division.id === selectedDivisionId) ?? divisions[0],
     [divisions, selectedDivisionId],
   );
-  const selectedCommander = careerCommanders.find((commander) => commander.id === selectedDivision.commanderId) ?? careerCommanders[0];
+  const selectedCommander = effectiveCommanders.find((commander) => commander.id === selectedDivision.commanderId) ?? effectiveCommanders[0];
+  const selectedCommanderDevelopment = getCommanderRecord(commanderDevelopment, selectedCommander);
   const campaignDate = getCampaignDate(game.week);
   const hasSave = Boolean(localStorage.getItem(SAVE_KEY));
 
@@ -293,11 +314,12 @@ export function App() {
   const advanceWeek = useCallback(() => {
     const nextWeek = game.week + 1;
     const currentOrder = orders[0];
+    setCommanderDevelopment((current) => recoverCommanderFatigue(current));
 
     if (currentOrder) {
       const division = divisions.find((item) => item.id === currentOrder.divisionId);
       const target = territories.find((item) => item.id === currentOrder.targetId);
-      const commander = careerCommanders.find((item) => item.id === division?.commanderId);
+      const commander = effectiveCommanders.find((item) => item.id === division?.commanderId);
       if (division && target && commander) {
         if (target.controller === playerFaction) {
           setDivisions((current) => current.map((item) => item.id === division.id ? {
@@ -312,7 +334,7 @@ export function App() {
         } else {
           const doctrineBonus = doctrine === 'maneuver' && division.type === 'armor' ? 14 : doctrine === 'methodical' ? 7 : 4;
           const priorityBonus = division.id === priorityDivisionId ? 5 : 0;
-          const battleReport = resolveBattle({
+          const resolvedBattle = resolveBattle({
             week: nextWeek,
             division,
             commander,
@@ -325,24 +347,43 @@ export function App() {
             priorityBonus,
             randomRolls: [Math.random(), Math.random(), Math.random(), Math.random()],
           });
+          const existingDevelopment = getCommanderRecord(commanderDevelopment, commander);
+          const recoveredDevelopment = { ...existingDevelopment, fatigue: Math.max(0, existingDevelopment.fatigue - 3) };
+          const developmentResult = recordBattleExperience(recoveredDevelopment, resolvedBattle, battleStance);
+          const battleHonor = getBattleHonor(resolvedBattle);
+          const battleReport: BattleReport = {
+            ...resolvedBattle,
+            commanderXpGained: developmentResult.xpGained,
+            battleHonor,
+          };
+          setCommanderDevelopment((current) => {
+            const exists = current.some((record) => record.commanderId === commander.id);
+            return exists
+              ? current.map((record) => record.commanderId === commander.id ? developmentResult.record : record)
+              : [...current, developmentResult.record];
+          });
           setBattleReports((current) => [battleReport, ...current].slice(0, 24));
           setPendingBattleReportId(battleReport.id);
           setSpeed(0);
+          if (developmentResult.leveledUp) {
+            addEvent('지휘관 성장 — ' + commander.name, '실전 경험으로 새로운 복무 레벨에 도달했습니다. 육군 화면에서 특기 하나를 선택할 수 있습니다.', 'good', nextWeek);
+          }
           if (battleReport.victory) {
-          setTerritories((current) => current.map((item) => item.id === target.id ? { ...item, controller: playerFaction, ownerId: playerNation.id, supply: Math.max(35, item.supply - 12) } : item));
-          setDivisions((current) => current.map((item) => item.id === division.id ? {
-            ...item,
-            territoryId: target.id,
-            status: 'recovering',
-            strength: Math.max(35, item.strength - battleReport.attackerStrengthLoss),
-            organization: Math.max(28, item.organization - battleReport.organizationLoss),
-            supply: Math.max(20, item.supply - battleReport.supplySpent),
-            experience: Math.min(100, item.experience + 4),
-          } : item));
-          setGame((current) => ({ ...current, manpower: Math.max(0, current.manpower - battleReport.attackerStrengthLoss * 3), victoryScore: Math.min(100, current.victoryScore + target.value), warSupport: Math.min(100, current.warSupport + 2) }));
-          setObjectiveProgress((current) => Math.min(100, current + target.value * 3));
-          addEvent('전선 돌파 — ' + target.name, battleReport.summary, 'good', nextWeek);
-          notify(target.name + ' 확보! 전선이 전진했습니다.');
+            setTerritories((current) => current.map((item) => item.id === target.id ? { ...item, controller: playerFaction, ownerId: playerNation.id, supply: Math.max(35, item.supply - 12) } : item));
+            setDivisions((current) => current.map((item) => item.id === division.id ? {
+              ...item,
+              territoryId: target.id,
+              status: 'recovering',
+              strength: Math.max(35, item.strength - battleReport.attackerStrengthLoss),
+              organization: Math.max(28, item.organization - battleReport.organizationLoss),
+              supply: Math.max(20, item.supply - battleReport.supplySpent),
+              experience: Math.min(100, item.experience + 4),
+              battleHonors: battleHonor ? Array.from(new Set([...(item.battleHonors ?? []), battleHonor])).slice(-8) : item.battleHonors,
+            } : item));
+            setGame((current) => ({ ...current, manpower: Math.max(0, current.manpower - battleReport.attackerStrengthLoss * 3), victoryScore: Math.min(100, current.victoryScore + target.value), warSupport: Math.min(100, current.warSupport + 2) }));
+            setObjectiveProgress((current) => Math.min(100, current + target.value * 3));
+            addEvent('전선 돌파 — ' + target.name, battleReport.summary, 'good', nextWeek);
+            notify(target.name + ' 확보! 전선이 전진했습니다.');
           } else {
             setTerritories((current) => current.map((item) => item.id === target.id ? { ...item, supply: Math.max(20, item.supply - Math.round(battleReport.defenderStrengthLoss / 2)) } : item));
             setDivisions((current) => current.map((item) => item.id === division.id ? {
@@ -452,7 +493,7 @@ export function App() {
       const threatenedTerritory = selectThreatenedTerritory(territories, divisions, currentOrder?.targetId, playerFaction, activeTheater);
 
       if (threatenedTerritory) {
-        const { defender, power } = calculateDefensivePower(threatenedTerritory, divisions, careerCommanders);
+        const { defender, power } = calculateDefensivePower(threatenedTerritory, divisions, effectiveCommanders);
         const defensivePower = power + policyDefenseBonus + (defender?.id === priorityDivisionId ? 5 : 0);
         const enemyPower = calculateEnemyPower(game.enemyPressure, threatenedTerritory.value, Math.random());
 
@@ -504,7 +545,7 @@ export function App() {
       setSpeed(0);
       addEvent('긴급 의제 소집 — ' + councilEvent.category, councilEvent.title, 'bad', nextWeek);
     }
-  }, [activeTheater, addEvent, battleStance, career.experience, career.nationId, careerCommanders, careerRole.tier, delegatedDepartments, developmentFocusId, divisions, doctrine, enemyFaction, game.enemyPressure, game.intelNetwork, game.victoryScore, game.week, notify, orders, pendingCouncilEventId, playerFaction, playerNation.id, playerNation.shortName, policyAttackBonus, policyDefenseBonus, policyProductionMultiplier, policySupplyRecovery, priorityDivisionId, procurementFocusId, production, research, resolvedCouncilChoices, staffWeeklyCost, supplyPolicy, territories]);
+  }, [activeTheater, addEvent, battleStance, career.experience, career.nationId, careerRole.tier, commanderDevelopment, delegatedDepartments, developmentFocusId, divisions, doctrine, effectiveCommanders, enemyFaction, game.enemyPressure, game.intelNetwork, game.victoryScore, game.week, notify, orders, pendingCouncilEventId, playerFaction, playerNation.id, playerNation.shortName, policyAttackBonus, policyDefenseBonus, policyProductionMultiplier, policySupplyRecovery, priorityDivisionId, procurementFocusId, production, research, resolvedCouncilChoices, staffWeeklyCost, supplyPolicy, territories]);
 
   useEffect(() => {
     if (speed === 0 || showBriefing) return;
@@ -515,9 +556,9 @@ export function App() {
 
   useEffect(() => {
     if (showBriefing) return;
-    const payload = { version: 7, game, territories, divisions, research, production, events, orders, stockpile, relations, operations, campaignOutcome, objectiveProgress, torchAuthorized, completedDecisions, doctrine, career, activeTheater, selectedTerritoryId, selectedDivisionId, staff, staffCandidates, developmentFocusId, supplyPolicy, procurementFocusId, priorityDivisionId, selectedPolicies, pendingCouncilEventId, resolvedCouncilChoices, battleStance, battleReports, pendingBattleReportId };
+    const payload = { version: 8, game, territories, divisions, research, production, events, orders, stockpile, relations, operations, campaignOutcome, objectiveProgress, torchAuthorized, completedDecisions, doctrine, career, activeTheater, selectedTerritoryId, selectedDivisionId, staff, staffCandidates, developmentFocusId, supplyPolicy, procurementFocusId, priorityDivisionId, selectedPolicies, pendingCouncilEventId, resolvedCouncilChoices, battleStance, battleReports, pendingBattleReportId, commanderDevelopment };
     localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
-  }, [activeTheater, battleReports, battleStance, campaignOutcome, career, completedDecisions, developmentFocusId, divisions, doctrine, events, game, objectiveProgress, operations, orders, pendingBattleReportId, pendingCouncilEventId, priorityDivisionId, procurementFocusId, production, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, showBriefing, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized]);
+  }, [activeTheater, battleReports, battleStance, campaignOutcome, career, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, events, game, objectiveProgress, operations, orders, pendingBattleReportId, pendingCouncilEventId, priorityDivisionId, procurementFocusId, production, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, showBriefing, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized]);
 
   useEffect(() => {
     if (showBriefing || campaignOutcome) return;
@@ -562,6 +603,7 @@ export function App() {
     setBattleStance('balanced');
     setBattleReports([]);
     setPendingBattleReportId(null);
+    setCommanderDevelopment(createCommanderDevelopment(createCareerCommanders(nation, role)));
     setEvents([
       { id: Date.now(), week: 0, title: '취임 — ' + role.title, detail: '당신이 ' + nation.name + '의 ' + role.title + ' 직무를 인수했습니다. 원래 역사와 다른 명령을 내릴 수 있습니다.', tone: 'good' },
       { id: Date.now() + 1, week: 0, title: '세계는 하나의 전장', detail: '유럽의 결정이 아시아의 보급과 외교를 바꾸고, 태평양의 결과가 유럽의 전후 질서를 흔듭니다.', tone: 'neutral' },
@@ -589,6 +631,13 @@ export function App() {
       const data = JSON.parse(raw);
       const restoredCareer: CareerState = data.career ?? createCareerState(DEFAULT_NATION_ID, DEFAULT_ROLE_ID);
       const restoredNation = getNation(restoredCareer.nationId);
+      const restoredRole = getRole(restoredCareer.roleId, restoredCareer.nationId);
+      const defaultDevelopment = createCommanderDevelopment(createCareerCommanders(restoredNation, restoredRole));
+      const savedDevelopment: CommanderDevelopment[] = data.commanderDevelopment ?? [];
+      const restoredDevelopment = defaultDevelopment.map((fallback) => {
+        const saved = savedDevelopment.find((record) => record.commanderId === fallback.commanderId);
+        return saved ? { ...fallback, ...saved, skills: saved.skills ?? [] } : fallback;
+      });
       const savedTerritories: Territory[] = data.territories ?? [];
       const mergedTerritories = initialTerritories.map((territory) => ({ ...territory, ...(savedTerritories.find((saved) => saved.id === territory.id) ?? {}) }));
       const restoredDivisions: Division[] = data.divisions ?? createCampaignDivisions(restoredNation);
@@ -615,6 +664,7 @@ export function App() {
       setBattleStance(data.battleStance ?? 'balanced');
       setBattleReports(data.battleReports ?? []);
       setPendingBattleReportId(data.pendingBattleReportId ?? null);
+      setCommanderDevelopment(restoredDevelopment);
       setCareer(restoredCareer);
       setSetupNationId(restoredCareer.nationId);
       setSetupRoleId(restoredCareer.roleId);
@@ -657,6 +707,7 @@ export function App() {
     setBattleStance('balanced');
     setBattleReports([]);
     setPendingBattleReportId(null);
+    setCommanderDevelopment(defaultCommanderDevelopment);
     setSetupNationId(DEFAULT_NATION_ID);
     setSetupRoleId(DEFAULT_ROLE_ID);
     setCareer(createCareerState(DEFAULT_NATION_ID, DEFAULT_ROLE_ID));
@@ -808,6 +859,37 @@ export function App() {
     } : item));
     addEvent('야전 훈련 — ' + division.name, '합동 기동훈련을 마치고 사단의 조직력과 경험이 향상되었습니다.', 'good', game.week);
     notify(division.name + ' 야전 훈련 완료');
+  };
+
+  const selectCommanderSkill = (skillId: CommanderSkillId) => {
+    if (getAvailableSkillPoints(selectedCommanderDevelopment) <= 0 || selectedCommanderDevelopment.skills.includes(skillId)) {
+      notify('사용할 수 있는 지휘관 특기 점수가 없습니다.');
+      return;
+    }
+    const updated = unlockCommanderSkill(selectedCommanderDevelopment, skillId);
+    setCommanderDevelopment((current) => current.some((record) => record.commanderId === selectedCommander.id)
+      ? current.map((record) => record.commanderId === selectedCommander.id ? updated : record)
+      : [...current, updated]);
+    addEvent('지휘관 특기 습득 — ' + selectedCommander.name, '실전 경험을 새로운 지휘 방식으로 체계화했습니다.', 'good', game.week);
+    notify(selectedCommander.name + '의 새 지휘 특기를 선택했습니다.');
+  };
+
+  const sendCommanderOnRest = () => {
+    if (game.commandPoints < 6) {
+      notify('참모 휴양에 필요한 지휘 점수가 부족합니다.');
+      return;
+    }
+    if (selectedCommanderDevelopment.fatigue < 10) {
+      notify('현재 지휘관은 휴양이 필요하지 않습니다.');
+      return;
+    }
+    const rested = restCommander(selectedCommanderDevelopment);
+    setGame((current) => ({ ...current, commandPoints: current.commandPoints - 6 }));
+    setCommanderDevelopment((current) => current.some((record) => record.commanderId === selectedCommander.id)
+      ? current.map((record) => record.commanderId === selectedCommander.id ? rested : record)
+      : [...current, rested]);
+    addEvent('참모 휴양 — ' + selectedCommander.name, '후방 지휘소에서 휴식과 작전 복기를 마쳐 피로도가 22 감소했습니다.', 'neutral', game.week);
+    notify(selectedCommander.name + '의 피로도가 회복되었습니다.');
   };
 
   const changeSetupNation = (nationId: NationId) => {
@@ -1275,7 +1357,8 @@ export function App() {
                 divisions={divisions}
                 selectedDivision={selectedDivision}
                 selectedCommander={selectedCommander}
-                commanders={careerCommanders}
+                selectedCommanderDevelopment={selectedCommanderDevelopment}
+                commanders={effectiveCommanders}
                 territories={territories}
                 orders={orders}
                 battleStance={battleStance}
@@ -1290,6 +1373,8 @@ export function App() {
                 onTrain={trainDivision}
                 onBattleStanceChange={setBattleStance}
                 onOpenBattleReport={setPendingBattleReportId}
+                onUnlockCommanderSkill={selectCommanderSkill}
+                onRestCommander={sendCommanderOnRest}
               />
             )}
             {activeTab === 'industry' && <IndustryPanel production={production} stockpile={stockpile} factories={game.factories} activeTheater={activeTheater} onAdjust={adjustFactories} />}
@@ -1628,11 +1713,12 @@ function DecisionCard({ title, detail, cost, done, onClick }: { title: string; d
   );
 }
 
-function ArmyPanel({ game, divisions, selectedDivision, selectedCommander, commanders, territories, orders, battleStance, battleReports, onSelectDivision, onIssueOffensive, onAssignCommander, onTrain, onBattleStanceChange, onOpenBattleReport }: {
+function ArmyPanel({ game, divisions, selectedDivision, selectedCommander, selectedCommanderDevelopment, commanders, territories, orders, battleStance, battleReports, onSelectDivision, onIssueOffensive, onAssignCommander, onTrain, onBattleStanceChange, onOpenBattleReport, onUnlockCommanderSkill, onRestCommander }: {
   game: GameState;
   divisions: Division[];
   selectedDivision: Division;
   selectedCommander: Commander;
+  selectedCommanderDevelopment: CommanderDevelopment;
   commanders: Commander[];
   territories: Territory[];
   orders: Order[];
@@ -1644,6 +1730,8 @@ function ArmyPanel({ game, divisions, selectedDivision, selectedCommander, comma
   onTrain: (divisionId: string) => void;
   onBattleStanceChange: (stance: BattleStance) => void;
   onOpenBattleReport: (reportId: string) => void;
+  onUnlockCommanderSkill: (skillId: CommanderSkillId) => void;
+  onRestCommander: () => void;
 }) {
   const location = territories.find((territory) => territory.id === selectedDivision.territoryId);
   const divisionOrder = orders.find((order) => order.divisionId === selectedDivision.id);
@@ -1712,6 +1800,14 @@ function ArmyPanel({ game, divisions, selectedDivision, selectedCommander, comma
           <button onClick={() => onTrain(selectedDivision.id)} disabled={game.commandPoints < 8 || selectedDivision.status !== 'ready'}><TrendingUp size={13} /> 야전 훈련 <em>8 CP</em></button>
         </div>
       </section>
+      <CommanderDevelopmentPanel
+        commander={selectedCommander}
+        development={selectedCommanderDevelopment}
+        division={selectedDivision}
+        commandPoints={game.commandPoints}
+        onUnlockSkill={onUnlockCommanderSkill}
+        onRestCommander={onRestCommander}
+      />
       <BattleDoctrinePanel stance={battleStance} reports={battleReports} onStanceChange={onBattleStanceChange} onOpenReport={onOpenBattleReport} />
     </div>
   );
