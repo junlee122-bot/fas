@@ -51,7 +51,7 @@ export function CommanderDevelopmentPanel({
           <div><dt>승률</dt><dd>{winRate}%</dd></div>
           <div><dt>피로</dt><dd className={development.fatigue >= 65 ? 'warning' : ''}>{development.fatigue}%</dd></div>
         </dl>
-        <button onClick={onRestCommander} disabled={commandPoints < 6 || development.fatigue < 10}>
+        <button onClick={onRestCommander} disabled={commandPoints < 6 || development.fatigue < 10} title={development.fatigue < 10 ? '피로도 10 이상일 때 휴양할 수 있습니다.' : commandPoints < 6 ? '지휘 점수 6이 필요합니다.' : '피로도 22를 회복합니다.'}>
           <BedDouble size={14} /> 참모 휴양 <em>6 CP</em>
         </button>
       </div>
@@ -67,6 +67,7 @@ export function CommanderDevelopmentPanel({
               aria-pressed={selected}
               disabled={selected || unavailable}
               onClick={() => onUnlockSkill(skill.id)}
+              title={selected ? '이미 습득한 지휘 특기입니다.' : unavailable ? '복무 레벨을 올려 특기 점수를 획득하십시오.' : `${skill.title}: ${skill.effect}`}
             >
               <i>{selected ? <Check size={14} /> : unavailable ? <LockKeyhole size={13} /> : skillIcons[skill.id]}</i>
               <span><strong>{skill.title}</strong><small>{skill.description}</small><em>{selected ? '습득 완료' : skill.effect}</em></span>

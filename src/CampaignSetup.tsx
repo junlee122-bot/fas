@@ -63,7 +63,7 @@ export function CampaignSetup({
   const roles = careerRoles.filter((role) => role.nationId === nationId);
 
   return (
-    <div className="modal-backdrop">
+    <div className="modal-backdrop campaign-setup-backdrop">
       <div className="campaign-setup-modal" role="dialog" aria-modal="true" aria-labelledby="campaign-setup-title">
         <header className="setup-header">
           <div>

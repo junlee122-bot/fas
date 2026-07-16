@@ -101,6 +101,8 @@ import { BattleDoctrinePanel } from './BattleDoctrinePanel';
 import { CommanderDevelopmentPanel } from './CommanderDevelopmentPanel';
 import { ActionCenter } from './ActionCenter';
 import { SettingsModal } from './SettingsModal';
+import { WarJournal } from './WarJournal';
+import { ConfirmResetModal } from './ConfirmResetModal';
 import {
   applyCommanderDevelopment,
   createCommanderDevelopment,
@@ -247,6 +249,7 @@ export function App() {
   });
   const [showActionCenter, setShowActionCenter] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showResetConfirmation, setShowResetConfirmation] = useState(false);
   const [stockpile, setStockpile] = useState<Stockpile>(initialStockpile);
   const [campaignOutcome, setCampaignOutcome] = useState<CampaignOutcome>(null);
   const [relations, setRelations] = useState<DiplomaticRelation[]>(initialRelations);
@@ -648,6 +651,7 @@ export function App() {
     setCampaignOutcome(null);
     setShowActionCenter(false);
     setShowSettings(false);
+    setShowResetConfirmation(false);
     setShowBriefing(false);
     notify(nation.shortName + ' · ' + role.title + '로 취임했습니다.');
   };
@@ -706,6 +710,7 @@ export function App() {
       setDoctrine(data.doctrine ?? 'coalition');
       setShowActionCenter(false);
       setShowSettings(false);
+      setShowResetConfirmation(false);
       setShowBriefing(false);
       notify('저장된 전쟁 지휘소를 복구했습니다.');
     } catch {
@@ -752,6 +757,7 @@ export function App() {
     setSpeed(0);
     setShowActionCenter(false);
     setShowSettings(false);
+    setShowResetConfirmation(false);
     setShowBriefing(true);
   };
 
@@ -1206,6 +1212,7 @@ export function App() {
       if (event.key === 'Escape') {
         setShowActionCenter(false);
         setShowSettings(false);
+        setShowResetConfirmation(false);
         setShowJournal(false);
         setPlanningMode(false);
         return;
@@ -1213,7 +1220,7 @@ export function App() {
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName.toLowerCase();
       if (target?.isContentEditable || tag === 'input' || tag === 'select' || tag === 'textarea' || tag === 'button') return;
-      if (showBriefing || campaignOutcome || pendingCouncilEventId || pendingBattleReportId || showJournal || showSettings || showActionCenter || event.repeat) return;
+      if (showBriefing || campaignOutcome || pendingCouncilEventId || pendingBattleReportId || showJournal || showSettings || showActionCenter || showResetConfirmation || event.repeat) return;
       if (event.key.toLowerCase() === 'g') {
         event.preventDefault();
         setShowActionCenter(true);
@@ -1230,7 +1237,7 @@ export function App() {
     };
     window.addEventListener('keydown', handleShortcut);
     return () => window.removeEventListener('keydown', handleShortcut);
-  }, [advanceWeek, campaignOutcome, pendingBattleReportId, pendingCouncilEventId, showActionCenter, showBriefing, showJournal, showSettings]);
+  }, [advanceWeek, campaignOutcome, pendingBattleReportId, pendingCouncilEventId, showActionCenter, showBriefing, showJournal, showResetConfirmation, showSettings]);
 
   const tabItems: { id: GameTab; label: string; icon: React.ReactNode }[] = [
     { id: 'command', label: '최고사령부', icon: <Shield size={17} /> },
@@ -1293,7 +1300,7 @@ export function App() {
         <div className="rail-bottom">
           <button title="전쟁 일지" aria-label="전쟁 일지" onClick={() => setShowJournal(true)}><BookOpen size={18} /></button>
           <button title={uxPreferences.soundOn ? '음향 끄기' : '음향 켜기'} aria-label={uxPreferences.soundOn ? '음향 끄기' : '음향 켜기'} onClick={() => toggleUXPreference('soundOn')}><Volume2 size={18} className={uxPreferences.soundOn ? '' : 'muted'} /></button>
-          <button title="새 캠페인" aria-label="새 캠페인" onClick={resetCampaign}><RotateCcw size={18} /></button>
+          <button title="새 캠페인 시작" aria-label="새 캠페인 시작" onClick={() => setShowResetConfirmation(true)}><RotateCcw size={18} /></button>
           <button title="사용자 환경 설정" aria-label="사용자 환경 설정" aria-keyshortcuts="S" onClick={() => setShowSettings(true)}><Settings size={18} /></button>
         </div>
       </aside>
@@ -1335,7 +1342,7 @@ export function App() {
             <div className="planning-banner">
               <Target size={18} />
               <div><strong>공세 목표 지정</strong><span>{selectedDivision.name}의 인접 적 지역을 선택하십시오.</span></div>
-              <button onClick={() => setPlanningMode(false)}><X size={15} /></button>
+              <button onClick={() => setPlanningMode(false)} aria-label="공세 목표 지정 취소" title="공세 목표 지정 취소"><X size={15} /></button>
             </div>
           )}
           <div className="theater-score">
@@ -1528,6 +1535,9 @@ export function App() {
           onReset={() => setUXPreferences({ ...defaultUXPreferences })}
           onClose={() => setShowSettings(false)}
         />
+      )}
+      {showResetConfirmation && !showBriefing && !campaignOutcome && !pendingCouncilEvent && !pendingBattleReport && (
+        <ConfirmResetModal nationName={playerNation.shortName} week={game.week} onConfirm={resetCampaign} onClose={() => setShowResetConfirmation(false)} />
       )}
       {toast && <div className="toast" role="status" aria-live="polite"><Radio size={16} /><span>{toast}</span></div>}
     </div>
@@ -1861,7 +1871,7 @@ function ArmyPanel({ game, divisions, selectedDivision, selectedCommander, selec
         <div className="division-banner">
           <div className={'large-unit-icon ' + typeMeta[selectedDivision.type].className}>{typeMeta[selectedDivision.type].symbol}</div>
           <div><span>{typeMeta[selectedDivision.type].label}사단 · {location?.region}</span><h3>{selectedDivision.name}</h3><small>{location?.name} 주둔</small></div>
-          <button className="order-button" onClick={onIssueOffensive} disabled={selectedDivision.status !== 'ready'}><Crosshair size={15} /> 공세 명령</button>
+          <button className="order-button" onClick={onIssueOffensive} disabled={selectedDivision.status !== 'ready'} title={selectedDivision.status === 'ready' ? '인접 적 지역에 공세를 계획합니다.' : '준비 상태의 사단만 공세 명령을 받을 수 있습니다.'}><Crosshair size={15} /> 공세 명령</button>
         </div>
         {divisionOrder && <div className="active-order-notice"><Zap size={15} /><span>{territories.find((item) => item.id === divisionOrder.targetId)?.name} 공세 준비 중</span></div>}
         <div className="division-metrics">
@@ -1898,7 +1908,7 @@ function ArmyPanel({ game, divisions, selectedDivision, selectedCommander, selec
               {commanders.map((commander) => <option key={commander.id} value={commander.id}>{commander.name} · {commander.command}</option>)}
             </select>
           </label>
-          <button onClick={() => onTrain(selectedDivision.id)} disabled={game.commandPoints < 8 || selectedDivision.status !== 'ready'}><TrendingUp size={13} /> 야전 훈련 <em>8 CP</em></button>
+          <button onClick={() => onTrain(selectedDivision.id)} disabled={game.commandPoints < 8 || selectedDivision.status !== 'ready'} title={selectedDivision.status !== 'ready' ? '준비 상태의 사단만 훈련할 수 있습니다.' : game.commandPoints < 8 ? '지휘 점수 8이 필요합니다.' : '조직력·경험·전력을 높이고 한 주간 재편합니다.'}><TrendingUp size={13} /> 야전 훈련 <em>8 CP</em></button>
         </div>
       </section>
       <CommanderDevelopmentPanel
@@ -1927,7 +1937,11 @@ function IndustryPanel({ production, stockpile, factories, activeTheater, onAdju
             <div className="production-name"><strong>{line.name}</strong><span>{line.category}</span></div>
             <div className="efficiency"><span>생산 효율 {line.efficiency}%</span><ProgressBar value={line.efficiency} tone="green" thin /></div>
             <div className="output"><span>주간 생산</span><strong>{formatNumber(line.output * Math.max(1, line.assigned) / 5)}</strong></div>
-            <div className="factory-stepper"><button onClick={() => onAdjust(line.id, -1)}><Minus size={13} /></button><strong>{line.assigned}</strong><button onClick={() => onAdjust(line.id, 1)}><Plus size={13} /></button></div>
+            <div className="factory-stepper">
+              <button onClick={() => onAdjust(line.id, -1)} disabled={line.assigned <= 0} aria-label={`${line.name} 공장 배정 1개 감소`} title={line.assigned <= 0 ? '회수할 공장이 없습니다.' : `${line.name}에서 공장 1개를 회수합니다.`}><Minus size={13} /></button>
+              <strong>{line.assigned}</strong>
+              <button onClick={() => onAdjust(line.id, 1)} disabled={used >= factories} aria-label={`${line.name} 공장 배정 1개 증가`} title={used >= factories ? '배정 가능한 군수 공장이 없습니다.' : `${line.name}에 공장 1개를 배정합니다.`}><Plus size={13} /></button>
+            </div>
           </div>
         ))}
       </section>
@@ -1957,7 +1971,7 @@ function ResearchPanel({ research, onToggle }: { research: ResearchProject[]; on
           {research.map((project) => {
             const percent = project.progress / project.duration * 100;
             return (
-              <button className={'research-card ' + (project.active ? 'active' : '') + (project.complete ? ' complete' : '')} key={project.id} onClick={() => onToggle(project.id)}>
+              <button className={'research-card ' + (project.active ? 'active' : '') + (project.complete ? ' complete' : '')} key={project.id} onClick={() => onToggle(project.id)} disabled={project.complete} aria-pressed={project.active} title={project.complete ? '완료된 연구는 전군에 적용 중입니다.' : project.active ? '선택하면 연구를 일시 중지합니다.' : activeCount >= 2 ? '연구 슬롯 2개가 모두 사용 중입니다.' : '이 과제를 연구 슬롯에 배정합니다.'}>
                 <i>{project.complete ? <Check size={19} /> : project.icon}</i>
                 <span className="branch">{project.branch}</span>
                 <h4>{project.name}</h4>
@@ -2091,26 +2105,6 @@ function CampaignOutcomeModal({ outcome, game, territories, nation, playerFactio
           <button className="primary" onClick={onRestart}><RotateCcw size={15} /> 새 캠페인</button>
         </div>
       </section>
-    </div>
-  );
-}
-
-function WarJournal({ events, onClose }: { events: WarEvent[]; onClose: () => void }) {
-  return (
-    <div className="journal-overlay" onClick={onClose}>
-      <aside className="war-journal" role="dialog" aria-modal="true" aria-labelledby="war-journal-title" onClick={(event) => event.stopPropagation()}>
-        <div className="journal-header"><div><span className="eyebrow">WAR DIARY</span><h2 id="war-journal-title">전쟁 일지</h2></div><button aria-label="전쟁 일지 닫기" onClick={onClose}><X size={18} /></button></div>
-        <div className="journal-filter"><button className="active">전체 전문</button><button>작전</button><button>국내</button><button>외교</button></div>
-        <div className="journal-list">
-          {events.map((event) => (
-            <article className={event.tone} key={event.id}>
-              <div className="journal-week">W{event.week + 1}</div>
-              <i>{event.tone === 'good' ? <Check size={15} /> : event.tone === 'bad' ? <AlertTriangle size={15} /> : <Radio size={15} />}</i>
-              <div><span>{getCampaignDate(event.week).full}</span><h3>{event.title}</h3><p>{event.detail}</p></div>
-            </article>
-          ))}
-        </div>
-      </aside>
     </div>
   );
 }

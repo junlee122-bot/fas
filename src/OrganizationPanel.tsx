@@ -120,7 +120,7 @@ export function OrganizationPanel({
                 <button onClick={() => onMeetStaff(member.id)} title="면담: 정치력 4"><MessageSquare size={13} /> 면담</button>
                 <button className={member.delegated ? 'active' : ''} onClick={() => onToggleDelegation(member.id)}><Check size={13} /> {member.delegated ? '위임 중' : '직접 결재'}</button>
                 <button className={developmentFocusId === member.id ? 'active' : ''} onClick={() => onSetDevelopmentFocus(member.id)}><Star size={13} /> {developmentFocusId === member.id ? '육성 중' : '육성'}</button>
-                <button disabled={member.development < 100 || member.grade >= 3} onClick={() => onUpgradeStaff(member.id)}><RefreshCw size={13} /> 승급</button>
+                <button disabled={member.development < 100 || member.grade >= 3} title={member.grade >= 3 ? '이미 최고 등급에 도달했습니다.' : member.development < 100 ? `성장도 100%가 필요합니다. 현재 ${member.development}%입니다.` : '정치력과 재정을 사용해 참모를 승급합니다.'} onClick={() => onUpgradeStaff(member.id)}><RefreshCw size={13} /> 승급</button>
               </div>
             </article>
           ))}
@@ -148,9 +148,9 @@ export function OrganizationPanel({
                   <Meter value={candidate.knowledge} tone="gold" />
                   <p>정보 {candidate.knowledge}% · 계약금 £{candidate.signingCost}M · 주급 £{candidate.weeklyCost}M</p>
                   <div>
-                    <button disabled={candidate.status === 'signed' || candidate.knowledge >= 100} onClick={() => onScoutCandidate(candidate.id)}>정밀 조사</button>
-                    <button disabled={candidate.status === 'signed' || candidate.knowledge < 35} className={candidate.status === 'shortlisted' ? 'active' : ''} onClick={() => onToggleShortlist(candidate.id)}>관심 명단</button>
-                    <button disabled={candidate.status === 'signed' || candidate.knowledge < 55} onClick={() => onRecruitCandidate(candidate.id)}>영입 협상</button>
+                    <button disabled={candidate.status === 'signed' || candidate.knowledge >= 100} title={candidate.status === 'signed' ? '이미 영입한 인재입니다.' : candidate.knowledge >= 100 ? '조사가 완료됐습니다.' : '정치력 3을 사용해 정보 수준을 높입니다.'} onClick={() => onScoutCandidate(candidate.id)}>정밀 조사</button>
+                    <button disabled={candidate.status === 'signed' || candidate.knowledge < 35} title={candidate.status === 'signed' ? '이미 영입한 인재입니다.' : candidate.knowledge < 35 ? `정보 35%가 필요합니다. 현재 ${candidate.knowledge}%입니다.` : '관심 명단에 추가하거나 제거합니다.'} className={candidate.status === 'shortlisted' ? 'active' : ''} onClick={() => onToggleShortlist(candidate.id)}>관심 명단</button>
+                    <button disabled={candidate.status === 'signed' || candidate.knowledge < 55} title={candidate.status === 'signed' ? '이미 영입한 인재입니다.' : candidate.knowledge < 55 ? `정보 55%가 필요합니다. 현재 ${candidate.knowledge}%입니다.` : `계약금 £${candidate.signingCost}M으로 협상을 시작합니다.`} onClick={() => onRecruitCandidate(candidate.id)}>영입 협상</button>
                   </div>
                 </article>
               );
@@ -238,7 +238,7 @@ export function OrganizationPanel({
                 {policies.map((policy) => {
                   const selected = selectedPolicies.includes(policy.id);
                   return (
-                    <button key={policy.id} disabled={Boolean(chosen) && !selected} className={selected ? 'selected' : ''} onClick={() => onSelectPolicy(policy.id)}>
+                    <button key={policy.id} disabled={Boolean(chosen) && !selected} title={Boolean(chosen) && !selected ? `${domain.title} 영역은 이미 '${chosen?.title}' 원칙을 채택했습니다.` : selected ? '현재 적용 중인 국가 원칙입니다.' : `${policy.title}: ${policy.effect}`} className={selected ? 'selected' : ''} onClick={() => onSelectPolicy(policy.id)}>
                       <i>{selected ? <Check size={14} /> : null}</i>
                       <span><strong>{policy.title}</strong><small>{policy.description}</small><em>{policy.effect}</em></span>
                     </button>
