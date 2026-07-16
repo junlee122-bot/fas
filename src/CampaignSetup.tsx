@@ -23,11 +23,13 @@ interface CampaignSetupProps {
   roleId: string;
   doctrine: Doctrine;
   hasSave: boolean;
+  hasManualSaves: boolean;
   onNationChange: (nationId: NationId) => void;
   onRoleChange: (roleId: string) => void;
   onDoctrineChange: (doctrine: Doctrine) => void;
   onStart: () => void;
   onContinue: () => void;
+  onManageSaves: () => void;
 }
 
 const branchLabels: Record<CareerBranch, string> = {
@@ -53,11 +55,13 @@ export function CampaignSetup({
   roleId,
   doctrine,
   hasSave,
+  hasManualSaves,
   onNationChange,
   onRoleChange,
   onDoctrineChange,
   onStart,
   onContinue,
+  onManageSaves,
 }: CampaignSetupProps) {
   const nation = getNation(nationId);
   const roles = careerRoles.filter((role) => role.nationId === nationId);
@@ -124,6 +128,7 @@ export function CampaignSetup({
         <footer className="setup-footer">
           <div className="alternate-history-promise"><MapPinned size={18} /><span><strong>역사는 출발 조건일 뿐입니다.</strong>국가 진로, 동맹, 독립, 휴전, 전후 체제는 플레이마다 달라집니다.</span></div>
           <div className="setup-actions">
+            {hasManualSaves && <button className="manual-save-button" onClick={onManageSaves}><Save size={15} /> 체크포인트 관리</button>}
             {hasSave && <button className="continue-button" onClick={onContinue}><Save size={15} /> 저장 캠페인 계속</button>}
             <button className="start-button" onClick={onStart}><Play size={15} fill="currentColor" /> {nation.shortName} · 취임</button>
           </div>

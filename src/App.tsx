@@ -30,9 +30,11 @@ import {
   Plus,
   Radio,
   RotateCcw,
+  Save,
   Search,
   Settings,
   Shield,
+  ShieldCheck,
   ShieldAlert,
   SkipForward,
   Star,
@@ -109,6 +111,9 @@ import { ConfirmResetModal } from './ConfirmResetModal';
 import { CommandPalette } from './CommandPalette';
 import type { CommandPaletteItem } from './CommandPalette';
 import { FieldManual } from './FieldManual';
+import { SaveCenter } from './SaveCenter';
+import { deleteManualSave, isCampaignSavePayload, normalizeManualSaves, upsertManualSave } from './save';
+import type { CampaignSavePayload, ManualSaveSlot } from './save';
 import {
   applyCommanderDevelopment,
   createCommanderDevelopment,
@@ -124,6 +129,7 @@ import { defaultUXPreferences, deriveOnboardingSteps, deriveUXActions, normalize
 import type { UXAction, UXPreferences } from './ux';
 
 const SAVE_KEY = 'iron-dominion-campaign-v1';
+const MANUAL_SAVE_KEY = 'iron-dominion-manual-saves-v1';
 const UX_SETTINGS_KEY = 'iron-dominion-ux-v1';
 const DEFAULT_NATION_ID: NationId = 'britain';
 const DEFAULT_ROLE_ID = 'britain-tier2';
@@ -258,6 +264,15 @@ export function App() {
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showFieldManual, setShowFieldManual] = useState(false);
+  const [showSaveCenter, setShowSaveCenter] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+  const [manualSaves, setManualSaves] = useState<ManualSaveSlot[]>(() => {
+    try {
+      return normalizeManualSaves(JSON.parse(localStorage.getItem(MANUAL_SAVE_KEY) ?? '[]'));
+    } catch {
+      return [];
+    }
+  });
   const [stockpile, setStockpile] = useState<Stockpile>(initialStockpile);
   const [campaignOutcome, setCampaignOutcome] = useState<CampaignOutcome>(null);
   const [relations, setRelations] = useState<DiplomaticRelation[]>(initialRelations);
@@ -332,6 +347,41 @@ export function App() {
     orders,
     alternatePathId: career.alternatePathId,
   }), [career.alternatePathId, game.factories, orders, production, research, selectedPolicies]);
+  const savePayload = useMemo<CampaignSavePayload>(() => ({
+    version: 8,
+    game,
+    territories,
+    divisions,
+    research,
+    production,
+    events,
+    orders,
+    stockpile,
+    relations,
+    operations,
+    campaignOutcome,
+    objectiveProgress,
+    torchAuthorized,
+    completedDecisions,
+    doctrine,
+    career,
+    activeTheater,
+    selectedTerritoryId,
+    selectedDivisionId,
+    staff,
+    staffCandidates,
+    developmentFocusId,
+    supplyPolicy,
+    procurementFocusId,
+    priorityDivisionId,
+    selectedPolicies,
+    pendingCouncilEventId,
+    resolvedCouncilChoices,
+    battleStance,
+    battleReports,
+    pendingBattleReportId,
+    commanderDevelopment,
+  }), [activeTheater, battleReports, battleStance, campaignOutcome, career, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, events, game, objectiveProgress, operations, orders, pendingBattleReportId, pendingCouncilEventId, priorityDivisionId, procurementFocusId, production, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized]);
   const campaignDate = getCampaignDate(game.week);
   const hasSave = Boolean(localStorage.getItem(SAVE_KEY));
 
@@ -351,6 +401,14 @@ export function App() {
   useEffect(() => {
     localStorage.setItem(UX_SETTINGS_KEY, JSON.stringify(uxPreferences));
   }, [uxPreferences]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(MANUAL_SAVE_KEY, JSON.stringify(manualSaves));
+    } catch {
+      notify('브라우저 저장 공간이 부족해 체크포인트를 기록하지 못했습니다. 저장 파일을 내보내십시오.');
+    }
+  }, [manualSaves, notify]);
 
   const addEvent = useCallback((title: string, detail: string, tone: WarEvent['tone'], week: number) => {
     setEvents((current) => [{ id: Date.now() + Math.random(), week, title, detail, tone }, ...current].slice(0, 30));
@@ -601,9 +659,13 @@ export function App() {
 
   useEffect(() => {
     if (showBriefing) return;
-    const payload = { version: 8, game, territories, divisions, research, production, events, orders, stockpile, relations, operations, campaignOutcome, objectiveProgress, torchAuthorized, completedDecisions, doctrine, career, activeTheater, selectedTerritoryId, selectedDivisionId, staff, staffCandidates, developmentFocusId, supplyPolicy, procurementFocusId, priorityDivisionId, selectedPolicies, pendingCouncilEventId, resolvedCouncilChoices, battleStance, battleReports, pendingBattleReportId, commanderDevelopment };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
-  }, [activeTheater, battleReports, battleStance, campaignOutcome, career, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, events, game, objectiveProgress, operations, orders, pendingBattleReportId, pendingCouncilEventId, priorityDivisionId, procurementFocusId, production, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, showBriefing, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized]);
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(savePayload));
+      setLastSavedAt(Date.now());
+    } catch {
+      notify('자동 저장에 실패했습니다. 저장 센터에서 캠페인을 내보내십시오.');
+    }
+  }, [notify, savePayload, showBriefing]);
 
   useEffect(() => {
     if (showBriefing || campaignOutcome) return;
@@ -670,6 +732,7 @@ export function App() {
     setShowResetConfirmation(false);
     setShowCommandPalette(false);
     setShowFieldManual(false);
+    setShowSaveCenter(false);
     setShowBriefing(false);
     notify(nation.shortName + ' · ' + role.title + '로 취임했습니다.');
   };
@@ -731,6 +794,7 @@ export function App() {
       setShowResetConfirmation(false);
       setShowCommandPalette(false);
       setShowFieldManual(false);
+      setShowSaveCenter(false);
       setShowBriefing(false);
       notify('저장된 전쟁 지휘소를 복구했습니다.');
     } catch {
@@ -780,7 +844,97 @@ export function App() {
     setShowResetConfirmation(false);
     setShowCommandPalette(false);
     setShowFieldManual(false);
+    setShowSaveCenter(false);
     setShowBriefing(true);
+  };
+
+  const saveManualSlot = (slot: number) => {
+    const nextSave: ManualSaveSlot = {
+      slot,
+      savedAt: new Date().toISOString(),
+      nationName: playerNation.shortName,
+      roleTitle: careerRole.title,
+      week: game.week,
+      theaterName: activeTheater === 'asia' ? '아시아·태평양' : '유럽·지중해',
+      victoryScore: game.victoryScore,
+      payload: savePayload,
+    };
+    setManualSaves((current) => upsertManualSave(current, nextSave));
+    notify(`체크포인트 ${slot}에 현재 캠페인을 저장했습니다.`);
+  };
+
+  const loadManualSlot = (slot: number) => {
+    const saved = manualSaves.find((item) => item.slot === slot);
+    if (!saved) return;
+    localStorage.setItem(SAVE_KEY, JSON.stringify(saved.payload));
+    setShowSaveCenter(false);
+    continueCampaign();
+    notify(`체크포인트 ${slot}을 불러왔습니다.`);
+  };
+
+  const removeManualSlot = (slot: number) => {
+    setManualSaves((current) => deleteManualSave(current, slot));
+    notify(`체크포인트 ${slot}을 삭제했습니다.`);
+  };
+
+  const exportCampaignSave = (slot: number | null) => {
+    const selectedSave = slot === null ? null : manualSaves.find((item) => item.slot === slot);
+    const exportData: ManualSaveSlot = selectedSave ?? {
+      slot: 0,
+      savedAt: new Date().toISOString(),
+      nationName: playerNation.shortName,
+      roleTitle: careerRole.title,
+      week: game.week,
+      theaterName: activeTheater === 'asia' ? '아시아·태평양' : '유럽·지중해',
+      victoryScore: game.victoryScore,
+      payload: savePayload,
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `iron-dominion-${exportData.payload.career.nationId}-week-${exportData.week + 1}.json`;
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    notify('캠페인 저장 파일을 내보냈습니다.');
+  };
+
+  const importCampaignSave = (file: File) => {
+    const emptySlot = [1, 2, 3].find((slot) => !manualSaves.some((save) => save.slot === slot));
+    if (!emptySlot) {
+      notify('가져오려면 먼저 수동 저장 슬롯 하나를 비워야 합니다.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed: unknown = JSON.parse(String(reader.result ?? ''));
+        const wrappedPayload = parsed && typeof parsed === 'object' && 'payload' in parsed ? (parsed as { payload: unknown }).payload : parsed;
+        if (!isCampaignSavePayload(wrappedPayload)) throw new Error('invalid-save');
+        const importedNation = getNation(wrappedPayload.career.nationId as NationId);
+        const importedRole = getRole(wrappedPayload.career.roleId, importedNation.id);
+        const normalizedPayload: CampaignSavePayload = {
+          ...wrappedPayload,
+          career: { ...wrappedPayload.career, nationId: importedNation.id, roleId: importedRole.id },
+        };
+        const importedSlot: ManualSaveSlot = {
+          slot: emptySlot,
+          savedAt: new Date().toISOString(),
+          nationName: importedNation.shortName,
+          roleTitle: importedRole.title,
+          week: wrappedPayload.game.week,
+          theaterName: wrappedPayload.activeTheater === 'asia' ? '아시아·태평양' : '유럽·지중해',
+          victoryScore: wrappedPayload.game.victoryScore,
+          payload: normalizedPayload,
+        };
+        setManualSaves((current) => upsertManualSave(current, importedSlot));
+        notify(`저장 파일을 체크포인트 ${emptySlot}에 가져왔습니다.`);
+      } catch {
+        notify('올바른 IRON DOMINION 저장 파일이 아닙니다.');
+      }
+    };
+    reader.onerror = () => notify('저장 파일을 읽을 수 없습니다.');
+    reader.readAsText(file);
   };
 
   const selectTerritory = (territoryId: string) => {
@@ -1231,8 +1385,15 @@ export function App() {
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        if (!showBriefing && !campaignOutcome && !pendingCouncilEventId && !pendingBattleReportId && !showJournal && !showSettings && !showActionCenter && !showResetConfirmation && !showFieldManual && !showCommandPalette) {
+          setShowSaveCenter((current) => !current);
+        }
+        return;
+      }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
-        if (!showBriefing && !campaignOutcome && !pendingCouncilEventId && !pendingBattleReportId && !showJournal && !showSettings && !showActionCenter && !showResetConfirmation && !showFieldManual) {
+        if (!showBriefing && !campaignOutcome && !pendingCouncilEventId && !pendingBattleReportId && !showJournal && !showSettings && !showActionCenter && !showResetConfirmation && !showFieldManual && !showSaveCenter) {
           event.preventDefault();
           setShowCommandPalette((current) => !current);
         }
@@ -1244,6 +1405,7 @@ export function App() {
         setShowResetConfirmation(false);
         setShowCommandPalette(false);
         setShowFieldManual(false);
+        setShowSaveCenter(false);
         setShowJournal(false);
         setPlanningMode(false);
         return;
@@ -1251,7 +1413,7 @@ export function App() {
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName.toLowerCase();
       if (target?.isContentEditable || tag === 'input' || tag === 'select' || tag === 'textarea' || tag === 'button') return;
-      if (showBriefing || campaignOutcome || pendingCouncilEventId || pendingBattleReportId || showJournal || showSettings || showActionCenter || showResetConfirmation || showCommandPalette || showFieldManual || event.repeat) return;
+      if (showBriefing || campaignOutcome || pendingCouncilEventId || pendingBattleReportId || showJournal || showSettings || showActionCenter || showResetConfirmation || showCommandPalette || showFieldManual || showSaveCenter || event.repeat) return;
       if (event.key.toLowerCase() === 'g') {
         event.preventDefault();
         setShowActionCenter(true);
@@ -1271,7 +1433,7 @@ export function App() {
     };
     window.addEventListener('keydown', handleShortcut);
     return () => window.removeEventListener('keydown', handleShortcut);
-  }, [advanceWeek, campaignOutcome, pendingBattleReportId, pendingCouncilEventId, showActionCenter, showBriefing, showCommandPalette, showFieldManual, showJournal, showResetConfirmation, showSettings]);
+  }, [advanceWeek, campaignOutcome, pendingBattleReportId, pendingCouncilEventId, showActionCenter, showBriefing, showCommandPalette, showFieldManual, showJournal, showResetConfirmation, showSaveCenter, showSettings]);
 
   const tabItems: { id: GameTab; label: string; description: string; icon: React.ReactNode }[] = [
     { id: 'command', label: '최고사령부', description: '전황·국가 진로·전쟁 내각의 핵심 결정을 검토합니다.', icon: <Shield size={17} /> },
@@ -1291,6 +1453,7 @@ export function App() {
     { id: 'war-journal', group: '지휘 도구', title: '전쟁 일지', description: '작전·국내·외교 전문을 검색합니다.', keywords: ['기록', '전문', '이벤트'], icon: <BookOpen size={17} /> },
     { id: 'settings', group: '지휘 도구', title: '사용자 환경 설정', description: '가독성, 고대비, 지도 라벨과 화면 효과를 조정합니다.', keywords: ['접근성', '글자', 'UI'], icon: <Settings size={17} /> },
     { id: 'field-manual', group: '지휘 도구', title: '야전 교범', description: '첫 주 체크리스트와 전투·운영 시스템 설명을 검색합니다.', keywords: ['도움말', '튜토리얼', '가이드'], icon: <CircleHelp size={17} />, meta: '?' },
+    { id: 'save-center', group: '지휘 도구', title: '저장 및 캠페인 관리', description: '수동 체크포인트, 내보내기, 불러오기와 새 캠페인을 관리합니다.', keywords: ['저장', '불러오기', '체크포인트'], icon: <Save size={17} />, meta: 'Ctrl S' },
     { id: 'next-week', group: '시간 제어', title: '다음 주 진행', description: '생산과 명령을 해결하고 전쟁을 한 주 진행합니다.', keywords: ['턴', '시간'], icon: <SkipForward size={17} />, meta: 'N' },
     { id: 'toggle-time', group: '시간 제어', title: speed === 0 ? '시간 재개' : '일시 정지', description: '시간 진행과 일시 정지를 전환합니다.', keywords: ['시간', '정지', '재개'], icon: speed === 0 ? <SkipForward size={17} /> : <Pause size={17} />, meta: 'Space' },
   ];
@@ -1316,6 +1479,8 @@ export function App() {
       setShowSettings(true);
     } else if (id === 'field-manual') {
       setShowFieldManual(true);
+    } else if (id === 'save-center') {
+      setShowSaveCenter(true);
     } else if (id === 'next-week') {
       advanceWeek();
     } else if (id === 'toggle-time') {
@@ -1375,7 +1540,7 @@ export function App() {
           <button title="빠른 이동" data-tooltip="빠른 이동 · Ctrl+K" aria-label="빠른 이동" aria-keyshortcuts="Control+K Meta+K" onClick={() => setShowCommandPalette(true)}><Search size={18} /></button>
           <button title="전쟁 일지" data-tooltip="전쟁 일지" aria-label="전쟁 일지" onClick={() => setShowJournal(true)}><BookOpen size={18} /></button>
           <button title={uxPreferences.soundOn ? '음향 끄기' : '음향 켜기'} data-tooltip={uxPreferences.soundOn ? '게임 음향 끄기' : '게임 음향 켜기'} aria-label={uxPreferences.soundOn ? '음향 끄기' : '음향 켜기'} onClick={() => toggleUXPreference('soundOn')}><Volume2 size={18} className={uxPreferences.soundOn ? '' : 'muted'} /></button>
-          <button title="새 캠페인 시작" data-tooltip="새 캠페인 시작" aria-label="새 캠페인 시작" onClick={() => setShowResetConfirmation(true)}><RotateCcw size={18} /></button>
+          <button title="저장 및 캠페인 관리" data-tooltip="저장 및 캠페인 관리 · Ctrl+S" aria-label="저장 및 캠페인 관리" aria-keyshortcuts="Control+S Meta+S" onClick={() => setShowSaveCenter(true)}><Save size={18} /></button>
           <button title="야전 교범" data-tooltip="야전 교범 · ?" aria-label="야전 교범" aria-keyshortcuts="?" onClick={() => setShowFieldManual(true)}><CircleHelp size={18} /></button>
           <button title="사용자 환경 설정" data-tooltip="사용자 환경 설정 · S" aria-label="사용자 환경 설정" aria-keyshortcuts="S" onClick={() => setShowSettings(true)}><Settings size={18} /></button>
         </div>
@@ -1485,7 +1650,10 @@ export function App() {
         <section className="command-deck">
           <div className="deck-context-bar">
             <div><span>전쟁 지휘소 / {activeTabMeta.label}</span><strong>{activeTabMeta.label}</strong><small>{activeTabMeta.description}</small></div>
-            <button onClick={() => setShowCommandPalette(true)} aria-keyshortcuts="Control+K Meta+K"><Search size={15} /><span>빠른 이동</span><kbd>Ctrl K</kbd></button>
+            <div className="deck-context-actions">
+              <button className="autosave-indicator" onClick={() => setShowSaveCenter(true)} aria-label="저장 센터 열기"><ShieldCheck size={14} /><span>{lastSavedAt ? '자동 저장 완료' : '자동 저장 대기'}</span></button>
+              <button className="quick-navigation-trigger" onClick={() => setShowCommandPalette(true)} aria-keyshortcuts="Control+K Meta+K"><Search size={15} /><span>빠른 이동</span><kbd>Ctrl K</kbd></button>
+            </div>
           </div>
           <div className="deck-tabs">
             {tabItems.map((tab) => (
@@ -1593,11 +1761,13 @@ export function App() {
           roleId={setupRoleId}
           doctrine={doctrine}
           hasSave={hasSave}
+          hasManualSaves={manualSaves.length > 0}
           onNationChange={changeSetupNation}
           onRoleChange={setSetupRoleId}
           onDoctrineChange={setDoctrine}
           onStart={startCampaign}
           onContinue={continueCampaign}
+          onManageSaves={() => setShowSaveCenter(true)}
         />
       )}
       {campaignOutcome && !showBriefing && (
@@ -1641,6 +1811,27 @@ export function App() {
             notify(`${tabItems.find((item) => item.id === tab)?.label ?? '관리'} 화면을 열었습니다.`);
           }}
           onClose={() => setShowFieldManual(false)}
+        />
+      )}
+      {showSaveCenter && !campaignOutcome && !pendingCouncilEvent && !pendingBattleReport && (
+        <SaveCenter
+          saves={manualSaves}
+          autoSavedAt={lastSavedAt}
+          nationName={playerNation.shortName}
+          roleTitle={careerRole.title}
+          week={game.week}
+          theaterName={activeTheater === 'asia' ? '아시아·태평양' : '유럽·지중해'}
+          victoryScore={game.victoryScore}
+          onSave={saveManualSlot}
+          onLoad={loadManualSlot}
+          onDelete={removeManualSlot}
+          onExport={exportCampaignSave}
+          onImport={importCampaignSave}
+          onNewCampaign={() => {
+            setShowSaveCenter(false);
+            if (!showBriefing) setShowResetConfirmation(true);
+          }}
+          onClose={() => setShowSaveCenter(false)}
         />
       )}
       {showResetConfirmation && !showBriefing && !campaignOutcome && !pendingCouncilEvent && !pendingBattleReport && (

@@ -57,6 +57,7 @@ export function SettingsModal({ preferences, onToggle, onReset, onClose }: Setti
             <h3>키보드 단축키</h3>
             <div><kbd>G</kbd><span><strong>행동 센터</strong><small>놓친 결정과 다음 행동 확인</small></span></div>
             <div><kbd>Ctrl K</kbd><span><strong>빠른 이동</strong><small>화면·전구·기능을 검색해 즉시 이동</small></span></div>
+            <div><kbd>Ctrl S</kbd><span><strong>저장 센터</strong><small>체크포인트·내보내기·불러오기 관리</small></span></div>
             <div><kbd>?</kbd><span><strong>야전 교범</strong><small>첫 주 체크리스트와 시스템 설명 검색</small></span></div>
             <div><kbd>N</kbd><span><strong>다음 주</strong><small>현재 명령을 해결하고 한 주 진행</small></span></div>
             <div><kbd>Space</kbd><span><strong>시간 제어</strong><small>일시 정지와 1배속 전환</small></span></div>
