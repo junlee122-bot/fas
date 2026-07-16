@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveBattle } from './combat';
+import { forecastBattle, resolveBattle } from './combat';
 import { commanders, initialDivisions, territories } from './data';
 
 const division = initialDivisions[0];
@@ -47,5 +47,42 @@ describe('multi-phase battle resolution', () => {
     const low = resolveBattle({ ...baseInput, stance: 'balanced', randomRolls: [-1, -1, -1, -1] });
     const clamped = resolveBattle({ ...baseInput, stance: 'balanced', randomRolls: [0, 0, 0, 0] });
     expect(low.phases).toEqual(clamped.phases);
+  });
+});
+
+describe('pre-battle forecast', () => {
+  const forecastInput = {
+    week: baseInput.week,
+    division: baseInput.division,
+    commander: baseInput.commander,
+    target: baseInput.target,
+    enemyPressure: baseInput.enemyPressure,
+    intelNetwork: baseInput.intelNetwork,
+    doctrineBonus: baseInput.doctrineBonus,
+    policyAttackBonus: baseInput.policyAttackBonus,
+    priorityBonus: baseInput.priorityBonus,
+  };
+
+  it('uses the combat model to show fortified targets as harder objectives', () => {
+    const plain = forecastBattle({ ...forecastInput, stance: 'balanced' });
+    const fortified = forecastBattle({ ...forecastInput, target: fortifiedTarget, stance: 'balanced' });
+    expect(fortified.successChance).toBeLessThanOrEqual(plain.successChance);
+    expect(fortified.defenderPower).toBeGreaterThan(plain.defenderPower);
+  });
+
+  it('shows the offensive upside and casualty cost of an aggressive stance', () => {
+    const cautious = forecastBattle({ ...forecastInput, stance: 'cautious' });
+    const aggressive = forecastBattle({ ...forecastInput, stance: 'aggressive' });
+    expect(aggressive.successChance).toBeGreaterThanOrEqual(cautious.successChance);
+    expect(aggressive.strengthLoss[1]).toBeGreaterThanOrEqual(cautious.strengthLoss[1]);
+    expect(aggressive.supplySpent).toBeGreaterThan(cautious.supplySpent);
+  });
+
+  it('narrows the reported uncertainty when intelligence improves', () => {
+    const lowIntel = forecastBattle({ ...forecastInput, stance: 'balanced', intelNetwork: 35 });
+    const highIntel = forecastBattle({ ...forecastInput, stance: 'balanced', intelNetwork: 82 });
+    expect(lowIntel.confidence).toBe('low');
+    expect(highIntel.confidence).toBe('high');
+    expect(highIntel.successRange[1] - highIntel.successRange[0]).toBeLessThan(lowIntel.successRange[1] - lowIntel.successRange[0]);
   });
 });

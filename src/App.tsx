@@ -100,9 +100,11 @@ import { CampaignSetup } from './CampaignSetup';
 import { OrganizationPanel } from './OrganizationPanel';
 import { CouncilEventModal } from './CouncilEventModal';
 import { councilEvents, strategicPolicies } from './choices';
-import { resolveBattle } from './combat';
+import { forecastBattle, resolveBattle } from './combat';
+import type { BattleForecast } from './combat';
 import { BattleReportModal } from './BattleReportModal';
 import { BattleDoctrinePanel } from './BattleDoctrinePanel';
+import { OffensivePlanningModal } from './OffensivePlanningModal';
 import { CommanderDevelopmentPanel } from './CommanderDevelopmentPanel';
 import { ActionCenter } from './ActionCenter';
 import { SettingsModal } from './SettingsModal';
@@ -165,6 +167,13 @@ const defaultNation = getNation(DEFAULT_NATION_ID);
 const defaultDivisions = createCampaignDivisions(defaultNation);
 const defaultProduction = createCampaignProduction(defaultNation);
 const defaultCommanderDevelopment = createCommanderDevelopment(createCareerCommanders(defaultNation, getRole(DEFAULT_ROLE_ID, DEFAULT_NATION_ID)));
+
+interface PendingOffensivePlan {
+  divisionId: string;
+  originId: string;
+  targetId: string;
+  stance: BattleStance;
+}
 
 const initialEvents: WarEvent[] = [
   { id: 1, week: 0, title: '전쟁 내각 소집', detail: '북아프리카와 지중해의 주도권을 되찾을 작전안을 제출하십시오.', tone: 'neutral' },
@@ -244,6 +253,7 @@ export function App() {
   const [selectedTerritoryId, setSelectedTerritoryId] = useState(defaultNation.capitalTerritoryId);
   const [selectedDivisionId, setSelectedDivisionId] = useState(defaultDivisions[0].id);
   const [planningMode, setPlanningMode] = useState(false);
+  const [pendingOffensivePlan, setPendingOffensivePlan] = useState<PendingOffensivePlan | null>(null);
   const [speed, setSpeed] = useState(0);
   const [showBriefing, setShowBriefing] = useState(true);
   const [showJournal, setShowJournal] = useState(false);
@@ -330,6 +340,39 @@ export function App() {
   );
   const selectedCommander = effectiveCommanders.find((commander) => commander.id === selectedDivision.commanderId) ?? effectiveCommanders[0];
   const selectedCommanderDevelopment = getCommanderRecord(commanderDevelopment, selectedCommander);
+  const pendingPlanDivisionId = pendingOffensivePlan?.divisionId;
+  const pendingPlanOriginId = pendingOffensivePlan?.originId;
+  const pendingPlanTargetId = pendingOffensivePlan?.targetId;
+  const pendingOffensivePlanDetails = useMemo(() => {
+    if (!pendingPlanDivisionId || !pendingPlanOriginId || !pendingPlanTargetId) return null;
+    const division = divisions.find((item) => item.id === pendingPlanDivisionId);
+    const origin = territories.find((item) => item.id === pendingPlanOriginId);
+    const target = territories.find((item) => item.id === pendingPlanTargetId);
+    const commander = effectiveCommanders.find((item) => item.id === division?.commanderId);
+    return division && origin && target && commander ? { division, origin, target, commander } : null;
+  }, [divisions, effectiveCommanders, pendingPlanDivisionId, pendingPlanOriginId, pendingPlanTargetId, territories]);
+  const offensiveForecasts = useMemo<Record<BattleStance, BattleForecast> | null>(() => {
+    if (!pendingOffensivePlanDetails) return null;
+    const { division, commander, target } = pendingOffensivePlanDetails;
+    const doctrineBonus = doctrine === 'maneuver' && division.type === 'armor' ? 14 : doctrine === 'methodical' ? 7 : 4;
+    const priorityBonus = division.id === priorityDivisionId ? 5 : 0;
+    const baseForecast = {
+      week: game.week,
+      division,
+      commander,
+      target,
+      enemyPressure: game.enemyPressure,
+      intelNetwork: game.intelNetwork,
+      doctrineBonus,
+      policyAttackBonus,
+      priorityBonus,
+    };
+    return {
+      cautious: forecastBattle({ ...baseForecast, stance: 'cautious' }),
+      balanced: forecastBattle({ ...baseForecast, stance: 'balanced' }),
+      aggressive: forecastBattle({ ...baseForecast, stance: 'aggressive' }),
+    };
+  }, [doctrine, game.enemyPressure, game.intelNetwork, game.week, pendingOffensivePlanDetails, policyAttackBonus, priorityDivisionId]);
   const uxActions = useMemo(() => deriveUXActions({
     factories: game.factories,
     production,
@@ -424,6 +467,7 @@ export function App() {
       const target = territories.find((item) => item.id === currentOrder.targetId);
       const commander = effectiveCommanders.find((item) => item.id === division?.commanderId);
       if (division && target && commander) {
+        const orderStance = currentOrder.stance ?? battleStance;
         if (target.controller === playerFaction) {
           setDivisions((current) => current.map((item) => item.id === division.id ? {
             ...item,
@@ -442,7 +486,7 @@ export function App() {
             division,
             commander,
             target,
-            stance: battleStance,
+            stance: orderStance,
             enemyPressure: game.enemyPressure,
             intelNetwork: game.intelNetwork,
             doctrineBonus,
@@ -452,7 +496,7 @@ export function App() {
           });
           const existingDevelopment = getCommanderRecord(commanderDevelopment, commander);
           const recoveredDevelopment = { ...existingDevelopment, fatigue: Math.max(0, existingDevelopment.fatigue - 3) };
-          const developmentResult = recordBattleExperience(recoveredDevelopment, resolvedBattle, battleStance);
+          const developmentResult = recordBattleExperience(recoveredDevelopment, resolvedBattle, orderStance);
           const battleHonor = getBattleHonor(resolvedBattle);
           const battleReport: BattleReport = {
             ...resolvedBattle,
@@ -710,6 +754,8 @@ export function App() {
     setBattleStance('balanced');
     setBattleReports([]);
     setPendingBattleReportId(null);
+    setPendingOffensivePlan(null);
+    setPlanningMode(false);
     setCommanderDevelopment(createCommanderDevelopment(createCareerCommanders(nation, role)));
     setEvents([
       { id: Date.now(), week: 0, title: '취임 — ' + role.title, detail: '당신이 ' + nation.name + '의 ' + role.title + ' 직무를 인수했습니다. 원래 역사와 다른 명령을 내릴 수 있습니다.', tone: 'good' },
@@ -777,6 +823,8 @@ export function App() {
       setBattleStance(data.battleStance ?? 'balanced');
       setBattleReports(data.battleReports ?? []);
       setPendingBattleReportId(data.pendingBattleReportId ?? null);
+      setPendingOffensivePlan(null);
+      setPlanningMode(false);
       setCommanderDevelopment(restoredDevelopment);
       setCareer(restoredCareer);
       setSetupNationId(restoredCareer.nationId);
@@ -826,6 +874,8 @@ export function App() {
     setBattleStance('balanced');
     setBattleReports([]);
     setPendingBattleReportId(null);
+    setPendingOffensivePlan(null);
+    setPlanningMode(false);
     setCommanderDevelopment(defaultCommanderDevelopment);
     setSetupNationId(DEFAULT_NATION_ID);
     setSetupRoleId(DEFAULT_ROLE_ID);
@@ -955,12 +1005,15 @@ export function App() {
         notify('지휘 점수가 부족합니다.');
         return;
       }
-      setOrders((current) => [...current, { divisionId: currentDivision.id, fromId: origin.id, targetId: target.id, startedWeek: game.week }]);
-      setDivisions((current) => current.map((item) => item.id === currentDivision.id ? { ...item, status: 'moving' } : item));
-      setGame((current) => ({ ...current, commandPoints: current.commandPoints - 5 }));
+      setPendingOffensivePlan({ divisionId: currentDivision.id, originId: origin.id, targetId: target.id, stance: battleStance });
       setPlanningMode(false);
+      setSpeed(0);
       setSelectedTerritoryId(target.id);
-      notify(currentDivision.name + ' → ' + target.name + ' 공세 계획 승인');
+      if (toastTimerRef.current !== null) {
+        window.clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = null;
+      }
+      setToast('');
       return;
     }
 
@@ -974,9 +1027,54 @@ export function App() {
       notify('이 사단은 현재 명령을 수행할 준비가 되지 않았습니다.');
       return;
     }
+    setPendingOffensivePlan(null);
     setPlanningMode(true);
     setActiveTab('army');
     notify('지도에서 인접한 적 지역을 선택하십시오.');
+  };
+
+  const cancelOffensivePlan = () => {
+    setPendingOffensivePlan(null);
+    setPlanningMode(true);
+    notify('계획 승인을 보류했습니다. 지도에서 다른 목표를 선택할 수 있습니다.');
+  };
+
+  const confirmOffensivePlan = () => {
+    if (!pendingOffensivePlan || !pendingOffensivePlanDetails) return;
+    const { division, origin, target } = pendingOffensivePlanDetails;
+    if (division.status !== 'ready' || !origin.neighbors.includes(target.id) || target.controller === playerFaction) {
+      setPendingOffensivePlan(null);
+      setPlanningMode(false);
+      notify('전선 상황이 바뀌어 이 계획을 승인할 수 없습니다.');
+      return;
+    }
+    if (game.commandPoints < 5) {
+      notify('지휘 점수가 부족합니다.');
+      return;
+    }
+    const stance = pendingOffensivePlan.stance;
+    const forecast = offensiveForecasts?.[stance];
+    const stanceLabel = stance === 'cautious' ? '신중한 공세' : stance === 'aggressive' ? '총력 공세' : '균형 공세';
+    setOrders((current) => [...current, {
+      divisionId: division.id,
+      fromId: origin.id,
+      targetId: target.id,
+      startedWeek: game.week,
+      stance,
+    }]);
+    setDivisions((current) => current.map((item) => item.id === division.id ? { ...item, status: 'moving' } : item));
+    setGame((current) => ({ ...current, commandPoints: current.commandPoints - 5 }));
+    setBattleStance(stance);
+    setPendingOffensivePlan(null);
+    setPlanningMode(false);
+    setSelectedTerritoryId(target.id);
+    addEvent(
+      '공세 계획 승인 — ' + target.name,
+      `${division.name}에 ${stanceLabel}를 명령했습니다.${forecast ? ` 참모부 예상 승산은 ${forecast.successChance}%입니다.` : ''}`,
+      'neutral',
+      game.week,
+    );
+    notify(`${division.name} → ${target.name} 공세 승인 · ${stanceLabel}`);
   };
 
   const authorizeTorch = () => {
@@ -993,7 +1091,7 @@ export function App() {
     }
     setOrders((current) => [
       ...current,
-      ...operationDivisions.map((division) => ({ divisionId: division.id, fromId: division.territoryId, targetId: operationTarget.id, startedWeek: game.week })),
+      ...operationDivisions.map((division) => ({ divisionId: division.id, fromId: division.territoryId, targetId: operationTarget.id, startedWeek: game.week, stance: battleStance })),
     ]);
     setDivisions((current) => current.map((division) => operationDivisions.some((item) => item.id === division.id) ? { ...division, status: 'moving' } : division));
     setGame((current) => ({ ...current, politicalPower: current.politicalPower - 20, commandPoints: current.commandPoints - 10 }));
@@ -1115,6 +1213,7 @@ export function App() {
   const switchTheater = (theater: TheaterId) => {
     setActiveTheater(theater);
     setPlanningMode(false);
+    setPendingOffensivePlan(null);
     const divisionInTheater = divisions.find((division) => {
       const territory = territories.find((item) => item.id === division.territoryId);
       return (territory?.theater ?? 'europe') === theater;
@@ -1387,13 +1486,13 @@ export function App() {
     const handleShortcut = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
         event.preventDefault();
-        if (!showBriefing && !campaignOutcome && !pendingCouncilEventId && !pendingBattleReportId && !showJournal && !showSettings && !showActionCenter && !showResetConfirmation && !showFieldManual && !showCommandPalette) {
+        if (!showBriefing && !campaignOutcome && !pendingCouncilEventId && !pendingBattleReportId && !pendingOffensivePlan && !showJournal && !showSettings && !showActionCenter && !showResetConfirmation && !showFieldManual && !showCommandPalette) {
           setShowSaveCenter((current) => !current);
         }
         return;
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
-        if (!showBriefing && !campaignOutcome && !pendingCouncilEventId && !pendingBattleReportId && !showJournal && !showSettings && !showActionCenter && !showResetConfirmation && !showFieldManual && !showSaveCenter) {
+        if (!showBriefing && !campaignOutcome && !pendingCouncilEventId && !pendingBattleReportId && !pendingOffensivePlan && !showJournal && !showSettings && !showActionCenter && !showResetConfirmation && !showFieldManual && !showSaveCenter) {
           event.preventDefault();
           setShowCommandPalette((current) => !current);
         }
@@ -1408,12 +1507,13 @@ export function App() {
         setShowSaveCenter(false);
         setShowJournal(false);
         setPlanningMode(false);
+        setPendingOffensivePlan(null);
         return;
       }
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName.toLowerCase();
       if (target?.isContentEditable || tag === 'input' || tag === 'select' || tag === 'textarea' || tag === 'button') return;
-      if (showBriefing || campaignOutcome || pendingCouncilEventId || pendingBattleReportId || showJournal || showSettings || showActionCenter || showResetConfirmation || showCommandPalette || showFieldManual || showSaveCenter || event.repeat) return;
+      if (showBriefing || campaignOutcome || pendingCouncilEventId || pendingBattleReportId || pendingOffensivePlan || showJournal || showSettings || showActionCenter || showResetConfirmation || showCommandPalette || showFieldManual || showSaveCenter || event.repeat) return;
       if (event.key.toLowerCase() === 'g') {
         event.preventDefault();
         setShowActionCenter(true);
@@ -1433,7 +1533,7 @@ export function App() {
     };
     window.addEventListener('keydown', handleShortcut);
     return () => window.removeEventListener('keydown', handleShortcut);
-  }, [advanceWeek, campaignOutcome, pendingBattleReportId, pendingCouncilEventId, showActionCenter, showBriefing, showCommandPalette, showFieldManual, showJournal, showResetConfirmation, showSaveCenter, showSettings]);
+  }, [advanceWeek, campaignOutcome, pendingBattleReportId, pendingCouncilEventId, pendingOffensivePlan, showActionCenter, showBriefing, showCommandPalette, showFieldManual, showJournal, showResetConfirmation, showSaveCenter, showSettings]);
 
   const tabItems: { id: GameTab; label: string; description: string; icon: React.ReactNode }[] = [
     { id: 'command', label: '최고사령부', description: '전황·국가 진로·전쟁 내각의 핵심 결정을 검토합니다.', icon: <Shield size={17} /> },
@@ -1667,6 +1767,7 @@ export function App() {
                 territories={territories}
                 divisions={divisions}
                 orders={orders}
+                battleStance={battleStance}
                 torchAuthorized={torchAuthorized}
                 completedDecisions={completedDecisions}
                 onAuthorizeTorch={authorizeTorch}
@@ -1754,6 +1855,22 @@ export function App() {
         <div className="province-stat"><span>전략 가치</span><strong>{selectedTerritory.value}</strong><div className="stars">{'★'.repeat(Math.min(5, Math.ceil(selectedTerritory.value / 2)))}</div></div>
         <button className="focus-button" onClick={() => setActiveTab('army')}>주둔군 보기 <ChevronRight size={15} /></button>
       </div>
+
+      {pendingOffensivePlan && pendingOffensivePlanDetails && offensiveForecasts && !showBriefing && !campaignOutcome && !pendingCouncilEvent && !pendingBattleReport && (
+        <OffensivePlanningModal
+          division={pendingOffensivePlanDetails.division}
+          commander={pendingOffensivePlanDetails.commander}
+          origin={pendingOffensivePlanDetails.origin}
+          target={pendingOffensivePlanDetails.target}
+          stance={pendingOffensivePlan.stance}
+          forecasts={offensiveForecasts}
+          commandPoints={game.commandPoints}
+          intelNetwork={game.intelNetwork}
+          onStanceChange={(stance) => setPendingOffensivePlan((current) => current ? { ...current, stance } : current)}
+          onConfirm={confirmOffensivePlan}
+          onCancel={cancelOffensivePlan}
+        />
+      )}
 
       {showBriefing && (
         <CampaignSetup
@@ -1990,11 +2107,12 @@ function MapBoard({ territories, divisions, orders, selectedTerritoryId, plannin
   );
 }
 
-function CommandPanel({ game, territories, divisions, orders, torchAuthorized, completedDecisions, onAuthorizeTorch, onDecision, setGame, setDivisions, nation, role, career, playerFaction, activeTheater, onChoosePath }: {
+function CommandPanel({ game, territories, divisions, orders, battleStance, torchAuthorized, completedDecisions, onAuthorizeTorch, onDecision, setGame, setDivisions, nation, role, career, playerFaction, activeTheater, onChoosePath }: {
   game: GameState;
   territories: Territory[];
   divisions: Division[];
   orders: Order[];
+  battleStance: BattleStance;
   torchAuthorized: boolean;
   completedDecisions: string[];
   onAuthorizeTorch: () => void;
@@ -2101,9 +2219,11 @@ function CommandPanel({ game, territories, divisions, orders, torchAuthorized, c
         ) : orders.map((order, index) => {
           const division = divisions.find((item) => item.id === order.divisionId);
           const target = territories.find((item) => item.id === order.targetId);
+          const effectiveStance = order.stance ?? battleStance;
+          const stanceLabel = effectiveStance === 'cautious' ? '신중' : effectiveStance === 'aggressive' ? '총력' : '균형';
           return (
             <div className="queued-order" key={order.divisionId + '-' + order.targetId + '-' + order.startedWeek}>
-              <i>{index + 1}</i><div><strong>{division?.name}</strong><span>목표: {target?.name}</span></div><em>다음 주</em>
+              <i>{index + 1}</i><div><strong>{division?.name}</strong><span>목표: {target?.name} · {stanceLabel} 공세</span></div><em>다음 주</em>
             </div>
           );
         })}
@@ -2144,6 +2264,8 @@ function ArmyPanel({ game, divisions, selectedDivision, selectedCommander, selec
 }) {
   const location = territories.find((territory) => territory.id === selectedDivision.territoryId);
   const divisionOrder = orders.find((order) => order.divisionId === selectedDivision.id);
+  const effectiveDivisionOrderStance = divisionOrder?.stance ?? battleStance;
+  const divisionOrderStance = effectiveDivisionOrderStance === 'cautious' ? '신중한 공세' : effectiveDivisionOrderStance === 'aggressive' ? '총력 공세' : '균형 공세';
   return (
     <div className="army-layout">
       <section className="deck-section division-roster">
@@ -2171,7 +2293,7 @@ function ArmyPanel({ game, divisions, selectedDivision, selectedCommander, selec
           <div><span>{typeMeta[selectedDivision.type].label}사단 · {location?.region}</span><h3>{selectedDivision.name}</h3><small>{location?.name} 주둔</small></div>
           <button className="order-button" onClick={onIssueOffensive} disabled={selectedDivision.status !== 'ready'} title={selectedDivision.status === 'ready' ? '인접 적 지역에 공세를 계획합니다.' : '준비 상태의 사단만 공세 명령을 받을 수 있습니다.'}><Crosshair size={15} /> 공세 명령</button>
         </div>
-        {divisionOrder && <div className="active-order-notice"><Zap size={15} /><span>{territories.find((item) => item.id === divisionOrder.targetId)?.name} 공세 준비 중</span></div>}
+        {divisionOrder && <div className="active-order-notice"><Zap size={15} /><span>{territories.find((item) => item.id === divisionOrder.targetId)?.name} · {divisionOrderStance} 준비 중</span></div>}
         <div className="division-metrics">
           <Metric label="병력 전력" value={selectedDivision.strength} icon={<Users size={14} />} tone="green" />
           <Metric label="조직력" value={selectedDivision.organization} icon={<Shield size={14} />} />

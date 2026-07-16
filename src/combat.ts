@@ -1,6 +1,6 @@
 import type { BattlePhase, BattleReport, BattleStance, Commander, Division, Territory } from './types';
 
-interface BattleInput {
+export interface BattleInput {
   week: number;
   division: Division;
   commander: Commander;
@@ -13,6 +13,25 @@ interface BattleInput {
   priorityBonus: number;
   randomRolls: [number, number, number, number];
 }
+
+export type ForecastConfidence = 'low' | 'medium' | 'high';
+export type ForecastRisk = 'low' | 'moderate' | 'high' | 'critical';
+
+export interface BattleForecast {
+  stance: BattleStance;
+  successChance: number;
+  successRange: [number, number];
+  confidence: ForecastConfidence;
+  risk: ForecastRisk;
+  attackerPower: number;
+  defenderPower: number;
+  expectedMargin: number;
+  strengthLoss: [number, number];
+  organizationLoss: [number, number];
+  supplySpent: number;
+}
+
+export type BattleForecastInput = Omit<BattleInput, 'randomRolls'>;
 
 const terrainDefense: Record<string, number> = {
   평야: 2,
@@ -161,5 +180,61 @@ export function resolveBattle({
     organizationLoss,
     supplySpent,
     summary,
+  };
+}
+
+const clampPercentage = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
+
+function likelyRange(values: number[]): [number, number] {
+  const sorted = [...values].sort((left, right) => left - right);
+  return [sorted[Math.floor(sorted.length * .2)], sorted[Math.floor(sorted.length * .8)]];
+}
+
+export function forecastBattle(input: BattleForecastInput): BattleForecast {
+  const sampleRolls = [.15, .5, .85];
+  const outcomes: BattleReport[] = [];
+
+  for (const reconnaissance of sampleRolls) {
+    for (const approach of sampleRolls) {
+      for (const engagement of sampleRolls) {
+        for (const exploitation of sampleRolls) {
+          outcomes.push(resolveBattle({
+            ...input,
+            randomRolls: [reconnaissance, approach, engagement, exploitation],
+          }));
+        }
+      }
+    }
+  }
+
+  const expected = resolveBattle({ ...input, randomRolls: [.5, .5, .5, .5] });
+  const rawSuccessChance = outcomes.filter((report) => report.victory).length / outcomes.length * 100;
+  const successChance = Math.max(4, Math.min(96, Math.round(rawSuccessChance)));
+  const confidence: ForecastConfidence = input.intelNetwork >= 75 ? 'high' : input.intelNetwork >= 50 ? 'medium' : 'low';
+  const uncertainty = confidence === 'high' ? 6 : confidence === 'medium' ? 11 : 17;
+  const strengthLoss = likelyRange(outcomes.map((report) => report.attackerStrengthLoss));
+  const organizationLoss = likelyRange(outcomes.map((report) => report.organizationLoss));
+  const attackerPower = Math.round(expected.phases.reduce((total, phase) => total + phase.attackerScore, 0) / expected.phases.length);
+  const defenderPower = Math.round(expected.phases.reduce((total, phase) => total + phase.defenderScore, 0) / expected.phases.length);
+  const risk: ForecastRisk = successChance >= 72 && strengthLoss[1] <= 10
+    ? 'low'
+    : successChance >= 52 && strengthLoss[1] <= 16
+      ? 'moderate'
+      : successChance >= 30
+        ? 'high'
+        : 'critical';
+
+  return {
+    stance: input.stance,
+    successChance,
+    successRange: [clampPercentage(successChance - uncertainty), clampPercentage(successChance + uncertainty)],
+    confidence,
+    risk,
+    attackerPower,
+    defenderPower,
+    expectedMargin: expected.margin,
+    strengthLoss,
+    organizationLoss,
+    supplySpent: expected.supplySpent,
   };
 }

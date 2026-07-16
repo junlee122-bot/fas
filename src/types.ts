@@ -290,6 +290,7 @@ export interface Order {
   fromId: string;
   targetId: string;
   startedWeek: number;
+  stance?: BattleStance;
 }
 
 export interface GameState {
