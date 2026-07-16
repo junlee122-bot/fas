@@ -30,6 +30,23 @@ export interface ActionCenterInput {
   commanderDevelopment: CommanderDevelopment[];
 }
 
+export interface OnboardingStep {
+  id: string;
+  title: string;
+  detail: string;
+  tab: GameTab;
+  complete: boolean;
+}
+
+export interface OnboardingInput {
+  factories: number;
+  production: ProductionLine[];
+  research: ResearchProject[];
+  selectedPolicies: string[];
+  orders: Order[];
+  alternatePathId: string | null;
+}
+
 export const defaultUXPreferences: UXPreferences = {
   soundOn: true,
   highContrast: false,
@@ -46,6 +63,26 @@ export function normalizeUXPreferences(value: Partial<UXPreferences> | null | un
     largeMapLabels: value?.largeMapLabels ?? defaultUXPreferences.largeMapLabels,
     reducedMotion: value?.reducedMotion ?? defaultUXPreferences.reducedMotion,
   };
+}
+
+export function deriveOnboardingSteps({
+  factories,
+  production,
+  research,
+  selectedPolicies,
+  orders,
+  alternatePathId,
+}: OnboardingInput): OnboardingStep[] {
+  const usedFactories = production.reduce((total, line) => total + line.assigned, 0);
+  const activeResearch = research.filter((project) => project.active && !project.complete).length;
+
+  return [
+    { id: 'path', title: '국가 진로 결정', detail: '역사와 다른 국가 목표를 선택해 장기 캠페인 방향을 정합니다.', tab: 'command', complete: Boolean(alternatePathId) },
+    { id: 'research', title: '연구 슬롯 2개 배정', detail: '비어 있는 연구 슬롯은 매주 기술 성장 기회를 잃습니다.', tab: 'research', complete: activeResearch >= 2 },
+    { id: 'factories', title: '군수 공장 전부 배정', detail: '모든 공장을 장비 생산선에 투입해 주간 산출량을 확보합니다.', tab: 'industry', complete: usedFactories >= factories },
+    { id: 'policies', title: '국가 원칙 4개 확정', detail: '경제·교리·사회·외교 영역의 운영 원칙을 하나씩 선택합니다.', tab: 'organization', complete: selectedPolicies.length >= 4 },
+    { id: 'order', title: '첫 작전 명령 수립', detail: '준비된 사단에 공세 명령을 내려 전선의 주도권을 시험합니다.', tab: 'army', complete: orders.length > 0 },
+  ];
 }
 
 export function deriveUXActions({

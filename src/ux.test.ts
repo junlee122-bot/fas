@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveUXActions, normalizeUXPreferences } from './ux';
+import { deriveOnboardingSteps, deriveUXActions, normalizeUXPreferences } from './ux';
 import type { ActionCenterInput } from './ux';
 
 const baseInput: ActionCenterInput = {
@@ -42,5 +42,33 @@ describe('user experience guidance', () => {
       largeMapLabels: false,
       reducedMotion: false,
     });
+  });
+
+  it('derives a live first-week checklist from campaign state', () => {
+    const steps = deriveOnboardingSteps({
+      factories: baseInput.factories,
+      production: baseInput.production,
+      research: baseInput.research,
+      selectedPolicies: baseInput.selectedPolicies,
+      orders: baseInput.orders,
+      alternatePathId: null,
+    });
+    expect(steps).toHaveLength(5);
+    expect(steps.every((step) => !step.complete)).toBe(true);
+  });
+
+  it('marks onboarding complete only when the corresponding systems are configured', () => {
+    const steps = deriveOnboardingSteps({
+      factories: 12,
+      production: [{ ...baseInput.production[0], assigned: 12 }],
+      research: [
+        { ...baseInput.research[0], active: true },
+        { ...baseInput.research[0], id: 'code', active: true },
+      ],
+      selectedPolicies: ['economy', 'doctrine', 'society', 'diplomacy'],
+      orders: [{ divisionId: 'division', fromId: 'home', targetId: 'front', startedWeek: 1 }],
+      alternatePathId: 'alternate-path',
+    });
+    expect(steps.every((step) => step.complete)).toBe(true);
   });
 });

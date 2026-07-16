@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
+  CircleHelp,
   CircleDollarSign,
   Clock3,
   CloudRain,
@@ -107,6 +108,7 @@ import { WarJournal } from './WarJournal';
 import { ConfirmResetModal } from './ConfirmResetModal';
 import { CommandPalette } from './CommandPalette';
 import type { CommandPaletteItem } from './CommandPalette';
+import { FieldManual } from './FieldManual';
 import {
   applyCommanderDevelopment,
   createCommanderDevelopment,
@@ -118,7 +120,7 @@ import {
   restCommander,
   unlockCommanderSkill,
 } from './development';
-import { defaultUXPreferences, deriveUXActions, normalizeUXPreferences } from './ux';
+import { defaultUXPreferences, deriveOnboardingSteps, deriveUXActions, normalizeUXPreferences } from './ux';
 import type { UXAction, UXPreferences } from './ux';
 
 const SAVE_KEY = 'iron-dominion-campaign-v1';
@@ -255,6 +257,7 @@ export function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showFieldManual, setShowFieldManual] = useState(false);
   const [stockpile, setStockpile] = useState<Stockpile>(initialStockpile);
   const [campaignOutcome, setCampaignOutcome] = useState<CampaignOutcome>(null);
   const [relations, setRelations] = useState<DiplomaticRelation[]>(initialRelations);
@@ -321,6 +324,14 @@ export function App() {
     orders,
     commanderDevelopment,
   }), [commanderDevelopment, divisions, game.factories, orders, production, research, selectedPolicies]);
+  const onboardingSteps = useMemo(() => deriveOnboardingSteps({
+    factories: game.factories,
+    production,
+    research,
+    selectedPolicies,
+    orders,
+    alternatePathId: career.alternatePathId,
+  }), [career.alternatePathId, game.factories, orders, production, research, selectedPolicies]);
   const campaignDate = getCampaignDate(game.week);
   const hasSave = Boolean(localStorage.getItem(SAVE_KEY));
 
@@ -658,6 +669,7 @@ export function App() {
     setShowSettings(false);
     setShowResetConfirmation(false);
     setShowCommandPalette(false);
+    setShowFieldManual(false);
     setShowBriefing(false);
     notify(nation.shortName + ' · ' + role.title + '로 취임했습니다.');
   };
@@ -718,6 +730,7 @@ export function App() {
       setShowSettings(false);
       setShowResetConfirmation(false);
       setShowCommandPalette(false);
+      setShowFieldManual(false);
       setShowBriefing(false);
       notify('저장된 전쟁 지휘소를 복구했습니다.');
     } catch {
@@ -766,6 +779,7 @@ export function App() {
     setShowSettings(false);
     setShowResetConfirmation(false);
     setShowCommandPalette(false);
+    setShowFieldManual(false);
     setShowBriefing(true);
   };
 
@@ -1218,7 +1232,7 @@ export function App() {
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
-        if (!showBriefing && !campaignOutcome && !pendingCouncilEventId && !pendingBattleReportId && !showJournal && !showSettings && !showActionCenter && !showResetConfirmation) {
+        if (!showBriefing && !campaignOutcome && !pendingCouncilEventId && !pendingBattleReportId && !showJournal && !showSettings && !showActionCenter && !showResetConfirmation && !showFieldManual) {
           event.preventDefault();
           setShowCommandPalette((current) => !current);
         }
@@ -1229,6 +1243,7 @@ export function App() {
         setShowSettings(false);
         setShowResetConfirmation(false);
         setShowCommandPalette(false);
+        setShowFieldManual(false);
         setShowJournal(false);
         setPlanningMode(false);
         return;
@@ -1236,13 +1251,16 @@ export function App() {
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName.toLowerCase();
       if (target?.isContentEditable || tag === 'input' || tag === 'select' || tag === 'textarea' || tag === 'button') return;
-      if (showBriefing || campaignOutcome || pendingCouncilEventId || pendingBattleReportId || showJournal || showSettings || showActionCenter || showResetConfirmation || showCommandPalette || event.repeat) return;
+      if (showBriefing || campaignOutcome || pendingCouncilEventId || pendingBattleReportId || showJournal || showSettings || showActionCenter || showResetConfirmation || showCommandPalette || showFieldManual || event.repeat) return;
       if (event.key.toLowerCase() === 'g') {
         event.preventDefault();
         setShowActionCenter(true);
       } else if (event.key.toLowerCase() === 's') {
         event.preventDefault();
         setShowSettings(true);
+      } else if (event.key === '?') {
+        event.preventDefault();
+        setShowFieldManual(true);
       } else if (event.key.toLowerCase() === 'n') {
         event.preventDefault();
         advanceWeek();
@@ -1253,7 +1271,7 @@ export function App() {
     };
     window.addEventListener('keydown', handleShortcut);
     return () => window.removeEventListener('keydown', handleShortcut);
-  }, [advanceWeek, campaignOutcome, pendingBattleReportId, pendingCouncilEventId, showActionCenter, showBriefing, showCommandPalette, showJournal, showResetConfirmation, showSettings]);
+  }, [advanceWeek, campaignOutcome, pendingBattleReportId, pendingCouncilEventId, showActionCenter, showBriefing, showCommandPalette, showFieldManual, showJournal, showResetConfirmation, showSettings]);
 
   const tabItems: { id: GameTab; label: string; description: string; icon: React.ReactNode }[] = [
     { id: 'command', label: '최고사령부', description: '전황·국가 진로·전쟁 내각의 핵심 결정을 검토합니다.', icon: <Shield size={17} /> },
@@ -1272,6 +1290,7 @@ export function App() {
     { id: 'action-center', group: '지휘 도구', title: '행동 센터', description: '놓친 결정과 우선 처리할 행동을 확인합니다.', keywords: ['할 일', '다음 행동', '권장'], icon: <Menu size={17} />, meta: `${uxActions.length}건` },
     { id: 'war-journal', group: '지휘 도구', title: '전쟁 일지', description: '작전·국내·외교 전문을 검색합니다.', keywords: ['기록', '전문', '이벤트'], icon: <BookOpen size={17} /> },
     { id: 'settings', group: '지휘 도구', title: '사용자 환경 설정', description: '가독성, 고대비, 지도 라벨과 화면 효과를 조정합니다.', keywords: ['접근성', '글자', 'UI'], icon: <Settings size={17} /> },
+    { id: 'field-manual', group: '지휘 도구', title: '야전 교범', description: '첫 주 체크리스트와 전투·운영 시스템 설명을 검색합니다.', keywords: ['도움말', '튜토리얼', '가이드'], icon: <CircleHelp size={17} />, meta: '?' },
     { id: 'next-week', group: '시간 제어', title: '다음 주 진행', description: '생산과 명령을 해결하고 전쟁을 한 주 진행합니다.', keywords: ['턴', '시간'], icon: <SkipForward size={17} />, meta: 'N' },
     { id: 'toggle-time', group: '시간 제어', title: speed === 0 ? '시간 재개' : '일시 정지', description: '시간 진행과 일시 정지를 전환합니다.', keywords: ['시간', '정지', '재개'], icon: speed === 0 ? <SkipForward size={17} /> : <Pause size={17} />, meta: 'Space' },
   ];
@@ -1295,6 +1314,8 @@ export function App() {
       setShowJournal(true);
     } else if (id === 'settings') {
       setShowSettings(true);
+    } else if (id === 'field-manual') {
+      setShowFieldManual(true);
     } else if (id === 'next-week') {
       advanceWeek();
     } else if (id === 'toggle-time') {
@@ -1355,6 +1376,7 @@ export function App() {
           <button title="전쟁 일지" data-tooltip="전쟁 일지" aria-label="전쟁 일지" onClick={() => setShowJournal(true)}><BookOpen size={18} /></button>
           <button title={uxPreferences.soundOn ? '음향 끄기' : '음향 켜기'} data-tooltip={uxPreferences.soundOn ? '게임 음향 끄기' : '게임 음향 켜기'} aria-label={uxPreferences.soundOn ? '음향 끄기' : '음향 켜기'} onClick={() => toggleUXPreference('soundOn')}><Volume2 size={18} className={uxPreferences.soundOn ? '' : 'muted'} /></button>
           <button title="새 캠페인 시작" data-tooltip="새 캠페인 시작" aria-label="새 캠페인 시작" onClick={() => setShowResetConfirmation(true)}><RotateCcw size={18} /></button>
+          <button title="야전 교범" data-tooltip="야전 교범 · ?" aria-label="야전 교범" aria-keyshortcuts="?" onClick={() => setShowFieldManual(true)}><CircleHelp size={18} /></button>
           <button title="사용자 환경 설정" data-tooltip="사용자 환경 설정 · S" aria-label="사용자 환경 설정" aria-keyshortcuts="S" onClick={() => setShowSettings(true)}><Settings size={18} /></button>
         </div>
       </aside>
@@ -1609,6 +1631,17 @@ export function App() {
       )}
       {showCommandPalette && !showBriefing && !campaignOutcome && !pendingCouncilEvent && !pendingBattleReport && (
         <CommandPalette items={commandPaletteItems} onExecute={executePaletteCommand} onClose={() => setShowCommandPalette(false)} />
+      )}
+      {showFieldManual && !showBriefing && !campaignOutcome && !pendingCouncilEvent && !pendingBattleReport && (
+        <FieldManual
+          steps={onboardingSteps}
+          onNavigate={(tab) => {
+            setActiveTab(tab);
+            setShowFieldManual(false);
+            notify(`${tabItems.find((item) => item.id === tab)?.label ?? '관리'} 화면을 열었습니다.`);
+          }}
+          onClose={() => setShowFieldManual(false)}
+        />
       )}
       {showResetConfirmation && !showBriefing && !campaignOutcome && !pendingCouncilEvent && !pendingBattleReport && (
         <ConfirmResetModal nationName={playerNation.shortName} week={game.week} onConfirm={resetCampaign} onClose={() => setShowResetConfirmation(false)} />
