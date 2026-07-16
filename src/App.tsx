@@ -49,6 +49,8 @@ import {
   worldNews,
 } from './data';
 import type {
+  BattleReport,
+  BattleStance,
   Division,
   DiplomaticRelation,
   CovertOperation,
@@ -91,6 +93,9 @@ import { CampaignSetup } from './CampaignSetup';
 import { OrganizationPanel } from './OrganizationPanel';
 import { CouncilEventModal } from './CouncilEventModal';
 import { councilEvents, strategicPolicies } from './choices';
+import { resolveBattle } from './combat';
+import { BattleReportModal } from './BattleReportModal';
+import { BattleDoctrinePanel } from './BattleDoctrinePanel';
 
 const SAVE_KEY = 'iron-dominion-campaign-v1';
 const DEFAULT_NATION_ID: NationId = 'britain';
@@ -232,6 +237,9 @@ export function App() {
   const [selectedPolicies, setSelectedPolicies] = useState<string[]>([]);
   const [pendingCouncilEventId, setPendingCouncilEventId] = useState<string | null>(null);
   const [resolvedCouncilChoices, setResolvedCouncilChoices] = useState<string[]>([]);
+  const [battleStance, setBattleStance] = useState<BattleStance>('balanced');
+  const [battleReports, setBattleReports] = useState<BattleReport[]>([]);
+  const [pendingBattleReportId, setPendingBattleReportId] = useState<string | null>(null);
   const toastTimerRef = useRef<number | null>(null);
 
   const playerNation = getNation(career.nationId);
@@ -247,6 +255,7 @@ export function App() {
   const delegatedDepartments = useMemo(() => new Set(staff.filter((member) => member.delegated).map((member) => member.department)), [staff]);
   const staffWeeklyCost = staff.reduce((total, member) => total + member.weeklyCost, 0);
   const pendingCouncilEvent = councilEvents.find((event) => event.id === pendingCouncilEventId) ?? null;
+  const pendingBattleReport = battleReports.find((report) => report.id === pendingBattleReportId) ?? null;
   const theaterTerritories = useMemo(
     () => territories.filter((territory) => (territory.theater ?? 'europe') === activeTheater),
     [activeTheater, territories],
@@ -303,32 +312,49 @@ export function App() {
         } else {
           const doctrineBonus = doctrine === 'maneuver' && division.type === 'armor' ? 14 : doctrine === 'methodical' ? 7 : 4;
           const priorityBonus = division.id === priorityDivisionId ? 5 : 0;
-          const attackPower = division.strength * 0.52 + division.organization * 0.25 + commander.attack * 0.2 + doctrineBonus + policyAttackBonus + priorityBonus + Math.random() * 22;
-          const defensePower = 57 + target.value * 2.8 + (target.terrain === '산악' || target.terrain === '요새' ? 18 : 0) + Math.random() * 24;
-          const victory = attackPower >= defensePower;
-          if (victory) {
+          const battleReport = resolveBattle({
+            week: nextWeek,
+            division,
+            commander,
+            target,
+            stance: battleStance,
+            enemyPressure: game.enemyPressure,
+            intelNetwork: game.intelNetwork,
+            doctrineBonus,
+            policyAttackBonus,
+            priorityBonus,
+            randomRolls: [Math.random(), Math.random(), Math.random(), Math.random()],
+          });
+          setBattleReports((current) => [battleReport, ...current].slice(0, 24));
+          setPendingBattleReportId(battleReport.id);
+          setSpeed(0);
+          if (battleReport.victory) {
           setTerritories((current) => current.map((item) => item.id === target.id ? { ...item, controller: playerFaction, ownerId: playerNation.id, supply: Math.max(35, item.supply - 12) } : item));
           setDivisions((current) => current.map((item) => item.id === division.id ? {
             ...item,
             territoryId: target.id,
             status: 'recovering',
-            strength: Math.max(35, item.strength - Math.round(4 + Math.random() * 8)),
-            organization: Math.max(28, item.organization - Math.round(13 + Math.random() * 16)),
+            strength: Math.max(35, item.strength - battleReport.attackerStrengthLoss),
+            organization: Math.max(28, item.organization - battleReport.organizationLoss),
+            supply: Math.max(20, item.supply - battleReport.supplySpent),
             experience: Math.min(100, item.experience + 4),
           } : item));
-          setGame((current) => ({ ...current, victoryScore: Math.min(100, current.victoryScore + target.value), warSupport: Math.min(100, current.warSupport + 2) }));
+          setGame((current) => ({ ...current, manpower: Math.max(0, current.manpower - battleReport.attackerStrengthLoss * 3), victoryScore: Math.min(100, current.victoryScore + target.value), warSupport: Math.min(100, current.warSupport + 2) }));
           setObjectiveProgress((current) => Math.min(100, current + target.value * 3));
-          addEvent('전선 돌파 — ' + target.name, division.name + '이(가) 적 방어선을 격파하고 지역을 확보했습니다.', 'good', nextWeek);
+          addEvent('전선 돌파 — ' + target.name, battleReport.summary, 'good', nextWeek);
           notify(target.name + ' 확보! 전선이 전진했습니다.');
           } else {
+            setTerritories((current) => current.map((item) => item.id === target.id ? { ...item, supply: Math.max(20, item.supply - Math.round(battleReport.defenderStrengthLoss / 2)) } : item));
             setDivisions((current) => current.map((item) => item.id === division.id ? {
               ...item,
               status: 'recovering',
-              strength: Math.max(28, item.strength - Math.round(8 + Math.random() * 12)),
-              organization: Math.max(20, item.organization - Math.round(18 + Math.random() * 20)),
+              strength: Math.max(28, item.strength - battleReport.attackerStrengthLoss),
+              organization: Math.max(20, item.organization - battleReport.organizationLoss),
+              supply: Math.max(15, item.supply - battleReport.supplySpent),
+              experience: Math.min(100, item.experience + 2),
             } : item));
-            setGame((current) => ({ ...current, manpower: current.manpower - 24, warSupport: Math.max(35, current.warSupport - 2) }));
-            addEvent('공세 좌절 — ' + target.name, target.terrain + ' 지형과 강한 저항으로 공세가 중단되었습니다.', 'bad', nextWeek);
+            setGame((current) => ({ ...current, manpower: Math.max(0, current.manpower - battleReport.attackerStrengthLoss * 3), warSupport: Math.max(35, current.warSupport - 2) }));
+            addEvent('공세 좌절 — ' + target.name, battleReport.summary, 'bad', nextWeek);
             notify('공세가 좌절되었습니다. 사단을 재정비하십시오.');
           }
         }
@@ -478,7 +504,7 @@ export function App() {
       setSpeed(0);
       addEvent('긴급 의제 소집 — ' + councilEvent.category, councilEvent.title, 'bad', nextWeek);
     }
-  }, [activeTheater, addEvent, career.experience, career.nationId, careerCommanders, careerRole.tier, delegatedDepartments, developmentFocusId, divisions, doctrine, enemyFaction, game.enemyPressure, game.victoryScore, game.week, notify, orders, pendingCouncilEventId, playerFaction, playerNation.id, playerNation.shortName, policyAttackBonus, policyDefenseBonus, policyProductionMultiplier, policySupplyRecovery, priorityDivisionId, procurementFocusId, production, research, resolvedCouncilChoices, staffWeeklyCost, supplyPolicy, territories]);
+  }, [activeTheater, addEvent, battleStance, career.experience, career.nationId, careerCommanders, careerRole.tier, delegatedDepartments, developmentFocusId, divisions, doctrine, enemyFaction, game.enemyPressure, game.intelNetwork, game.victoryScore, game.week, notify, orders, pendingCouncilEventId, playerFaction, playerNation.id, playerNation.shortName, policyAttackBonus, policyDefenseBonus, policyProductionMultiplier, policySupplyRecovery, priorityDivisionId, procurementFocusId, production, research, resolvedCouncilChoices, staffWeeklyCost, supplyPolicy, territories]);
 
   useEffect(() => {
     if (speed === 0 || showBriefing) return;
@@ -489,9 +515,9 @@ export function App() {
 
   useEffect(() => {
     if (showBriefing) return;
-    const payload = { version: 6, game, territories, divisions, research, production, events, orders, stockpile, relations, operations, campaignOutcome, objectiveProgress, torchAuthorized, completedDecisions, doctrine, career, activeTheater, selectedTerritoryId, selectedDivisionId, staff, staffCandidates, developmentFocusId, supplyPolicy, procurementFocusId, priorityDivisionId, selectedPolicies, pendingCouncilEventId, resolvedCouncilChoices };
+    const payload = { version: 7, game, territories, divisions, research, production, events, orders, stockpile, relations, operations, campaignOutcome, objectiveProgress, torchAuthorized, completedDecisions, doctrine, career, activeTheater, selectedTerritoryId, selectedDivisionId, staff, staffCandidates, developmentFocusId, supplyPolicy, procurementFocusId, priorityDivisionId, selectedPolicies, pendingCouncilEventId, resolvedCouncilChoices, battleStance, battleReports, pendingBattleReportId };
     localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
-  }, [activeTheater, campaignOutcome, career, completedDecisions, developmentFocusId, divisions, doctrine, events, game, objectiveProgress, operations, orders, pendingCouncilEventId, priorityDivisionId, procurementFocusId, production, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, showBriefing, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized]);
+  }, [activeTheater, battleReports, battleStance, campaignOutcome, career, completedDecisions, developmentFocusId, divisions, doctrine, events, game, objectiveProgress, operations, orders, pendingBattleReportId, pendingCouncilEventId, priorityDivisionId, procurementFocusId, production, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, showBriefing, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized]);
 
   useEffect(() => {
     if (showBriefing || campaignOutcome) return;
@@ -533,6 +559,9 @@ export function App() {
     setSelectedPolicies([]);
     setPendingCouncilEventId(null);
     setResolvedCouncilChoices([]);
+    setBattleStance('balanced');
+    setBattleReports([]);
+    setPendingBattleReportId(null);
     setEvents([
       { id: Date.now(), week: 0, title: '취임 — ' + role.title, detail: '당신이 ' + nation.name + '의 ' + role.title + ' 직무를 인수했습니다. 원래 역사와 다른 명령을 내릴 수 있습니다.', tone: 'good' },
       { id: Date.now() + 1, week: 0, title: '세계는 하나의 전장', detail: '유럽의 결정이 아시아의 보급과 외교를 바꾸고, 태평양의 결과가 유럽의 전후 질서를 흔듭니다.', tone: 'neutral' },
@@ -583,6 +612,9 @@ export function App() {
       setSelectedPolicies(data.selectedPolicies ?? []);
       setPendingCouncilEventId(data.pendingCouncilEventId ?? null);
       setResolvedCouncilChoices(data.resolvedCouncilChoices ?? []);
+      setBattleStance(data.battleStance ?? 'balanced');
+      setBattleReports(data.battleReports ?? []);
+      setPendingBattleReportId(data.pendingBattleReportId ?? null);
       setCareer(restoredCareer);
       setSetupNationId(restoredCareer.nationId);
       setSetupRoleId(restoredCareer.roleId);
@@ -622,6 +654,9 @@ export function App() {
     setSelectedPolicies([]);
     setPendingCouncilEventId(null);
     setResolvedCouncilChoices([]);
+    setBattleStance('balanced');
+    setBattleReports([]);
+    setPendingBattleReportId(null);
     setSetupNationId(DEFAULT_NATION_ID);
     setSetupRoleId(DEFAULT_ROLE_ID);
     setCareer(createCareerState(DEFAULT_NATION_ID, DEFAULT_ROLE_ID));
@@ -1243,6 +1278,8 @@ export function App() {
                 commanders={careerCommanders}
                 territories={territories}
                 orders={orders}
+                battleStance={battleStance}
+                battleReports={battleReports}
                 onSelectDivision={(id) => {
                   setSelectedDivisionId(id);
                   const division = divisions.find((item) => item.id === id);
@@ -1251,6 +1288,8 @@ export function App() {
                 onIssueOffensive={issueOffensive}
                 onAssignCommander={assignCommander}
                 onTrain={trainDivision}
+                onBattleStanceChange={setBattleStance}
+                onOpenBattleReport={setPendingBattleReportId}
               />
             )}
             {activeTab === 'industry' && <IndustryPanel production={production} stockpile={stockpile} factories={game.factories} activeTheater={activeTheater} onAdjust={adjustFactories} />}
@@ -1299,6 +1338,9 @@ export function App() {
       )}
       {pendingCouncilEvent && !showBriefing && !campaignOutcome && (
         <CouncilEventModal event={pendingCouncilEvent} onChoose={resolveCouncilChoice} />
+      )}
+      {pendingBattleReport && !pendingCouncilEvent && !showBriefing && !campaignOutcome && (
+        <BattleReportModal report={pendingBattleReport} onClose={() => setPendingBattleReportId(null)} />
       )}
       {showJournal && <WarJournal events={events} onClose={() => setShowJournal(false)} />}
       {toast && <div className="toast"><Radio size={16} /><span>{toast}</span></div>}
@@ -1586,7 +1628,7 @@ function DecisionCard({ title, detail, cost, done, onClick }: { title: string; d
   );
 }
 
-function ArmyPanel({ game, divisions, selectedDivision, selectedCommander, commanders, territories, orders, onSelectDivision, onIssueOffensive, onAssignCommander, onTrain }: {
+function ArmyPanel({ game, divisions, selectedDivision, selectedCommander, commanders, territories, orders, battleStance, battleReports, onSelectDivision, onIssueOffensive, onAssignCommander, onTrain, onBattleStanceChange, onOpenBattleReport }: {
   game: GameState;
   divisions: Division[];
   selectedDivision: Division;
@@ -1594,10 +1636,14 @@ function ArmyPanel({ game, divisions, selectedDivision, selectedCommander, comma
   commanders: Commander[];
   territories: Territory[];
   orders: Order[];
+  battleStance: BattleStance;
+  battleReports: BattleReport[];
   onSelectDivision: (id: string) => void;
   onIssueOffensive: () => void;
   onAssignCommander: (divisionId: string, commanderId: string) => void;
   onTrain: (divisionId: string) => void;
+  onBattleStanceChange: (stance: BattleStance) => void;
+  onOpenBattleReport: (reportId: string) => void;
 }) {
   const location = territories.find((territory) => territory.id === selectedDivision.territoryId);
   const divisionOrder = orders.find((order) => order.divisionId === selectedDivision.id);
@@ -1666,6 +1712,7 @@ function ArmyPanel({ game, divisions, selectedDivision, selectedCommander, comma
           <button onClick={() => onTrain(selectedDivision.id)} disabled={game.commandPoints < 8 || selectedDivision.status !== 'ready'}><TrendingUp size={13} /> 야전 훈련 <em>8 CP</em></button>
         </div>
       </section>
+      <BattleDoctrinePanel stance={battleStance} reports={battleReports} onStanceChange={onBattleStanceChange} onOpenReport={onOpenBattleReport} />
     </div>
   );
 }

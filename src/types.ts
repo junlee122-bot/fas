@@ -9,6 +9,8 @@ export type CareerTier = 1 | 2 | 3;
 export type SupplyPolicy = 'balanced' | 'frontline' | 'reserve';
 export type StaffDepartment = 'operations' | 'logistics' | 'armaments' | 'personnel' | 'political';
 export type PolicyDomain = 'economy' | 'doctrine' | 'society' | 'diplomacy';
+export type BattleStance = 'cautious' | 'balanced' | 'aggressive';
+export type BattlePhaseTone = 'advantage' | 'contested' | 'setback';
 
 export interface Territory {
   id: string;
@@ -149,6 +151,36 @@ export interface CouncilEvent {
   briefing: string;
   stakes: string;
   choices: [CouncilChoice, CouncilChoice, CouncilChoice];
+}
+
+export interface BattlePhase {
+  id: 'reconnaissance' | 'approach' | 'engagement' | 'exploitation';
+  title: string;
+  attackerScore: number;
+  defenderScore: number;
+  delta: number;
+  tone: BattlePhaseTone;
+  narrative: string;
+}
+
+export interface BattleReport {
+  id: string;
+  week: number;
+  divisionId: string;
+  divisionName: string;
+  commanderName: string;
+  targetId: string;
+  targetName: string;
+  terrain: string;
+  stance: BattleStance;
+  victory: boolean;
+  margin: number;
+  phases: [BattlePhase, BattlePhase, BattlePhase, BattlePhase];
+  attackerStrengthLoss: number;
+  defenderStrengthLoss: number;
+  organizationLoss: number;
+  supplySpent: number;
+  summary: string;
 }
 
 export interface Commander {
