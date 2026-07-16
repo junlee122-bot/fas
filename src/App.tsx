@@ -99,6 +99,8 @@ import { resolveBattle } from './combat';
 import { BattleReportModal } from './BattleReportModal';
 import { BattleDoctrinePanel } from './BattleDoctrinePanel';
 import { CommanderDevelopmentPanel } from './CommanderDevelopmentPanel';
+import { ActionCenter } from './ActionCenter';
+import { SettingsModal } from './SettingsModal';
 import {
   applyCommanderDevelopment,
   createCommanderDevelopment,
@@ -110,8 +112,11 @@ import {
   restCommander,
   unlockCommanderSkill,
 } from './development';
+import { defaultUXPreferences, deriveUXActions, normalizeUXPreferences } from './ux';
+import type { UXAction, UXPreferences } from './ux';
 
 const SAVE_KEY = 'iron-dominion-campaign-v1';
+const UX_SETTINGS_KEY = 'iron-dominion-ux-v1';
 const DEFAULT_NATION_ID: NationId = 'britain';
 const DEFAULT_ROLE_ID = 'britain-tier2';
 
@@ -233,7 +238,15 @@ export function App() {
   const [objectiveProgress, setObjectiveProgress] = useState(28);
   const [torchAuthorized, setTorchAuthorized] = useState(false);
   const [completedDecisions, setCompletedDecisions] = useState<string[]>([]);
-  const [soundOn, setSoundOn] = useState(true);
+  const [uxPreferences, setUXPreferences] = useState<UXPreferences>(() => {
+    try {
+      return normalizeUXPreferences(JSON.parse(localStorage.getItem(UX_SETTINGS_KEY) ?? 'null'));
+    } catch {
+      return defaultUXPreferences;
+    }
+  });
+  const [showActionCenter, setShowActionCenter] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [stockpile, setStockpile] = useState<Stockpile>(initialStockpile);
   const [campaignOutcome, setCampaignOutcome] = useState<CampaignOutcome>(null);
   const [relations, setRelations] = useState<DiplomaticRelation[]>(initialRelations);
@@ -291,6 +304,15 @@ export function App() {
   );
   const selectedCommander = effectiveCommanders.find((commander) => commander.id === selectedDivision.commanderId) ?? effectiveCommanders[0];
   const selectedCommanderDevelopment = getCommanderRecord(commanderDevelopment, selectedCommander);
+  const uxActions = useMemo(() => deriveUXActions({
+    factories: game.factories,
+    production,
+    research,
+    selectedPolicies,
+    divisions,
+    orders,
+    commanderDevelopment,
+  }), [commanderDevelopment, divisions, game.factories, orders, production, research, selectedPolicies]);
   const campaignDate = getCampaignDate(game.week);
   const hasSave = Boolean(localStorage.getItem(SAVE_KEY));
 
@@ -306,6 +328,10 @@ export function App() {
   useEffect(() => () => {
     if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem(UX_SETTINGS_KEY, JSON.stringify(uxPreferences));
+  }, [uxPreferences]);
 
   const addEvent = useCallback((title: string, detail: string, tone: WarEvent['tone'], week: number) => {
     setEvents((current) => [{ id: Date.now() + Math.random(), week, title, detail, tone }, ...current].slice(0, 30));
@@ -620,6 +646,8 @@ export function App() {
     setTorchAuthorized(false);
     setCompletedDecisions([]);
     setCampaignOutcome(null);
+    setShowActionCenter(false);
+    setShowSettings(false);
     setShowBriefing(false);
     notify(nation.shortName + ' · ' + role.title + '로 취임했습니다.');
   };
@@ -676,6 +704,8 @@ export function App() {
       setTorchAuthorized(data.torchAuthorized ?? false);
       setCompletedDecisions(data.completedDecisions ?? []);
       setDoctrine(data.doctrine ?? 'coalition');
+      setShowActionCenter(false);
+      setShowSettings(false);
       setShowBriefing(false);
       notify('저장된 전쟁 지휘소를 복구했습니다.');
     } catch {
@@ -720,6 +750,8 @@ export function App() {
     setTorchAuthorized(false);
     setCompletedDecisions([]);
     setSpeed(0);
+    setShowActionCenter(false);
+    setShowSettings(false);
     setShowBriefing(true);
   };
 
@@ -1145,6 +1177,61 @@ export function App() {
     notify(choice.title + ': 선택의 결과가 전쟁 전체에 반영됐습니다.');
   };
 
+  const navigateFromActionCenter = (action: UXAction) => {
+    if (action.id === 'commander-skill') {
+      const commanderRecord = commanderDevelopment.find((record) => getAvailableSkillPoints(record) > 0);
+      const assignedDivision = divisions.find((division) => division.commanderId === commanderRecord?.commanderId);
+      if (assignedDivision) {
+        setSelectedDivisionId(assignedDivision.id);
+        setSelectedTerritoryId(assignedDivision.territoryId);
+      }
+    }
+    if (action.id === 'idle-formations') {
+      const readyDivision = divisions.find((division) => division.status === 'ready');
+      if (readyDivision) {
+        setSelectedDivisionId(readyDivision.id);
+        setSelectedTerritoryId(readyDivision.territoryId);
+      }
+    }
+    setActiveTab(action.tab);
+    setShowActionCenter(false);
+  };
+
+  const toggleUXPreference = (key: keyof UXPreferences) => {
+    setUXPreferences((current) => ({ ...current, [key]: !current[key] }));
+  };
+
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowActionCenter(false);
+        setShowSettings(false);
+        setShowJournal(false);
+        setPlanningMode(false);
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName.toLowerCase();
+      if (target?.isContentEditable || tag === 'input' || tag === 'select' || tag === 'textarea' || tag === 'button') return;
+      if (showBriefing || campaignOutcome || pendingCouncilEventId || pendingBattleReportId || showJournal || showSettings || showActionCenter || event.repeat) return;
+      if (event.key.toLowerCase() === 'g') {
+        event.preventDefault();
+        setShowActionCenter(true);
+      } else if (event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        setShowSettings(true);
+      } else if (event.key.toLowerCase() === 'n') {
+        event.preventDefault();
+        advanceWeek();
+      } else if (event.key === ' ') {
+        event.preventDefault();
+        setSpeed((current) => current === 0 ? 1 : 0);
+      }
+    };
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
+  }, [advanceWeek, campaignOutcome, pendingBattleReportId, pendingCouncilEventId, showActionCenter, showBriefing, showJournal, showSettings]);
+
   const tabItems: { id: GameTab; label: string; icon: React.ReactNode }[] = [
     { id: 'command', label: '최고사령부', icon: <Shield size={17} /> },
     { id: 'organization', label: '조직 운영', icon: <BriefcaseBusiness size={17} /> },
@@ -1156,10 +1243,13 @@ export function App() {
   ];
 
   return (
-    <div className="game-shell">
+    <div className={'game-shell' + (uxPreferences.highContrast ? ' high-contrast' : '') + (uxPreferences.largeMapLabels ? ' large-map-labels' : '') + (uxPreferences.reducedMotion ? ' reduced-motion' : '')}>
       <header className="topbar">
         <div className="brand-block">
-          <button className="icon-button menu-button" aria-label="메뉴"><Menu size={19} /></button>
+          <button className="icon-button menu-button" aria-label={`행동 센터, ${uxActions.length}건`} aria-keyshortcuts="G" onClick={() => setShowActionCenter(true)}>
+            <Menu size={19} />
+            <span aria-hidden="true" className={'attention-badge ' + (uxActions.some((action) => action.priority === 'urgent') ? 'urgent' : '')}>{uxActions.length}</span>
+          </button>
           <div className="brand-mark" style={{ borderColor: playerNation.accent }}><span>{playerNation.code}</span></div>
           <div className="brand-copy">
             <strong>IRON DOMINION</strong>
@@ -1180,11 +1270,11 @@ export function App() {
         <div className="time-controls">
           <div className="weather"><CloudRain size={15} /><span>{activeTheater === 'asia' ? '아시아·태평양' : '유럽'}<br /><b>{activeTheater === 'asia' ? '몬순 · 29°C' : '비 · 11°C'}</b></span></div>
           <div className="date-block"><strong>{campaignDate.full}</strong><span>제 {game.week + 1}주 · {campaignDate.day}</span></div>
-          <button className={'speed-button ' + (speed === 0 ? 'active' : '')} onClick={() => setSpeed(0)} aria-label="일시 정지"><Pause size={14} /></button>
+          <button className={'speed-button ' + (speed === 0 ? 'active' : '')} onClick={() => setSpeed(0)} aria-label="일시 정지" aria-keyshortcuts="Space"><Pause size={14} /></button>
           {[1, 2, 3].map((item) => (
             <button key={item} className={'speed-button text ' + (speed === item ? 'active' : '')} onClick={() => setSpeed(item)}>{item}×</button>
           ))}
-          <button className="speed-button next" onClick={advanceWeek} aria-label="다음 주"><SkipForward size={15} /></button>
+          <button className="speed-button next" onClick={advanceWeek} aria-label="다음 주" aria-keyshortcuts="N"><SkipForward size={15} /></button>
         </div>
       </header>
 
@@ -1202,9 +1292,9 @@ export function App() {
         </nav>
         <div className="rail-bottom">
           <button title="전쟁 일지" aria-label="전쟁 일지" onClick={() => setShowJournal(true)}><BookOpen size={18} /></button>
-          <button title={soundOn ? '음향 끄기' : '음향 켜기'} aria-label={soundOn ? '음향 끄기' : '음향 켜기'} onClick={() => setSoundOn((current) => !current)}><Volume2 size={18} className={soundOn ? '' : 'muted'} /></button>
+          <button title={uxPreferences.soundOn ? '음향 끄기' : '음향 켜기'} aria-label={uxPreferences.soundOn ? '음향 끄기' : '음향 켜기'} onClick={() => toggleUXPreference('soundOn')}><Volume2 size={18} className={uxPreferences.soundOn ? '' : 'muted'} /></button>
           <button title="새 캠페인" aria-label="새 캠페인" onClick={resetCampaign}><RotateCcw size={18} /></button>
-          <button title="설정" aria-label="설정"><Settings size={18} /></button>
+          <button title="사용자 환경 설정" aria-label="사용자 환경 설정" aria-keyshortcuts="S" onClick={() => setShowSettings(true)}><Settings size={18} /></button>
         </div>
       </aside>
 
@@ -1428,7 +1518,18 @@ export function App() {
         <BattleReportModal report={pendingBattleReport} onClose={() => setPendingBattleReportId(null)} />
       )}
       {showJournal && <WarJournal events={events} onClose={() => setShowJournal(false)} />}
-      {toast && <div className="toast"><Radio size={16} /><span>{toast}</span></div>}
+      {showActionCenter && !showBriefing && !campaignOutcome && !pendingCouncilEvent && !pendingBattleReport && (
+        <ActionCenter actions={uxActions} onNavigate={navigateFromActionCenter} onClose={() => setShowActionCenter(false)} />
+      )}
+      {showSettings && !showBriefing && !campaignOutcome && !pendingCouncilEvent && !pendingBattleReport && (
+        <SettingsModal
+          preferences={uxPreferences}
+          onToggle={toggleUXPreference}
+          onReset={() => setUXPreferences({ ...defaultUXPreferences })}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+      {toast && <div className="toast" role="status" aria-live="polite"><Radio size={16} /><span>{toast}</span></div>}
     </div>
   );
 }
