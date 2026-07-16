@@ -48,7 +48,11 @@ select {
 
 button {
   color: inherit;
+  transition: color 140ms ease, border-color 140ms ease, background-color 140ms ease, filter 140ms ease, transform 140ms ease;
 }
+
+button:disabled { cursor: not-allowed !important; }
+::selection { color: #111714; background: var(--gold-bright); }
 
 button:focus-visible,
 [role='button']:focus-visible {
@@ -308,7 +312,7 @@ button:focus-visible,
   top: 68px;
   bottom: 0;
   left: 0;
-  width: 72px;
+  width: 84px;
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--line-bright);
@@ -368,7 +372,7 @@ button:focus-visible,
 }
 
 .primary-nav button span {
-  font-size: 7px;
+  font-size: 8px;
   white-space: nowrap;
 }
 
@@ -401,6 +405,7 @@ button:focus-visible,
 }
 
 .rail-bottom button {
+  position: relative;
   height: 42px;
   display: grid;
   place-items: center;
@@ -411,6 +416,40 @@ button:focus-visible,
   color: var(--faint);
   background: transparent;
   cursor: pointer;
+}
+
+.primary-nav button::after,
+.rail-bottom button::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: 80;
+  top: 50%;
+  left: calc(100% + 10px);
+  max-width: 250px;
+  padding: 7px 9px;
+  transform: translate(4px, -50%);
+  pointer-events: none;
+  opacity: 0;
+  font-size: 8px;
+  line-height: 1.45;
+  text-align: left;
+  color: #d9dfda;
+  border: 1px solid var(--line-bright);
+  border-radius: 3px;
+  background: rgba(12, 18, 16, .97);
+  box-shadow: 0 9px 28px rgba(0, 0, 0, .42);
+  white-space: normal;
+  visibility: hidden;
+  transition: opacity 130ms ease, transform 130ms ease, visibility 130ms ease;
+}
+
+.primary-nav button:hover::after,
+.primary-nav button:focus-visible::after,
+.rail-bottom button:hover::after,
+.rail-bottom button:focus-visible::after {
+  transform: translate(0, -50%);
+  opacity: 1;
+  visibility: visible;
 }
 
 .rail-bottom button:hover {
@@ -427,7 +466,7 @@ button:focus-visible,
   top: 68px;
   right: 0;
   bottom: 0;
-  left: 72px;
+  left: 84px;
   display: grid;
   grid-template-columns: minmax(700px, 1fr) 314px;
   grid-template-rows: minmax(390px, 56vh) minmax(250px, 1fr);
@@ -1081,12 +1120,33 @@ button:focus-visible,
 .command-deck {
   grid-column: 1 / 3;
   min-height: 0;
+  display: grid;
+  grid-template-rows: 49px 42px minmax(0, 1fr);
   overflow: hidden;
   background: linear-gradient(180deg, #141c19, #101614);
 }
 
+.deck-context-bar {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 7px 16px 7px 20px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(90deg, rgba(198,168,107,.07), rgba(255,255,255,.01) 44%, transparent);
+}
+
+.deck-context-bar > div { min-width: 0; display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 10px; }
+.deck-context-bar > div > span { grid-column: 1 / -1; font: 600 6px 'IBM Plex Mono', monospace; color: var(--gold); letter-spacing: .1em; }
+.deck-context-bar > div > strong { font: 500 14px 'Oswald', 'Noto Sans KR', sans-serif; color: #e1e5df; white-space: nowrap; }
+.deck-context-bar > div > small { overflow: hidden; font-size: 8px; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
+.deck-context-bar > button { flex: 0 0 auto; height: 32px; display: flex; align-items: center; gap: 6px; padding: 0 8px 0 10px; border: 1px solid rgba(109,143,163,.32); border-radius: 3px; font-size: 8px; color: #a8bbc0; background: rgba(109,143,163,.07); cursor: pointer; }
+.deck-context-bar > button:hover { color: #d7e4e4; border-color: rgba(126,166,183,.52); background: rgba(109,143,163,.13); }
+.deck-context-bar kbd { min-width: 42px; padding: 3px 5px; text-align: center; font: 600 6px 'IBM Plex Mono', monospace; color: var(--gold-bright); border: 1px solid var(--line-bright); border-radius: 2px; background: rgba(0,0,0,.24); }
+
 .deck-tabs {
-  height: 39px;
+  height: auto;
   display: flex;
   align-items: stretch;
   gap: 0;
@@ -1117,13 +1177,36 @@ button:focus-visible,
 .deck-tabs button.active::after { content: ''; position: absolute; right: 8px; bottom: 0; left: 8px; height: 2px; background: var(--gold); }
 
 .deck-content {
-  height: calc(100% - 39px);
+  height: auto;
   min-height: 0;
   overflow: auto;
   padding: 13px 16px 16px;
   scrollbar-width: thin;
   scrollbar-color: #35423d transparent;
 }
+
+.command-assistant-card {
+  position: relative;
+  margin-top: 13px;
+  padding: 11px 12px 10px;
+  overflow: hidden;
+  border: 1px solid rgba(198,168,107,.27);
+  background: linear-gradient(135deg, rgba(198,168,107,.09), rgba(255,255,255,.012));
+}
+
+.command-assistant-card::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--gold); }
+.command-assistant-card.urgent { border-color: rgba(169,95,81,.38); background: linear-gradient(135deg, rgba(169,95,81,.12), rgba(255,255,255,.012)); }
+.command-assistant-card.urgent::before { background: var(--axis-bright); }
+.command-assistant-card.clear { border-color: rgba(110,157,127,.28); background: rgba(110,157,127,.055); }
+.command-assistant-card.clear::before { background: var(--green); }
+.command-assistant-card > header { display: flex; align-items: center; gap: 6px; color: var(--gold); }
+.command-assistant-card > header span { font: 600 7px 'IBM Plex Mono', monospace; letter-spacing: .08em; }
+.command-assistant-card > header em { margin-left: auto; font-size: 6px; color: var(--muted); }
+.command-assistant-card > strong { display: block; margin-top: 8px; font-size: 10px; color: #dbe0da; }
+.command-assistant-card > p { margin: 4px 0 9px; font-size: 7px; line-height: 1.55; color: var(--muted); }
+.command-assistant-card > button { width: 100%; height: 30px; display: flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid rgba(198,168,107,.3); font-size: 7px; color: var(--gold-bright); background: rgba(198,168,107,.075); cursor: pointer; }
+.command-assistant-card > button:hover { background: rgba(198,168,107,.14); }
+.command-assistant-clear { min-height: 45px; display: flex; align-items: center; gap: 8px; font-size: 8px; line-height: 1.5; color: #a9c4b1; }
 
 .deck-section {
   min-width: 0;
@@ -2191,6 +2274,79 @@ button:focus-visible,
 .settings-modal > footer button { height: 34px; display: flex; align-items: center; gap: 5px; padding: 0 12px; border: 1px solid var(--line); font-size: 7px; color: var(--muted); background: rgba(255,255,255,.018); cursor: pointer; }
 .settings-modal > footer button:last-child { min-width: 110px; justify-content: center; color: #151914; border-color: var(--gold); background: linear-gradient(180deg, #d0b573, #a7894e); }
 
+.command-palette-backdrop { align-items: flex-start; justify-content: center; padding: min(14vh, 120px) 24px 24px; }
+.command-palette { width: min(650px, 94vw); max-height: min(680px, 78vh); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; overflow: hidden; border: 1px solid rgba(198,168,107,.38); border-radius: 5px; background: #141b19; box-shadow: 0 38px 120px rgba(0,0,0,.82); animation: briefing-in 200ms cubic-bezier(.2,.8,.2,1) both; }
+.command-palette > header { min-height: 68px; display: grid; grid-template-columns: 34px 1fr 32px; align-items: center; gap: 10px; padding: 10px 15px; border-bottom: 1px solid var(--line); background: linear-gradient(90deg, rgba(198,168,107,.08), transparent 56%); }
+.command-palette > header > svg { color: var(--gold); }
+.command-palette > header > div { display: flex; flex-direction: column; gap: 2px; }
+.command-palette > header span { font: 600 7px 'IBM Plex Mono', monospace; color: var(--gold); letter-spacing: .12em; }
+.command-palette > header h2 { margin: 0; font: 500 19px 'Oswald', 'Noto Sans KR', sans-serif; color: #e2e6e0; }
+.command-palette > header button { width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line); color: var(--muted); background: rgba(255,255,255,.015); cursor: pointer; }
+.command-palette-search { min-height: 54px; display: grid; grid-template-columns: 24px 1fr 30px; align-items: center; gap: 7px; margin: 13px 14px 8px; padding: 0 10px; color: var(--allied-bright); border: 1px solid rgba(109,143,163,.35); border-radius: 4px; background: rgba(109,143,163,.055); box-shadow: 0 0 0 3px rgba(109,143,163,.025); }
+.command-palette-search:focus-within { border-color: rgba(198,168,107,.58); box-shadow: 0 0 0 3px rgba(198,168,107,.06); }
+.command-palette-search input { width: 100%; height: 50px; padding: 0; border: 0; outline: 0; font-size: 12px; color: #e1e6e1; background: transparent; }
+.command-palette-search input::placeholder { color: #66736c; }
+.command-palette-search input::-webkit-search-cancel-button { appearance: none; }
+.command-palette-search button { width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 0; color: var(--muted); background: transparent; cursor: pointer; }
+.command-palette-results { min-height: 180px; overflow: auto; padding: 4px 8px 12px; scrollbar-width: thin; }
+.command-palette-results > button { width: 100%; min-height: 66px; display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 11px; padding: 8px 11px; text-align: left; border: 1px solid transparent; border-radius: 3px; color: var(--muted); background: transparent; cursor: pointer; }
+.command-palette-results > button + button { border-top-color: rgba(184,197,183,.07); }
+.command-palette-results > button.selected { border-color: rgba(198,168,107,.28); color: var(--gold-bright); background: linear-gradient(90deg, rgba(198,168,107,.1), rgba(198,168,107,.025)); }
+.command-palette-results > button.active:not(.selected) { background: rgba(109,143,163,.045); }
+.command-palette-results > button > i { width: 36px; height: 36px; display: grid; place-items: center; color: inherit; border: 1px solid var(--line); border-radius: 3px; background: rgba(255,255,255,.018); }
+.command-palette-results > button > span { min-width: 0; display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 8px; }
+.command-palette-results > button em { grid-column: 1 / -1; font: 600 6px 'IBM Plex Mono', monospace; color: var(--gold); letter-spacing: .08em; }
+.command-palette-results > button strong { font-size: 10px; color: #d6dcd7; }
+.command-palette-results > button small { overflow: hidden; font-size: 8px; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
+.command-palette-results > button > b { padding: 4px 6px; font-size: 7px; color: var(--gold); border: 1px solid rgba(198,168,107,.18); border-radius: 2px; background: rgba(198,168,107,.045); white-space: nowrap; }
+.command-palette-empty { min-height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; color: var(--faint); }
+.command-palette-empty strong { font-size: 11px; color: #c9d0cb; }
+.command-palette-empty span { font-size: 8px; }
+.command-palette > footer { min-height: 42px; display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding: 7px 14px; border-top: 1px solid var(--line); font-size: 7px; color: var(--faint); background: #111715; }
+.command-palette > footer span { display: flex; align-items: center; gap: 5px; }
+.command-palette > footer kbd { min-width: 25px; min-height: 22px; display: inline-flex; align-items: center; justify-content: center; gap: 1px; padding: 3px 5px; font: 600 7px 'IBM Plex Mono', monospace; color: #acb7b0; border: 1px solid var(--line-bright); border-radius: 3px; background: rgba(255,255,255,.025); }
+
+/* Default long-session readability mode. Players can return to the original dense view in settings. */
+.game-shell.readable-ui .resource-chip div span,
+.game-shell.readable-ui .weather span,
+.game-shell.readable-ui .date-block span { font-size: 9px; }
+.game-shell.readable-ui .primary-nav button span { font-size: 9px; }
+.game-shell.readable-ui .map-legend span,
+.game-shell.readable-ui .map-toolbar button { font-size: 9px; }
+.game-shell.readable-ui .intel-panel .eyebrow { font-size: 8px; }
+.game-shell.readable-ui .prime-objective p,
+.game-shell.readable-ui .prime-objective li,
+.game-shell.readable-ui .objective-footer span,
+.game-shell.readable-ui .metric-row > div:first-child,
+.game-shell.readable-ui .metric-row > strong,
+.game-shell.readable-ui .dispatch small { font-size: 9px; }
+.game-shell.readable-ui .dispatch strong { font-size: 10px; }
+.game-shell.readable-ui .command-assistant-card > header span,
+.game-shell.readable-ui .command-assistant-card > p,
+.game-shell.readable-ui .command-assistant-card > button { font-size: 9px; }
+.game-shell.readable-ui .deck-tabs button { min-width: 112px; font-size: 9px; }
+.game-shell.readable-ui .deck-content :where(p, small, span, em, dt, label) { font-size: clamp(8px, .63vw, 9px); }
+.game-shell.readable-ui .deck-content strong { font-size: clamp(9px, .72vw, 10px); }
+.game-shell.readable-ui .deck-content button { min-height: 29px; }
+.game-shell.readable-ui .candidate-card > p,
+.game-shell.readable-ui .candidate-card button,
+.game-shell.readable-ui .candidate-attributes small { font-size: 7px; }
+.game-shell.readable-ui .selected-province span,
+.game-shell.readable-ui .selected-province small,
+.game-shell.readable-ui .selected-province button { font-size: 8px; }
+.game-shell.readable-ui .action-center-list > button small,
+.game-shell.readable-ui .settings-options small,
+.game-shell.readable-ui .shortcut-guide small { font-size: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
 .reset-confirm-backdrop { align-items: center; justify-content: center; padding: 24px; }
 .reset-confirm-modal { width: min(520px, 92vw); overflow: hidden; border: 1px solid rgba(169,95,81,.42); background: #171d1b; box-shadow: 0 35px 110px rgba(0,0,0,.76); animation: briefing-in 220ms ease both; }
 .reset-confirm-modal > header { position: relative; display: grid; justify-items: center; padding: 22px 42px 15px; text-align: center; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, rgba(169,95,81,.09), transparent); }
@@ -2217,6 +2373,12 @@ button:focus-visible,
 
 @media (max-height: 820px) {
   .war-room { grid-template-rows: minmax(370px, 55vh) minmax(260px, 1fr); }
+  .command-deck { grid-template-rows: 43px 38px minmax(0, 1fr); }
+  .deck-context-bar { padding-top: 4px; padding-bottom: 4px; }
+  .command-assistant-card { margin-top: 9px; padding-top: 8px; padding-bottom: 8px; }
+  .command-assistant-card > p { display: none; }
+  .command-assistant-card > strong { margin-top: 6px; }
+  .command-assistant-card > button { margin-top: 7px; }
   .selected-province { bottom: calc(45vh - 5px); }
   .prime-objective { padding: 10px; }
   .prime-objective p { display: none; }

@@ -15,6 +15,7 @@ export interface UXAction {
 export interface UXPreferences {
   soundOn: boolean;
   highContrast: boolean;
+  readableUI: boolean;
   largeMapLabels: boolean;
   reducedMotion: boolean;
 }
@@ -32,6 +33,7 @@ export interface ActionCenterInput {
 export const defaultUXPreferences: UXPreferences = {
   soundOn: true,
   highContrast: false,
+  readableUI: true,
   largeMapLabels: false,
   reducedMotion: false,
 };
@@ -40,6 +42,7 @@ export function normalizeUXPreferences(value: Partial<UXPreferences> | null | un
   return {
     soundOn: value?.soundOn ?? defaultUXPreferences.soundOn,
     highContrast: value?.highContrast ?? defaultUXPreferences.highContrast,
+    readableUI: value?.readableUI ?? defaultUXPreferences.readableUI,
     largeMapLabels: value?.largeMapLabels ?? defaultUXPreferences.largeMapLabels,
     reducedMotion: value?.reducedMotion ?? defaultUXPreferences.reducedMotion,
   };

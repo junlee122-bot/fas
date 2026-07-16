@@ -38,6 +38,7 @@ describe('user experience guidance', () => {
     expect(normalizeUXPreferences({ highContrast: true })).toEqual({
       soundOn: true,
       highContrast: true,
+      readableUI: true,
       largeMapLabels: false,
       reducedMotion: false,
     });
