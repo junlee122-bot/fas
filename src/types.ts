@@ -1,17 +1,26 @@
 export type Faction = 'allies' | 'axis' | 'neutral';
 export type DivisionType = 'infantry' | 'armor' | 'airborne' | 'marine';
-export type GameTab = 'command' | 'organization' | 'army' | 'industry' | 'research' | 'diplomacy' | 'intelligence';
+export type GameTab = 'command' | 'governance' | 'map' | 'organization' | 'economy' | 'health' | 'army' | 'industry' | 'research' | 'diplomacy' | 'intelligence';
 export type MapLayer = 'political' | 'supply' | 'weather' | 'intelligence';
 export type TheaterId = 'europe' | 'asia';
-export type NationId = 'britain' | 'usa' | 'ussr' | 'germany' | 'japan' | 'china' | 'india' | 'freefrance' | 'italy';
+export type StrategicSiteType = 'capital' | 'city' | 'port' | 'fortress' | 'front' | 'island' | 'sea' | 'region';
+export type NationId = 'britain' | 'usa' | 'ussr' | 'germany' | 'japan' | 'china' | 'india' | 'freefrance' | 'italy' | 'korea' | 'vietnam' | 'indonesia' | 'philippines';
 export type CareerBranch = 'military' | 'politics' | 'intelligence';
-export type CareerTier = 1 | 2 | 3;
+export type CareerTier = 1 | 2 | 3 | 4 | 5;
+export type CareerArchetype = 'head-of-state' | 'cabinet-minister' | 'bureau-director' | 'regional-command' | 'organizer' | 'theater-command' | 'service-director' | 'field-command' | 'unit-command' | 'agent' | 'resistance';
+export type NationStatus = 'sovereign' | 'government-in-exile' | 'colonized' | 'occupied-commonwealth' | 'resistance-coalition';
 export type SupplyPolicy = 'balanced' | 'frontline' | 'reserve';
-export type StaffDepartment = 'operations' | 'logistics' | 'armaments' | 'personnel' | 'political';
+export type StaffDepartment = 'operations' | 'logistics' | 'armaments' | 'personnel' | 'political' | 'science' | 'economy';
+export type PersonnelAvailability = 'available' | 'poachable' | 'opposition' | 'displaced';
+export type PersonnelDiscipline = 'military' | 'science' | 'engineering' | 'medicine' | 'economics' | 'industry' | 'intelligence' | 'diplomacy' | 'social-science';
 export type PolicyDomain = 'economy' | 'doctrine' | 'society' | 'diplomacy';
 export type BattleStance = 'cautious' | 'balanced' | 'aggressive';
 export type BattlePhaseTone = 'advantage' | 'contested' | 'setback';
 export type CommanderSkillId = 'operational-planner' | 'breakthrough-specialist' | 'defense-in-depth' | 'master-logistician';
+export type EquipmentCategory = 'infantry' | 'artillery' | 'armor' | 'aircraft' | 'naval' | 'logistics' | 'systems' | 'strategic';
+export type EquipmentEra = 'historical' | 'late-war' | 'cold-war' | 'modern' | 'speculative';
+export type EquipmentAuthenticity = 'documented' | 'derived' | 'speculative';
+export type EquipmentModuleSlot = 'platform' | 'powerplant' | 'weapon' | 'protection' | 'sensors' | 'mission';
 
 export interface Territory {
   id: string;
@@ -26,6 +35,10 @@ export interface Territory {
   neighbors: string[];
   theater?: TheaterId;
   ownerId?: NationId;
+  siteType?: StrategicSiteType;
+  frontId?: string;
+  labelTier?: 1 | 2 | 3;
+  historicalNote?: string;
 }
 
 export interface AlternatePath {
@@ -45,6 +58,8 @@ export interface NationProfile {
   color: string;
   accent: string;
   defaultTheater: TheaterId;
+  status: NationStatus;
+  historicalBasis: string;
   capitalTerritoryId: string;
   strategicTargets: string[];
   summary: string;
@@ -63,9 +78,16 @@ export interface CareerRole {
   title: string;
   branch: CareerBranch;
   tier: CareerTier;
+  archetype: CareerArchetype;
   scope: string;
   authority: number;
   expectation: string;
+  historicalHolderId: string;
+  historicalHolderName: string;
+  historicalOffice: string;
+  historicalBasis: string;
+  coverIdentity: string;
+  replacementEffect: string;
 }
 
 export interface CareerState {
@@ -76,13 +98,37 @@ export interface CareerState {
   experience: number;
   legacy: number;
   alternatePathId: string | null;
+  replacedPersonId: string;
+}
+
+export interface HistoricalPerson {
+  id: string;
+  nationId: NationId;
+  name: string;
+  office: string;
+  affiliation: string;
+  summary: string;
+  department: StaffDepartment;
+  ability: number;
+  potential: number;
+  loyalty: number;
+  influence: number;
+  interest: number;
+  availability: PersonnelAvailability;
+  sourceLabel?: string;
+  sourceUrl?: string;
+  command?: Pick<Commander, 'rank' | 'command' | 'attack' | 'defense' | 'logistics' | 'trait' | 'specialty'>;
 }
 
 export interface StaffMember {
   id: string;
+  personId: string;
   name: string;
   candidateName: string;
   role: string;
+  historicalOffice: string;
+  affiliation: string;
+  summary: string;
   department: StaffDepartment;
   ability: number;
   potential: number;
@@ -90,17 +136,33 @@ export interface StaffMember {
   workload: number;
   weeklyCost: number;
   specialty: string;
+  influence: number;
   delegated: boolean;
   grade: 1 | 2 | 3;
   development: number;
+  discipline?: PersonnelDiscipline;
+  birthYear?: number;
+  nationality?: string;
+  wartimeLocation?: string;
+  historicalConstraint?: string;
+  expertise?: string[];
+  networks?: string[];
+  friction?: string;
+  appointmentEffect?: string;
+  sourceLabel?: string;
+  sourceUrl?: string;
 }
 
-export type StaffCandidateStatus = 'unscouted' | 'scouting' | 'shortlisted' | 'signed';
+export type StaffCandidateStatus = 'unscouted' | 'scouting' | 'shortlisted' | 'signed' | 'lost';
 
 export interface StaffCandidate {
   id: string;
+  personId: string;
   name: string;
   role: string;
+  historicalOffice: string;
+  affiliation: string;
+  summary: string;
   department: StaffDepartment;
   ability: number;
   potential: number;
@@ -111,6 +173,26 @@ export interface StaffCandidate {
   knowledge: number;
   status: StaffCandidateStatus;
   specialty: string;
+  influence: number;
+  relationship: number;
+  rivalInterest: number;
+  availability: PersonnelAvailability;
+  lastApproachWeek: number | null;
+  discipline?: PersonnelDiscipline;
+  birthYear?: number;
+  nationality?: string;
+  wartimeLocation?: string;
+  historicalConstraint?: string;
+  expertise?: string[];
+  networks?: string[];
+  friction?: string;
+  appointmentEffect?: string;
+  sourceLabel?: string;
+  sourceUrl?: string;
+  historicalEra?: 'wartime' | 'postwar' | 'cold-war' | 'late-century' | 'contemporary';
+  marketEntryYear?: number;
+  generationUnlockYear?: number;
+  alternateHistoryEntry?: boolean;
 }
 
 export interface StrategicPolicy {
@@ -151,6 +233,12 @@ export interface CouncilEvent {
   category: string;
   briefing: string;
   stakes: string;
+  nationIds?: NationId[];
+  roleBranches?: CareerBranch[];
+  historicalYear?: number;
+  historicalBasis?: string;
+  sourceLabel?: string;
+  sourceUrl?: string;
   choices: [CouncilChoice, CouncilChoice, CouncilChoice];
 }
 
@@ -223,6 +311,67 @@ export interface Division {
   commanderId: string;
   status: 'ready' | 'moving' | 'combat' | 'recovering';
   battleHonors?: string[];
+  equipmentPackageId?: string;
+}
+
+export interface EquipmentStats {
+  firepower: number;
+  mobility: number;
+  protection: number;
+  range: number;
+  reliability: number;
+  production: number;
+}
+
+export interface EquipmentNode {
+  id: string;
+  name: string;
+  category: EquipmentCategory;
+  era: EquipmentEra;
+  year: number | null;
+  authenticity: EquipmentAuthenticity;
+  nationIds: NationId[] | 'all';
+  summary: string;
+  historicalNote: string;
+  researchCost: number;
+  industrialCost: number;
+  doctrineEffect: string;
+  stats: EquipmentStats;
+  sourceLabel?: string;
+  sourceUrl?: string;
+}
+
+export interface EquipmentModule {
+  id: string;
+  name: string;
+  slot: EquipmentModuleSlot;
+  minimumEra: EquipmentEra;
+  summary: string;
+  statDelta: Partial<EquipmentStats>;
+  industrialCost: number;
+  risk: number;
+}
+
+export interface EquipmentPrototype {
+  id: string;
+  name: string;
+  baseNodeId: string;
+  category: EquipmentCategory;
+  moduleIds: string[];
+  stats: EquipmentStats;
+  industrialCost: number;
+  risk: number;
+  reliability: number;
+  createdWeek: number;
+}
+
+export interface EquipmentDevelopmentState {
+  unlockedIds: string[];
+  activeProjectId: string | null;
+  progress: number;
+  prototypes: EquipmentPrototype[];
+  fieldedByCategory: Partial<Record<EquipmentCategory, string>>;
+  divisionAssignments: Record<string, string>;
 }
 
 export interface ResearchProject {
@@ -245,6 +394,9 @@ export interface ProductionLine {
   efficiency: number;
   output: number;
   icon: string;
+  equipmentId?: string;
+  reliability?: number;
+  unitCost?: number;
 }
 
 export interface Stockpile {
@@ -277,12 +429,32 @@ export interface CovertOperation {
 
 export type CampaignOutcome = 'victory' | 'defeat' | null;
 
+export type WarEventDomain = 'operations' | 'management' | 'diplomacy' | 'history';
+
+export interface WarEventEffect {
+  label: string;
+  value: string;
+  tone: 'positive' | 'negative' | 'neutral';
+}
+
+export interface WarEventTrace {
+  domain: WarEventDomain;
+  decision: string;
+  trigger: string;
+  factors: string[];
+  effects: WarEventEffect[];
+  ongoing: string[];
+  nextActions: string[];
+  certainty: 'confirmed' | 'developing' | 'forecast';
+}
+
 export interface WarEvent {
   id: number;
   week: number;
   title: string;
   detail: string;
   tone: 'good' | 'bad' | 'neutral';
+  trace?: WarEventTrace;
 }
 
 export interface Order {

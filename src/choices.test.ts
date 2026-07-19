@@ -21,12 +21,19 @@ describe('systemic alternate-history policies', () => {
 });
 
 describe('council choice and consequence events', () => {
-  it('provides eighteen distinct decisions across six recurring crises', () => {
-    expect(councilEvents).toHaveLength(6);
+  it('provides recurring crises plus one researched historical crisis for every playable nation', () => {
+    expect(councilEvents).toHaveLength(19);
     const choices = councilEvents.flatMap((event) => event.choices);
-    expect(choices).toHaveLength(18);
-    expect(new Set(choices.map((choice) => choice.id)).size).toBe(18);
+    expect(choices).toHaveLength(57);
+    expect(new Set(choices.map((choice) => choice.id)).size).toBe(57);
     councilEvents.forEach((event) => expect(event.choices).toHaveLength(3));
+    const historicalEvents = councilEvents.filter((event) => event.historicalBasis);
+    expect(historicalEvents).toHaveLength(13);
+    expect(new Set(historicalEvents.flatMap((event) => event.nationIds ?? [])).size).toBe(13);
+    historicalEvents.forEach((event) => {
+      expect(event.historicalYear).toBe(1942);
+      expect(event.sourceUrl).toMatch(/^https:\/\//);
+    });
   });
 
   it('gives every decision a visible outcome and at least one state consequence', () => {

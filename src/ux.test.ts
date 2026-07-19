@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveOnboardingSteps, deriveUXActions, normalizeUXPreferences } from './ux';
+import { deriveOnboardingSteps, deriveUXActions, getInitialNavigationCollapsed, normalizeUXPreferences } from './ux';
 import type { ActionCenterInput } from './ux';
 
 const baseInput: ActionCenterInput = {
@@ -34,6 +34,17 @@ describe('user experience guidance', () => {
     expect(actions).toHaveLength(0);
   });
 
+  it('separates an operating deficit and inflation warning from headline borrowing', () => {
+    const actions = deriveUXActions({
+      ...baseInput,
+      economyOperatingBalance: -72.4,
+      economyInflation: 19.2,
+      economyDebt: 1240,
+    });
+    expect(actions.find((action) => action.id === 'economy-operating-deficit')).toMatchObject({ priority: 'urgent', tab: 'economy' });
+    expect(actions.find((action) => action.id === 'economy-inflation')).toMatchObject({ priority: 'urgent', tab: 'economy' });
+  });
+
   it('migrates partial interface preferences safely', () => {
     expect(normalizeUXPreferences({ highContrast: true })).toEqual({
       soundOn: true,
@@ -44,6 +55,12 @@ describe('user experience guidance', () => {
     });
   });
 
+  it('starts with navigation closed on compact screens without overriding desktop preference', () => {
+    expect(getInitialNavigationCollapsed(null, 390)).toBe(true);
+    expect(getInitialNavigationCollapsed('false', 1440)).toBe(false);
+    expect(getInitialNavigationCollapsed('true', 1440)).toBe(true);
+  });
+
   it('derives a live first-week checklist from campaign state', () => {
     const steps = deriveOnboardingSteps({
       factories: baseInput.factories,
@@ -51,7 +68,6 @@ describe('user experience guidance', () => {
       research: baseInput.research,
       selectedPolicies: baseInput.selectedPolicies,
       orders: baseInput.orders,
-      alternatePathId: null,
     });
     expect(steps).toHaveLength(5);
     expect(steps.every((step) => !step.complete)).toBe(true);
@@ -67,7 +83,6 @@ describe('user experience guidance', () => {
       ],
       selectedPolicies: ['economy', 'doctrine', 'society', 'diplomacy'],
       orders: [{ divisionId: 'division', fromId: 'home', targetId: 'front', startedWeek: 1 }],
-      alternatePathId: 'alternate-path',
     });
     expect(steps.every((step) => step.complete)).toBe(true);
   });

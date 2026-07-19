@@ -5,14 +5,14 @@ import { calculateDefensivePower, calculateEnemyPower, calculateProductionGains,
 describe('weekly production', () => {
   it('converts assigned factories into deterministic stockpile gains', () => {
     expect(calculateProductionGains(initialProduction, 1)).toEqual({
-      tanks: 189,
-      aircraft: 408,
-      infantryEquipment: 9576,
-      convoys: 11,
+      tanks: 143,
+      aircraft: 359,
+      infantryEquipment: 9001,
+      convoys: 6,
       artillery: 72,
       trucks: 110,
     });
-    expect(calculateProductionGains(initialProduction, 2).convoys).toBe(8);
+    expect(calculateProductionGains(initialProduction, 2).convoys).toBe(3);
   });
 });
 

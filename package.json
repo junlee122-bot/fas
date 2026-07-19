@@ -1,14 +1,16 @@
 {
   "name": "iron-dominion",
   "private": true,
-  "version": "0.13.0",
+  "version": "0.22.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "tsc -b --pretty false",
-    "test": "vitest run"
+    "test": "vitest run",
+    "data:historical-roster": "node scripts/build-wikidata-roster.mjs",
+    "data:later-era-roster": "node scripts/build-later-era-roster.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.24.0",

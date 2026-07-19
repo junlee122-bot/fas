@@ -13,8 +13,10 @@ import {
   Star,
   Zap,
 } from 'lucide-react';
-import { careerRoles, getNation, nations } from './campaign';
-import type { CareerBranch, NationId } from './types';
+import { CAREER_TIER_COUNT, careerRoles, getCareerStarCount, getNation, nations } from './campaign';
+import { getHistoricalFlag } from './historicalFlags';
+import { NationFlag } from './NationFlag';
+import type { CareerBranch, NationId, NationStatus } from './types';
 
 type Doctrine = 'coalition' | 'methodical' | 'maneuver';
 
@@ -44,6 +46,16 @@ const branchIcons = {
   intelligence: <Eye size={16} />,
 };
 
+const branchOrder: CareerBranch[] = ['politics', 'military', 'intelligence'];
+
+const nationStatusLabels: Record<NationStatus, string> = {
+  sovereign: '주권국',
+  'government-in-exile': '망명정부',
+  colonized: '식민지 독립운동',
+  'occupied-commonwealth': '점령지 자치정부',
+  'resistance-coalition': '저항연합',
+};
+
 const doctrineChoices = [
   { id: 'coalition' as const, icon: <Handshake size={17} />, title: '연합과 협상', detail: '정치력 +16 · 안정도 +4' },
   { id: 'methodical' as const, icon: <Factory size={17} />, title: '산업과 준비', detail: '군수 공장 +3 · 강철 +13K' },
@@ -64,7 +76,9 @@ export function CampaignSetup({
   onManageSaves,
 }: CampaignSetupProps) {
   const nation = getNation(nationId);
+  const historicalFlag = getHistoricalFlag(nationId);
   const roles = careerRoles.filter((role) => role.nationId === nationId);
+  const selectedRole = roles.find((role) => role.id === roleId) ?? roles[1];
 
   return (
     <div className="modal-backdrop campaign-setup-backdrop">
@@ -73,14 +87,14 @@ export function CampaignSetup({
           <div>
             <span className="eyebrow">IRON DOMINION · ALTERNATE HISTORY CAREER</span>
             <h1 id="campaign-setup-title">1942년, 누구의 자리에 앉겠습니까?</h1>
-            <p>실존 지도자의 결정을 따라가는 대신, 국가 조직의 빈자리에 당신이 취임합니다. 승진하고 파벌을 설득하며 원래 역사에 없던 세계를 만드십시오.</p>
+            <p>1942년 실존 재직자 한 명의 보직을 사용자가 직접 대체합니다. 밀려난 전임자와 실제 참모·지휘관을 설득하고 경쟁하며 원래 역사에 없던 세계를 만드십시오.</p>
           </div>
           <div className="setup-era"><Globe2 size={21} /><span>유럽 ↔ 아시아·태평양<strong>양대 전구 동시 진행</strong></span></div>
         </header>
 
         <div className="setup-body">
           <section className="setup-nations">
-            <div className="setup-section-title"><span>01</span><div><strong>플레이 진영</strong><small>9개 국가·정치체</small></div></div>
+            <div className="setup-section-title"><span>01</span><div><strong>플레이 진영</strong><small>{nations.length}개 국가·망명정부·독립운동</small></div></div>
             <div className="nation-choice-grid">
               {nations.map((item) => (
                 <button
@@ -89,30 +103,56 @@ export function CampaignSetup({
                   aria-pressed={nationId === item.id}
                   onClick={() => onNationChange(item.id)}
                 >
-                  <i style={{ background: item.color, borderColor: item.accent }}>{item.code}</i>
-                  <span><strong>{item.shortName}</strong><small>{item.alignment === 'allies' ? '연합 진영' : '추축 진영'} · {item.defaultTheater === 'asia' ? '아시아' : '유럽'}</small></span>
+                  <NationFlag nationId={item.id} size="compact" decorative />
+                  <span><strong>{item.shortName}</strong><small>{nationStatusLabels[item.status]} · {item.defaultTheater === 'asia' ? '아시아' : '유럽'}</small></span>
                   {nationId === item.id && <CheckCircle2 size={15} />}
                 </button>
               ))}
             </div>
             <div className="nation-brief" style={{ borderColor: nation.accent }}>
-              <div><i style={{ background: nation.color }}>{nation.code}</i><span><strong>{nation.name}</strong><small>{nation.challenge}</small></span></div>
+              <div><NationFlag nationId={nation.id} size="standard" /><span><strong>{nation.name}</strong><small>{nation.challenge}</small></span></div>
               <p>{nation.summary}</p>
+              <div className="historical-flag-record">
+                <span>1942 FLAG RECORD</span>
+                <strong>{historicalFlag.name}</strong>
+                <small>{historicalFlag.period} · {historicalFlag.kindLabel}</small>
+                <p>{historicalFlag.historicalNote}</p>
+              </div>
+              <small className="nation-historical-basis">사료 기준 · {nation.historicalBasis}</small>
             </div>
           </section>
 
           <section className="setup-career">
-            <div className="setup-section-title"><span>02</span><div><strong>취임 보직</strong><small>상급 리그부터 현장 리그까지</small></div></div>
-            <div className="role-choice-list">
-              {roles.map((role) => (
-                <button key={role.id} className={roleId === role.id ? 'selected' : ''} aria-pressed={roleId === role.id} onClick={() => onRoleChange(role.id)}>
-                  <i>{branchIcons[role.branch]}</i>
-                  <span><small>TIER {role.tier} · {branchLabels[role.branch]}</small><strong>{role.title}</strong><em>{role.scope} · 권한 {role.authority}</em></span>
-                  <div className="role-tier">{'★'.repeat(4 - role.tier)}{'☆'.repeat(role.tier - 1)}</div>
-                </button>
+            <div className="setup-section-title"><span>02</span><div><strong>취임 보직</strong><small>3단계에서 5단계로 확장된 커리어 피라미드</small></div></div>
+            <div className="role-tier-guide" aria-label="5단계 보직 등급 안내">
+              <span><strong>★★★★★</strong> 국가 최고위</span><i>→</i><span><strong>★★★☆☆</strong> 중간관리</span><i>→</i><span><strong>★☆☆☆☆</strong> 현장 실무</span>
+            </div>
+            <div className="role-choice-groups">
+              {branchOrder.map((branch) => (
+                <section className="role-choice-group" key={branch} aria-labelledby={`role-group-${branch}`}>
+                  <header id={`role-group-${branch}`}>{branchIcons[branch]}<strong>{branchLabels[branch]}</strong><small>{roles.filter((role) => role.branch === branch).length}개 보직</small></header>
+                  <div className="role-choice-list">
+                    {roles.filter((role) => role.branch === branch).map((role) => {
+                      const stars = getCareerStarCount(role.tier);
+                      return (
+                        <button key={role.id} className={roleId === role.id ? 'selected' : ''} aria-pressed={roleId === role.id} aria-label={`${role.title}, ${stars}성 보직, ${role.historicalHolderName} 대체`} onClick={() => onRoleChange(role.id)}>
+                          <i>{branchIcons[role.branch]}</i>
+                          <span><small>TIER {role.tier}/{CAREER_TIER_COUNT} · {branchLabels[role.branch]}</small><strong>{role.title}</strong><em>{role.scope} · 권한 {role.authority}</em><b>대체할 실존 인물 · {role.historicalHolderName}</b></span>
+                          <div className="role-tier" title={`${stars}성 보직`}>{'★'.repeat(stars)}{'☆'.repeat(CAREER_TIER_COUNT - stars)}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
               ))}
             </div>
-            <div className="career-ladder-note"><BriefcaseBusiness size={16} /><span><strong>커리어는 고정되지 않습니다.</strong>하위 보직은 성과로 승진하고, 상위 보직은 내각과 군부의 신임을 잃으면 해임될 수 있습니다.</span></div>
+            <div className="historical-seat-brief">
+              <span>1942 HISTORICAL SEAT</span>
+              <div><strong>{selectedRole.historicalHolderName}</strong><small>{selectedRole.historicalOffice}</small></div>
+              <p>{selectedRole.historicalBasis} {selectedRole.replacementEffect}</p>
+              <em>활동 위장 · {selectedRole.coverIdentity}</em>
+            </div>
+            <div className="career-ladder-note"><BriefcaseBusiness size={16} /><span><strong>5급에서 1급까지 네 번 승진할 수 있습니다.</strong>같은 분야의 바로 위 보직으로 이동하며, 최고위층 진입 시 국가 전체 인사권이 열립니다. 신임을 잃으면 해임·쿠데타 위험도 커집니다.</span></div>
 
             <div className="setup-section-title compact"><span>03</span><div><strong>지휘 철학</strong><small>취임 시 초기 보너스</small></div></div>
             <div className="setup-doctrines">
@@ -126,7 +166,7 @@ export function CampaignSetup({
         </div>
 
         <footer className="setup-footer">
-          <div className="alternate-history-promise"><MapPinned size={18} /><span><strong>역사는 출발 조건일 뿐입니다.</strong>국가 진로, 동맹, 독립, 휴전, 전후 체제는 플레이마다 달라집니다.</span></div>
+          <div className="alternate-history-promise"><MapPinned size={18} /><span><strong>역사는 미리 작성하지 않습니다.</strong>취임 뒤의 정책·인사·작전·외교·연구 선택이 누적되어 자연스럽게 다른 세계를 만듭니다.</span></div>
           <div className="setup-actions">
             {hasManualSaves && <button className="manual-save-button" onClick={onManageSaves}><Save size={15} /> 체크포인트 관리</button>}
             {hasSave && <button className="continue-button" onClick={onContinue}><Save size={15} /> 저장 캠페인 계속</button>}

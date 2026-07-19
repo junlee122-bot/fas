@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react';
-import { Check, Contrast, MapPinned, RotateCcw, ScanText, Settings, Volume2, Waves, X } from 'lucide-react';
+import { Check, CircleHelp, Contrast, MapPinned, RotateCcw, ScanText, Settings, Volume2, Waves, X } from 'lucide-react';
 import type { UXPreferences } from './ux';
 
 interface SettingsModalProps {
   preferences: UXPreferences;
   onToggle: (key: keyof UXPreferences) => void;
   onReset: () => void;
+  onRestartTutorial: () => void;
   onClose: () => void;
 }
 
@@ -22,7 +23,7 @@ const preferenceOptions: Array<{
   { key: 'reducedMotion', title: '화면 효과 감소', description: '모달·토스트·버튼의 이동 애니메이션을 최소화합니다.', icon: <Waves size={18} /> },
 ];
 
-export function SettingsModal({ preferences, onToggle, onReset, onClose }: SettingsModalProps) {
+export function SettingsModal({ preferences, onToggle, onReset, onRestartTutorial, onClose }: SettingsModalProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -59,6 +60,9 @@ export function SettingsModal({ preferences, onToggle, onReset, onClose }: Setti
             <div><kbd>Ctrl K</kbd><span><strong>빠른 이동</strong><small>화면·전구·기능을 검색해 즉시 이동</small></span></div>
             <div><kbd>Ctrl S</kbd><span><strong>저장 센터</strong><small>체크포인트·내보내기·불러오기 관리</small></span></div>
             <div><kbd>?</kbd><span><strong>야전 교범</strong><small>첫 주 체크리스트와 시스템 설명 검색</small></span></div>
+            <div><kbd>1–4</kbd><span><strong>지도 레이어</strong><small>전황 지도에서 정치·보급·기상·정보 전환</small></span></div>
+            <div><kbd>+ − 0</kbd><span><strong>지도 카메라</strong><small>확대·축소·전체 전구 위치로 초기화</small></span></div>
+            <div><kbd>F I L</kbd><span><strong>지도 집중 도구</strong><small>집중 모드·전구 정보·표식 밀도 전환</small></span></div>
             <div><kbd>N</kbd><span><strong>다음 주</strong><small>현재 명령을 해결하고 한 주 진행</small></span></div>
             <div><kbd>Space</kbd><span><strong>시간 제어</strong><small>일시 정지와 1배속 전환</small></span></div>
             <div><kbd>Esc</kbd><span><strong>닫기·취소</strong><small>열린 안내와 공세 목표 지정 취소</small></span></div>
@@ -67,6 +71,7 @@ export function SettingsModal({ preferences, onToggle, onReset, onClose }: Setti
         </div>
 
         <footer>
+          <button onClick={onRestartTutorial}><CircleHelp size={14} /> 첫 지휘 튜토리얼 다시 보기</button>
           <button onClick={onReset}><RotateCcw size={14} /> 기본 설정 복원</button>
           <button onClick={onClose}>설정 완료</button>
         </footer>

@@ -9,7 +9,7 @@ interface BattleReportModalProps {
 const stanceLabels = {
   cautious: '신중한 공세',
   balanced: '균형 공세',
-  aggressive: '총력 공세',
+  aggressive: '총공세',
 };
 
 const phaseIcons: Record<BattlePhase['id'], React.ReactNode> = {

@@ -1,6 +1,7 @@
 import type { Commander, CovertOperation, DiplomaticRelation, Division, ProductionLine, ResearchProject, Territory } from './types';
+import { buildStrategicTerritories } from './strategicMapData';
 
-export const territories: Territory[] = [
+const legacyTerritories: Territory[] = [
   { id: 'britain', name: '영국 본토', region: '서유럽', x: 24, y: 25, controller: 'allies', ownerId: 'britain', value: 10, supply: 96, terrain: '도시', neighbors: ['channel', 'atlantic'], },
   { id: 'atlantic', name: '대서양 항로', region: '대서양', x: 11, y: 45, controller: 'allies', ownerId: 'britain', value: 4, supply: 70, terrain: '해양', neighbors: ['britain', 'morocco'], },
   { id: 'channel', name: '영불 해협', region: '서부 전선', x: 31, y: 35, controller: 'axis', ownerId: 'germany', value: 6, supply: 82, terrain: '해안', neighbors: ['britain', 'france'], },
@@ -42,8 +43,9 @@ export const territories: Territory[] = [
   { id: 'south_china', name: '화남 전선', region: '중국 전선', x: 57, y: 62, controller: 'allies', ownerId: 'china', value: 7, supply: 49, terrain: '구릉', neighbors: ['central_china', 'yunnan', 'indochina', 'philippines'], theater: 'asia' },
   { id: 'indochina', name: '인도차이나', region: '동남아시아', x: 53, y: 70, controller: 'axis', ownerId: 'japan', value: 6, supply: 61, terrain: '정글', neighbors: ['south_china', 'burma', 'malaya', 'philippines'], theater: 'asia' },
   { id: 'soviet_far_east', name: '소련 극동', region: '북동아시아', x: 68, y: 12, controller: 'allies', ownerId: 'ussr', value: 7, supply: 65, terrain: '삼림', neighbors: ['mongolia', 'manchuria'], theater: 'asia' },
-  { id: 'manchuria', name: '만주', region: '북동아시아', x: 66, y: 27, controller: 'axis', ownerId: 'japan', value: 9, supply: 80, terrain: '평야', neighbors: ['soviet_far_east', 'mongolia', 'north_china', 'japan_home'], theater: 'asia' },
-  { id: 'japan_home', name: '일본 본토', region: '북서 태평양', x: 74, y: 39, controller: 'axis', ownerId: 'japan', value: 12, supply: 96, terrain: '도시', neighbors: ['manchuria', 'philippines', 'midway'], theater: 'asia' },
+  { id: 'manchuria', name: '만주', region: '북동아시아', x: 65, y: 24, controller: 'axis', ownerId: 'japan', value: 9, supply: 80, terrain: '평야', neighbors: ['soviet_far_east', 'mongolia', 'north_china', 'korea'], theater: 'asia' },
+  { id: 'korea', name: '일제강점기 조선', region: '한반도', x: 70, y: 33, controller: 'axis', ownerId: 'japan', value: 9, supply: 76, terrain: '산악', neighbors: ['manchuria', 'north_china', 'japan_home'], theater: 'asia' },
+  { id: 'japan_home', name: '일본 본토', region: '북서 태평양', x: 76, y: 40, controller: 'axis', ownerId: 'japan', value: 12, supply: 96, terrain: '도시', neighbors: ['korea', 'philippines', 'midway'], theater: 'asia' },
   { id: 'philippines', name: '필리핀', region: '서태평양', x: 69, y: 61, controller: 'axis', ownerId: 'japan', value: 9, supply: 66, terrain: '도서', neighbors: ['japan_home', 'south_china', 'indochina', 'dutch_east_indies', 'new_guinea'], theater: 'asia' },
   { id: 'dutch_east_indies', name: '네덜란드령 동인도', region: '남서 태평양', x: 59, y: 87, controller: 'axis', ownerId: 'japan', value: 10, supply: 74, terrain: '도서', neighbors: ['singapore', 'philippines', 'new_guinea'], theater: 'asia' },
   { id: 'new_guinea', name: '뉴기니', region: '남서 태평양', x: 74, y: 84, controller: 'axis', ownerId: 'japan', value: 6, supply: 35, terrain: '정글', neighbors: ['dutch_east_indies', 'philippines', 'coral_sea', 'solomons'], theater: 'asia' },
@@ -52,6 +54,8 @@ export const territories: Territory[] = [
   { id: 'midway', name: '미드웨이', region: '중부 태평양', x: 90, y: 44, controller: 'allies', ownerId: 'usa', value: 8, supply: 71, terrain: '해양', neighbors: ['japan_home', 'solomons', 'hawaii'], theater: 'asia' },
   { id: 'hawaii', name: '하와이', region: '중부 태평양', x: 96, y: 56, controller: 'allies', ownerId: 'usa', value: 11, supply: 94, terrain: '해군기지', neighbors: ['midway', 'coral_sea'], theater: 'asia' },
 ];
+
+export const territories: Territory[] = buildStrategicTerritories(legacyTerritories);
 
 export const commanders: Commander[] = [
   { id: 'montgomery', name: '버나드 몽고메리', rank: '육군 원수', initials: 'BM', color: '#b59b72', command: 92, attack: 84, defense: 94, logistics: 91, trait: '치밀한 준비', specialty: '사막전 · 조직력', fatigue: 22, loyalty: 97 },

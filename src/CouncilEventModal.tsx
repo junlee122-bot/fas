@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronRight, Landmark } from 'lucide-react';
+import { AlertTriangle, BookOpenText, ChevronRight, ExternalLink, Landmark } from 'lucide-react';
 import type { CouncilEvent } from './types';
 
 export function CouncilEventModal({ event, onChoose }: { event: CouncilEvent; onChoose: (choiceId: string) => void }) {
@@ -14,6 +14,13 @@ export function CouncilEventModal({ event, onChoose }: { event: CouncilEvent; on
           <span>상황 보고</span>
           <p>{event.briefing}</p>
           <strong>{event.stakes}</strong>
+          {event.historicalBasis && (
+            <aside className="council-historical-basis">
+              <BookOpenText size={15} />
+              <div><span>{event.historicalYear ?? 1942} HISTORICAL BASIS</span><p>{event.historicalBasis}</p></div>
+              {event.sourceUrl && <a href={event.sourceUrl} target="_blank" rel="noreferrer">{event.sourceLabel ?? '사료 보기'} <ExternalLink size={12} /></a>}
+            </aside>
+          )}
         </div>
         <div className="council-choices">
           {event.choices.map((choice, index) => (

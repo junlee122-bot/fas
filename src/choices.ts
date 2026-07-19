@@ -1,4 +1,5 @@
 import type { CouncilEvent, StrategicPolicy } from './types';
+import { historicalCouncilEvents } from './historicalCouncilEvents';
 
 export const strategicPolicies: StrategicPolicy[] = [
   { id: 'economy-mass', domain: 'economy', title: '대량생산 체제', description: '소수 표준 장비를 거대한 조립라인에서 생산합니다.', effect: '생산량 +15% · 안정도 -3', productionMultiplier: 1.15, gameDelta: { factories: 4, stability: -3 } },
@@ -18,7 +19,7 @@ export const strategicPolicies: StrategicPolicy[] = [
   { id: 'diplomacy-pragmatic', domain: 'diplomacy', title: '실용적 협상', description: '중립국과 적대 세력의 틈을 이용해 전선을 줄입니다.', effect: '적 압력 -10 · 정치력 +8', gameDelta: { enemyPressure: -10, politicalPower: 8 } },
 ];
 
-export const councilEvents: CouncilEvent[] = [
+const recurringCouncilEvents: CouncilEvent[] = [
   {
     id: 'supply-crisis', category: '군수 위기', title: '전선 보급이 72시간 안에 끊깁니다', stakes: '부대 전력과 민간 안정 중 무엇을 먼저 지킬지 결정해야 합니다.',
     briefing: '수송선 손실과 철도 파괴가 겹쳤습니다. 군수총감은 현 비축량으로 모든 전선을 유지할 수 없다고 보고합니다.',
@@ -74,6 +75,8 @@ export const councilEvents: CouncilEvent[] = [
     ],
   },
 ];
+
+export const councilEvents: CouncilEvent[] = [...recurringCouncilEvents, ...historicalCouncilEvents];
 
 export const policyDomains = [
   { id: 'economy' as const, title: '전시 경제', subtitle: '생산과 민생' },

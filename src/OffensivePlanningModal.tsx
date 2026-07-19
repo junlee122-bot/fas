@@ -20,7 +20,7 @@ interface OffensivePlanningModalProps {
 const stanceOptions: Array<{ id: BattleStance; title: string; summary: string }> = [
   { id: 'cautious', title: '신중한 공세', summary: '정찰과 보존 우선' },
   { id: 'balanced', title: '균형 공세', summary: '화력과 손실 균형' },
-  { id: 'aggressive', title: '총력 공세', summary: '돌파 확률과 손실 증가' },
+  { id: 'aggressive', title: '총공세', summary: '돌파 확률과 손실 증가' },
 ];
 
 const confidenceLabels = { low: '낮음', medium: '보통', high: '높음' };
@@ -129,7 +129,7 @@ export function OffensivePlanningModal({
         </div>
 
         <footer>
-          <p id="offensive-planning-note"><AlertTriangle size={15} /><span>예측은 현재 정보와 준비도를 기준으로 합니다. 실제 전투에서는 전장 변수와 이후 전선 변화가 결과를 바꿀 수 있습니다.</span></p>
+          <p id="offensive-planning-note"><AlertTriangle size={15} /><span>예측은 현재 정보와 준비도를 기준으로 합니다. 승인한 명령은 지도 이동이나 다른 지역 선택으로 취소되지 않으며, 다음 주 결산까지 전황 지도의 ‘승인된 공세’에서 추적됩니다.</span></p>
           <div>
             <button className="planning-cancel" onClick={onCancel}>목표 다시 선택</button>
             <button className="planning-confirm" onClick={onConfirm} disabled={commandPoints < 5}><CheckCircle2 size={16} /> 이 계획 승인 <span>지휘 점수 5</span></button>

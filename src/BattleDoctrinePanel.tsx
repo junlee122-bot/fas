@@ -11,7 +11,7 @@ interface BattleDoctrinePanelProps {
 const stances: Array<{ id: BattleStance; title: string; summary: string; effect: string; icon: React.ReactNode }> = [
   { id: 'cautious', title: '신중한 공세', summary: '정찰과 전개를 우선하고 불리하면 빠르게 이탈', effect: '손실 -28% · 화력 감소 · 보급 8', icon: <Shield size={15} /> },
   { id: 'balanced', title: '균형 공세', summary: '화력·보급·예비대를 표준 작전 계획대로 운용', effect: '표준 손실 · 보급 11', icon: <Target size={15} /> },
-  { id: 'aggressive', title: '총력 공세', summary: '주력과 기동 예비대를 조기에 투입해 돌파를 강제', effect: '교전/추격 강화 · 손실 +28% · 보급 16', icon: <Swords size={15} /> },
+  { id: 'aggressive', title: '총공세', summary: '주력과 기동 예비대를 조기에 투입해 돌파를 강제', effect: '교전/추격 강화 · 손실 +28% · 보급 16', icon: <Swords size={15} /> },
 ];
 
 export function BattleDoctrinePanel({ stance, reports, onStanceChange, onOpenReport }: BattleDoctrinePanelProps) {

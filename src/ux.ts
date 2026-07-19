@@ -1,4 +1,5 @@
 import { getAvailableSkillPoints } from './development';
+import type { PublicHealthState } from './publicHealth';
 import type { CommanderDevelopment, Division, GameTab, Order, ProductionLine, ResearchProject } from './types';
 
 export type UXActionPriority = 'urgent' | 'recommended' | 'info';
@@ -28,6 +29,11 @@ export interface ActionCenterInput {
   divisions: Division[];
   orders: Order[];
   commanderDevelopment: CommanderDevelopment[];
+  publicHealth?: PublicHealthState;
+  economyOperatingBalance?: number;
+  economyInflation?: number;
+  economyDebt?: number;
+  formatMoney?: (value: number, options?: { signed?: boolean; exact?: boolean }) => string;
 }
 
 export interface OnboardingStep {
@@ -44,7 +50,6 @@ export interface OnboardingInput {
   research: ResearchProject[];
   selectedPolicies: string[];
   orders: Order[];
-  alternatePathId: string | null;
 }
 
 export const defaultUXPreferences: UXPreferences = {
@@ -54,6 +59,10 @@ export const defaultUXPreferences: UXPreferences = {
   largeMapLabels: false,
   reducedMotion: false,
 };
+
+export function getInitialNavigationCollapsed(savedValue: string | null, viewportWidth: number) {
+  return viewportWidth <= 900 || savedValue === 'true';
+}
 
 export function normalizeUXPreferences(value: Partial<UXPreferences> | null | undefined): UXPreferences {
   return {
@@ -71,13 +80,12 @@ export function deriveOnboardingSteps({
   research,
   selectedPolicies,
   orders,
-  alternatePathId,
 }: OnboardingInput): OnboardingStep[] {
   const usedFactories = production.reduce((total, line) => total + line.assigned, 0);
   const activeResearch = research.filter((project) => project.active && !project.complete).length;
 
   return [
-    { id: 'path', title: '국가 진로 결정', detail: '역사와 다른 국가 목표를 선택해 장기 캠페인 방향을 정합니다.', tab: 'command', complete: Boolean(alternatePathId) },
+    { id: 'path', title: '첫 역사 압력 만들기', detail: '국가 원칙 하나를 채택하면 그 행동부터 미래 사건의 조건이 달라집니다.', tab: 'organization', complete: selectedPolicies.length > 0 },
     { id: 'research', title: '연구 슬롯 2개 배정', detail: '비어 있는 연구 슬롯은 매주 기술 성장 기회를 잃습니다.', tab: 'research', complete: activeResearch >= 2 },
     { id: 'factories', title: '군수 공장 전부 배정', detail: '모든 공장을 장비 생산선에 투입해 주간 산출량을 확보합니다.', tab: 'industry', complete: usedFactories >= factories },
     { id: 'policies', title: '국가 원칙 4개 확정', detail: '경제·교리·사회·외교 영역의 운영 원칙을 하나씩 선택합니다.', tab: 'organization', complete: selectedPolicies.length >= 4 },
@@ -93,6 +101,11 @@ export function deriveUXActions({
   divisions,
   orders,
   commanderDevelopment,
+  publicHealth,
+  economyOperatingBalance,
+  economyInflation,
+  economyDebt,
+  formatMoney = (value) => `${value < 0 ? '−' : ''}${Math.abs(value).toFixed(1)} 재정가치`,
 }: ActionCenterInput): UXAction[] {
   const actions: UXAction[] = [];
   const availableSkills = commanderDevelopment.reduce((total, record) => total + getAvailableSkillPoints(record), 0);
@@ -101,6 +114,49 @@ export function deriveUXActions({
   const idleFactories = Math.max(0, factories - usedFactories);
   const readyDivisions = divisions.filter((division) => division.status === 'ready').length;
   const recoveringDivisions = divisions.filter((division) => division.status === 'recovering').length;
+
+  if (publicHealth?.activeOutbreak) {
+    const outbreak = publicHealth.activeOutbreak;
+    actions.push({
+      id: 'public-health-crisis',
+      priority: outbreak.phase === 'pandemic' || outbreak.hospitalLoad >= 100 ? 'urgent' : 'recommended',
+      title: `${outbreak.codeName} 보건 위기 대응`,
+      detail: `주간 추정 ${Math.round(outbreak.weeklyCases).toLocaleString('ko-KR')}건 · R ${outbreak.rEffective.toFixed(2)} · 병상 부하 ${Math.round(outbreak.hospitalLoad)}%. 대응 태세를 검토하십시오.`,
+      label: '위기 지휘실',
+      tab: 'health',
+    });
+  } else if (publicHealth && publicHealth.weeklyRisk >= 0.018) {
+    actions.push({
+      id: 'public-health-readiness',
+      priority: 'recommended',
+      title: `감염병 주간 위험 ${(publicHealth.weeklyRisk * 100).toFixed(1)}%`,
+      detail: '전선 압력과 보급 상황이 발병 위험을 높이고 있습니다. 감시 실험실·의료 역량을 선제 확충할 수 있습니다.',
+      label: '대비 태세',
+      tab: 'health',
+    });
+  }
+
+  if (economyOperatingBalance !== undefined && economyOperatingBalance < -20) {
+    actions.push({
+      id: 'economy-operating-deficit',
+      priority: economyOperatingBalance < -60 ? 'urgent' : 'recommended',
+      title: `주간 경상적자 ${formatMoney(Math.abs(economyOperatingBalance))}`,
+      detail: `국채 조달을 제외한 세입보다 지출이 큽니다. 현재 부채 ${formatMoney(economyDebt ?? 0)}의 이자와 조세·지출 구성을 검토하십시오.`,
+      label: '재정 결산',
+      tab: 'economy',
+    });
+  }
+
+  if (economyInflation !== undefined && economyInflation >= 10) {
+    actions.push({
+      id: 'economy-inflation',
+      priority: economyInflation >= 18 ? 'urgent' : 'recommended',
+      title: `전시 인플레이션 ${economyInflation.toFixed(1)}%`,
+      detail: '중앙은행 신용, 물자 부족과 가격통제 수준을 함께 점검하십시오. 조달액이 커도 실질 구매력은 줄어들 수 있습니다.',
+      label: '물가 대책',
+      tab: 'economy',
+    });
+  }
 
   if (availableSkills > 0) {
     actions.push({

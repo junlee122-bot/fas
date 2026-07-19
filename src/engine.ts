@@ -9,10 +9,10 @@ export interface ProductionGains {
   trucks: number;
 }
 
-function lineOutput(production: ProductionLine[], id: string) {
+function lineOutput(production: ProductionLine[], id: string, legacyFallback = 0) {
   const line = production.find((item) => item.id === id);
-  if (!line) return 0;
-  return Math.round(line.output * line.assigned / 5);
+  if (!line) return legacyFallback;
+  return Math.round(line.output * line.assigned / 5 * line.efficiency / 100);
 }
 
 export function calculateProductionGains(production: ProductionLine[], nextWeek: number): ProductionGains {
@@ -21,8 +21,8 @@ export function calculateProductionGains(production: ProductionLine[], nextWeek:
     aircraft: lineOutput(production, 'spitfire'),
     infantryEquipment: lineOutput(production, 'rifle'),
     convoys: Math.max(0, lineOutput(production, 'convoy') - (nextWeek % 2 === 0 ? 4 : 1)),
-    artillery: 72,
-    trucks: 110,
+    artillery: lineOutput(production, 'artillery', 72),
+    trucks: lineOutput(production, 'truck', 110),
   };
 }
 
