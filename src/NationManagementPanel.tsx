@@ -18,6 +18,8 @@ import {
   Users,
 } from 'lucide-react';
 import type { EconomyState } from './economy';
+import { NationalSimulationOverview } from './NationalSimulationOverview';
+import type { NationalSimulationSnapshot } from './nationalSimulation';
 import {
   nationBudgetDefinitions,
   nationStrategies,
@@ -47,6 +49,7 @@ interface NationManagementPanelProps {
   game: GameState;
   economy: EconomyState;
   nation: NationProfile;
+  nationalSimulation: NationalSimulationSnapshot;
   worldlineTitle: string;
   readiness: TransitionReadiness;
   formatMoney: (value: number, options?: { signed?: boolean; exact?: boolean }) => string;
@@ -83,6 +86,7 @@ export function NationManagementPanel({
   game,
   economy,
   nation,
+  nationalSimulation,
   worldlineTitle,
   readiness,
   formatMoney,
@@ -201,6 +205,8 @@ export function NationManagementPanel({
           return <article key={label as string} className={danger && Number(value) > 55 ? 'warning' : ''}><MetricIcon /><span>{label as string}</span><strong>{Math.round(Number(value))}</strong><MetricBar value={Number(value)} danger={Boolean(danger)} /></article>;
         })}
       </section>
+
+      <NationalSimulationOverview snapshot={nationalSimulation} phase="nation" onNavigate={onNavigate} />
 
       <div className="nation-government-grid">
         <section className="nation-surface fiscal-cabinet">

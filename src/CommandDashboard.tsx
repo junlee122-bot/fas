@@ -14,6 +14,8 @@ import { calculateProductionGains } from './engine';
 import { getEquipmentNode } from './equipment';
 import { GameIcon } from './GameIcon';
 import { NationFlag } from './NationFlag';
+import { NationalSimulationOverview } from './NationalSimulationOverview';
+import type { NationalSimulationSnapshot } from './nationalSimulation';
 import { formatOutbreakPhase } from './publicHealth';
 import type { PublicHealthState } from './publicHealth';
 import type {
@@ -59,6 +61,7 @@ interface CommandDashboardProps {
   events: WarEvent[];
   actions: UXAction[];
   publicHealth: PublicHealthState;
+  nationalSimulation: NationalSimulationSnapshot;
   weeklyIssue: WorldWeeklyIssue | null;
   weeklyUnread: boolean;
   objectiveProgress: number;
@@ -101,6 +104,7 @@ export function CommandDashboard({
   events,
   actions,
   publicHealth,
+  nationalSimulation,
   weeklyIssue,
   weeklyUnread,
   objectiveProgress,
@@ -236,6 +240,8 @@ export function CommandDashboard({
           <div><small>진행 전 결과</small><strong>생산·명령·연구 동시 해결</strong><p>보병 장비 +{formatNumber(weeklyProduction.infantryEquipment)} · 작전 명령 {orders.length}건 · 연구 {activeResearch.length}/2</p></div>
         </div>
       </section>
+
+      <NationalSimulationOverview snapshot={nationalSimulation} phase="war" onNavigate={onNavigate} />
 
       <div className="command-portal-grid">
         <section className="portal-card portal-inbox">

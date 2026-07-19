@@ -229,6 +229,7 @@ import {
 } from './politicalCrisis';
 import type { CoupIncident, CoupPreventionId, CoupResponseId, PoliticalCrisisContext } from './politicalCrisis';
 import { PoliticalCrisisModal } from './PoliticalCrisisModal';
+import { deriveNationalSimulation } from './nationalSimulation';
 
 const loadOrganizationPanel = () => import('./OrganizationPanel');
 const loadEquipmentLab = () => import('./EquipmentLab');
@@ -593,6 +594,21 @@ export function App() {
   }), [averageDivisionSupply, averageStaffLoyalty, averageStaffOverload, campaignPhase, career.councilTrust, career.reputation, economy, game, nationManagement]);
   const coupRisk = useMemo(() => assessCoupRisk(politicalCrisis, politicalCrisisContext), [politicalCrisis, politicalCrisisContext]);
   const politicalProfile = getNationPoliticalProfile(playerNation.id);
+  const nationalSimulation = useMemo(() => deriveNationalSimulation({
+    nationId: playerNation.id,
+    phase: campaignPhase,
+    game,
+    economy,
+    stockpile,
+    production,
+    divisions: effectiveDivisions,
+    research,
+    publicHealth: publicHealthView,
+    selectedPolicies: activePolicies,
+    politicalState: politicalCrisis,
+    coupRisk,
+    nationManagement,
+  }), [activePolicies, campaignPhase, coupRisk, economy, effectiveDivisions, game, nationManagement, playerNation.id, politicalCrisis, production, publicHealthView, research, stockpile]);
   const pendingCouncilEvent = councilEvents.find((event) => event.id === pendingCouncilEventId) ?? null;
   const pendingBattleReport = battleReports.find((report) => report.id === pendingBattleReportId) ?? null;
   const theaterTerritories = useMemo(
@@ -3776,6 +3792,7 @@ export function App() {
                   events={events}
                   actions={uxActions}
                   publicHealth={publicHealthView}
+                  nationalSimulation={nationalSimulation}
                   weeklyIssue={latestWorldWeeklyIssue}
                   weeklyUnread={hasUnreadWorldWeekly}
                   objectiveProgress={objectiveProgress}
@@ -3827,6 +3844,7 @@ export function App() {
                   game={game}
                   economy={economy}
                   nation={playerNation}
+                  nationalSimulation={nationalSimulation}
                   worldlineTitle={worldline.title}
                   readiness={transitionReadiness}
                   formatMoney={formatGameMoney}
