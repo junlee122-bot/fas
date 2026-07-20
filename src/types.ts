@@ -140,6 +140,15 @@ export interface StaffMember {
   delegated: boolean;
   grade: 1 | 2 | 3;
   development: number;
+  morale?: number;
+  roleSatisfaction?: number;
+  contractWeeksRemaining?: number;
+  contractTermWeeks?: number;
+  joinedWeek?: number;
+  promisedDepartment?: StaffDepartment;
+  squadStatus?: 'key' | 'regular' | 'rotation' | 'development';
+  appointmentAuthority?: 'advisor' | 'executive' | 'autonomous';
+  appointmentPromise?: 'none' | 'resources' | 'succession' | 'security';
   discipline?: PersonnelDiscipline;
   birthYear?: number;
   nationality?: string;

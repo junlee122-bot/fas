@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { isRecruitmentSuccess, recruitmentChance, recruitmentScore, sortTalentCandidates, weeklyRivalInterest } from './recruitment';
+import {
+  assessRecruitmentOffer,
+  defaultRecruitmentOffer,
+  isRecruitmentOfferSuccess,
+  isRecruitmentSuccess,
+  recruitmentChance,
+  recruitmentScore,
+  sortTalentCandidates,
+  weeklyRivalInterest,
+} from './recruitment';
 import type { StaffCandidate } from './types';
 
 const candidate: StaffCandidate = {
@@ -41,5 +50,24 @@ describe('historical personnel market', () => {
     const unknownStar = { ...candidate, id: 'unknown', name: '미확인', ability: 99, knowledge: 20 };
     const verified = { ...candidate, id: 'verified', name: '검증됨', ability: 78, knowledge: 70 };
     expect(sortTalentCandidates([unknownStar, verified], 'ability', 50)[0].id).toBe('verified');
+  });
+
+  it('turns authority, term, pay and promises into a transparent negotiated offer', () => {
+    const cautious = assessRecruitmentOffer(candidate, 50, {
+      authority: 'advisor', termWeeks: 52, salaryMultiplier: 0.9, signingMultiplier: 0.9, promise: 'none',
+    });
+    const ambitious = assessRecruitmentOffer(candidate, 50, {
+      authority: 'autonomous', termWeeks: 156, salaryMultiplier: 1.15, signingMultiplier: 1.15, promise: 'succession',
+    });
+    expect(ambitious.score).toBeGreaterThan(cautious.score);
+    expect(ambitious.weeklyCost).toBeGreaterThan(cautious.weeklyCost);
+    expect(ambitious.signingCost).toBeGreaterThan(cautious.signingCost);
+    expect(ambitious.factors).toHaveLength(6);
+  });
+
+  it('keeps the old success threshold compatible with a standard two-year offer', () => {
+    const ready = { ...candidate, interest: 92, relationship: 70, rivalInterest: 5 };
+    expect(isRecruitmentSuccess(ready, 70)).toBe(true);
+    expect(isRecruitmentOfferSuccess(ready, 70, defaultRecruitmentOffer)).toBe(true);
   });
 });

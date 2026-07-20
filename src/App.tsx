@@ -135,7 +135,9 @@ import type { CommandPaletteItem } from './CommandPalette';
 import { SaveCenter } from './SaveCenter';
 import { deleteManualSave, isCampaignSavePayload, normalizeManualSaves, upsertManualSave } from './save';
 import type { CampaignSavePayload, ManualSaveSlot } from './save';
-import { isRecruitmentSuccess, recruitmentScore, weeklyRivalInterest } from './recruitment';
+import { assessRecruitmentOffer, isRecruitmentOfferSuccess, weeklyRivalInterest } from './recruitment';
+import type { RecruitmentOffer } from './recruitment';
+import { advanceStaffMemberWeek, getStaffContractWeeks, getStaffRenewalCost } from './staffManagement';
 import {
   applyCommanderDevelopment,
   createCommanderDevelopment,
@@ -1482,12 +1484,7 @@ export function App() {
       });
       addEvent(`전후질서 사전준비 — ${commitment.variant.title}`, commitment.variant.consequence, commitment.event.category === 'proxy-war' ? 'bad' : 'neutral', nextWeek);
     }
-    setStaff((current) => current.map((member) => ({
-      ...member,
-      workload: Math.max(8, Math.min(100, member.workload + (member.delegated ? 3 : -2))),
-      loyalty: member.delegated && member.workload >= 85 ? Math.max(20, member.loyalty - 2) : member.loyalty,
-      development: Math.min(100, member.development + (member.delegated ? 6 : 3) + (member.id === developmentFocusId ? 7 : 0) - (member.workload >= 85 ? 2 : 0)),
-    })));
+    setStaff((current) => current.map((member) => advanceStaffMemberWeek(member, member.id === developmentFocusId)));
     const currentYear = 1942 + Math.floor(nextWeek / 52);
     const historicalHorizon = getHistoricalHorizon(nextWeek, completedDecisions);
     const intelligenceCandidates = createEmergentIntelligenceCandidates(playerNation.id, currentYear, worldline.timeline);
@@ -2763,20 +2760,21 @@ export function App() {
     notify(candidate.name + '과(와)의 관계가 깊어지고 경쟁 기관의 우선권이 낮아졌습니다.');
   };
 
-  const recruitCandidate = (candidateId: string) => {
+  const recruitCandidate = (candidateId: string, offer: RecruitmentOffer) => {
     const candidate = staffCandidates.find((item) => item.id === candidateId);
     if (!candidate || candidate.status === 'signed' || candidate.status === 'lost' || candidate.knowledge < 55) return;
     if (!staffAuthority.managedDepartments.includes(candidate.department)) {
       notify(`${getStaffSeatTitle(candidate.department, campaignPhase, playerNation.status)} 임명은 현재 직함의 인사권 밖입니다. 후보 조사는 계속할 수 있지만 정식 제안은 상급기관 권한입니다.`);
       return;
     }
-    if (game.treasury < candidate.signingCost || game.politicalPower < 6) {
-      notify(`영입에는 정치력 6과 계약금 ${formatGameMoney(candidate.signingCost)}가 필요합니다.`);
+    const assessment = assessRecruitmentOffer(candidate, career.reputation, offer);
+    if (game.treasury < assessment.signingCost || game.politicalPower < 6) {
+      notify(`영입에는 정치력 6과 계약금 ${formatGameMoney(assessment.signingCost)}가 필요합니다.`);
       return;
     }
-    const persuasion = recruitmentScore(candidate, career.reputation);
-    const success = isRecruitmentSuccess(candidate, career.reputation);
-    setGame((current) => ({ ...current, politicalPower: current.politicalPower - (success ? 6 : 3), treasury: success ? current.treasury - candidate.signingCost : current.treasury }));
+    const persuasion = assessment.score;
+    const success = isRecruitmentOfferSuccess(candidate, career.reputation, offer);
+    setGame((current) => ({ ...current, politicalPower: current.politicalPower - (success ? 6 : 3), treasury: success ? current.treasury - assessment.signingCost : current.treasury }));
     if (!success) {
       setStaffCandidates((current) => current.map((item) => item.id === candidateId ? {
         ...item,
@@ -2785,7 +2783,22 @@ export function App() {
         rivalInterest: Math.min(100, item.rivalInterest + 6),
         signingCost: item.signingCost + 12,
       } : item));
-      addEvent('영입 협상 결렬 — ' + candidate.name, '후보가 권한과 처우에 확신하지 못했습니다. 재협상 가능하지만 요구 계약금이 올랐습니다.', 'bad', game.week);
+      addEvent(
+        '영입 협상 결렬 — ' + candidate.name,
+        `후보가 ${offer.termWeeks / 52}년 임기·${offer.authority === 'autonomous' ? '독립 권한' : offer.authority === 'executive' ? '집행 권한' : '자문 권한'} 조건에 확신하지 못했습니다. 재협상 가능하지만 요구 계약금이 올랐습니다.`,
+        'bad',
+        game.week,
+        {
+          domain: 'management',
+          decision: `${candidate.name}에게 조건부 임명 제안을 보냈습니다.`,
+          trigger: `${candidate.role} 보직의 외부 영입 협상을 시작했습니다.`,
+          factors: assessment.factors.map((factor) => `${factor.label} ${factor.points > 0 ? '+' : ''}${factor.points}`),
+          effects: [{ label: '협상 결과', value: `설득 ${assessment.score}/${assessment.threshold} · 결렬`, tone: 'negative' }, { label: '다음 요구 계약금', value: formatGameMoney(candidate.signingCost + 12), tone: 'negative' }],
+          ongoing: ['관계와 관심도는 일부 남지만 경쟁 기관의 압력이 높아집니다.', '조건을 개선하거나 비밀 접촉으로 관계를 쌓아 재협상할 수 있습니다.'],
+          nextActions: ['인재 시장에서 권한·임기·보수를 조정해 다시 제안하십시오.', '한 주를 진행하기 전에 경쟁 제안 수치를 확인하십시오.'],
+          certainty: 'confirmed',
+        },
+      );
       notify('협상이 결렬됐습니다. 설득 점수 ' + persuasion + '/72 · 관계는 남았지만 경쟁과 요구 조건이 높아졌습니다.');
       return;
     }
@@ -2803,12 +2816,21 @@ export function App() {
       potential: candidate.potential,
       loyalty: candidate.loyalty,
       workload: 18,
-      weeklyCost: candidate.weeklyCost,
+      weeklyCost: assessment.weeklyCost,
       specialty: candidate.specialty,
       influence: candidate.influence,
       delegated: false,
       grade: 1,
       development: 0,
+      morale: Math.min(100, 68 + (offer.salaryMultiplier > 1 ? 5 : offer.salaryMultiplier < 1 ? -5 : 0) + (offer.promise !== 'none' ? 4 : 0)),
+      roleSatisfaction: Math.min(100, offer.authority === 'autonomous' ? 84 : offer.authority === 'executive' ? 74 : 62),
+      contractWeeksRemaining: offer.termWeeks,
+      contractTermWeeks: offer.termWeeks,
+      joinedWeek: game.week,
+      promisedDepartment: candidate.department,
+      squadStatus: offer.authority === 'autonomous' ? 'key' : offer.authority === 'executive' ? 'regular' : 'rotation',
+      appointmentAuthority: offer.authority,
+      appointmentPromise: offer.promise,
       discipline: candidate.discipline,
       birthYear: candidate.birthYear,
       nationality: candidate.nationality,
@@ -2860,8 +2882,61 @@ export function App() {
         sourceUrl: incumbent.sourceUrl,
       };
     }));
-    addEvent('신임 참모 영입 — ' + candidate.name, (incumbent?.name ?? '전임자') + '을(를) 대신해 ' + candidate.role + ' 직무를 맡습니다.', 'good', game.week);
-    notify(candidate.name + ' 영입 협상이 타결됐습니다. 전임자는 시장으로 이동했습니다.');
+    addEvent(
+      '신임 참모 영입 — ' + candidate.name,
+      `${incumbent?.name ?? '전임자'}을(를) 대신해 ${candidate.role} 직무를 맡습니다. ${offer.termWeeks / 52}년 임기, 주급 ${formatGameMoney(assessment.weeklyCost)}, 계약금 ${formatGameMoney(assessment.signingCost)} 조건입니다.`,
+      'good',
+      game.week,
+      {
+        domain: 'management',
+        decision: `${candidate.name}을(를) ${candidate.role}(으)로 임명했습니다.`,
+        trigger: `${getStaffSeatTitle(candidate.department, campaignPhase, playerNation.status)} 뎁스와 외부 후보를 비교해 정식 협상을 진행했습니다.`,
+        factors: assessment.factors.map((factor) => `${factor.label} ${factor.points > 0 ? '+' : ''}${factor.points}`),
+        effects: [{ label: '설득 결과', value: `${assessment.score}/${assessment.threshold} · 합의`, tone: 'positive' }, { label: '계약', value: `${offer.termWeeks}주 · 주급 ${formatGameMoney(assessment.weeklyCost)}`, tone: 'neutral' }, { label: '계약금', value: formatGameMoney(-assessment.signingCost, { signed: true }), tone: 'negative' }],
+        ongoing: [`약속한 보직은 ${getStaffSeatTitle(candidate.department, campaignPhase, playerNation.status)}입니다. 다른 부서로 옮기면 역할 만족도가 하락합니다.`, offer.promise === 'none' ? '추가 보직 약속은 없습니다.' : '협상에서 한 약속은 계약 기간 동안 사기와 충성도 계산에 남습니다.'],
+        nextActions: ['분위기·계약 탭에서 새 참모의 사기와 역할 만족도를 확인하십시오.', '책임 위임 탭에서 합의한 권한 수준에 맞게 실무를 배분하십시오.'],
+        certainty: 'confirmed',
+      },
+    );
+    notify(`${candidate.name} 영입 타결 · ${offer.termWeeks / 52}년 · 주급 ${formatGameMoney(assessment.weeklyCost)}`);
+  };
+
+  const renewStaffContract = (staffId: string) => {
+    const member = staff.find((item) => item.id === staffId);
+    if (!member || !staffAuthority.managedDepartments.includes(member.department)) return;
+    const renewalCost = getStaffRenewalCost(member);
+    if (game.politicalPower < 4 || game.treasury < renewalCost) {
+      notify(`재계약에는 정치력 4와 갱신 보너스 ${formatGameMoney(renewalCost)}가 필요합니다.`);
+      return;
+    }
+    const nextWeeklyCost = Math.ceil(member.weeklyCost * 1.08);
+    setGame((current) => ({ ...current, politicalPower: current.politicalPower - 4, treasury: current.treasury - renewalCost }));
+    setStaff((current) => current.map((item) => item.id === staffId ? {
+      ...item,
+      contractWeeksRemaining: Math.max(getStaffContractWeeks(item), 0) + 104,
+      contractTermWeeks: 104,
+      weeklyCost: nextWeeklyCost,
+      morale: Math.min(100, (item.morale ?? 65) + 10),
+      roleSatisfaction: Math.min(100, (item.roleSatisfaction ?? 65) + 6),
+      loyalty: Math.min(100, item.loyalty + 5),
+    } : item));
+    addEvent(
+      `참모 재계약 — ${member.name}`,
+      `${getStaffSeatTitle(member.department, campaignPhase, playerNation.status)}의 임기를 104주 연장했습니다. 갱신 보너스 ${formatGameMoney(renewalCost)}, 새 주급 ${formatGameMoney(nextWeeklyCost)}입니다.`,
+      'good',
+      game.week,
+      {
+        domain: 'management',
+        decision: `${member.name}과(와) 2년 재계약을 체결했습니다.`,
+        trigger: `남은 계약 ${getStaffContractWeeks(member)}주로 승계 또는 재계약 판단이 필요했습니다.`,
+        factors: [`현재 능력 ${member.ability}`, `영향력 ${member.influence}`, `충성도 ${member.loyalty}`, `기존 주급 ${formatGameMoney(member.weeklyCost)}`],
+        effects: [{ label: '계약 기간', value: '+104주', tone: 'positive' }, { label: '사기', value: '+10', tone: 'positive' }, { label: '주급', value: formatGameMoney(nextWeeklyCost), tone: 'neutral' }],
+        ongoing: ['계약 안정은 조직 분위기와 지도부 수용도를 지지합니다.', '보직 약속과 업무 과부하는 재계약 뒤에도 계속 관리해야 합니다.'],
+        nextActions: ['책임 위임과 업무량을 다시 검토하십시오.', '후임 후보는 비상 승계선으로 관심 명단에 유지할 수 있습니다.'],
+        certainty: 'confirmed',
+      },
+    );
+    notify(`${member.name} 재계약 완료 · 104주 연장`);
   };
 
   const setPriorityFormation = (divisionId: string) => {
@@ -3891,6 +3966,7 @@ export function App() {
                 onToggleShortlist={toggleCandidateShortlist}
                 onApproachCandidate={approachCandidate}
                 onRecruitCandidate={recruitCandidate}
+                onRenewStaff={renewStaffContract}
               />
               </Suspense>
             )}

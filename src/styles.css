@@ -4347,6 +4347,155 @@ button.triage-step { grid-template-columns: auto minmax(0,1fr) auto; text-align:
 .talent-empty strong { font-size: 9px; color: #89958f; }
 .talent-empty span { font-size: 6px; }
 
+/* Complete staff-management loop: planning, dynamics, contracts and negotiated offers */
+.staff-weekly-briefing { border-bottom: 1px solid var(--line-bright); background: linear-gradient(120deg, rgba(71,112,108,.075), rgba(198,168,107,.025)); }
+.staff-weekly-briefing > header { min-height: 43px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 11px; border-bottom: 1px solid var(--line); }
+.staff-weekly-briefing > header > span { display: grid; grid-template-columns: 20px auto; align-items: center; gap: 1px 6px; color: var(--gold); }
+.staff-weekly-briefing > header svg { grid-row: 1 / 3; }
+.staff-weekly-briefing > header strong { font-size: 9px; color: #d5dcd7; }
+.staff-weekly-briefing > header small { font-size: 6px; color: #78877f; }
+.staff-weekly-briefing > header em { font: 600 7px var(--font-data); color: var(--gold-bright); }
+.staff-briefing-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-bottom: 1px solid var(--line); }
+.staff-briefing-kpis > span { min-width: 0; min-height: 58px; display: grid; grid-template-columns: 18px minmax(0,1fr) auto; align-content: center; align-items: center; gap: 2px 6px; padding: 7px 10px; border-right: 1px solid var(--line); color: #78a7ae; }
+.staff-briefing-kpis > span:last-child { border-right: 0; }
+.staff-briefing-kpis > span.warning { color: #c88975; background: rgba(164,79,61,.045); }
+.staff-briefing-kpis small { font-size: 6px; color: #7c8982; }
+.staff-briefing-kpis strong { font: 600 13px var(--font-display); color: #d3dad5; }
+.staff-briefing-kpis > span > em { font-size: 6px; color: #78867f; }
+.staff-briefing-kpis .org-meter { grid-column: 2 / -1; }
+.staff-recruitment-priorities { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); }
+.staff-recruitment-priorities > button { min-width: 0; min-height: 65px; display: grid; grid-template-columns: 23px minmax(0,1fr) 30px; align-items: center; gap: 7px; padding: 8px 10px; text-align: left; border: 0; border-right: 1px solid var(--line); color: #81928a; background: transparent; cursor: pointer; }
+.staff-recruitment-priorities > button:last-child { border-right: 0; }
+.staff-recruitment-priorities > button:hover { background: rgba(198,168,107,.045); }
+.staff-recruitment-priorities i { width: 22px; height: 22px; display: grid; place-items: center; font: 700 7px var(--font-data); font-style: normal; color: var(--gold); border: 1px solid rgba(198,168,107,.25); }
+.staff-recruitment-priorities span { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.staff-recruitment-priorities small { font: 600 5px var(--font-data); color: #7ba1a5; }
+.staff-recruitment-priorities strong, .staff-recruitment-priorities em { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.staff-recruitment-priorities strong { font-size: 7.5px; color: #ccd4cf; }
+.staff-recruitment-priorities em { font-size: 5.5px; color: #707f78; }
+.staff-recruitment-priorities b { font: 600 13px var(--font-display); color: #c7a963; }
+.staff-seat-planning { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.staff-seat-planning em { padding: 2px 4px; font: 600 5px var(--font-data); color: #7ba597; border: 1px solid rgba(103,153,133,.22); }
+.staff-seat-planning em.top { color: #d19178; border-color: rgba(189,103,78,.3); background: rgba(189,103,78,.045); }
+.staff-seat-planning em.standard { color: #c4a865; border-color: rgba(198,168,107,.26); }
+.staff-seat-planning small { font-size: 5px; color: #66756e; }
+.staff-external-depth { margin-top: 9px; border: 1px solid rgba(100,148,155,.18); background: rgba(75,123,131,.025); }
+.staff-external-depth > header { min-height: 34px; display: flex; align-items: center; justify-content: space-between; gap: 7px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.staff-external-depth > header > span { display: flex; align-items: center; gap: 5px; color: #78a4aa; }
+.staff-external-depth > header strong { font-size: 7px; color: #bdcac6; }
+.staff-external-depth > header small { font-size: 5px; color: #697871; }
+.staff-external-depth > button { width: 100%; min-height: 38px; display: grid; grid-template-columns: 20px minmax(0,1fr) 48px; align-items: center; gap: 6px; padding: 5px 7px; text-align: left; border: 0; border-top: 1px solid rgba(255,255,255,.035); color: #7d8d85; background: transparent; cursor: pointer; }
+.staff-external-depth > button:hover { background: rgba(94,147,155,.05); }
+.staff-external-depth > button > i { font: 700 6px var(--font-data); font-style: normal; color: var(--gold); }
+.staff-external-depth > button > span { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.staff-external-depth > button strong { overflow: hidden; font-size: 7px; color: #c1cbc5; text-overflow: ellipsis; white-space: nowrap; }
+.staff-external-depth > button small { font-size: 5px; color: #66756f; }
+.staff-external-depth > button > em { display: flex; align-items: baseline; justify-content: flex-end; gap: 4px; font-size: 5px; color: #8f9c95; }
+.staff-external-depth > button > em b { font: 700 10px var(--font-data); color: #b9a36e; }
+.staff-dynamics-board { border-bottom: 1px solid var(--line-bright); }
+.staff-dynamics-board > header { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 11px; border-bottom: 1px solid var(--line); }
+.staff-dynamics-board > header > span { display: flex; align-items: center; gap: 6px; color: var(--gold); }
+.staff-dynamics-board > header strong { font-size: 9px; color: #d4dbd7; }
+.staff-dynamics-board > header em { font: 600 6px var(--font-data); color: #80928a; }
+.staff-dynamics-board > p { margin: 0; padding: 8px 11px; font-size: 6.5px; line-height: 1.55; color: #829089; border-bottom: 1px solid var(--line); background: rgba(81,128,135,.035); }
+.staff-dynamics-list { display: grid; }
+.staff-dynamics-list > article { min-width: 0; min-height: 67px; display: grid; grid-template-columns: minmax(220px,1.35fr) repeat(3,75px) 78px 115px; align-items: center; gap: 9px; padding: 7px 10px; border-top: 1px solid rgba(255,255,255,.04); }
+.staff-dynamics-list > article:first-child { border-top: 0; }
+.staff-dynamics-list > article.urgent, .staff-dynamics-list > article.expired { box-shadow: inset 3px 0 #a95f4d; background: rgba(147,67,49,.035); }
+.staff-dynamics-list > article.locked { opacity: .52; }
+.staff-dynamic-person { min-width: 0; display: grid; grid-template-columns: 34px minmax(0,1fr); align-items: center; gap: 8px; }
+.staff-dynamic-person > i { width: 32px; height: 32px; display: grid; place-items: center; font: 700 7px var(--font-data); font-style: normal; color: #ded6c4; border: 1px solid; background: #19231f; }
+.staff-dynamic-person > span { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.staff-dynamic-person small { font-size: 5px; color: #7ca2a4; }
+.staff-dynamic-person strong, .staff-dynamic-person em { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.staff-dynamic-person strong { font-size: 8px; color: #ced6d1; }
+.staff-dynamic-person em { font-size: 5.5px; color: #6d7b75; }
+.staff-dynamic-rating { min-width: 0; display: grid; grid-template-columns: 1fr auto; gap: 3px; align-items: end; }
+.staff-dynamic-rating small { font-size: 5px; color: #718078; }
+.staff-dynamic-rating strong { font: 600 10px var(--font-display); color: #cbd3ce; }
+.staff-contract-cell { display: flex; flex-direction: column; gap: 1px; }
+.staff-contract-cell small { font-size: 5px; color: #74857c; }
+.staff-contract-cell strong { font: 600 10px var(--font-data); color: #c8d0cb; }
+.staff-contract-cell em { font-size: 5px; color: #79a18d; }
+.staff-contract-cell.urgent em, .staff-contract-cell.expired em { color: #cf846d; }
+.staff-dynamics-list > article > button { min-height: 29px; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 6px; border: 1px solid var(--line-bright); color: #9eaa9f; background: rgba(255,255,255,.016); font-size: 5.5px; cursor: pointer; }
+.staff-dynamics-list > article > button:hover:not(:disabled) { color: var(--gold-bright); border-color: rgba(198,168,107,.36); }
+.staff-dynamics-list > article > button:disabled { opacity: .33; cursor: not-allowed; }
+.recruitment-objectives { display: grid; grid-template-columns: 160px minmax(0,1fr); border-bottom: 1px solid var(--line); background: rgba(74,120,127,.035); }
+.recruitment-objectives > header { display: flex; align-items: center; gap: 7px; padding: 8px 10px; color: #75a6ae; border-right: 1px solid var(--line); }
+.recruitment-objectives > header span { display: flex; flex-direction: column; gap: 2px; }
+.recruitment-objectives > header strong { font-size: 7px; color: #c2ceca; }
+.recruitment-objectives > header small { font-size: 5px; color: #6c7b75; }
+.recruitment-objectives > div { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); }
+.recruitment-objectives button { min-width: 0; min-height: 51px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 9px; text-align: left; border: 0; border-right: 1px solid var(--line); color: #788980; background: transparent; cursor: pointer; }
+.recruitment-objectives button:last-child { border-right: 0; }
+.recruitment-objectives button:hover, .recruitment-objectives button.active { background: rgba(198,168,107,.05); box-shadow: inset 0 -2px var(--gold); }
+.recruitment-objectives button > span { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.recruitment-objectives button small { font: 600 5px var(--font-data); color: #7b9ea0; }
+.recruitment-objectives button strong { overflow: hidden; font-size: 7px; color: #c2cbc5; text-overflow: ellipsis; white-space: nowrap; }
+.recruitment-objectives button em { flex: 0 0 auto; font-size: 5px; color: #78877f; }
+.candidate-report-summary { grid-template-columns: repeat(6, 1fr); }
+.candidate-seat-fit { min-height: 29px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 6px; margin: 5px 0; padding: 5px 6px; border: 1px solid rgba(89,142,151,.2); background: rgba(74,124,133,.045); }
+.candidate-seat-fit span, .candidate-seat-fit small { font-size: 5px; color: #6e8785; }
+.candidate-seat-fit strong { font-size: 6px; color: #abc0bc; }
+.staff-negotiation-backdrop { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 28px; background: rgba(2,6,5,.78); backdrop-filter: blur(5px); }
+.staff-negotiation-modal { width: min(920px, calc(100vw - 36px)); max-height: min(820px, calc(100vh - 36px)); display: grid; grid-template-columns: minmax(0,1fr) 285px; overflow: auto; border: 1px solid rgba(198,168,107,.45); background: #101815; box-shadow: 0 24px 80px rgba(0,0,0,.65), inset 0 3px var(--gold); }
+.staff-negotiation-modal > header { grid-column: 1 / -1; min-height: 62px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line-bright); background: linear-gradient(90deg, rgba(198,168,107,.095), rgba(71,115,119,.035)); }
+.staff-negotiation-modal > header > span { display: grid; grid-template-columns: 26px 1fr; align-items: center; gap: 2px 7px; color: var(--gold); }
+.staff-negotiation-modal > header svg { grid-row: 1 / 3; }
+.staff-negotiation-modal > header small { font: 600 6px var(--font-data); color: var(--gold); letter-spacing: .1em; }
+.staff-negotiation-modal > header strong { font-size: 14px; color: #e0e5e1; }
+.staff-negotiation-modal > header button { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--line); color: #89968f; background: rgba(255,255,255,.02); cursor: pointer; }
+.staff-negotiation-summary { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4,1fr); border-bottom: 1px solid var(--line); }
+.staff-negotiation-summary > span { min-height: 46px; display: flex; flex-direction: column; justify-content: center; gap: 3px; padding: 7px 12px; border-right: 1px solid var(--line); }
+.staff-negotiation-summary > span:last-child { border-right: 0; }
+.staff-negotiation-summary small { font-size: 6px; color: #73827b; }
+.staff-negotiation-summary strong { font: 600 9px var(--font-data); color: #cad3cd; }
+.staff-offer-editor { display: grid; border-right: 1px solid var(--line-bright); }
+.staff-offer-editor > section { padding: 11px 13px; border-bottom: 1px solid var(--line); }
+.staff-offer-editor > section:last-child { border-bottom: 0; }
+.staff-offer-editor section > header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.staff-offer-editor section > header strong { font-size: 8px; color: #cbd4ce; }
+.staff-offer-editor section > header small { font-size: 6px; color: #6f7e76; }
+.staff-offer-options { display: grid; gap: 6px; }
+.staff-offer-options.three { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.staff-offer-options button { min-height: 47px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; padding: 7px 9px; text-align: left; border: 1px solid var(--line); color: #839088; background: rgba(255,255,255,.012); cursor: pointer; }
+.staff-offer-options button:hover, .staff-offer-options button.active { border-color: rgba(198,168,107,.38); background: rgba(198,168,107,.065); box-shadow: inset 3px 0 var(--gold); }
+.staff-offer-options strong { font-size: 7px; color: #bdc7c1; }
+.staff-offer-options small { font-size: 5.5px; color: #6e7c75; }
+.staff-compensation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.staff-compensation-grid > div { display: grid; grid-template-columns: 55px repeat(3,1fr); gap: 4px; align-items: center; }
+.staff-compensation-grid span { font-size: 6px; color: #809088; }
+.staff-compensation-grid button { min-height: 29px; border: 1px solid var(--line); color: #87948d; background: rgba(255,255,255,.012); font-size: 6px; cursor: pointer; }
+.staff-compensation-grid button.active { color: var(--gold-bright); border-color: rgba(198,168,107,.4); background: rgba(198,168,107,.065); }
+.staff-offer-editor select { width: 100%; height: 35px; padding: 0 9px; border: 1px solid var(--line-bright); outline: 0; color: #bdc7c0; background: #14201b; font: 600 7px var(--font-ui); }
+.staff-offer-assessment { min-width: 0; background: rgba(4,9,8,.28); }
+.staff-offer-score { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--line); }
+.staff-offer-score > span { min-height: 70px; display: flex; flex-direction: column; justify-content: center; gap: 3px; padding: 10px; border-right: 1px solid var(--line); }
+.staff-offer-score > span:last-child { border-right: 0; }
+.staff-offer-score small { font-size: 6px; color: #718078; }
+.staff-offer-score strong { font: 600 18px var(--font-display); color: #c6a85f; }
+.staff-offer-score strong.ready { color: #8fc1a1; }
+.staff-offer-factors { display: grid; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+.staff-offer-factors > span { display: flex; align-items: center; justify-content: space-between; gap: 7px; min-height: 27px; border-bottom: 1px solid rgba(255,255,255,.035); }
+.staff-offer-factors > span:last-child { border-bottom: 0; }
+.staff-offer-factors small { font-size: 6px; color: #79877f; }
+.staff-offer-factors strong { font: 600 7px var(--font-data); color: #aeb8b2; }
+.staff-offer-factors strong.positive { color: #8db89b; }
+.staff-offer-factors strong.negative { color: #c9816d; }
+.staff-offer-cost { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--line); }
+.staff-offer-cost > span { min-height: 60px; display: grid; grid-template-columns: 17px 1fr; align-content: center; gap: 2px 5px; padding: 8px; color: var(--gold); border-right: 1px solid var(--line); }
+.staff-offer-cost > span:last-child { border-right: 0; }
+.staff-offer-cost small { font-size: 5px; color: #728078; }
+.staff-offer-cost strong { grid-column: 2; font: 600 8px var(--font-data); color: #c8d0cb; }
+.staff-offer-assessment > p { margin: 10px; padding: 8px; font-size: 6px; line-height: 1.5; border-left: 2px solid; }
+.staff-offer-assessment > p.ready { color: #8eb59b; border-color: #6c9b7c; background: rgba(96,143,112,.05); }
+.staff-offer-assessment > p.blocked { color: #c18471; border-color: #a65d49; background: rgba(151,70,51,.05); }
+.staff-negotiation-modal > footer { grid-column: 1 / -1; min-height: 58px; display: flex; align-items: center; justify-content: flex-end; gap: 7px; padding: 10px 13px; border-top: 1px solid var(--line-bright); }
+.staff-negotiation-modal > footer button { min-width: 115px; height: 35px; display: flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid var(--line-bright); color: #929f98; background: rgba(255,255,255,.018); font-size: 7px; cursor: pointer; }
+.staff-negotiation-modal > footer button.primary { min-width: 205px; color: #171a15; border-color: var(--gold); background: linear-gradient(180deg,#d0b572,#a98a4d); }
+.staff-negotiation-modal > footer button:disabled { opacity: .32; cursor: not-allowed; }
+
 .formation-list { display: grid; }
 .formation-management-row { min-height: 66px; display: grid; grid-template-columns: 30px minmax(160px, 1fr) 72px 66px; align-items: center; gap: 8px; padding: 7px 9px; border-top: 1px solid var(--line); }
 .formation-management-row:first-child { border-top: 0; }
@@ -6700,6 +6849,16 @@ button.triage-step { grid-template-columns: auto minmax(0,1fr) auto; text-align:
   .staff-row { min-width: 0; grid-template-columns: minmax(190px,1fr) repeat(2,70px); }
   .staff-row .staff-rating:nth-of-type(n+4) { display: none; }
   .staff-actions { grid-column: 1 / -1; justify-content: flex-start; flex-wrap: wrap; }
+  .staff-briefing-kpis { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .staff-briefing-kpis > span { border-bottom: 1px solid var(--line); }
+  .staff-recruitment-priorities { grid-template-columns: minmax(0,1fr); }
+  .staff-recruitment-priorities > button { border-right: 0; border-bottom: 1px solid var(--line); }
+  .staff-dynamics-list > article { grid-template-columns: minmax(210px,1fr) repeat(3,68px); }
+  .staff-contract-cell,
+  .staff-dynamics-list > article > button { grid-column: auto; }
+  .recruitment-objectives { grid-template-columns: minmax(0,1fr); }
+  .recruitment-objectives > header { border-right: 0; border-bottom: 1px solid var(--line); }
+  .candidate-report-summary { grid-template-columns: repeat(3,1fr); }
   .economy-company-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
 
@@ -6743,6 +6902,29 @@ button.triage-step { grid-template-columns: auto minmax(0,1fr) auto; text-align:
   .staff-row { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .staff-identity,
   .staff-actions { grid-column: 1 / -1; }
+  .staff-management-tabs { overflow-x: auto; }
+  .staff-management-tabs button { min-width: 118px; flex: 0 0 auto; }
+  .staff-weekly-briefing > header { align-items: flex-start; flex-direction: column; }
+  .staff-briefing-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .staff-recruitment-priorities { grid-template-columns: minmax(0,1fr); }
+  .staff-dynamics-list > article { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  .staff-dynamic-person { grid-column: 1 / -1; }
+  .staff-dynamics-list > article > button { grid-column: 1 / -1; }
+  .recruitment-objectives > div { grid-template-columns: minmax(0,1fr); }
+  .recruitment-objectives button { border-right: 0; border-bottom: 1px solid var(--line); }
+  .candidate-report-summary { grid-template-columns: repeat(2,1fr); }
+  .staff-negotiation-backdrop { padding: 8px; }
+  .staff-negotiation-modal { width: 100%; max-height: calc(100vh - 16px); grid-template-columns: minmax(0,1fr); }
+  .staff-negotiation-modal > header,
+  .staff-negotiation-summary,
+  .staff-negotiation-modal > footer { grid-column: 1; }
+  .staff-negotiation-summary { grid-template-columns: repeat(2,1fr); }
+  .staff-offer-editor { border-right: 0; border-bottom: 1px solid var(--line-bright); }
+  .staff-offer-options.three { grid-template-columns: minmax(0,1fr); }
+  .staff-compensation-grid { grid-template-columns: minmax(0,1fr); }
+  .staff-negotiation-modal > footer { flex-direction: column-reverse; }
+  .staff-negotiation-modal > footer button,
+  .staff-negotiation-modal > footer button.primary { width: 100%; min-width: 0; }
   .talent-toolbar { grid-template-columns: minmax(0,1fr); }
   .talent-coverage-audit { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .talent-toolbar > span { justify-self: start; }
