@@ -44,10 +44,16 @@ import {
 import type { RecruitmentOffer, TalentMarketSort } from './recruitment';
 import { RecruitmentNegotiation } from './RecruitmentNegotiation';
 import {
+  assessStaffPromise,
   calculateCandidateSeatFit,
   createStaffManagementOverview,
+  getStaffBuyIn,
+  getStaffMorale,
   getStaffRenewalCost,
+  getStaffRoleSatisfaction,
+  staffMeetingOptions,
 } from './staffManagement';
+import type { StaffMeetingTopic } from './staffManagement';
 import {
   calculateStaffSuitability,
   getStaffAuthorityProfile,
@@ -89,7 +95,7 @@ interface OrganizationPanelProps {
   selectedPolicies: string[];
   developmentFocusId: string | null;
   formatMoney: (value: number, options?: { signed?: boolean; exact?: boolean }) => string;
-  onMeetStaff: (id: string) => void;
+  onMeetStaff: (id: string, topic: StaffMeetingTopic) => void;
   onToggleDelegation: (id: string) => void;
   onAssignStaff: (staffId: string, department: StaffDepartment) => void;
   onSetPriorityDivision: (id: string) => void;
@@ -259,6 +265,7 @@ export function OrganizationPanel({
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [staffView, setStaffView] = useState<'planner' | 'roster' | 'responsibilities' | 'dynamics'>('planner');
   const [negotiatingCandidateId, setNegotiatingCandidateId] = useState<string | null>(null);
+  const [meetingStaffId, setMeetingStaffId] = useState<string | null>(null);
   const [recruitmentOffer, setRecruitmentOffer] = useState<RecruitmentOffer>(defaultRecruitmentOffer);
   const authority = useMemo(() => getStaffAuthorityProfile(role), [role]);
   const [selectedStaffDepartment, setSelectedStaffDepartment] = useState<StaffDepartment>(() => authority.managedDepartments[0]);
@@ -300,6 +307,7 @@ export function OrganizationPanel({
   const visibleCandidates = filteredCandidates.slice(visibleTalentPage * talentPageSize, (visibleTalentPage + 1) * talentPageSize);
   const selectedCandidate = candidates.find((candidate) => candidate.id === selectedCandidateId) ?? null;
   const negotiatingCandidate = candidates.find((candidate) => candidate.id === negotiatingCandidateId) ?? null;
+  const meetingStaff = staff.find((member) => member.id === meetingStaffId) ?? null;
   const selectedCandidateScore = selectedCandidate ? recruitmentScore(selectedCandidate, careerReputation) : 0;
   const selectedCandidateChance = selectedCandidate ? recruitmentChance(selectedCandidate, careerReputation) : 0;
   const selectedCandidateUnavailable = selectedCandidate?.status === 'signed' || selectedCandidate?.status === 'lost';
@@ -479,7 +487,7 @@ export function OrganizationPanel({
                   <div className="staff-rating"><span>업무량</span><strong>{member.workload}%</strong><Meter value={member.workload} tone={member.workload > 75 ? 'red' : 'blue'} /></div>
                   <div className="staff-rating"><span>등급 {member.grade} · 성장</span><strong>{member.development}%</strong><Meter value={member.development} tone="gold" /></div>
                   <div className="staff-actions">
-                    <button disabled={!manageable} onClick={() => onMeetStaff(member.id)} title={manageable ? '면담: 정치력 4' : authority.restrictionReason}><MessageSquare size={13} /> 면담</button>
+                    <button disabled={!manageable} onClick={() => setMeetingStaffId(member.id)} title={manageable ? '면담 의제와 예상 효과 선택' : authority.restrictionReason}><MessageSquare size={13} /> 면담</button>
                     <button disabled={!manageable} className={member.delegated ? 'active' : ''} onClick={() => onToggleDelegation(member.id)}><Check size={13} /> {member.delegated ? '위임 중' : '직접 결재'}</button>
                     <button disabled={!manageable} className={developmentFocusId === member.id ? 'active' : ''} onClick={() => onSetDevelopmentFocus(member.id)}><Star size={13} /> {developmentFocusId === member.id ? '육성 중' : '육성'}</button>
                     <button disabled={!manageable || member.development < 100 || member.grade >= 3} title={!manageable ? authority.restrictionReason : member.grade >= 3 ? '이미 최고 등급입니다.' : member.development < 100 ? `성장도 100%가 필요합니다. 현재 ${member.development}%` : '정치력과 재정을 사용해 승급합니다.'} onClick={() => onUpgradeStaff(member.id)}><RefreshCw size={13} /> 승급</button>
@@ -696,6 +704,47 @@ export function OrganizationPanel({
             onSubmit={() => { onRecruitCandidate(negotiatingCandidate.id, recruitmentOffer); setNegotiatingCandidateId(null); }}
           />
         )}
+        {meetingStaff && (() => {
+          const promise = assessStaffPromise(meetingStaff, developmentFocusId === meetingStaff.id);
+          const completedThisWeek = meetingStaff.lastMeetingWeek === game.week;
+          const buyIn = getStaffBuyIn(meetingStaff, developmentFocusId === meetingStaff.id);
+          const morale = getStaffMorale(meetingStaff);
+          const satisfaction = getStaffRoleSatisfaction(meetingStaff);
+          return (
+            <div className="staff-meeting-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setMeetingStaffId(null); }}>
+              <section className="staff-meeting-modal" role="dialog" aria-modal="true" aria-labelledby="staff-meeting-title">
+                <header>
+                  <span><MessageSquare size={22} /><small>ONE-TO-ONE MEETING</small><strong id="staff-meeting-title">{meetingStaff.name} 면담</strong></span>
+                  <button type="button" aria-label="면담 창 닫기" onClick={() => setMeetingStaffId(null)}><X size={16} /></button>
+                </header>
+                <div className="staff-meeting-status">
+                  <span><small>사기</small><strong>{morale}</strong><Meter value={morale} tone={morale < 50 ? 'red' : 'blue'} /></span>
+                  <span><small>충성</small><strong>{meetingStaff.loyalty}</strong><Meter value={meetingStaff.loyalty} tone={meetingStaff.loyalty < 50 ? 'red' : 'gold'} /></span>
+                  <span><small>역할 만족</small><strong>{satisfaction}</strong><Meter value={satisfaction} tone={satisfaction < 50 ? 'red' : 'gold'} /></span>
+                  <span><small>지도부 수용</small><strong>{buyIn}</strong><Meter value={buyIn} tone={buyIn < 58 ? 'red' : 'blue'} /></span>
+                </div>
+                <div className={`staff-meeting-context ${promise.state}`}>
+                  <span><HeartHandshake size={15} /><strong>{promise.label}</strong></span>
+                  <p>{promise.summary}</p>
+                  {completedThisWeek && <em><CalendarClock size={12} /> 이번 주 면담을 이미 진행했습니다. 다음 주에 다시 면담할 수 있습니다.</em>}
+                </div>
+                <div className="staff-meeting-options">
+                  {staffMeetingOptions.map((option) => {
+                    const unavailable = completedThisWeek || game.politicalPower < option.cost;
+                    return (
+                      <button type="button" className={option.risk} key={option.id} disabled={unavailable} onClick={() => { onMeetStaff(meetingStaff.id, option.id); setMeetingStaffId(null); }}>
+                        <i>{option.id === 'wellbeing' ? <HeartHandshake size={16} /> : option.id === 'workload' ? <ClipboardList size={16} /> : option.id === 'career' ? <Star size={16} /> : <Target size={16} />}</i>
+                        <span><small>{option.risk === 'safe' ? '안전한 의제' : option.risk === 'balanced' ? '성장 의제' : `요구적 의제 · 수용 기준 ${buyIn}/58`}</small><strong>{option.label}</strong><p>{option.summary}</p><em>{option.forecast}</em></span>
+                        <b>{option.cost} PP</b>
+                      </button>
+                    );
+                  })}
+                </div>
+                <footer><small>면담 결과는 진행 결과 분석실과 주간 조직 수치에 즉시 기록됩니다.</small><button type="button" onClick={() => setMeetingStaffId(null)}>취소</button></footer>
+              </section>
+            </div>
+          );
+        })()}
       </section>
 
       <section className="management-card formations-card">

@@ -4505,6 +4505,44 @@ button.triage-step { grid-template-columns: auto minmax(0,1fr) auto; text-align:
 .staff-negotiation-modal > footer button { min-width: 115px; height: 35px; display: flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid var(--line-bright); color: #929f98; background: rgba(255,255,255,.018); font-size: 7px; cursor: pointer; }
 .staff-negotiation-modal > footer button.primary { min-width: 205px; color: #171a15; border-color: var(--gold); background: linear-gradient(180deg,#d0b572,#a98a4d); }
 .staff-negotiation-modal > footer button:disabled { opacity: .32; cursor: not-allowed; }
+.staff-meeting-backdrop { position: fixed; inset: 0; z-index: 1210; display: grid; place-items: center; padding: 28px; background: rgba(2,6,5,.8); backdrop-filter: blur(5px); }
+.staff-meeting-modal { width: min(760px,calc(100vw - 36px)); max-height: min(780px,calc(100vh - 36px)); overflow: auto; border: 1px solid rgba(111,163,170,.42); color: #9ca9a2; background: #101815; box-shadow: 0 24px 80px rgba(0,0,0,.65), inset 0 3px #65939a; }
+.staff-meeting-modal > header { min-height: 62px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line-bright); background: linear-gradient(90deg,rgba(77,129,137,.11),rgba(198,168,107,.025)); }
+.staff-meeting-modal > header > span { display: grid; grid-template-columns: 28px minmax(0,1fr); align-items: center; gap: 2px 8px; color: #78a9b0; }
+.staff-meeting-modal > header svg { grid-row: 1 / 3; }
+.staff-meeting-modal > header small { font: 600 6px var(--font-data); letter-spacing: .1em; }
+.staff-meeting-modal > header strong { font-size: 14px; color: #e0e5e1; }
+.staff-meeting-modal > header button { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--line); color: #89968f; background: rgba(255,255,255,.02); cursor: pointer; }
+.staff-meeting-status { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); border-bottom: 1px solid var(--line); }
+.staff-meeting-status > span { min-width: 0; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 4px 7px; padding: 9px 11px; border-right: 1px solid var(--line); }
+.staff-meeting-status > span:last-child { border-right: 0; }
+.staff-meeting-status small { font-size: 5.5px; color: #718078; }
+.staff-meeting-status strong { font: 600 11px var(--font-data); color: #d2d9d5; }
+.staff-meeting-status .org-meter { grid-column: 1 / -1; }
+.staff-meeting-context { margin: 10px 12px 0; padding: 9px 10px; border-left: 3px solid #687970; background: rgba(255,255,255,.015); }
+.staff-meeting-context > span { display: flex; align-items: center; gap: 6px; color: #88978f; }
+.staff-meeting-context strong { font-size: 7px; color: #c7d0cb; }
+.staff-meeting-context p { margin: 4px 0 0; font-size: 6.5px; line-height: 1.5; color: #819089; }
+.staff-meeting-context em { display: flex; align-items: center; gap: 5px; margin-top: 7px; font-size: 6px; color: #c18a74; }
+.staff-meeting-context.kept { border-color: #6f9e7f; }
+.staff-meeting-context.at-risk { border-color: #b89555; }
+.staff-meeting-context.broken { border-color: #af604d; background: rgba(162,71,52,.045); }
+.staff-meeting-options { display: grid; gap: 7px; padding: 10px 12px 12px; }
+.staff-meeting-options > button { min-width: 0; min-height: 76px; display: grid; grid-template-columns: 32px minmax(0,1fr) 48px; align-items: center; gap: 9px; padding: 9px 10px; text-align: left; border: 1px solid var(--line); color: #819189; background: rgba(255,255,255,.012); cursor: pointer; }
+.staff-meeting-options > button:hover:not(:disabled) { border-color: rgba(104,159,167,.44); background: rgba(77,130,138,.05); }
+.staff-meeting-options > button.demanding { border-left: 3px solid #ae674f; }
+.staff-meeting-options > button.balanced { border-left: 3px solid #b79857; }
+.staff-meeting-options > button:disabled { opacity: .34; cursor: not-allowed; }
+.staff-meeting-options > button > i { width: 30px; height: 30px; display: grid; place-items: center; font-style: normal; color: #79aab1; border: 1px solid rgba(106,158,165,.25); background: rgba(77,130,138,.04); }
+.staff-meeting-options > button > span { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.staff-meeting-options small { font: 600 5px var(--font-data); color: #6f8e90; }
+.staff-meeting-options strong { font-size: 8px; color: #cbd4cf; }
+.staff-meeting-options p { margin: 0; font-size: 6px; line-height: 1.45; color: #77867f; }
+.staff-meeting-options em { font-size: 5.5px; color: #b59a61; }
+.staff-meeting-options b { justify-self: end; font: 700 8px var(--font-data); color: var(--gold-bright); }
+.staff-meeting-modal > footer { min-height: 50px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; border-top: 1px solid var(--line-bright); }
+.staff-meeting-modal > footer small { font-size: 5.5px; color: #6d7b74; }
+.staff-meeting-modal > footer button { min-width: 90px; height: 31px; border: 1px solid var(--line-bright); color: #929f98; background: rgba(255,255,255,.018); cursor: pointer; }
 
 .formation-list { display: grid; }
 .formation-management-row { min-height: 66px; display: grid; grid-template-columns: 30px minmax(160px, 1fr) 72px 66px; align-items: center; gap: 8px; padding: 7px 9px; border-top: 1px solid var(--line); }
@@ -6926,6 +6964,15 @@ button.triage-step { grid-template-columns: auto minmax(0,1fr) auto; text-align:
   .recruitment-objectives button { border-right: 0; border-bottom: 1px solid var(--line); }
   .candidate-report-summary { grid-template-columns: repeat(2,1fr); }
   .staff-negotiation-backdrop { padding: 8px; }
+  .staff-meeting-backdrop { padding: 8px; }
+  .staff-meeting-modal { width: 100%; max-height: calc(100vh - 16px); }
+  .staff-meeting-status { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .staff-meeting-status > span:nth-child(2) { border-right: 0; }
+  .staff-meeting-status > span:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+  .staff-meeting-options > button { grid-template-columns: 30px minmax(0,1fr); }
+  .staff-meeting-options > button > b { grid-column: 2; justify-self: start; }
+  .staff-meeting-modal > footer { align-items: stretch; flex-direction: column; }
+  .staff-meeting-modal > footer button { width: 100%; }
   .staff-negotiation-modal { width: 100%; max-height: calc(100vh - 16px); grid-template-columns: minmax(0,1fr); }
   .staff-negotiation-modal > header,
   .staff-negotiation-summary,

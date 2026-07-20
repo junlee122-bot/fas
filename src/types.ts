@@ -149,6 +149,7 @@ export interface StaffMember {
   squadStatus?: 'key' | 'regular' | 'rotation' | 'development';
   appointmentAuthority?: 'advisor' | 'executive' | 'autonomous';
   appointmentPromise?: 'none' | 'resources' | 'succession' | 'security';
+  lastMeetingWeek?: number;
   discipline?: PersonnelDiscipline;
   birthYear?: number;
   nationality?: string;

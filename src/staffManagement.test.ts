@@ -6,7 +6,9 @@ import {
   calculateCandidateSeatFit,
   createStaffManagementOverview,
   getStaffContractRisk,
+  getStaffMeetingOption,
   getStaffRenewalCost,
+  resolveStaffMeeting,
 } from './staffManagement';
 
 describe('FM-style staff management cycle', () => {
@@ -93,5 +95,29 @@ describe('FM-style staff management cycle', () => {
 
     expect(overview.brokenPromises).toBe(1);
     expect(overview.dynamics.find((record) => record.member.id === first.id)?.promise.state).toBe('broken');
+  });
+
+  it('resolves workload meetings with the advertised cost and workload relief', () => {
+    const [member] = createStaffRoster('britain', 'britain-tier1');
+    const option = getStaffMeetingOption('workload');
+    const result = resolveStaffMeeting({ ...member, workload: 88, morale: 55, roleSatisfaction: 60 }, 'workload', 12);
+
+    expect(option.cost).toBe(3);
+    expect(result.member.workload).toBe(70);
+    expect(result.member.morale).toBe(59);
+    expect(result.member.roleSatisfaction).toBe(64);
+    expect(result.member.lastMeetingWeek).toBe(12);
+  });
+
+  it('makes a demanding standards meeting depend on leadership buy-in', () => {
+    const [member] = createStaffRoster('britain', 'britain-tier1');
+    const accepted = resolveStaffMeeting({ ...member, delegated: true, loyalty: 90, morale: 90, roleSatisfaction: 90, development: 20 }, 'standards', 4);
+    const rejected = resolveStaffMeeting({ ...member, delegated: false, loyalty: 25, morale: 20, roleSatisfaction: 20, development: 20 }, 'standards', 4);
+
+    expect(accepted.success).toBe(true);
+    expect(accepted.member.development).toBe(32);
+    expect(rejected.success).toBe(false);
+    expect(rejected.member.morale).toBe(13);
+    expect(rejected.member.roleSatisfaction).toBe(12);
   });
 });

@@ -6,6 +6,24 @@ export type StaffHierarchy = 'leader' | 'core' | 'support';
 export type StaffContractRisk = 'secure' | 'review' | 'urgent' | 'expired';
 export type RecruitmentPriority = 'top' | 'standard' | 'monitor';
 export type StaffPromiseState = 'none' | 'kept' | 'at-risk' | 'broken';
+export type StaffMeetingTopic = 'wellbeing' | 'workload' | 'career' | 'standards';
+
+export interface StaffMeetingOption {
+  id: StaffMeetingTopic;
+  label: string;
+  cost: number;
+  summary: string;
+  forecast: string;
+  risk: 'safe' | 'balanced' | 'demanding';
+}
+
+export interface StaffMeetingResolution {
+  member: StaffMember;
+  title: string;
+  summary: string;
+  tone: 'good' | 'bad' | 'neutral';
+  success: boolean;
+}
 
 export interface StaffPromiseAssessment {
   state: StaffPromiseState;
@@ -58,6 +76,45 @@ export interface StaffManagementOverview {
 }
 
 const clamp = (value: number, min = 0, max = 100) => Math.max(min, Math.min(max, value));
+
+export const staffMeetingOptions: readonly StaffMeetingOption[] = [
+  {
+    id: 'wellbeing',
+    label: '안부와 신뢰 회복',
+    cost: 3,
+    summary: '개인의 불안과 조직 내 관계를 듣고 지도부가 직접 신뢰를 확인합니다.',
+    forecast: '사기 +9 · 충성 +4 · 역할 만족 +2 · 업무량 -3',
+    risk: 'safe',
+  },
+  {
+    id: 'workload',
+    label: '업무와 결재선 재조정',
+    cost: 3,
+    summary: '중복 보고와 실무 부담을 정리해 현재 보직에 집중시킵니다.',
+    forecast: '업무량 -18 · 사기 +4 · 역할 만족 +4',
+    risk: 'safe',
+  },
+  {
+    id: 'career',
+    label: '경력·육성 계획 합의',
+    cost: 5,
+    summary: '다음 보직과 성장 과제를 명확히 제시하는 대신 추가 책임을 부여합니다.',
+    forecast: '역할 만족 +10 · 육성 +8 · 사기 +2 · 업무량 +5',
+    risk: 'balanced',
+  },
+  {
+    id: 'standards',
+    label: '성과 기준 상향 요구',
+    cost: 2,
+    summary: '지도부 지지를 바탕으로 더 높은 성과를 요구합니다. 신뢰가 낮으면 역효과가 납니다.',
+    forecast: '수용 시 육성 +12 · 거부 시 사기 -7, 역할 만족 -8',
+    risk: 'demanding',
+  },
+] as const;
+
+export function getStaffMeetingOption(topic: StaffMeetingTopic) {
+  return staffMeetingOptions.find((option) => option.id === topic) ?? staffMeetingOptions[0];
+}
 
 function stableNumber(value: string) {
   let hash = 0;
@@ -133,6 +190,92 @@ export function getStaffBuyIn(member: StaffMember, developmentFocus = false) {
   const promise = assessStaffPromise(member, developmentFocus);
   const promiseModifier = promise.state === 'broken' ? -10 : promise.state === 'at-risk' ? -4 : promise.state === 'kept' ? 3 : 0;
   return clamp(Math.round(getStaffMorale(member) * 0.34 + getStaffRoleSatisfaction(member) * 0.34 + member.loyalty * 0.24 + (member.delegated ? 8 : 2) + promiseModifier));
+}
+
+export function resolveStaffMeeting(member: StaffMember, topic: StaffMeetingTopic, week: number, developmentFocus = false): StaffMeetingResolution {
+  const option = getStaffMeetingOption(topic);
+  const morale = getStaffMorale(member);
+  const satisfaction = getStaffRoleSatisfaction(member);
+  const common = { ...member, lastMeetingWeek: week };
+
+  if (topic === 'wellbeing') {
+    return {
+      member: {
+        ...common,
+        morale: clamp(morale + 9),
+        loyalty: clamp(member.loyalty + 4),
+        roleSatisfaction: clamp(satisfaction + 2),
+        workload: clamp(member.workload - 3, 5),
+      },
+      title: `참모 면담 — ${member.name}`,
+      summary: `${option.label}을 진행했습니다. 개인의 우려를 확인해 사기와 충성도가 회복됐습니다.`,
+      tone: 'good',
+      success: true,
+    };
+  }
+
+  if (topic === 'workload') {
+    return {
+      member: {
+        ...common,
+        morale: clamp(morale + 4),
+        roleSatisfaction: clamp(satisfaction + 4),
+        workload: clamp(member.workload - 18, 5),
+      },
+      title: `업무 재조정 — ${member.name}`,
+      summary: `${option.label}을 마쳤습니다. 중복 보고와 실무 부담을 줄여 현재 보직에 집중할 여유를 만들었습니다.`,
+      tone: 'good',
+      success: true,
+    };
+  }
+
+  if (topic === 'career') {
+    const growthBonus = member.squadStatus === 'development' || member.potential - member.ability >= 8 ? 3 : 0;
+    return {
+      member: {
+        ...common,
+        morale: clamp(morale + 2),
+        loyalty: clamp(member.loyalty + 2),
+        roleSatisfaction: clamp(satisfaction + 10 + growthBonus),
+        development: clamp(member.development + 8),
+        workload: clamp(member.workload + 5, 5),
+      },
+      title: `경력 계획 합의 — ${member.name}`,
+      summary: `${option.label}을 합의했습니다. 성장 경로가 선명해진 대신 새 과제로 업무 부담이 조금 늘었습니다.`,
+      tone: 'good',
+      success: true,
+    };
+  }
+
+  const buyIn = getStaffBuyIn(member, developmentFocus);
+  const success = buyIn >= 58;
+  if (success) {
+    return {
+      member: {
+        ...common,
+        loyalty: clamp(member.loyalty + 2),
+        roleSatisfaction: clamp(satisfaction + 2),
+        development: clamp(member.development + 12),
+        workload: clamp(member.workload + 8, 5),
+      },
+      title: `성과 기준 수용 — ${member.name}`,
+      summary: `지도부 수용도 ${buyIn}을 바탕으로 더 높은 성과 기준을 받아들였습니다. 성장 속도와 업무 부담이 함께 상승합니다.`,
+      tone: 'good',
+      success: true,
+    };
+  }
+  return {
+    member: {
+      ...common,
+      morale: clamp(morale - 7),
+      loyalty: clamp(member.loyalty - 3),
+      roleSatisfaction: clamp(satisfaction - 8),
+    },
+    title: `성과 면담 결렬 — ${member.name}`,
+    summary: `지도부 수용도 ${buyIn} 상태에서 일방적으로 성과를 압박했습니다. 신뢰와 역할 만족도가 하락했습니다.`,
+    tone: 'bad',
+    success: false,
+  };
 }
 
 function disciplineFit(discipline: PersonnelDiscipline | undefined, department: StaffDepartment) {

@@ -137,7 +137,8 @@ import { deleteManualSave, isCampaignSavePayload, normalizeManualSaves, upsertMa
 import type { CampaignSavePayload, ManualSaveSlot } from './save';
 import { assessRecruitmentOffer, isRecruitmentOfferSuccess, weeklyRivalInterest } from './recruitment';
 import type { RecruitmentOffer } from './recruitment';
-import { advanceStaffMemberWeek, getStaffContractWeeks, getStaffRenewalCost } from './staffManagement';
+import { advanceStaffMemberWeek, getStaffContractWeeks, getStaffMeetingOption, getStaffRenewalCost, resolveStaffMeeting } from './staffManagement';
+import type { StaffMeetingTopic } from './staffManagement';
 import {
   applyCommanderDevelopment,
   createCommanderDevelopment,
@@ -2597,24 +2598,27 @@ export function App() {
     if (divisionInTheater) setSelectedDivisionId(divisionInTheater.id);
   };
 
-  const meetStaff = (staffId: string) => {
+  const meetStaff = (staffId: string, topic: StaffMeetingTopic) => {
     const member = staff.find((item) => item.id === staffId);
     if (member && !staffAuthority.managedDepartments.includes(member.department)) {
       notify(`${getStaffSeatTitle(member.department, campaignPhase, playerNation.status)}은(는) 현재 직함의 면담·평가 권한 밖입니다.`);
       return;
     }
-    if (!member || game.politicalPower < 4) {
-      notify('참모 면담에는 정치력 4가 필요합니다.');
+    if (!member) return;
+    const option = getStaffMeetingOption(topic);
+    if (member.lastMeetingWeek === game.week) {
+      notify(`${member.name}과(와)는 이번 주에 이미 면담했습니다.`);
       return;
     }
-    setGame((current) => ({ ...current, politicalPower: current.politicalPower - 4 }));
-    setStaff((current) => current.map((item) => item.id === staffId ? {
-      ...item,
-      loyalty: Math.min(100, item.loyalty + 8),
-      workload: Math.max(5, item.workload - 12),
-    } : item));
-    addEvent('참모 면담 — ' + member.name, member.specialty + ' 현안을 직접 조율했습니다. 충성도가 오르고 업무 부담이 줄었습니다.', 'good', game.week);
-    notify(member.name + '과(와) 면담했습니다.');
+    if (game.politicalPower < option.cost) {
+      notify(`${option.label}에는 정치력 ${option.cost}가 필요합니다.`);
+      return;
+    }
+    const result = resolveStaffMeeting(member, topic, game.week, member.id === developmentFocusId);
+    setGame((current) => ({ ...current, politicalPower: current.politicalPower - option.cost }));
+    setStaff((current) => current.map((item) => item.id === staffId ? result.member : item));
+    addEvent(result.title, result.summary, result.tone, game.week);
+    notify(result.success ? `${member.name}과(와)의 ${option.label} 면담이 성과를 냈습니다.` : `${member.name}이(가) 요구를 받아들이지 않았습니다.`);
   };
 
   const toggleStaffDelegation = (staffId: string) => {
