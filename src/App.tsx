@@ -137,7 +137,7 @@ import { deleteManualSave, isCampaignSavePayload, normalizeManualSaves, upsertMa
 import type { CampaignSavePayload, ManualSaveSlot } from './save';
 import { assessRecruitmentOffer, isRecruitmentOfferSuccess, weeklyRivalInterest } from './recruitment';
 import type { RecruitmentOffer } from './recruitment';
-import { advanceStaffMemberWeek, getStaffContractWeeks, getStaffMeetingOption, getStaffRenewalCost, resolveStaffMeeting } from './staffManagement';
+import { advanceStaffRosterWeek, getStaffContractWeeks, getStaffMeetingOption, getStaffRenewalCost, resolveStaffMeeting } from './staffManagement';
 import type { StaffMeetingTopic } from './staffManagement';
 import {
   applyCommanderDevelopment,
@@ -1485,7 +1485,7 @@ export function App() {
       });
       addEvent(`전후질서 사전준비 — ${commitment.variant.title}`, commitment.variant.consequence, commitment.event.category === 'proxy-war' ? 'bad' : 'neutral', nextWeek);
     }
-    setStaff((current) => current.map((member) => advanceStaffMemberWeek(member, member.id === developmentFocusId)));
+    setStaff((current) => advanceStaffRosterWeek(current, developmentFocusId));
     const currentYear = 1942 + Math.floor(nextWeek / 52);
     const historicalHorizon = getHistoricalHorizon(nextWeek, completedDecisions);
     const intelligenceCandidates = createEmergentIntelligenceCandidates(playerNation.id, currentYear, worldline.timeline);

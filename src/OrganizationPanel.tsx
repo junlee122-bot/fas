@@ -22,6 +22,7 @@ import {
   ListFilter,
   LockKeyhole,
   MessageSquare,
+  Network,
   Package,
   RefreshCw,
   Search,
@@ -31,6 +32,7 @@ import {
   Target,
   Truck,
   UserRoundCog,
+  UsersRound,
   X,
 } from 'lucide-react';
 import { policyDomains, strategicPolicies } from './choices';
@@ -323,6 +325,9 @@ export function OrganizationPanel({
     () => createStaffManagementOverview(staff, candidates, authority.managedDepartments, developmentFocusId),
     [authority.managedDepartments, candidates, developmentFocusId, staff],
   );
+  const relationshipWatch = staffOverview.activeTensions
+    ? staffOverview.relationships.filter((relationship) => relationship.kind === 'tension' || relationship.kind === 'rivalry').slice(0, 4)
+    : [...staffOverview.relationships].sort((left, right) => right.affinity - left.affinity).slice(0, 3);
   const selectedSeatPlan = staffOverview.seats.find((seat) => seat.department === selectedStaffDepartment) ?? staffOverview.seats[0];
   const selectedCandidateFit = selectedCandidate ? calculateCandidateSeatFit(selectedCandidate, selectedCandidate.department) : null;
   const recruitmentPriorities = [...staffOverview.seats].filter((seat) => seat.manageable).sort((left, right) => right.needScore - left.needScore).slice(0, 3);
@@ -521,8 +526,35 @@ export function OrganizationPanel({
 
         {staffView === 'dynamics' && (
           <section className="staff-dynamics-board" aria-label="참모진 분위기와 계약">
-            <header><span><HeartHandshake size={17} /><strong>조직 위계·역할 만족도·계약</strong></span><em>사기 {staffOverview.atmosphere} · 지도부 지지 {staffOverview.leadershipSupport}</em></header>
-            <p>참모는 영향력과 능력에 따라 지도부·핵심·지원 계층을 형성합니다. 약속한 권한·보직과 실제 배치가 다르거나 계약이 임박하면 사기와 충성도가 매주 하락합니다.</p>
+            <header><span><HeartHandshake size={17} /><strong>조직 위계·관계·역할 만족도·계약</strong></span><em>사기 {staffOverview.atmosphere} · 지지 {staffOverview.leadershipSupport} · 결속 {staffOverview.teamCohesion}</em></header>
+            <p>참모는 영향력과 능력에 따라 지도부·핵심·지원 계층을 형성합니다. 소속·전문 분야·공동 책임으로 쌓인 관계와 영향 블록의 결속, 임명 약속과 계약 상태가 매주 사기와 역할 만족에 반영됩니다.</p>
+            <div className="staff-social-dynamics">
+              <section className="staff-influence-blocs">
+                <header><span><UsersRound size={14} /><strong>영향 블록</strong></span><em>관계 기반 내부 결속</em></header>
+                <div>
+                  {staffOverview.influenceBlocs.filter((bloc) => bloc.members.length).map((bloc) => (
+                    <article className={bloc.status} key={bloc.id} title={bloc.summary}>
+                      <span><small>{bloc.status === 'united' ? '결집' : bloc.status === 'stable' ? '안정' : '분열'}</small><strong>{bloc.label}</strong><em>{bloc.members.map((member) => member.name).join(' · ')}</em></span>
+                      <span><small>결속</small><b>{bloc.cohesion}</b><Meter value={bloc.cohesion} tone={bloc.cohesion < 46 ? 'red' : bloc.cohesion < 68 ? 'gold' : 'blue'} /></span>
+                      <span><small>평균 영향력</small><b>{bloc.influence}</b></span>
+                    </article>
+                  ))}
+                </div>
+              </section>
+              <section className={`staff-relationship-watch ${staffOverview.activeTensions ? 'warning' : ''}`}>
+                <header><span><Network size={14} /><strong>{staffOverview.activeTensions ? `긴장 관계 ${staffOverview.activeTensions}건` : '핵심 신뢰 관계'}</strong></span><em>{staffOverview.activeTensions ? '중재 우선순위' : '조직 자산'}</em></header>
+                <div>
+                  {relationshipWatch.map((relationship) => (
+                    <article className={relationship.kind} key={relationship.id} title={relationship.reason}>
+                      <span><strong>{relationship.first.name}</strong><i>↔</i><strong>{relationship.second.name}</strong></span>
+                      <em>{relationship.label} · {relationship.reason}</em>
+                      <b>{relationship.affinity}</b>
+                    </article>
+                  ))}
+                  {!relationshipWatch.length && <p>현재 관리 범위에는 비교할 참모 관계가 충분하지 않습니다.</p>}
+                </div>
+              </section>
+            </div>
             <div className="staff-dynamics-list">
               {staffOverview.dynamics.map((record) => {
                 const manageable = manageableDepartments.has(record.member.department);

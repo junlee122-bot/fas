@@ -31,6 +31,28 @@ export interface StaffPromiseAssessment {
   summary: string;
 }
 
+export type StaffRelationshipKind = 'trusted' | 'allied' | 'professional' | 'tension' | 'rivalry';
+
+export interface StaffRelationship {
+  id: string;
+  first: StaffMember;
+  second: StaffMember;
+  affinity: number;
+  kind: StaffRelationshipKind;
+  label: string;
+  reason: string;
+}
+
+export interface StaffInfluenceBloc {
+  id: 'command' | 'administration' | 'state';
+  label: string;
+  members: StaffMember[];
+  cohesion: number;
+  influence: number;
+  status: 'united' | 'stable' | 'divided';
+  summary: string;
+}
+
 export interface CandidateSeatFit {
   candidate: StaffCandidate;
   score: number;
@@ -72,6 +94,10 @@ export interface StaffManagementOverview {
   expiringContracts: number;
   overloadedStaff: number;
   brokenPromises: number;
+  teamCohesion: number;
+  activeTensions: number;
+  relationships: StaffRelationship[];
+  influenceBlocs: StaffInfluenceBloc[];
   topNeed: StaffSeatPlan | null;
 }
 
@@ -120,6 +146,76 @@ function stableNumber(value: string) {
   let hash = 0;
   for (let index = 0; index < value.length; index += 1) hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
   return hash;
+}
+
+const relationshipLabels: Record<StaffRelationshipKind, string> = {
+  trusted: '강한 신뢰',
+  allied: '협력 관계',
+  professional: '업무 관계',
+  tension: '긴장 관계',
+  rivalry: '경쟁·대립',
+};
+
+function relationshipReason(first: StaffMember, second: StaffMember, affinity: number) {
+  if (first.affiliation === second.affiliation) return `${first.affiliation} 인맥과 조직 경험을 공유합니다.`;
+  if (first.discipline && first.discipline === second.discipline) return `같은 ${first.discipline} 전문 영역에서 판단 기준을 공유합니다.`;
+  if (getStaffSeatDefinition(first.department).group === getStaffSeatDefinition(second.department).group) return '같은 책임 블록에서 결재와 성과를 함께 부담합니다.';
+  if (first.influence >= 75 && second.influence >= 75) return '두 핵심 인사의 영향권과 승계 이해가 충돌합니다.';
+  if (Math.abs(first.workload - second.workload) >= 30) return '업무 부담의 격차가 협업에 대한 불만을 키웁니다.';
+  return affinity < 44 ? '전문 분야와 조직 기반이 달라 주요 현안에서 자주 충돌합니다.' : '직접적인 동맹이나 갈등 없이 실무 중심으로 협력합니다.';
+}
+
+export function createStaffRelationships(staff: readonly StaffMember[]): StaffRelationship[] {
+  const relationships: StaffRelationship[] = [];
+  for (let firstIndex = 0; firstIndex < staff.length; firstIndex += 1) {
+    for (let secondIndex = firstIndex + 1; secondIndex < staff.length; secondIndex += 1) {
+      const first = staff[firstIndex];
+      const second = staff[secondIndex];
+      const sameAffiliation = first.affiliation === second.affiliation ? 16 : 0;
+      const sameDiscipline = first.discipline && first.discipline === second.discipline ? 10 : 0;
+      const sameGroup = getStaffSeatDefinition(first.department).group === getStaffSeatDefinition(second.department).group ? 8 : 0;
+      const sharedResponsibility = first.delegated && second.delegated ? 4 : 0;
+      const influenceCompetition = first.influence >= 75 && second.influence >= 75 ? 8 : 0;
+      const workloadFriction = Math.abs(first.workload - second.workload) >= 30 ? 5 : 0;
+      const personalChemistry = stableNumber([first.personId, second.personId].sort().join(':')) % 17 - 8;
+      const affinity = clamp(50 + sameAffiliation + sameDiscipline + sameGroup + sharedResponsibility + personalChemistry - influenceCompetition - workloadFriction, 15, 92);
+      const kind: StaffRelationshipKind = affinity >= 76 ? 'trusted' : affinity >= 62 ? 'allied' : affinity >= 44 ? 'professional' : affinity >= 30 ? 'tension' : 'rivalry';
+      relationships.push({
+        id: [first.id, second.id].sort().join(':'),
+        first,
+        second,
+        affinity,
+        kind,
+        label: relationshipLabels[kind],
+        reason: relationshipReason(first, second, affinity),
+      });
+    }
+  }
+  return relationships.sort((left, right) => left.affinity - right.affinity || left.id.localeCompare(right.id));
+}
+
+export function createStaffInfluenceBlocs(staff: readonly StaffMember[], relationships = createStaffRelationships(staff)): StaffInfluenceBloc[] {
+  const definitions: Array<Pick<StaffInfluenceBloc, 'id' | 'label'>> = [
+    { id: 'command', label: '작전·군수 블록' },
+    { id: 'administration', label: '인사·정무 블록' },
+    { id: 'state', label: '과학·경제 블록' },
+  ];
+  return definitions.map((definition) => {
+    const members = staff.filter((member) => getStaffSeatDefinition(member.department).group === definition.id);
+    const memberIds = new Set(members.map((member) => member.id));
+    const internalRelationships = relationships.filter((relationship) => memberIds.has(relationship.first.id) && memberIds.has(relationship.second.id));
+    const cohesion = internalRelationships.length
+      ? Math.round(internalRelationships.reduce((total, relationship) => total + relationship.affinity, 0) / internalRelationships.length)
+      : members[0] ? getStaffBuyIn(members[0]) : 0;
+    const influence = members.length ? Math.round(members.reduce((total, member) => total + member.influence, 0) / members.length) : 0;
+    const status: StaffInfluenceBloc['status'] = cohesion >= 68 ? 'united' : cohesion >= 46 ? 'stable' : 'divided';
+    const summary = status === 'united'
+      ? '공동 의제가 분명해 결재와 정책 집행이 빠릅니다.'
+      : status === 'stable'
+        ? '실무 협력은 유지되지만 위기 시 입장이 갈릴 수 있습니다.'
+        : '내부 대립이 사기와 정책 집행을 매주 훼손할 위험이 큽니다.';
+    return { ...definition, members, cohesion, influence, status, summary };
+  });
 }
 
 export function getDefaultStaffContractWeeks(member: StaffMember) {
@@ -367,7 +463,11 @@ export function createStaffManagementOverview(
   });
   const managedSeats = seats.filter((seat) => seat.manageable);
   const managedDynamics = dynamics.filter((record) => manageable.has(record.member.department));
+  const managedStaff = staff.filter((member) => manageable.has(member.department));
+  const relationships = createStaffRelationships(managedStaff);
+  const influenceBlocs = createStaffInfluenceBlocs(managedStaff, relationships);
   const average = (values: number[]) => values.length ? Math.round(values.reduce((total, value) => total + value, 0) / values.length) : 0;
+  const teamCohesion = relationships.length ? average(relationships.map((relationship) => relationship.affinity)) : managedDynamics[0]?.buyIn ?? 0;
   return {
     seats,
     dynamics,
@@ -377,6 +477,10 @@ export function createStaffManagementOverview(
     expiringContracts: managedDynamics.filter((record) => record.contractRisk === 'urgent' || record.contractRisk === 'expired').length,
     overloadedStaff: managedDynamics.filter((record) => record.member.workload >= 80).length,
     brokenPromises: managedDynamics.filter((record) => record.promise.state === 'broken').length,
+    teamCohesion,
+    activeTensions: relationships.filter((relationship) => relationship.kind === 'tension' || relationship.kind === 'rivalry').length,
+    relationships,
+    influenceBlocs,
     topNeed: [...managedSeats].sort((left, right) => right.needScore - left.needScore)[0] ?? null,
   };
 }
@@ -402,6 +506,28 @@ export function advanceStaffMemberWeek(member: StaffMember, developmentFocus: bo
     contractWeeksRemaining,
     delegated: contractWeeksRemaining === 0 ? false : member.delegated,
   };
+}
+
+export function advanceStaffRosterWeek(staff: readonly StaffMember[], developmentFocusId?: string | null): StaffMember[] {
+  const relationships = createStaffRelationships(staff);
+  return staff.map((member) => {
+    const base = advanceStaffMemberWeek(member, member.id === developmentFocusId);
+    const colleagueRelationships = relationships.filter((relationship) => relationship.first.id === member.id || relationship.second.id === member.id);
+    if (!colleagueRelationships.length) return base;
+    const cohesion = Math.round(colleagueRelationships.reduce((total, relationship) => total + relationship.affinity, 0) / colleagueRelationships.length);
+    if (cohesion >= 65) return {
+      ...base,
+      morale: clamp(getStaffMorale(base) + 1),
+      roleSatisfaction: clamp(getStaffRoleSatisfaction(base) + 1),
+    };
+    if (cohesion <= 40) return {
+      ...base,
+      morale: clamp(getStaffMorale(base) - 2),
+      roleSatisfaction: clamp(getStaffRoleSatisfaction(base) - 2),
+      loyalty: clamp(base.loyalty - 1, 20),
+    };
+    return base;
+  });
 }
 
 export function getStaffRenewalCost(member: StaffMember) {

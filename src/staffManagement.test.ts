@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { createStaffCandidates, createStaffRoster } from './campaign';
 import {
   advanceStaffMemberWeek,
+  advanceStaffRosterWeek,
   assessStaffPromise,
   calculateCandidateSeatFit,
+  createStaffInfluenceBlocs,
   createStaffManagementOverview,
+  createStaffRelationships,
   getStaffContractRisk,
   getStaffMeetingOption,
   getStaffRenewalCost,
@@ -119,5 +122,38 @@ describe('FM-style staff management cycle', () => {
     expect(rejected.success).toBe(false);
     expect(rejected.member.morale).toBe(13);
     expect(rejected.member.roleSatisfaction).toBe(12);
+  });
+
+  it('builds deterministic pair relationships and three institutional influence blocs', () => {
+    const roster = createStaffRoster('britain', 'britain-tier1');
+    const relationships = createStaffRelationships(roster);
+    const repeated = createStaffRelationships(roster);
+    const blocs = createStaffInfluenceBlocs(roster, relationships);
+
+    expect(relationships).toHaveLength(roster.length * (roster.length - 1) / 2);
+    expect(repeated.map((relationship) => relationship.affinity)).toEqual(relationships.map((relationship) => relationship.affinity));
+    expect(relationships.every((relationship) => relationship.affinity >= 15 && relationship.affinity <= 92)).toBe(true);
+    expect(blocs.map((bloc) => bloc.id)).toEqual(['command', 'administration', 'state']);
+    expect(blocs.flatMap((bloc) => bloc.members)).toHaveLength(roster.length);
+  });
+
+  it('turns a cohesive colleague group into a small weekly morale and satisfaction bonus', () => {
+    const roster = createStaffRoster('britain', 'britain-tier1').slice(0, 2).map((member, index) => ({
+      ...member,
+      department: index === 0 ? 'operations' as const : 'logistics' as const,
+      affiliation: '합동 참모 조직',
+      discipline: 'military' as const,
+      influence: 45,
+      delegated: true,
+      workload: 55,
+      morale: 60,
+      roleSatisfaction: 60,
+    }));
+    const individual = advanceStaffMemberWeek(roster[0], false);
+    const [withTeam] = advanceStaffRosterWeek(roster, null);
+
+    expect(createStaffRelationships(roster)[0].affinity).toBeGreaterThanOrEqual(65);
+    expect(withTeam.morale).toBe(individual.morale! + 1);
+    expect(withTeam.roleSatisfaction).toBe(individual.roleSatisfaction! + 1);
   });
 });
