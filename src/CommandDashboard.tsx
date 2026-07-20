@@ -38,7 +38,8 @@ import type {
   TheaterId,
   WarEvent,
 } from './types';
-import type { UXAction } from './ux';
+import { deriveWeeklyCommandCycle } from './ux';
+import type { UXAction, WeeklyCommandDestination } from './ux';
 import type { WorldWeeklyIssue } from './worldWeeklyEngine';
 
 type PortalFilter = 'all' | 'tasks' | 'reports';
@@ -65,6 +66,7 @@ interface CommandDashboardProps {
   nationalSimulation: NationalSimulationSnapshot;
   weeklyIssue: WorldWeeklyIssue | null;
   weeklyUnread: boolean;
+  resultsReviewed: boolean;
   objectiveProgress: number;
   achievement?: AchievementDefinition;
   achievementProgress?: AchievementProgress;
@@ -108,6 +110,7 @@ export function CommandDashboard({
   nationalSimulation,
   weeklyIssue,
   weeklyUnread,
+  resultsReviewed,
   objectiveProgress,
   achievement,
   achievementProgress,
@@ -150,16 +153,38 @@ export function CommandDashboard({
   const primaryAction = actions[0];
   const weeklyLead = weeklyIssue?.articles.find((article) => article.id === weeklyIssue.leadArticleId) ?? weeklyIssue?.articles[0];
   const achievementDestination = achievement ? achievementCategoryDestinations[achievement.category] : null;
-  const weeklyDecisionState = urgentCount > 0 ? `${urgentCount}건의 긴급 결재가 전황 진행을 막고 있습니다.` : actions.length > 0 ? `${actions.length}건의 지휘 판단을 검토할 수 있습니다.` : '즉시 처리할 지휘 사안이 없습니다.';
   const isKoreaCampaign = nation.id === 'korea';
+  const weeklyCycle = deriveWeeklyCommandCycle({
+    week: game.week,
+    hasCurrentWeekResults: events.some((event) => event.week === game.week),
+    resultsReviewed,
+    weeklyUnread,
+    urgentCount,
+    recommendedCount: actions.filter((action) => action.priority === 'recommended').length,
+    activeOrders: orders.length,
+    activeResearch: activeResearch.length,
+  });
+  const runCycleDestination = (destination: WeeklyCommandDestination) => {
+    if (destination === 'journal') onOpenJournal();
+    else if (destination === 'weekly') onOpenWorldWeekly();
+    else if (destination === 'actions') primaryAction ? onAction(primaryAction) : onOpenActionCenter();
+    else onNextWeek();
+  };
+  const cycleStatusLabels = {
+    complete: '확인 완료',
+    current: '지금 할 일',
+    optional: '선택 사항',
+    waiting: '대기',
+    ready: '진행 가능',
+  } as const;
 
   return (
     <div className="command-portal" data-tour="command-dashboard">
       <section className="portal-hero" data-tour="command-hero">
         <div className="portal-hero-copy">
           <span className="eyebrow">WEEK {game.week + 1} · {isKoreaCampaign ? 'CHONGQING INDEPENDENCE BRIEFING' : 'EXECUTIVE BRIEFING'}</span>
-          <h2>{role.title}, {isKoreaCampaign ? '해방 준비의 네 축부터 확인하십시오.' : '결재할 사안부터 확인하십시오.'}</h2>
-          <p>{isKoreaCampaign ? '지휘 본부는 충칭에 있고 조선 본토는 아직 점령지입니다. 국제 승인·국내 연락망·광복군·국내정진을 따로 판단한 뒤 담당 조직으로 이동하십시오.' : `${nation.shortName}의 전선·조직·생산·연구를 한 화면에 요약했습니다. 세부 조정은 각 카드에서 담당 부서로 바로 이동할 수 있습니다.`}</p>
+          <h2>{role.title}, {weeklyCycle.headline}</h2>
+          <p>{weeklyCycle.detail} {isKoreaCampaign ? '충칭 지휘부에서 국제 승인·국내 연락망·광복군·국내정진을 나눠 판단하십시오.' : `${nation.shortName}의 세부 조정은 각 카드에서 담당 부서로 바로 이동할 수 있습니다.`}</p>
           <div className="portal-brief-metrics" aria-label="국가 준비도 산정 요소">
             <span className={game.stability < 50 ? 'warning' : ''}><small>안정도</small><strong>{game.stability}</strong></span>
             <span className={game.warSupport < 50 ? 'warning' : ''}><small>전쟁 지지</small><strong>{game.warSupport}</strong></span>
@@ -168,13 +193,17 @@ export function CommandDashboard({
             <span className={game.victoryScore < 45 ? 'warning' : ''}><small>승리 점수</small><strong>{game.victoryScore}</strong></span>
           </div>
           <div className="portal-hero-actions">
-            <button className="primary" data-tour="next-week" onClick={onNextWeek}><GameIcon name="advance" size={17} tone="steel" /> 다음 주 진행 <kbd>N</kbd></button>
+            <button className="primary" data-tour="next-week" onClick={() => runCycleDestination(weeklyCycle.primaryDestination)}>
+              <GameIcon name={weeklyCycle.primaryDestination === 'advance' ? 'advance' : weeklyCycle.primaryDestination === 'actions' ? 'command' : 'report'} size={17} tone="steel" />
+              {weeklyCycle.primaryLabel}
+              {weeklyCycle.primaryDestination === 'advance' && <kbd>N</kbd>}
+            </button>
             <button onClick={() => onNavigate('map')}><GameIcon name="map" size={17} tone="blue" /> {isKoreaCampaign ? '한반도 작전도' : '전황 지도 열기'}</button>
           </div>
         </div>
         <div className="readiness-gauge" style={readinessStyle} role="meter" aria-label="국가 준비도" aria-valuemin={0} aria-valuemax={100} aria-valuenow={readiness}>
           <div><strong>{readiness}</strong><span>국가 준비도</span></div>
-          <small className={urgentCount > 0 ? 'warning' : ''}>{urgentCount > 0 ? `긴급 결재 ${urgentCount}건` : '즉시 결재 없음'}</small>
+          <small className={!weeklyCycle.readyToAdvance ? 'warning' : ''}>{weeklyCycle.readyToAdvance ? '주간 진행 가능' : weeklyCycle.primaryLabel}</small>
         </div>
         <div className="portal-identity">
           <NationFlag nationId={nation.id} size="large" decorative />
@@ -235,22 +264,29 @@ export function CommandDashboard({
         </section>
       )}
 
-      <section className="command-triage" aria-label="이번 주 지휘 순서">
-        <div className={`triage-step situation ${urgentCount > 0 ? 'urgent' : ''}`}>
-          <span className="triage-number">01</span>
-          <GameIcon name={urgentCount > 0 ? 'alert' : 'report'} size={24} tone={urgentCount > 0 ? 'red' : 'green'} framed />
-          <div><small>상황 파악</small><strong>{urgentCount > 0 ? '긴급 결재 필요' : '지휘 상황 안정'}</strong><p>{weeklyDecisionState}</p></div>
-        </div>
-        <button className={`triage-step decision ${primaryAction?.priority ?? 'clear'}`} onClick={() => primaryAction ? onAction(primaryAction) : onOpenActionCenter()}>
-          <span className="triage-number">02</span>
-          <GameIcon name="command" size={24} tone="gold" framed active />
-          <div><small>지금 할 일</small><strong>{primaryAction?.title ?? '새로운 결재 없음'}</strong><p>{primaryAction?.detail ?? '전황과 생산 예측을 확인한 뒤 다음 주로 진행하십시오.'}</p></div>
-          <em>{primaryAction?.label ?? '행동 센터'}<ChevronRight size={15} /></em>
-        </button>
-        <div className="triage-step forecast">
-          <span className="triage-number">03</span>
-          <GameIcon name="time" size={24} tone="blue" framed />
-          <div><small>진행 전 결과</small><strong>생산·명령·연구 동시 해결</strong><p>보병 장비 +{formatNumber(weeklyProduction.infantryEquipment)} · 작전 명령 {orders.length}건 · 연구 {activeResearch.length}/2</p></div>
+      <section className="command-cycle" aria-label="이번 주 지휘 사이클">
+        <header>
+          <span><small>WEEKLY COMMAND LOOP</small><strong>결과 → 세계 파악 → 결재·배치 → 진행</strong></span>
+          <em>{weeklyCycle.readyToAdvance ? '필수 준비 완료' : weeklyCycle.primaryLabel}</em>
+        </header>
+        <div>
+          {weeklyCycle.steps.map((step) => (
+            <button
+              type="button"
+              className={`command-cycle-step ${step.state}`}
+              key={step.id}
+              aria-current={step.id === weeklyCycle.currentStage ? 'step' : undefined}
+              onClick={() => runCycleDestination(step.destination)}
+            >
+              <span className="cycle-step-icon">
+                {step.state === 'complete'
+                  ? <CheckCircle2 size={18} />
+                  : <GameIcon name={step.id === 'decisions' ? 'command' : step.id === 'advance' ? 'advance' : 'report'} size={18} tone={step.state === 'current' ? 'gold' : step.state === 'ready' ? 'green' : 'steel'} />}
+              </span>
+              <span className="cycle-step-copy"><small>{step.label}</small><strong>{step.title}</strong><em>{step.detail}</em></span>
+              <b>{cycleStatusLabels[step.state]}<ChevronRight size={13} /></b>
+            </button>
+          ))}
         </div>
       </section>
 

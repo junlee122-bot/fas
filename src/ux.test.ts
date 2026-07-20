@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveCommandReadiness, deriveOnboardingSteps, deriveUXActions, getInitialNavigationCollapsed, normalizeUXPreferences } from './ux';
+import { deriveCommandReadiness, deriveOnboardingSteps, deriveUXActions, deriveWeeklyCommandCycle, getInitialNavigationCollapsed, normalizeUXPreferences } from './ux';
 import type { ActionCenterInput } from './ux';
 
 const baseInput: ActionCenterInput = {
@@ -105,5 +105,48 @@ describe('user experience guidance', () => {
       orders: [{ divisionId: 'division', fromId: 'home', targetId: 'front', startedWeek: 1 }],
     });
     expect(steps.every((step) => step.complete)).toBe(true);
+  });
+
+  it('guides a new week from result review through briefing and urgent decisions', () => {
+    const review = deriveWeeklyCommandCycle({
+      week: 3,
+      hasCurrentWeekResults: true,
+      resultsReviewed: false,
+      weeklyUnread: true,
+      urgentCount: 2,
+      recommendedCount: 3,
+      activeOrders: 1,
+      activeResearch: 2,
+    });
+    expect(review).toMatchObject({ currentStage: 'review', primaryDestination: 'journal', readyToAdvance: false });
+    expect(review.steps.map((step) => step.state)).toEqual(['current', 'waiting', 'waiting', 'waiting']);
+
+    const briefing = deriveWeeklyCommandCycle({
+      week: 3,
+      hasCurrentWeekResults: true,
+      resultsReviewed: true,
+      weeklyUnread: true,
+      urgentCount: 2,
+      recommendedCount: 3,
+      activeOrders: 1,
+      activeResearch: 2,
+    });
+    expect(briefing).toMatchObject({ currentStage: 'briefing', primaryDestination: 'weekly' });
+  });
+
+  it('keeps recommended adjustments optional once mandatory weekly checks are complete', () => {
+    const cycle = deriveWeeklyCommandCycle({
+      week: 4,
+      hasCurrentWeekResults: true,
+      resultsReviewed: true,
+      weeklyUnread: false,
+      urgentCount: 0,
+      recommendedCount: 2,
+      activeOrders: 0,
+      activeResearch: 2,
+    });
+    expect(cycle).toMatchObject({ currentStage: 'advance', primaryDestination: 'advance', readyToAdvance: true });
+    expect(cycle.steps.find((step) => step.id === 'decisions')?.state).toBe('optional');
+    expect(cycle.primaryLabel).toBe('다음 주 진행');
   });
 });

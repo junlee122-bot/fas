@@ -2739,28 +2739,47 @@ button:focus-visible,
 .portal-identity > div { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 15px; }
 .portal-identity > div span { padding: 7px 6px; text-align: center; font-size: 8px; color: #aab4ae; border: 1px solid var(--line); background: rgba(255,255,255,.018); }
 
-.command-triage {
-  display: grid;
-  grid-template-columns: .86fr 1.32fr .98fr;
-  gap: 8px;
+.command-cycle {
   margin-top: 10px;
   padding: 8px;
   border: 1px solid rgba(109,143,163,.2);
   background: linear-gradient(90deg, rgba(109,143,163,.055), rgba(198,168,107,.035), rgba(109,143,163,.035));
   box-shadow: 0 10px 26px rgba(0,0,0,.15);
 }
-.triage-step { position: relative; min-width: 0; min-height: 86px; display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 10px; padding: 11px 13px 11px 38px; border: 1px solid var(--line); color: #95a59e; background: rgba(8,13,11,.2); }
-button.triage-step { grid-template-columns: auto minmax(0,1fr) auto; text-align: left; cursor: pointer; }
-.triage-step.decision { color: #cdb477; border-color: rgba(198,168,107,.36); background: linear-gradient(105deg, rgba(198,168,107,.11), rgba(198,168,107,.025)); box-shadow: inset 3px 0 #b99b5b; }
-.triage-step.decision.urgent { color: #d88875; border-color: rgba(183,98,80,.45); background: linear-gradient(105deg, rgba(169,95,81,.13), rgba(169,95,81,.025)); box-shadow: inset 3px 0 #b96553; }
-.triage-step.decision:hover { filter: brightness(1.15); }
-.triage-step.situation.urgent { border-color: rgba(169,95,81,.27); background: rgba(169,95,81,.055); }
-.triage-number { position: absolute; top: 9px; left: 10px; font: 700 8px var(--font-data); color: #63716a; }
-.triage-step > div { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.triage-step small { font: 700 8px var(--font-data); color: currentColor; letter-spacing: .07em; }
-.triage-step strong { overflow: hidden; font-size: 11px; color: #d2d9d4; text-overflow: ellipsis; white-space: nowrap; }
-.triage-step p { overflow: hidden; margin: 0; font-size: 8px; line-height: 1.45; color: #748079; text-overflow: ellipsis; white-space: nowrap; }
-.triage-step > em { display: flex; align-items: center; gap: 3px; font-size: 8px; font-style: normal; color: currentColor; white-space: nowrap; }
+.command-cycle > header { min-height: 37px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 5px 8px; }
+.command-cycle > header > span { min-width: 0; display: flex; align-items: baseline; gap: 9px; }
+.command-cycle > header small { font: 700 7px var(--font-data); color: #71817a; letter-spacing: .1em; }
+.command-cycle > header strong { overflow: hidden; font-size: 10px; color: #b6c0bb; text-overflow: ellipsis; white-space: nowrap; }
+.command-cycle > header > em { padding: 4px 7px; font: 700 8px var(--font-data); font-style: normal; color: #c9ae69; border: 1px solid rgba(198,168,107,.24); background: rgba(198,168,107,.055); white-space: nowrap; }
+.command-cycle > div { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 7px; }
+.command-cycle-step {
+  position: relative;
+  min-width: 0;
+  min-height: 91px;
+  display: grid;
+  grid-template-columns: 32px minmax(0,1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 11px 11px 24px;
+  text-align: left;
+  border: 1px solid var(--line);
+  color: #78857f;
+  background: rgba(8,13,11,.28);
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, transform .15s ease;
+}
+.command-cycle-step:hover { border-color: rgba(198,168,107,.4); background: rgba(255,255,255,.035); transform: translateY(-1px); }
+.command-cycle-step.current { border-color: rgba(211,180,106,.52); color: #d6b86f; background: linear-gradient(112deg, rgba(198,168,107,.15), rgba(198,168,107,.025)); box-shadow: inset 3px 0 #c2a45f, 0 8px 20px rgba(0,0,0,.15); }
+.command-cycle-step.ready { border-color: rgba(103,159,126,.42); color: #7bb08f; background: linear-gradient(112deg, rgba(86,139,108,.12), rgba(86,139,108,.02)); box-shadow: inset 3px 0 #679c79; }
+.command-cycle-step.complete { color: #6f9d82; background: rgba(75,122,94,.045); }
+.command-cycle-step.optional { color: #a89462; border-style: dashed; }
+.command-cycle-step.waiting { opacity: .72; }
+.cycle-step-icon { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid currentColor; color: inherit; background: rgba(255,255,255,.018); }
+.cycle-step-copy { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.cycle-step-copy small { font: 700 7px var(--font-data); color: currentColor; letter-spacing: .065em; }
+.cycle-step-copy strong { overflow: hidden; font-size: 10px; color: #d2d9d4; text-overflow: ellipsis; white-space: nowrap; }
+.cycle-step-copy em { overflow: hidden; font-size: 8px; line-height: 1.45; font-style: normal; color: #748079; text-overflow: ellipsis; white-space: nowrap; }
+.command-cycle-step > b { position: absolute; right: 9px; bottom: 7px; display: flex; align-items: center; gap: 3px; font: 700 7px var(--font-data); color: currentColor; }
 
 .command-portal-grid { display: grid; grid-template-columns: minmax(570px, 1.36fr) minmax(390px, 1fr); gap: 12px; margin-top: 12px; }
 .portal-card { min-width: 0; border: 1px solid var(--line); background: linear-gradient(145deg, rgba(255,255,255,.025), rgba(9,14,12,.08)); }
@@ -6425,7 +6444,7 @@ button.triage-step { grid-template-columns: auto minmax(0,1fr) auto; text-align:
   .command-council-section { min-width: 0; overflow-x: auto; }
   .portal-hero { grid-template-columns: minmax(430px,1fr) 145px; }
   .portal-identity { display: none; }
-  .command-triage { grid-template-columns: 1fr; }
+  .command-cycle > div { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .command-portal-grid { grid-template-columns: minmax(0,1fr); }
   .portal-inbox,
   .portal-front,
@@ -7035,7 +7054,8 @@ button.triage-step { grid-template-columns: auto minmax(0,1fr) auto; text-align:
   .portal-hero-actions { display: grid; grid-template-columns: 1fr 1fr; }
   .portal-hero-actions button { justify-content: center; padding: 0 8px; }
   .portal-hero-actions kbd { display: none; }
-  .command-triage { grid-template-columns: minmax(0,1fr); }
+  .command-cycle > header > span strong { display: none; }
+  .command-cycle > div { grid-template-columns: minmax(0,1fr); }
   .portal-health-pulse { grid-template-columns: 36px minmax(0,1fr); }
   .portal-health-pulse > b,
   .portal-weekly-brief > b { display: none; }
@@ -7171,7 +7191,7 @@ button.triage-step { grid-template-columns: auto minmax(0,1fr) auto; text-align:
 .deck-content :where(article, section, header, footer, button, label, li, div, span) { min-width: 0; }
 .deck-content :where(p, small, em, dt, dd, label) { overflow-wrap: anywhere; }
 
-.game-shell.readable-ui .triage-step p,
+.game-shell.readable-ui .cycle-step-copy em,
 .game-shell.readable-ui .portal-task small,
 .game-shell.readable-ui .portal-report small,
 .game-shell.readable-ui .candidate-card > p,

@@ -22,6 +22,40 @@ export interface CommandReadiness {
   detail: string;
 }
 
+export type WeeklyCommandStageId = 'review' | 'briefing' | 'decisions' | 'advance';
+export type WeeklyCommandStageState = 'complete' | 'current' | 'optional' | 'waiting' | 'ready';
+export type WeeklyCommandDestination = 'journal' | 'weekly' | 'actions' | 'advance';
+
+export interface WeeklyCommandStage {
+  id: WeeklyCommandStageId;
+  label: string;
+  title: string;
+  detail: string;
+  state: WeeklyCommandStageState;
+  destination: WeeklyCommandDestination;
+}
+
+export interface WeeklyCommandCycleInput {
+  week: number;
+  hasCurrentWeekResults: boolean;
+  resultsReviewed: boolean;
+  weeklyUnread: boolean;
+  urgentCount: number;
+  recommendedCount: number;
+  activeOrders: number;
+  activeResearch: number;
+}
+
+export interface WeeklyCommandCycle {
+  steps: WeeklyCommandStage[];
+  currentStage: WeeklyCommandStageId;
+  primaryDestination: WeeklyCommandDestination;
+  primaryLabel: string;
+  readyToAdvance: boolean;
+  headline: string;
+  detail: string;
+}
+
 export interface UXPreferences {
   soundOn: boolean;
   highContrast: boolean;
@@ -96,6 +130,107 @@ export function deriveCommandReadiness(actions: readonly UXAction[]): CommandRea
     state: 'clear',
     title: '핵심 결재가 정리되었습니다',
     detail: '현재 확인된 긴급·권장 행동이 없습니다. 다음 주 진행 준비가 완료됐습니다.',
+  };
+}
+
+export function deriveWeeklyCommandCycle({
+  week,
+  hasCurrentWeekResults,
+  resultsReviewed,
+  weeklyUnread,
+  urgentCount,
+  recommendedCount,
+  activeOrders,
+  activeResearch,
+}: WeeklyCommandCycleInput): WeeklyCommandCycle {
+  const resultsPending = week > 0 && hasCurrentWeekResults && !resultsReviewed;
+  const decisionsPending = urgentCount > 0;
+  const currentStage: WeeklyCommandStageId = resultsPending
+    ? 'review'
+    : weeklyUnread
+      ? 'briefing'
+      : decisionsPending
+        ? 'decisions'
+        : 'advance';
+  const readyToAdvance = currentStage === 'advance';
+  const primaryDestination: WeeklyCommandDestination = currentStage === 'review'
+    ? 'journal'
+    : currentStage === 'briefing'
+      ? 'weekly'
+      : currentStage === 'decisions'
+        ? 'actions'
+        : 'advance';
+
+  const steps: WeeklyCommandStage[] = [
+    {
+      id: 'review',
+      label: '01 · 결과 확인',
+      title: week === 0 || !hasCurrentWeekResults ? '취임 주간 · 이전 결산 없음' : resultsReviewed ? '지난주 결산 확인 완료' : '새 주간 결산 도착',
+      detail: week === 0 || !hasCurrentWeekResults ? '첫 지휘 판단을 준비하십시오.' : resultsReviewed ? '선택과 결과의 인과관계를 확인했습니다.' : '무엇이 왜 바뀌었는지 먼저 검토하십시오.',
+      state: resultsPending ? 'current' : 'complete',
+      destination: 'journal',
+    },
+    {
+      id: 'briefing',
+      label: '02 · 세계 파악',
+      title: weeklyUnread ? '새 세계 주보 읽기' : '세계 주보 확인 완료',
+      detail: weeklyUnread ? '전선·외교·경제의 지난 7일을 확인하십시오.' : '현재 세계선의 변화를 파악했습니다.',
+      state: weeklyUnread ? (resultsPending ? 'waiting' : 'current') : 'complete',
+      destination: 'weekly',
+    },
+    {
+      id: 'decisions',
+      label: '03 · 결재·배치',
+      title: decisionsPending ? `긴급 결재 ${urgentCount}건` : recommendedCount > 0 ? `권장 조정 ${recommendedCount}건` : '필수 결재 정리 완료',
+      detail: `승인된 작전 ${activeOrders}건 · 진행 연구 ${activeResearch}/2`,
+      state: decisionsPending ? (resultsPending || weeklyUnread ? 'waiting' : 'current') : recommendedCount > 0 ? 'optional' : 'complete',
+      destination: 'actions',
+    },
+    {
+      id: 'advance',
+      label: '04 · 주간 진행',
+      title: readyToAdvance ? '다음 주 계산 준비 완료' : '앞선 단계 검토 대기',
+      detail: readyToAdvance ? '생산·작전·연구·재정을 한 번에 확정합니다.' : '필수 검토를 마치면 진행할 수 있습니다.',
+      state: readyToAdvance ? 'ready' : 'waiting',
+      destination: 'advance',
+    },
+  ];
+
+  if (currentStage === 'review') return {
+    steps,
+    currentStage,
+    primaryDestination,
+    primaryLabel: '이번 주 결산 확인',
+    readyToAdvance,
+    headline: '결과를 읽고 다음 판단을 시작하십시오.',
+    detail: '지난 선택의 즉시 효과와 계속 남는 영향을 확인하면 다음 결재의 우선순위가 선명해집니다.',
+  };
+  if (currentStage === 'briefing') return {
+    steps,
+    currentStage,
+    primaryDestination,
+    primaryLabel: '세계 주보 읽기',
+    readyToAdvance,
+    headline: '새 주간의 세계 상황을 파악하십시오.',
+    detail: '지난 7일의 전선·외교·경제 변화가 이번 주 선택의 조건이 됩니다.',
+  };
+  if (currentStage === 'decisions') return {
+    steps,
+    currentStage,
+    primaryDestination,
+    primaryLabel: `긴급 결재 ${urgentCount}건`,
+    readyToAdvance,
+    headline: '필수 결재를 정리한 뒤 시간을 진행하십시오.',
+    detail: '해결하지 않아도 진행할 수 있지만 손실이나 기회비용이 커질 수 있습니다.',
+  };
+  return {
+    steps,
+    currentStage,
+    primaryDestination,
+    primaryLabel: '다음 주 진행',
+    readyToAdvance,
+    headline: recommendedCount > 0 ? '필수 준비 완료 · 권장 조정은 선택 사항입니다.' : '이번 주 지휘 준비가 완료됐습니다.',
+    detail: recommendedCount > 0 ? `권장 조정 ${recommendedCount}건을 더 검토하거나 바로 다음 주로 진행할 수 있습니다.` : '생산·작전·연구·재정 계산을 확정할 수 있습니다.',
   };
 }
 

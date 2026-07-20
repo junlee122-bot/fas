@@ -454,6 +454,7 @@ export function App() {
   const [showWorldWeekly, setShowWorldWeekly] = useState(false);
   const [worldWeeklyIssues, setWorldWeeklyIssues] = useState<WorldWeeklyIssue[]>([]);
   const [lastReadWorldWeeklyId, setLastReadWorldWeeklyId] = useState<string | null>(null);
+  const [lastReviewedJournalWeek, setLastReviewedJournalWeek] = useState(-1);
   const [pendingAchievementId, setPendingAchievementId] = useState<string | null>(null);
   const [achievementUnlocks, setAchievementUnlocks] = useState<AchievementUnlock[]>([]);
   const [trackedAchievementId, setTrackedAchievementId] = useState<string | null>(() => {
@@ -877,11 +878,12 @@ export function App() {
     economy,
     worldWeeklyIssues,
     lastReadWorldWeeklyId,
+    lastReviewedJournalWeek,
     campaignPhase,
     nationManagement,
     politicalCrisis,
     pendingCoupIncident,
-  }), [achievementUnlocks, activeTheater, battleReports, battleStance, campaignOutcome, campaignPhase, career, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, economy, equipmentDevelopment, events, game, lastReadWorldWeeklyId, nationManagement, objectiveProgress, operations, orders, pendingBattleReportId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, politicalCrisis, priorityDivisionId, procurementFocusId, production, publicHealth, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized, worldHistoryState, worldWeeklyIssues]);
+  }), [achievementUnlocks, activeTheater, battleReports, battleStance, campaignOutcome, campaignPhase, career, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, economy, equipmentDevelopment, events, game, lastReadWorldWeeklyId, lastReviewedJournalWeek, nationManagement, objectiveProgress, operations, orders, pendingBattleReportId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, politicalCrisis, priorityDivisionId, procurementFocusId, production, publicHealth, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized, worldHistoryState, worldWeeklyIssues]);
   const campaignDate = getCampaignDate(game.week);
   const isKoreaWarCampaign = playerNation.id === 'korea' && campaignPhase === 'war';
   const statusResources: StatusResource[] = [
@@ -1087,7 +1089,7 @@ export function App() {
   }, [showBriefing, game.week]);
 
   useEffect(() => {
-    if (showBriefing || pendingAchievementId || showAchievementGallery || showWorldHistory || showWorldWeekly) return;
+    if (showBriefing || showTutorial || pendingAchievementId || showAchievementGallery || showWorldHistory || showWorldWeekly) return;
     const unlockedIds = new Set(achievementUnlocks.map((unlock) => unlock.id));
     const nextAchievement = achievementDefinitions.find((achievement) => !unlockedIds.has(achievement.id) && achievementProgress[achievement.id]?.complete);
     if (!nextAchievement) return;
@@ -1100,7 +1102,7 @@ export function App() {
     setPendingAchievementId(nextAchievement.id);
     setSpeed(0);
     addEvent(`도전과제 달성 — ${nextAchievement.title}`, `${nextAchievement.condition} · 삽화가 기록실에 해금되었습니다.`, 'good', game.week);
-  }, [achievementProgress, achievementUnlocks, addEvent, game.week, pendingAchievementId, showAchievementGallery, showBriefing, showWorldHistory, showWorldWeekly]);
+  }, [achievementProgress, achievementUnlocks, addEvent, game.week, pendingAchievementId, showAchievementGallery, showBriefing, showTutorial, showWorldHistory, showWorldWeekly]);
 
   const advanceNationWeek = useCallback(() => {
     const nextWeek = game.week + 1;
@@ -1872,6 +1874,7 @@ export function App() {
     setAchievementUnlocks([]);
     setWorldWeeklyIssues([openingWorldWeeklyIssue]);
     setLastReadWorldWeeklyId(null);
+    setLastReviewedJournalWeek(-1);
     setWorldHistoryState(newWorldHistoryState);
     setShowBriefing(false);
     setShowTutorial(!localStorage.getItem(TUTORIAL_KEY));
@@ -2012,6 +2015,7 @@ export function App() {
         worldline: restoredWorldline,
       })]);
       setLastReadWorldWeeklyId(typeof data.lastReadWorldWeeklyId === 'string' ? data.lastReadWorldWeeklyId : null);
+      setLastReviewedJournalWeek(typeof data.lastReviewedJournalWeek === 'number' ? data.lastReviewedJournalWeek : -1);
       setWorldHistoryState(restoredWorldHistoryState);
       setPendingAchievementId(null);
       setCareer(restoredCareer);
@@ -2117,6 +2121,7 @@ export function App() {
     setAchievementUnlocks([]);
     setWorldWeeklyIssues([]);
     setLastReadWorldWeeklyId(null);
+    setLastReviewedJournalWeek(-1);
     setWorldHistoryState({ seed: createWorldHistorySeed(DEFAULT_NATION_ID, DEFAULT_ROLE_ID), choices: {} });
     setShowBriefing(true);
   };
@@ -3284,6 +3289,12 @@ export function App() {
     setShowWorldWeekly(true);
   };
 
+  const openWarJournal = () => {
+    setSpeed(0);
+    setLastReviewedJournalWeek(game.week);
+    setShowJournal(true);
+  };
+
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
@@ -3583,7 +3594,7 @@ export function App() {
     } else if (id === 'status-overview') {
       setShowStatusOverview(true);
     } else if (id === 'war-journal') {
-      setShowJournal(true);
+      openWarJournal();
     } else if (id === 'world-weekly') {
       openWorldWeekly();
     } else if (id === 'achievements') {
@@ -3696,7 +3707,7 @@ export function App() {
           <button title="도전과제 기록실" data-tooltip={`도전과제와 해금 삽화 · ${achievementUnlocks.length}/${achievementDefinitions.length}`} aria-label={`도전과제 기록실, ${achievementUnlocks.length}개 달성`} onMouseEnter={() => void loadAchievementGallery()} onFocus={() => void loadAchievementGallery()} onClick={() => setShowAchievementGallery(true)}><Trophy size={17} /><span>도전과제</span><em className="rail-achievement-count">{achievementUnlocks.length}</em></button>
           <button className={pendingWorldFlashpoint ? 'rail-crisis-due' : ''} title="대체지구 아틀라스" data-tooltip={pendingWorldFlashpoint ? `결정 대기 · ${pendingWorldFlashpoint.entry.event.title}` : worldFlashpointForecast ? `다음 세계 위기 · ${worldFlashpointForecast.entry.event.title} · ${worldFlashpointForecast.weeksUntil}주 후 · 역사 가속 범위 ${worldFlashpointForecast.historicalHorizon}년` : `${worldline.code} · 모든 장기 위기 결정 완료`} aria-label={pendingWorldFlashpoint ? `세계 위기 결정 대기, ${pendingWorldFlashpoint.entry.event.title}` : worldFlashpointForecast ? `대체지구 아틀라스, 다음 세계 위기 ${worldFlashpointForecast.entry.event.title}, ${worldFlashpointForecast.weeksUntil}주 후` : `대체지구 아틀라스, ${worldline.title}, 모든 장기 위기 결정 완료`} onMouseEnter={() => void loadWorldHistoryAtlas()} onFocus={() => void loadWorldHistoryAtlas()} onClick={openWorldHistory}><Landmark size={17} /><span>세계선</span>{worldFlashpointForecast && <em className="rail-crisis-count">{pendingWorldFlashpoint ? '결정' : `D-${worldFlashpointForecast.weeksUntil}`}</em>}</button>
           <button title="빠른 이동" data-tooltip="빠른 이동 · Ctrl+K" aria-label="빠른 이동" aria-keyshortcuts="Control+K Meta+K" onClick={() => setShowCommandPalette(true)}><GameIcon name="search" size={17} tone="steel" /><span>빠른 이동</span></button>
-          <button title="진행 결과 분석실" data-tooltip="선택·계산·결과 추적" aria-label="진행 결과 분석실" onClick={() => setShowJournal(true)}><GameIcon name="report" size={17} tone="steel" /><span>진행 결과</span></button>
+          <button title="진행 결과 분석실" data-tooltip="선택·계산·결과 추적" aria-label="진행 결과 분석실" onClick={openWarJournal}><GameIcon name="report" size={17} tone="steel" /><span>진행 결과</span></button>
           <button title={uxPreferences.soundOn ? '음향 끄기' : '음향 켜기'} data-tooltip={uxPreferences.soundOn ? '게임 음향 끄기' : '게임 음향 켜기'} aria-label={uxPreferences.soundOn ? '음향 끄기' : '음향 켜기'} onClick={() => toggleUXPreference('soundOn')}><GameIcon name="sound" size={17} tone="steel" className={uxPreferences.soundOn ? '' : 'muted'} /><span>음향</span></button>
           <button title="저장 및 캠페인 관리" data-tooltip="저장 및 캠페인 관리 · Ctrl+S" aria-label="저장 및 캠페인 관리" aria-keyshortcuts="Control+S Meta+S" onClick={() => setShowSaveCenter(true)}><GameIcon name="save" size={17} tone="steel" /><span>저장</span></button>
           <button title="야전 교범" data-tooltip="야전 교범 · ?" aria-label="야전 교범" aria-keyshortcuts="?" onMouseEnter={() => void loadFieldManual()} onFocus={() => void loadFieldManual()} onClick={() => setShowFieldManual(true)}><GameIcon name="help" size={17} tone="steel" /><span>야전 교범</span></button>
@@ -3814,7 +3825,7 @@ export function App() {
           <div className="panel-heading">
             <div><span className="eyebrow">NATIONAL COMMAND</span><h2>{playerNation.shortName} 지휘부</h2></div>
             <div className="panel-heading-actions">
-              <button className="icon-button" aria-label="전쟁 전문 열기" onClick={() => setShowJournal(true)}><Radio size={17} /></button>
+              <button className="icon-button" aria-label="전쟁 전문 열기" onClick={openWarJournal}><Radio size={17} /></button>
               <button className="icon-button" aria-label="전구 정보 패널 닫기" onClick={() => setMapIntelOpen(false)}><X size={17} /></button>
             </div>
           </div>
@@ -3884,9 +3895,9 @@ export function App() {
           </section>
 
           <section className="dispatches">
-            <div className="section-title"><span>최신 전문</span><button onClick={() => setShowJournal(true)}>모두 보기</button></div>
+            <div className="section-title"><span>최신 전문</span><button onClick={openWarJournal}>모두 보기</button></div>
             {events.slice(0, 3).map((event) => (
-              <button className={'dispatch ' + event.tone} key={event.id} onClick={() => setShowJournal(true)}>
+              <button className={'dispatch ' + event.tone} key={event.id} onClick={openWarJournal}>
                 <i>{event.tone === 'good' ? <Check size={13} /> : event.tone === 'bad' ? <AlertTriangle size={13} /> : <Radio size={13} />}</i>
                 <span><strong>{event.title}</strong><small>{event.detail}</small></span>
               </button>
@@ -3943,6 +3954,7 @@ export function App() {
                   nationalSimulation={nationalSimulation}
                   weeklyIssue={latestWorldWeeklyIssue}
                   weeklyUnread={hasUnreadWorldWeekly}
+                  resultsReviewed={game.week === 0 || lastReviewedJournalWeek >= game.week}
                   objectiveProgress={objectiveProgress}
                   achievement={activeAchievement}
                   achievementProgress={activeAchievement ? achievementProgress[activeAchievement.id] : undefined}
@@ -3950,7 +3962,7 @@ export function App() {
                   onNavigate={openGameTab}
                   onAction={navigateFromActionCenter}
                   onOpenActionCenter={() => setShowActionCenter(true)}
-                  onOpenJournal={() => setShowJournal(true)}
+                  onOpenJournal={openWarJournal}
                   onOpenWorldWeekly={openWorldWeekly}
                   onOpenAchievements={() => setShowAchievementGallery(true)}
                   onNextWeek={advanceWeek}
@@ -4173,7 +4185,7 @@ export function App() {
           onManageSaves={() => setShowSaveCenter(true)}
         />
       )}
-      {pendingAchievementId && !showBriefing && (
+      {pendingAchievementId && !showBriefing && !showTutorial && (
         <Suspense fallback={<DeferredSurface label="도전과제 삽화 준비 중" overlay />}>
           <AchievementGallery
             unlocks={achievementUnlocks}
@@ -4185,7 +4197,7 @@ export function App() {
           />
         </Suspense>
       )}
-      {showAchievementGallery && !pendingAchievementId && !showBriefing && (
+      {showAchievementGallery && !pendingAchievementId && !showBriefing && !showTutorial && (
         <Suspense fallback={<DeferredSurface label="도전과제 기록실 준비 중" overlay />}>
           <AchievementGallery
             unlocks={achievementUnlocks}
@@ -4196,7 +4208,7 @@ export function App() {
           />
         </Suspense>
       )}
-      {showWorldHistory && !showBriefing && (
+      {showWorldHistory && !showBriefing && !showTutorial && !pendingAchievementId && !showAchievementGallery && (
         <Suspense fallback={<DeferredSurface label="대체지구 세계선 계산 중" overlay />}>
           <WorldHistoryAtlas
             worldline={worldline}
@@ -4205,7 +4217,7 @@ export function App() {
           />
         </Suspense>
       )}
-      {showWorldWeekly && !showBriefing && worldWeeklyIssues.length > 0 && (
+      {showWorldWeekly && !showBriefing && !showTutorial && !pendingAchievementId && !showAchievementGallery && !showWorldHistory && worldWeeklyIssues.length > 0 && (
         <Suspense fallback={<DeferredSurface label="세계 주보 편집 중" overlay />}>
           <WorldWeekly
             issues={worldWeeklyIssues}
@@ -4223,7 +4235,7 @@ export function App() {
           playerFaction={playerFaction}
           ending={worldline.ending}
           endingCount={worldline.endingCount}
-          onJournal={() => setShowJournal(true)}
+          onJournal={openWarJournal}
           onWorldHistory={openWorldHistory}
           onContinueNation={() => transitionToNationManagement('victory')}
           onRestart={resetCampaign}
