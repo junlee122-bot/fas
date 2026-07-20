@@ -1401,6 +1401,20 @@ button:focus-visible,
   border-color: rgba(109, 143, 163, 0.55);
   background: rgba(109, 143, 163, 0.15);
 }
+.speed-button.next.flow-review,
+.speed-button.next.flow-briefing {
+  color: #e1c982;
+  border-color: rgba(198,168,107,.58);
+  background: rgba(198,168,107,.13);
+  box-shadow: inset 2px 0 #bd9d58;
+}
+.speed-button.next.flow-decisions {
+  color: #e09a86;
+  border-color: rgba(184,86,67,.58);
+  background: rgba(169,72,56,.14);
+  box-shadow: inset 2px 0 #b85f4d;
+}
+.speed-button.next.flow-advance { border-color: rgba(103,159,126,.55); background: rgba(86,139,108,.14); }
 .speed-button.next > span { font-size: 9px; font-weight: 700; white-space: nowrap; }
 
 .left-rail {

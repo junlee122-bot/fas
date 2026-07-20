@@ -154,7 +154,7 @@ import {
   restCommander,
   unlockCommanderSkill,
 } from './development';
-import { defaultUXPreferences, deriveOnboardingSteps, deriveUXActions, getInitialNavigationCollapsed, normalizeUXPreferences } from './ux';
+import { defaultUXPreferences, deriveOnboardingSteps, deriveUXActions, deriveWeeklyCommandCycle, getInitialNavigationCollapsed, normalizeUXPreferences } from './ux';
 import type { UXAction, UXPreferences } from './ux';
 import {
   applyEquipmentToDivision,
@@ -836,6 +836,16 @@ export function App() {
   );
   const latestWorldWeeklyIssue = worldWeeklyIssues[0] ?? null;
   const hasUnreadWorldWeekly = Boolean(latestWorldWeeklyIssue && latestWorldWeeklyIssue.id !== lastReadWorldWeeklyId);
+  const globalWeeklyCycle = useMemo(() => deriveWeeklyCommandCycle({
+    week: game.week,
+    hasCurrentWeekResults: events.some((event) => event.week === game.week),
+    resultsReviewed: game.week === 0 || lastReviewedJournalWeek >= game.week,
+    weeklyUnread: hasUnreadWorldWeekly,
+    urgentCount: uxActions.filter((action) => action.priority === 'urgent').length,
+    recommendedCount: uxActions.filter((action) => action.priority === 'recommended').length,
+    activeOrders: orders.length,
+    activeResearch: research.filter((project) => project.active && !project.complete).length,
+  }), [events, game.week, hasUnreadWorldWeekly, lastReviewedJournalWeek, orders.length, research, uxActions]);
   const savePayload = useMemo<CampaignSavePayload>(() => ({
     version: 21,
     game,
@@ -1089,7 +1099,7 @@ export function App() {
   }, [showBriefing, game.week]);
 
   useEffect(() => {
-    if (showBriefing || showTutorial || pendingAchievementId || showAchievementGallery || showWorldHistory || showWorldWeekly) return;
+    if (showBriefing || showTutorial || hasUnreadWorldWeekly || pendingAchievementId || showAchievementGallery || showWorldHistory || showWorldWeekly) return;
     const unlockedIds = new Set(achievementUnlocks.map((unlock) => unlock.id));
     const nextAchievement = achievementDefinitions.find((achievement) => !unlockedIds.has(achievement.id) && achievementProgress[achievement.id]?.complete);
     if (!nextAchievement) return;
@@ -1102,7 +1112,7 @@ export function App() {
     setPendingAchievementId(nextAchievement.id);
     setSpeed(0);
     addEvent(`도전과제 달성 — ${nextAchievement.title}`, `${nextAchievement.condition} · 삽화가 기록실에 해금되었습니다.`, 'good', game.week);
-  }, [achievementProgress, achievementUnlocks, addEvent, game.week, pendingAchievementId, showAchievementGallery, showBriefing, showTutorial, showWorldHistory, showWorldWeekly]);
+  }, [achievementProgress, achievementUnlocks, addEvent, game.week, hasUnreadWorldWeekly, pendingAchievementId, showAchievementGallery, showBriefing, showTutorial, showWorldHistory, showWorldWeekly]);
 
   const advanceNationWeek = useCallback(() => {
     const nextWeek = game.week + 1;
@@ -3279,7 +3289,7 @@ export function App() {
     setShowWorldHistory(true);
   };
 
-  const openWorldWeekly = () => {
+  const openWorldWeekly = useCallback(() => {
     if (!latestWorldWeeklyIssue) {
       notify('캠페인을 시작하면 선택한 세계선의 1942년 10월 창간호가 즉시 발행됩니다.');
       return;
@@ -3287,13 +3297,41 @@ export function App() {
     setSpeed(0);
     setLastReadWorldWeeklyId(latestWorldWeeklyIssue.id);
     setShowWorldWeekly(true);
-  };
+  }, [latestWorldWeeklyIssue, notify]);
 
-  const openWarJournal = () => {
+  const openWarJournal = useCallback(() => {
     setSpeed(0);
     setLastReviewedJournalWeek(game.week);
     setShowJournal(true);
-  };
+  }, [game.week]);
+
+  const continueWeeklyFlow = useCallback(() => {
+    setSpeed(0);
+    if (campaignPhase === 'nation' || globalWeeklyCycle.primaryDestination === 'advance') {
+      advanceWeek();
+      return;
+    }
+    if (globalWeeklyCycle.primaryDestination === 'journal') {
+      openWarJournal();
+      return;
+    }
+    if (globalWeeklyCycle.primaryDestination === 'weekly') {
+      openWorldWeekly();
+      return;
+    }
+    setShowActionCenter(true);
+  }, [advanceWeek, campaignPhase, globalWeeklyCycle.primaryDestination, openWarJournal, openWorldWeekly]);
+
+  const globalNextLabel = campaignPhase === 'nation'
+    ? '다음 주'
+    : globalWeeklyCycle.primaryDestination === 'journal'
+      ? '결산'
+      : globalWeeklyCycle.primaryDestination === 'weekly'
+        ? '주보'
+        : globalWeeklyCycle.primaryDestination === 'actions'
+          ? '결재'
+          : '다음 주';
+  const globalNextAriaLabel = campaignPhase === 'nation' ? '다음 주 진행' : globalWeeklyCycle.primaryLabel;
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -3336,7 +3374,7 @@ export function App() {
       }
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName.toLowerCase();
-      if (target?.isContentEditable || tag === 'input' || tag === 'select' || tag === 'textarea' || tag === 'button') return;
+      if (target?.isContentEditable || tag === 'input' || tag === 'select' || tag === 'textarea') return;
       if (showBriefing || campaignOutcome || pendingWorldFlashpointId || pendingCoupIncident || pendingCouncilEventId || pendingBattleReportId || pendingOffensivePlan || pendingAchievementId || showJournal || showSettings || showActionCenter || showStatusOverview || showResetConfirmation || showCommandPalette || showFieldManual || showSaveCenter || showAchievementGallery || showWorldHistory || showWorldWeekly || showTutorial || showPoliticalCrisis || event.repeat) return;
       if (activeTab === 'map' && (event.key === '+' || event.key === '=')) {
         event.preventDefault();
@@ -3374,15 +3412,16 @@ export function App() {
         setShowFieldManual(true);
       } else if (event.key.toLowerCase() === 'n') {
         event.preventDefault();
-        advanceWeek();
+        continueWeeklyFlow();
       } else if (event.key === ' ') {
+        if (tag === 'button') return;
         event.preventDefault();
         setSpeed((current) => current === 0 ? 1 : 0);
       }
     };
     window.addEventListener('keydown', handleShortcut);
     return () => window.removeEventListener('keydown', handleShortcut);
-  }, [activeTab, advanceWeek, campaignOutcome, pendingAchievementId, pendingBattleReportId, pendingCouncilEventId, pendingCoupIncident, pendingOffensivePlan, pendingWorldFlashpointId, resetMapCamera, showActionCenter, showAchievementGallery, showBriefing, showCommandPalette, showFieldManual, showJournal, showPoliticalCrisis, showResetConfirmation, showSaveCenter, showSettings, showStatusOverview, showTutorial, showWorldHistory, showWorldWeekly, toggleMapFocusMode, zoomMap]);
+  }, [activeTab, advanceWeek, campaignOutcome, continueWeeklyFlow, pendingAchievementId, pendingBattleReportId, pendingCouncilEventId, pendingCoupIncident, pendingOffensivePlan, pendingWorldFlashpointId, resetMapCamera, showActionCenter, showAchievementGallery, showBriefing, showCommandPalette, showFieldManual, showJournal, showPoliticalCrisis, showResetConfirmation, showSaveCenter, showSettings, showStatusOverview, showTutorial, showWorldHistory, showWorldWeekly, toggleMapFocusMode, zoomMap]);
 
   const changePublicHealthPolicy = (policyId: PublicHealthPolicyId) => {
     setPublicHealth((current) => ({ ...current, policyId }));
@@ -3572,7 +3611,7 @@ export function App() {
     { id: 'settings', group: '지휘 도구', title: '사용자 환경 설정', description: '가독성, 고대비, 지도 라벨과 화면 효과를 조정합니다.', keywords: ['접근성', '글자', 'UI'], icon: <Settings size={17} /> },
     { id: 'field-manual', group: '지휘 도구', title: '야전 교범', description: '첫 주 체크리스트와 전투·운영 시스템 설명을 검색합니다.', keywords: ['도움말', '튜토리얼', '가이드'], icon: <CircleHelp size={17} />, meta: '?' },
     { id: 'save-center', group: '지휘 도구', title: '저장 및 캠페인 관리', description: '수동 체크포인트, 내보내기, 불러오기와 새 캠페인을 관리합니다.', keywords: ['저장', '불러오기', '체크포인트'], icon: <Save size={17} />, meta: 'Ctrl S' },
-    { id: 'next-week', group: '시간 제어', title: '다음 주 진행', description: campaignPhase === 'nation' ? '재정·민생·산업·외교·보건 정책을 해결하고 국정을 한 주 진행합니다.' : '생산과 명령을 해결하고 전쟁을 한 주 진행합니다.', keywords: ['턴', '시간'], icon: <SkipForward size={17} />, meta: 'N' },
+    { id: 'next-week', group: '주간 사이클', title: campaignPhase === 'nation' ? '다음 주 진행' : globalWeeklyCycle.primaryLabel, description: campaignPhase === 'nation' ? '재정·민생·산업·외교·보건 정책을 해결하고 국정을 한 주 진행합니다.' : globalWeeklyCycle.detail, keywords: ['턴', '시간', '다음 주', '결산', '주보', '결재'], icon: <SkipForward size={17} />, meta: 'N' },
     { id: 'toggle-time', group: '시간 제어', title: speed === 0 ? '시간 재개' : '일시 정지', description: '시간 진행과 일시 정지를 전환합니다.', keywords: ['시간', '정지', '재개'], icon: speed === 0 ? <SkipForward size={17} /> : <Pause size={17} />, meta: 'Space' },
   ];
 
@@ -3608,7 +3647,7 @@ export function App() {
     } else if (id === 'save-center') {
       setShowSaveCenter(true);
     } else if (id === 'next-week') {
-      advanceWeek();
+      continueWeeklyFlow();
     } else if (id === 'toggle-time') {
       setSpeed((current) => current === 0 ? 1 : 0);
     }
@@ -3668,7 +3707,10 @@ export function App() {
           {[1, 2, 3].map((item) => (
             <button key={item} className={'speed-button text ' + (speed === item ? 'active' : '')} onClick={() => setSpeed(item)}>{item}×</button>
           ))}
-          <button className="speed-button next" onClick={advanceWeek} aria-label="다음 주 진행" aria-keyshortcuts="N"><GameIcon name="advance" size={14} tone="blue" /><span>다음 주</span></button>
+          <button className={`speed-button next flow-${campaignPhase === 'nation' ? 'advance' : globalWeeklyCycle.currentStage}`} onClick={continueWeeklyFlow} aria-label={globalNextAriaLabel} title={`${globalNextAriaLabel} · N`} aria-keyshortcuts="N">
+            <GameIcon name={campaignPhase === 'nation' || globalWeeklyCycle.primaryDestination === 'advance' ? 'advance' : globalWeeklyCycle.primaryDestination === 'actions' ? 'command' : 'report'} size={14} tone={globalWeeklyCycle.primaryDestination === 'actions' ? 'gold' : 'blue'} />
+            <span>{globalNextLabel}</span>
+          </button>
         </div>
       </header>
 
@@ -4275,7 +4317,7 @@ export function App() {
           metrics={statusMetrics}
           actions={uxActions}
           onNavigate={navigateFromStatusOverview}
-          onNextWeek={() => { setShowStatusOverview(false); advanceWeek(); }}
+          onNextWeek={() => { setShowStatusOverview(false); continueWeeklyFlow(); }}
           onClose={() => setShowStatusOverview(false)}
         />
       )}

@@ -165,9 +165,10 @@ export function CommandDashboard({
     activeResearch: activeResearch.length,
   });
   const runCycleDestination = (destination: WeeklyCommandDestination) => {
-    if (destination === 'journal') onOpenJournal();
-    else if (destination === 'weekly') onOpenWorldWeekly();
-    else if (destination === 'actions') primaryAction ? onAction(primaryAction) : onOpenActionCenter();
+    const effectiveDestination = destination === 'advance' && !weeklyCycle.readyToAdvance ? weeklyCycle.primaryDestination : destination;
+    if (effectiveDestination === 'journal') onOpenJournal();
+    else if (effectiveDestination === 'weekly') onOpenWorldWeekly();
+    else if (effectiveDestination === 'actions') primaryAction ? onAction(primaryAction) : onOpenActionCenter();
     else onNextWeek();
   };
   const cycleStatusLabels = {
