@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createStaffCandidates, createStaffRoster } from './campaign';
 import {
   advanceStaffMemberWeek,
+  assessStaffPromise,
   calculateCandidateSeatFit,
   createStaffManagementOverview,
   getStaffContractRisk,
@@ -41,5 +42,56 @@ describe('FM-style staff management cycle', () => {
     const [member] = createStaffRoster('britain', 'britain-tier1');
     expect(getStaffRenewalCost({ ...member, grade: 3, influence: 90, weeklyCost: 14 }))
       .toBeGreaterThan(getStaffRenewalCost({ ...member, grade: 1, influence: 40, weeklyCost: 6 }));
+  });
+
+  it('treats an ungranted autonomous mandate as a broken appointment promise', () => {
+    const [member] = createStaffRoster('britain', 'britain-tier1');
+    const appointed = {
+      ...member,
+      delegated: false,
+      morale: 70,
+      roleSatisfaction: 70,
+      contractWeeksRemaining: 104,
+      promisedDepartment: member.department,
+      appointmentAuthority: 'autonomous' as const,
+      appointmentPromise: 'none' as const,
+    };
+
+    expect(assessStaffPromise(appointed).state).toBe('broken');
+    const next = advanceStaffMemberWeek(appointed, false);
+    expect(next.roleSatisfaction).toBeLessThan(appointed.roleSatisfaction);
+    expect(next.morale).toBeLessThan(appointed.morale);
+    expect(next.loyalty).toBeLessThan(appointed.loyalty);
+  });
+
+  it('keeps a resources promise only while the appointee remains the development focus', () => {
+    const [member] = createStaffRoster('britain', 'britain-tier1');
+    const appointed = {
+      ...member,
+      delegated: true,
+      contractWeeksRemaining: 104,
+      promisedDepartment: member.department,
+      appointmentAuthority: 'executive' as const,
+      appointmentPromise: 'resources' as const,
+    };
+
+    expect(assessStaffPromise(appointed, true).state).toBe('kept');
+    expect(assessStaffPromise(appointed, false).state).toBe('at-risk');
+  });
+
+  it('surfaces broken promises in the weekly management overview', () => {
+    const roster = createStaffRoster('britain', 'britain-tier1');
+    const first = roster[0];
+    const appointed = roster.map((member, index) => index === 0 ? {
+      ...member,
+      delegated: false,
+      promisedDepartment: first.department,
+      appointmentAuthority: 'autonomous' as const,
+      appointmentPromise: 'none' as const,
+    } : member);
+    const overview = createStaffManagementOverview(appointed, createStaffCandidates('britain', 'britain-tier1'), ['operations', 'logistics']);
+
+    expect(overview.brokenPromises).toBe(1);
+    expect(overview.dynamics.find((record) => record.member.id === first.id)?.promise.state).toBe('broken');
   });
 });

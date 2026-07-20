@@ -5,6 +5,13 @@ export type StaffCareerStage = 'developing' | 'emerging' | 'peak' | 'experienced
 export type StaffHierarchy = 'leader' | 'core' | 'support';
 export type StaffContractRisk = 'secure' | 'review' | 'urgent' | 'expired';
 export type RecruitmentPriority = 'top' | 'standard' | 'monitor';
+export type StaffPromiseState = 'none' | 'kept' | 'at-risk' | 'broken';
+
+export interface StaffPromiseAssessment {
+  state: StaffPromiseState;
+  label: string;
+  summary: string;
+}
 
 export interface CandidateSeatFit {
   candidate: StaffCandidate;
@@ -22,6 +29,7 @@ export interface StaffDynamicRecord {
   careerStage: StaffCareerStage;
   contractWeeks: number;
   contractRisk: StaffContractRisk;
+  promise: StaffPromiseAssessment;
 }
 
 export interface StaffSeatPlan {
@@ -45,6 +53,7 @@ export interface StaffManagementOverview {
   roleCoverage: number;
   expiringContracts: number;
   overloadedStaff: number;
+  brokenPromises: number;
   topNeed: StaffSeatPlan | null;
 }
 
@@ -100,8 +109,30 @@ export function getStaffRoleSatisfaction(member: StaffMember) {
   return clamp(Math.round(fit * 0.62 + member.loyalty * 0.18 + promisedFit + statusFit - Math.max(0, member.workload - 78) * 0.5));
 }
 
-export function getStaffBuyIn(member: StaffMember) {
-  return clamp(Math.round(getStaffMorale(member) * 0.34 + getStaffRoleSatisfaction(member) * 0.34 + member.loyalty * 0.24 + (member.delegated ? 8 : 2)));
+export function assessStaffPromise(member: StaffMember, developmentFocus = false): StaffPromiseAssessment {
+  const hasAppointmentTerms = Boolean(member.appointmentAuthority || (member.appointmentPromise && member.appointmentPromise !== 'none') || member.promisedDepartment);
+  if (!hasAppointmentTerms) return { state: 'none', label: '기존 임명', summary: '별도로 기록된 임명 약속이 없습니다.' };
+
+  const broken: string[] = [];
+  const risks: string[] = [];
+  if (member.promisedDepartment && member.promisedDepartment !== member.department) broken.push('약속한 보직과 현재 배치가 다름');
+  if (member.appointmentAuthority === 'autonomous' && !member.delegated) broken.push('독립 책임 권한을 회수함');
+  if (member.appointmentAuthority === 'executive' && !member.delegated) risks.push('집행 책임이 직접 결재로 묶임');
+  if (member.appointmentPromise === 'resources' && !developmentFocus) risks.push('우선 육성·자원 지원 대상이 아님');
+  if (member.appointmentPromise === 'succession' && member.squadStatus !== 'key') broken.push('지도부 승계선에서 제외됨');
+  if (member.appointmentPromise === 'security') {
+    if (getStaffMorale(member) < 45 || member.loyalty < 45) broken.push('신변·정치적 안전 신뢰가 붕괴함');
+    else if (getStaffContractWeeks(member) <= 52) risks.push('안전 보장에 비해 계약 안정성이 낮음');
+  }
+  if (broken.length) return { state: 'broken', label: '약속 위반', summary: broken.join(' · ') };
+  if (risks.length) return { state: 'at-risk', label: '이행 위험', summary: risks.join(' · ') };
+  return { state: 'kept', label: '약속 이행', summary: '합의한 보직·권한·지원 조건이 현재 상태와 일치합니다.' };
+}
+
+export function getStaffBuyIn(member: StaffMember, developmentFocus = false) {
+  const promise = assessStaffPromise(member, developmentFocus);
+  const promiseModifier = promise.state === 'broken' ? -10 : promise.state === 'at-risk' ? -4 : promise.state === 'kept' ? 3 : 0;
+  return clamp(Math.round(getStaffMorale(member) * 0.34 + getStaffRoleSatisfaction(member) * 0.34 + member.loyalty * 0.24 + (member.delegated ? 8 : 2) + promiseModifier));
 }
 
 function disciplineFit(discipline: PersonnelDiscipline | undefined, department: StaffDepartment) {
@@ -124,8 +155,9 @@ export function calculateCandidateSeatFit(candidate: StaffCandidate, department:
   return { candidate, score, label, uncertainty };
 }
 
-function seatWarning(fit: number, internalDepth: StaffSeatPlan['internalDepth'], contractRisk: StaffContractRisk | null, workload: number) {
+function seatWarning(fit: number, internalDepth: StaffSeatPlan['internalDepth'], contractRisk: StaffContractRisk | null, workload: number, promiseState: StaffPromiseState) {
   if (contractRisk === 'expired') return '계약이 만료되어 즉시 재계약 또는 후임 임명이 필요합니다.';
+  if (promiseState === 'broken') return '임명 협상에서 한 약속이 깨져 이탈·불복 위험이 높습니다.';
   if (fit < 55) return '현 보직자의 적합도가 낮아 운영 손실 위험이 큽니다.';
   if (workload >= 85) return '업무 과부하가 사기와 충성도를 훼손하고 있습니다.';
   if (contractRisk === 'urgent') return '13주 안에 계약이 끝납니다. 승계안을 확정하십시오.';
@@ -138,18 +170,23 @@ export function createStaffManagementOverview(
   staff: readonly StaffMember[],
   candidates: readonly StaffCandidate[],
   managedDepartments: readonly StaffDepartment[],
+  developmentFocusId?: string | null,
 ): StaffManagementOverview {
   const manageable = new Set(managedDepartments);
-  const dynamics = staff.map((member): StaffDynamicRecord => ({
-    member,
-    morale: getStaffMorale(member),
-    roleSatisfaction: getStaffRoleSatisfaction(member),
-    buyIn: getStaffBuyIn(member),
-    hierarchy: getStaffHierarchy(member),
-    careerStage: getStaffCareerStage(member),
-    contractWeeks: getStaffContractWeeks(member),
-    contractRisk: getStaffContractRisk(member),
-  }));
+  const dynamics = staff.map((member): StaffDynamicRecord => {
+    const developmentFocus = member.id === developmentFocusId;
+    return {
+      member,
+      morale: getStaffMorale(member),
+      roleSatisfaction: getStaffRoleSatisfaction(member),
+      buyIn: getStaffBuyIn(member, developmentFocus),
+      hierarchy: getStaffHierarchy(member),
+      careerStage: getStaffCareerStage(member),
+      contractWeeks: getStaffContractWeeks(member),
+      contractRisk: getStaffContractRisk(member),
+      promise: assessStaffPromise(member, developmentFocus),
+    };
+  });
   const seats = staffSeatDefinitions.map((seat): StaffSeatPlan => {
     const incumbent = staff.find((member) => member.department === seat.department) ?? null;
     const incumbentFit = incumbent ? calculateStaffSuitability(incumbent, seat.department).score : 0;
@@ -164,10 +201,12 @@ export function createStaffManagementOverview(
       .sort((left, right) => right.score - left.score || right.candidate.knowledge - left.candidate.knowledge)
       .slice(0, 3);
     const contractRisk = incumbent ? getStaffContractRisk(incumbent) : null;
+    const promiseState = incumbent ? assessStaffPromise(incumbent, incumbent.id === developmentFocusId).state : 'none';
     const succession = internalDepth.find((entry) => entry.member.id !== incumbent?.id)?.score ?? 0;
     const contractPenalty = contractRisk === 'expired' ? 24 : contractRisk === 'urgent' ? 15 : contractRisk === 'review' ? 7 : 0;
     const workloadPenalty = Math.max(0, (incumbent?.workload ?? 100) - 72) * 0.35;
-    const depthScore = clamp(Math.round(incumbentFit * 0.62 + succession * 0.25 + (externalDepth[0]?.score ?? 0) * 0.13 - contractPenalty - workloadPenalty));
+    const promisePenalty = promiseState === 'broken' ? 10 : promiseState === 'at-risk' ? 4 : 0;
+    const depthScore = clamp(Math.round(incumbentFit * 0.62 + succession * 0.25 + (externalDepth[0]?.score ?? 0) * 0.13 - contractPenalty - workloadPenalty - promisePenalty));
     const needScore = 100 - depthScore;
     const priority: RecruitmentPriority = needScore >= 48 ? 'top' : needScore >= 30 ? 'standard' : 'monitor';
     return {
@@ -179,7 +218,7 @@ export function createStaffManagementOverview(
       depthScore,
       needScore,
       priority,
-      warning: seatWarning(incumbentFit, internalDepth, contractRisk, incumbent?.workload ?? 100),
+      warning: seatWarning(incumbentFit, internalDepth, contractRisk, incumbent?.workload ?? 100, promiseState),
       manageable: manageable.has(seat.department),
     };
   });
@@ -194,6 +233,7 @@ export function createStaffManagementOverview(
     roleCoverage: average(managedSeats.map((seat) => seat.depthScore)),
     expiringContracts: managedDynamics.filter((record) => record.contractRisk === 'urgent' || record.contractRisk === 'expired').length,
     overloadedStaff: managedDynamics.filter((record) => record.member.workload >= 80).length,
+    brokenPromises: managedDynamics.filter((record) => record.promise.state === 'broken').length,
     topNeed: [...managedSeats].sort((left, right) => right.needScore - left.needScore)[0] ?? null,
   };
 }
@@ -204,14 +244,17 @@ export function advanceStaffMemberWeek(member: StaffMember, developmentFocus: bo
   const workloadMorale = nextWorkload >= 88 ? -4 : nextWorkload >= 78 ? -2 : nextWorkload <= 45 ? 1 : 0;
   const contractMorale = contractWeeksRemaining === 0 ? -5 : contractWeeksRemaining <= 13 ? -2 : 0;
   const nextMorale = clamp(getStaffMorale(member) + workloadMorale + contractMorale + (member.delegated && nextWorkload < 80 ? 1 : 0));
-  const promisePenalty = member.promisedDepartment && member.promisedDepartment !== member.department ? 3 : 0;
-  const nextSatisfaction = clamp(getStaffRoleSatisfaction(member) + (member.delegated ? 1 : 0) - promisePenalty - (nextWorkload >= 88 ? 3 : 0));
+  const promise = assessStaffPromise(member, developmentFocus);
+  const promiseSatisfaction = promise.state === 'broken' ? -4 : promise.state === 'at-risk' ? -2 : promise.state === 'kept' ? 1 : 0;
+  const promiseMorale = promise.state === 'broken' ? -2 : promise.state === 'kept' ? 1 : 0;
+  const nextSatisfaction = clamp(getStaffRoleSatisfaction(member) + (member.delegated ? 1 : 0) + promiseSatisfaction - (nextWorkload >= 88 ? 3 : 0));
+  const finalMorale = clamp(nextMorale + promiseMorale);
   return {
     ...member,
     workload: nextWorkload,
-    loyalty: clamp(member.loyalty - (nextMorale < 35 ? 2 : member.delegated && member.workload >= 85 ? 1 : 0), 20, 100),
+    loyalty: clamp(member.loyalty - (finalMorale < 35 ? 2 : member.delegated && member.workload >= 85 ? 1 : 0) - (promise.state === 'broken' ? 1 : 0), 20, 100),
     development: clamp(member.development + (member.delegated ? 6 : 3) + (developmentFocus ? 7 : 0) - (member.workload >= 85 ? 2 : 0)),
-    morale: nextMorale,
+    morale: finalMorale,
     roleSatisfaction: nextSatisfaction,
     contractWeeksRemaining,
     delegated: contractWeeksRemaining === 0 ? false : member.delegated,

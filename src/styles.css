@@ -4355,7 +4355,7 @@ button.triage-step { grid-template-columns: auto minmax(0,1fr) auto; text-align:
 .staff-weekly-briefing > header strong { font-size: 9px; color: #d5dcd7; }
 .staff-weekly-briefing > header small { font-size: 6px; color: #78877f; }
 .staff-weekly-briefing > header em { font: 600 7px var(--font-data); color: var(--gold-bright); }
-.staff-briefing-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-bottom: 1px solid var(--line); }
+.staff-briefing-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border-bottom: 1px solid var(--line); }
 .staff-briefing-kpis > span { min-width: 0; min-height: 58px; display: grid; grid-template-columns: 18px minmax(0,1fr) auto; align-content: center; align-items: center; gap: 2px 6px; padding: 7px 10px; border-right: 1px solid var(--line); color: #78a7ae; }
 .staff-briefing-kpis > span:last-child { border-right: 0; }
 .staff-briefing-kpis > span.warning { color: #c88975; background: rgba(164,79,61,.045); }
@@ -4399,7 +4399,7 @@ button.triage-step { grid-template-columns: auto minmax(0,1fr) auto; text-align:
 .staff-dynamics-board > header em { font: 600 6px var(--font-data); color: #80928a; }
 .staff-dynamics-board > p { margin: 0; padding: 8px 11px; font-size: 6.5px; line-height: 1.55; color: #829089; border-bottom: 1px solid var(--line); background: rgba(81,128,135,.035); }
 .staff-dynamics-list { display: grid; }
-.staff-dynamics-list > article { min-width: 0; min-height: 67px; display: grid; grid-template-columns: minmax(220px,1.35fr) repeat(3,75px) 78px 115px; align-items: center; gap: 9px; padding: 7px 10px; border-top: 1px solid rgba(255,255,255,.04); }
+.staff-dynamics-list > article { min-width: 0; min-height: 67px; display: grid; grid-template-columns: minmax(210px,1.25fr) repeat(3,70px) 72px minmax(95px,.65fr) 110px; align-items: center; gap: 8px; padding: 7px 10px; border-top: 1px solid rgba(255,255,255,.04); }
 .staff-dynamics-list > article:first-child { border-top: 0; }
 .staff-dynamics-list > article.urgent, .staff-dynamics-list > article.expired { box-shadow: inset 3px 0 #a95f4d; background: rgba(147,67,49,.035); }
 .staff-dynamics-list > article.locked { opacity: .52; }
@@ -4418,6 +4418,16 @@ button.triage-step { grid-template-columns: auto minmax(0,1fr) auto; text-align:
 .staff-contract-cell strong { font: 600 10px var(--font-data); color: #c8d0cb; }
 .staff-contract-cell em { font-size: 5px; color: #79a18d; }
 .staff-contract-cell.urgent em, .staff-contract-cell.expired em { color: #cf846d; }
+.staff-promise-cell { min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 5px 6px; border-left: 2px solid #64736c; background: rgba(255,255,255,.012); }
+.staff-promise-cell small { font-size: 5px; color: #728078; }
+.staff-promise-cell strong { font-size: 6.5px; color: #aeb9b2; }
+.staff-promise-cell em { overflow: hidden; font-size: 5px; color: #6f7d76; text-overflow: ellipsis; white-space: nowrap; }
+.staff-promise-cell.kept { border-color: #6f9e7f; background: rgba(94,144,109,.04); }
+.staff-promise-cell.kept strong { color: #8fbea0; }
+.staff-promise-cell.at-risk { border-color: #b89555; background: rgba(185,145,74,.04); }
+.staff-promise-cell.at-risk strong { color: #c2a56b; }
+.staff-promise-cell.broken { border-color: #af604d; background: rgba(162,71,52,.05); }
+.staff-promise-cell.broken strong { color: #d1836e; }
 .staff-dynamics-list > article > button { min-height: 29px; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 6px; border: 1px solid var(--line-bright); color: #9eaa9f; background: rgba(255,255,255,.016); font-size: 5.5px; cursor: pointer; }
 .staff-dynamics-list > article > button:hover:not(:disabled) { color: var(--gold-bright); border-color: rgba(198,168,107,.36); }
 .staff-dynamics-list > article > button:disabled { opacity: .33; cursor: not-allowed; }
@@ -6855,6 +6865,7 @@ button.triage-step { grid-template-columns: auto minmax(0,1fr) auto; text-align:
   .staff-recruitment-priorities > button { border-right: 0; border-bottom: 1px solid var(--line); }
   .staff-dynamics-list > article { grid-template-columns: minmax(210px,1fr) repeat(3,68px); }
   .staff-contract-cell,
+  .staff-promise-cell,
   .staff-dynamics-list > article > button { grid-column: auto; }
   .recruitment-objectives { grid-template-columns: minmax(0,1fr); }
   .recruitment-objectives > header { border-right: 0; border-bottom: 1px solid var(--line); }
@@ -6909,6 +6920,7 @@ button.triage-step { grid-template-columns: auto minmax(0,1fr) auto; text-align:
   .staff-recruitment-priorities { grid-template-columns: minmax(0,1fr); }
   .staff-dynamics-list > article { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
   .staff-dynamic-person { grid-column: 1 / -1; }
+  .staff-promise-cell { grid-column: 1 / -1; }
   .staff-dynamics-list > article > button { grid-column: 1 / -1; }
   .recruitment-objectives > div { grid-template-columns: minmax(0,1fr); }
   .recruitment-objectives button { border-right: 0; border-bottom: 1px solid var(--line); }

@@ -312,8 +312,8 @@ export function OrganizationPanel({
   const selectedSeat = getStaffSeatDefinition(selectedStaffDepartment);
   const selectedSeatMember = staff.find((member) => member.department === selectedStaffDepartment) ?? null;
   const staffOverview = useMemo(
-    () => createStaffManagementOverview(staff, candidates, authority.managedDepartments),
-    [authority.managedDepartments, candidates, staff],
+    () => createStaffManagementOverview(staff, candidates, authority.managedDepartments, developmentFocusId),
+    [authority.managedDepartments, candidates, developmentFocusId, staff],
   );
   const selectedSeatPlan = staffOverview.seats.find((seat) => seat.department === selectedStaffDepartment) ?? staffOverview.seats[0];
   const selectedCandidateFit = selectedCandidate ? calculateCandidateSeatFit(selectedCandidate, selectedCandidate.department) : null;
@@ -377,6 +377,7 @@ export function OrganizationPanel({
             <span><ShieldCheck size={15} /><small>지도부 지지</small><strong>{staffOverview.leadershipSupport}</strong><Meter value={staffOverview.leadershipSupport} tone={staffOverview.leadershipSupport < 55 ? 'red' : 'blue'} /></span>
             <span className={staffOverview.expiringContracts ? 'warning' : ''}><CalendarClock size={15} /><small>13주 내 만료</small><strong>{staffOverview.expiringContracts}</strong><em>명</em></span>
             <span className={staffOverview.overloadedStaff ? 'warning' : ''}><AlertTriangle size={15} /><small>과부하 참모</small><strong>{staffOverview.overloadedStaff}</strong><em>명</em></span>
+            <span className={staffOverview.brokenPromises ? 'warning' : ''}><HeartHandshake size={15} /><small>위반된 임명 약속</small><strong>{staffOverview.brokenPromises}</strong><em>건</em></span>
           </div>
           <div className="staff-recruitment-priorities">
             {recruitmentPriorities.map((plan, index) => (
@@ -525,6 +526,7 @@ export function OrganizationPanel({
                     <span className="staff-dynamic-rating"><small>역할 만족</small><strong>{record.roleSatisfaction}</strong><Meter value={record.roleSatisfaction} tone={record.roleSatisfaction < 50 ? 'red' : 'gold'} /></span>
                     <span className="staff-dynamic-rating"><small>지도부 수용</small><strong>{record.buyIn}</strong><Meter value={record.buyIn} tone={record.buyIn < 50 ? 'red' : 'blue'} /></span>
                     <span className={`staff-contract-cell ${record.contractRisk}`}><small>{squadStatusLabels[record.member.squadStatus ?? (record.hierarchy === 'leader' ? 'key' : record.hierarchy === 'core' ? 'regular' : 'rotation')]}</small><strong>{record.contractWeeks}주</strong><em>{contractRiskLabels[record.contractRisk]}</em></span>
+                    <span className={`staff-promise-cell ${record.promise.state}`} title={record.promise.summary}><small>임명 합의</small><strong>{record.promise.label}</strong><em>{record.promise.summary}</em></span>
                     <button type="button" disabled={!manageable || record.contractRisk === 'secure' || game.politicalPower < 4 || game.treasury < renewalCost} title={!manageable ? authority.restrictionReason : `2년 재계약 · 정치력 4 · 보너스 ${formatMoney(renewalCost)}`} onClick={() => onRenewStaff(record.member.id)}><CalendarClock size={12} /> {record.contractRisk === 'secure' ? '계약 안정' : `재계약 ${formatMoney(renewalCost)}`}</button>
                   </article>
                 );
