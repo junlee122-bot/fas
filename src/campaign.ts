@@ -109,7 +109,7 @@ export const nations: NationProfile[] = [
     ],
   },
   {
-    id: 'korea', name: '대한민국 임시정부·한국광복군', shortName: '한국 독립운동', code: 'KR', alignment: 'allies', color: '#5b728f', accent: '#c08b86', defaultTheater: 'asia', status: 'government-in-exile', historicalBasis: '1919년 수립된 대한민국 임시정부와 1940년 창설된 한국광복군의 충칭 활동', capitalTerritoryId: 'korea', strategicTargets: ['korea', 'manchuria'],
+    id: 'korea', name: '대한민국 임시정부·한국광복군', shortName: '한국 독립운동', code: 'KR', alignment: 'allies', color: '#5b728f', accent: '#c08b86', defaultTheater: 'asia', status: 'government-in-exile', historicalBasis: '1919년 수립된 대한민국 임시정부와 1940년 창설된 한국광복군의 충칭 활동', capitalTerritoryId: 'korea', operationalHeadquarters: { territoryId: 'china_interior', label: '충칭 · 임시정부 본부' }, strategicTargets: ['korea', 'manchuria'],
     summary: '충칭의 임시정부, 광복군, 국내외 연락망을 연결해 해방 뒤 국가 형태까지 설계합니다.', challenge: '영토 없는 정부, 연합국 승인, 국내 침투망과 독립운동 정파 통합', majorOperation: '독수리 귀환 계획', majorOperationDetail: '광복군의 국내정진 구상과 연합 정보기관 협력을 앞당겨 한반도 내부 봉기와 상륙을 연결합니다.',
     formations: ['한국광복군 총사령부', '국내정진 선발대', '만주·한반도 지하연락망'], equipment: ['중국군·연합군 혼성 소화기', '소형 무전기·암호표', '경량 폭파 장비', '분산 보급망'],
     modifiers: { manpower: 420, factories: 10, politicalPower: 74, intelNetwork: 78, stability: 57, navalPower: 28 },
@@ -259,6 +259,10 @@ const staffDepartments: Array<Pick<StaffMember, 'id' | 'role' | 'department' | '
 
 export function getNation(id: NationId) {
   return nations.find((nation) => nation.id === id) ?? nations[0];
+}
+
+export function getNationCommandTerritoryId(nation: NationProfile) {
+  return nation.operationalHeadquarters?.territoryId ?? nation.capitalTerritoryId;
 }
 
 export function getRole(id: string, nationId: NationId) {

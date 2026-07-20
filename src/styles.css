@@ -1893,6 +1893,11 @@ button:focus-visible,
 .territory-marker.site-capital .territory-core,
 .territory-marker.site-fortress .territory-core { stroke-width: 2.6; }
 .territory-marker.site-port .territory-core { stroke-dasharray: 2 2; }
+.territory-marker.operational-headquarters .territory-halo { fill: rgba(76, 155, 167, .2); stroke: #8bc1ca; stroke-width: 2; stroke-dasharray: 3 2; filter: drop-shadow(0 0 8px rgba(87, 159, 172, .64)); }
+.territory-marker.operational-headquarters .territory-core { fill: #5c9aa5; stroke: #d2ebed; stroke-width: 2.6; }
+.operational-headquarters-badge { pointer-events: none; }
+.operational-headquarters-badge rect { fill: rgba(12, 29, 29, .94); stroke: rgba(123, 187, 197, .72); stroke-width: 1; }
+.operational-headquarters-badge text { fill: #c5e0e1; font: 700 7px var(--font-data); text-anchor: middle; letter-spacing: .04em; }
 
 .strategic-map.planning .territory-marker.unavailable-target { opacity: .28; }
 .strategic-map.planning .territory-marker.planning-origin { opacity: 1; }

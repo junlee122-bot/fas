@@ -9,6 +9,7 @@ import {
   createStaffRoster,
   createStaffCandidates,
   getNation,
+  getNationCommandTerritoryId,
   getCareerStarCount,
   getPromotionThreshold,
   nations,
@@ -56,6 +57,15 @@ describe('alternate-history career setup', () => {
     const career = createCareerState('china', 'china-tier3');
     expect(career.experience).toBeLessThan(100);
     expect(career.reputation).toBeLessThan(createCareerState('china', 'china-tier1').reputation);
+  });
+
+  it('separates the Korean government-in-exile command seat from the occupied homeland', () => {
+    const korea = getNation('korea');
+    expect(korea.capitalTerritoryId).toBe('korea');
+    expect(getNationCommandTerritoryId(korea)).toBe('china_interior');
+    expect(korea.operationalHeadquarters?.label).toContain('충칭');
+    expect(territories.find((territory) => territory.id === korea.capitalTerritoryId)?.controller).toBe('axis');
+    expect(territories.find((territory) => territory.id === getNationCommandTerritoryId(korea))?.controller).toBe('allies');
   });
 
   it('displaces the exact real person attached to newly expanded intelligence roles', () => {

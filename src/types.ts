@@ -61,6 +61,10 @@ export interface NationProfile {
   status: NationStatus;
   historicalBasis: string;
   capitalTerritoryId: string;
+  operationalHeadquarters?: {
+    territoryId: string;
+    label: string;
+  };
   strategicTargets: string[];
   summary: string;
   challenge: string;

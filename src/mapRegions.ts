@@ -45,6 +45,26 @@ export function getMapRegionsForTheater(theater: TheaterId): StrategicMapRegionD
   return strategicMapRegions.filter((region) => region.theater === theater);
 }
 
+export function getMapRegionForTerritory(
+  territories: Territory[],
+  territoryId: string,
+  theater: TheaterId,
+): StrategicMapRegionDefinition {
+  const territory = territories.find((candidate) => candidate.id === territoryId);
+  if (!territory) return getDefaultMapRegion(theater);
+  const point = getHistoricalMapPoint(theater, territory);
+  return getMapRegionsForTheater(theater)
+    .filter((candidate) => !candidate.overview && getTerritoriesForMapRegion([territory], candidate).length > 0)
+    .sort((a, b) => {
+      const zoomDifference = b.camera.zoom - a.camera.zoom;
+      if (zoomDifference !== 0) return zoomDifference;
+      const distanceA = Math.hypot(point.x - a.camera.centerX, point.y - a.camera.centerY);
+      const distanceB = Math.hypot(point.x - b.camera.centerX, point.y - b.camera.centerY);
+      return distanceA - distanceB;
+    })[0]
+    ?? getDefaultMapRegion(theater);
+}
+
 export function getTerritoriesForMapRegion(
   territories: Territory[],
   region: StrategicMapRegionDefinition,

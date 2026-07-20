@@ -107,6 +107,7 @@ import {
   createStaffCandidates,
   getPromotionThreshold,
   getNation,
+  getNationCommandTerritoryId,
   getRole,
   nations,
 } from './campaign';
@@ -169,7 +170,7 @@ import {
 import { clampMapCamera, DEFAULT_MAP_CAMERA, deriveFrontLabelAnchors, deriveFrontSummaries, deriveMapConnections, deriveMapMarkerPresentation, deriveSameFrameMapConnections, deriveValidTargetIds, deriveVisibleMapLabelIds, getTerrainGlyphKind, MAX_MAP_ZOOM } from './mapPresentation';
 import type { FrontSummary, MapCamera, MapLabelMode } from './mapPresentation';
 import { getHistoricalMapPlacement, getHistoricalMapPoint, historicalMapFrames, historicalMapSources } from './historicalMaps';
-import { getDefaultMapRegion, getMapRegion, getMapRegionsForTheater, getTerritoriesForMapRegion } from './mapRegions';
+import { getDefaultMapRegion, getMapRegion, getMapRegionForTerritory, getMapRegionsForTheater, getTerritoriesForMapRegion } from './mapRegions';
 import { strategicFronts } from './strategicMapData';
 import { achievementDefinitions, evaluateAchievements, getAchievement, getAchievementRecommendations, normalizeAchievementUnlocks, normalizeTrackedAchievementId } from './achievements';
 import type { AchievementUnlock } from './achievements';
@@ -421,7 +422,7 @@ export function App() {
       return getInitialNavigationCollapsed(null, window.innerWidth);
     }
   });
-  const [selectedTerritoryId, setSelectedTerritoryId] = useState(defaultNation.capitalTerritoryId);
+  const [selectedTerritoryId, setSelectedTerritoryId] = useState(getNationCommandTerritoryId(defaultNation));
   const [selectedDivisionId, setSelectedDivisionId] = useState(defaultDivisions[0].id);
   const [planningMode, setPlanningMode] = useState(false);
   const [pendingOffensivePlan, setPendingOffensivePlan] = useState<PendingOffensivePlan | null>(null);
@@ -650,6 +651,7 @@ export function App() {
   );
   const selectedFrontSummary = theaterFrontSummaries.find((front) => front.id === selectedTerritory.frontId);
   const selectedTerritoryDivisions = effectiveDivisions.filter((division) => division.territoryId === selectedTerritory.id).length;
+  const selectedIsOperationalHeadquarters = campaignPhase === 'war' && playerNation.operationalHeadquarters?.territoryId === selectedTerritory.id;
   const selectedHostileNeighbors = selectedTerritory.neighbors.filter((neighborId) => {
     const controller = territories.find((territory) => territory.id === neighborId)?.controller;
     return controller !== undefined && controller !== selectedTerritory.controller && controller !== 'neutral';
@@ -1843,11 +1845,14 @@ export function App() {
     setRelations(newRelations);
     setOperations(newOperations);
     setCareer(newCareer);
-    const openingMapRegion = getDefaultMapRegion(nation.defaultTheater);
+    const commandTerritoryId = getNationCommandTerritoryId(nation);
+    const openingMapRegion = nation.operationalHeadquarters
+      ? getMapRegionForTerritory(newTerritories, commandTerritoryId, nation.defaultTheater)
+      : getDefaultMapRegion(nation.defaultTheater);
     setActiveTheater(nation.defaultTheater);
     setActiveMapRegionId(openingMapRegion.id);
     setMapCamera(clampMapCamera(openingMapRegion.camera));
-    setSelectedTerritoryId(nation.capitalTerritoryId);
+    setSelectedTerritoryId(commandTerritoryId);
     setSelectedDivisionId(newDivisions[0].id);
     setObjectiveProgress(22);
     setTorchAuthorized(false);
@@ -2017,7 +2022,7 @@ export function App() {
       setActiveTheater(restoredTheater);
       setActiveMapRegionId(restoredMapRegion.id);
       setMapCamera(clampMapCamera(restoredMapRegion.camera));
-      setSelectedTerritoryId(data.selectedTerritoryId ?? restoredNation.capitalTerritoryId);
+      setSelectedTerritoryId(data.selectedTerritoryId ?? getNationCommandTerritoryId(restoredNation));
       setSelectedDivisionId(data.selectedDivisionId ?? migratedDivisions[0]?.id);
       setCampaignOutcome(restoredPhase === 'nation' ? null : data.campaignOutcome ?? null);
       setObjectiveProgress(data.objectiveProgress ?? 28);
@@ -2088,7 +2093,7 @@ export function App() {
     setCareer(createCareerState(DEFAULT_NATION_ID, DEFAULT_ROLE_ID));
     setActiveTheater('europe');
     setActiveMapRegionId('europe-overview');
-    setSelectedTerritoryId(defaultNation.capitalTerritoryId);
+    setSelectedTerritoryId(getNationCommandTerritoryId(defaultNation));
     setSelectedDivisionId(defaultDivisions[0].id);
     setMapLayer('political');
     setMapCamera(DEFAULT_MAP_CAMERA);
@@ -2593,10 +2598,7 @@ export function App() {
     if (!territory) return;
     const territoryTheater = territory.theater ?? 'europe';
     const point = getHistoricalMapPoint(territoryTheater, territory);
-    const region = getMapRegionsForTheater(territoryTheater)
-      .filter((candidate) => !candidate.overview && getTerritoriesForMapRegion([territory], candidate).length > 0)
-      .sort((a, b) => b.camera.zoom - a.camera.zoom)[0]
-      ?? getDefaultMapRegion(territoryTheater);
+    const region = getMapRegionForTerritory(territories, territory.id, territoryTheater);
     setActiveTheater(territoryTheater);
     setActiveMapRegionId(region.id);
     setActiveTab('map');
@@ -3532,14 +3534,20 @@ export function App() {
     { id: 'research', label: isKoreaWarCampaign ? '독립전쟁 기술' : '연구 개발', navHint: isKoreaWarCampaign ? '무전·침투·연합 훈련' : '기술과 장비 계보', group: '전쟁 수행', description: isKoreaWarCampaign ? '무전·암호·침투·의무·연합 훈련과 장비 운용 능력을 연구합니다.' : '두 개의 연구 슬롯에 전쟁 기술 과제를 배정합니다.', guide: isKoreaWarCampaign ? ['작전 병목 선택', '기술·연합 장비 비교', '연구 슬롯 배정'] : ['전략 목표 선택', '기술·장비 비교', '연구 슬롯 배정'], icon: 'research' },
   ];
   const activeTabMeta = tabItems.find((tab) => tab.id === activeTab) ?? tabItems[0];
-  const openGameTab = (tabId: GameTab) => {
+  const openGameTab = useCallback((tabId: GameTab) => {
+    preloadGameTab(tabId);
+    if (tabId === 'map' && isKoreaWarCampaign) {
+      setMapFocusMode(false);
+      focusMapTerritory('korea');
+      if (window.matchMedia('(max-width: 900px)').matches) setNavigationCollapsed(true);
+      return;
+    }
     if (tabId !== 'map') {
       setMapFocusMode(false);
     }
-    preloadGameTab(tabId);
     setActiveTab(tabId);
     if (window.matchMedia('(max-width: 900px)').matches) setNavigationCollapsed(true);
-  };
+  }, [focusMapTerritory, isKoreaWarCampaign]);
   const commandPaletteItems: CommandPaletteItem[] = [
     ...tabItems.map((tab) => ({ id: `tab-${tab.id}`, group: tab.group, title: tab.label, description: tab.description, keywords: [tab.id, tab.navHint], icon: <GameIcon name={tab.icon} size={18} tone="gold" />, active: activeTab === tab.id })),
     { id: 'theater-europe', group: '전구 지도', title: '유럽·지중해 전구', description: '유럽, 북아프리카와 지중해 전선을 엽니다.', keywords: ['유럽', '아프리카', '지도'], icon: <Map size={17} />, active: activeTheater === 'europe' },
@@ -3720,6 +3728,7 @@ export function App() {
             theater={activeTheater}
             intelNetwork={game.intelNetwork}
             playerFaction={playerFaction}
+            operationalHeadquarters={campaignPhase === 'war' ? playerNation.operationalHeadquarters : undefined}
             planningOriginId={planningMode ? selectedDivision.territoryId : undefined}
             camera={mapCamera}
             labelMode={mapLabelMode}
@@ -4118,9 +4127,9 @@ export function App() {
       {activeTab === 'map' && mapSelectionOpen && <section className="selected-province" aria-label={`선택 지역 ${selectedTerritory.name}`}>
         <div className={'faction-stripe ' + selectedTerritory.controller} />
         <div className="province-title">
-          <span>{selectedTerritory.region}</span>
-          <h3>{selectedTerritory.name}</h3>
-          <small title={selectedTerritory.historicalNote}>{factionLabels[selectedTerritory.controller]} 통제 · {selectedTerritory.terrain}{selectedFrontSummary ? ` · ${selectedFrontSummary.name}` : ''}</small>
+          <span>{selectedIsOperationalHeadquarters ? playerNation.operationalHeadquarters?.label : selectedTerritory.region}</span>
+          <h3>{selectedIsOperationalHeadquarters ? `${selectedTerritory.name} · 연합국 주재지` : selectedTerritory.name}</h3>
+          <small title={selectedTerritory.historicalNote}>{factionLabels[selectedTerritory.controller]} 통제 · {selectedTerritory.terrain}{selectedIsOperationalHeadquarters ? ' · 중국 영토 내 임정 본부' : ''}{selectedFrontSummary ? ` · ${selectedFrontSummary.name}` : ''}</small>
         </div>
         <div className="province-stat"><span>보급</span><strong>{selectedTerritory.supply}%</strong><ProgressBar value={selectedTerritory.supply} thin /></div>
         <div className="province-stat"><span>전략 가치</span><strong>{selectedTerritory.value}</strong><div className="stars">{'★'.repeat(Math.min(5, Math.ceil(selectedTerritory.value / 2)))}</div></div>
@@ -4319,7 +4328,7 @@ export function App() {
       )}
       {showTutorial && !showBriefing && !campaignOutcome && !pendingWorldFlashpoint && !pendingCoupIncident && !showPoliticalCrisis && !pendingCouncilEvent && !pendingBattleReport && (
         <Suspense fallback={null}>
-          <TutorialOverlay nationId={playerNation.id} onNavigate={setActiveTab} onComplete={completeTutorial} />
+          <TutorialOverlay nationId={playerNation.id} onNavigate={openGameTab} onComplete={completeTutorial} />
         </Suspense>
       )}
       {toast && <div className="toast" role="status" aria-live="polite"><Radio size={16} /><span>{toast}</span></div>}
@@ -4360,7 +4369,7 @@ function TerrainGlyph({ terrain }: { terrain: string }) {
   return <g className="terrain-glyph plains-glyph" transform="translate(-18 14)" aria-hidden="true"><path d="M-7 1 H12 M-4 5 H9" /></g>;
 }
 
-function MapBoard({ territories, divisions, orders, selectedTerritoryId, planningMode, layer, labelMode, theater, intelNetwork, playerFaction, planningOriginId, camera, fronts, onCameraChange, onZoom, onSelect }: {
+function MapBoard({ territories, divisions, orders, selectedTerritoryId, planningMode, layer, labelMode, theater, intelNetwork, playerFaction, operationalHeadquarters, planningOriginId, camera, fronts, onCameraChange, onZoom, onSelect }: {
   territories: Territory[];
   divisions: Division[];
   orders: Order[];
@@ -4371,6 +4380,7 @@ function MapBoard({ territories, divisions, orders, selectedTerritoryId, plannin
   theater: TheaterId;
   intelNetwork: number;
   playerFaction: Exclude<Faction, 'neutral'>;
+  operationalHeadquarters?: NationProfile['operationalHeadquarters'];
   planningOriginId?: string;
   camera: MapCamera;
   fronts: FrontSummary[];
@@ -4634,12 +4644,13 @@ function MapBoard({ territories, divisions, orders, selectedTerritoryId, plannin
         const isPlanningOrigin = planningMode && planningOriginId === territory.id;
         const isValidTarget = planningMode && validTargetIds.has(territory.id);
         const isUnavailableTarget = planningMode && !isPlanningOrigin && !isValidTarget;
+        const isOperationalHeadquarters = operationalHeadquarters?.territoryId === territory.id;
         const labelTier = territory.labelTier ?? 2;
         const markerPresentation = markerPresentations.get(territory.id)!;
         return (
           <g
             key={territory.id}
-            className={'territory-marker label-tier-' + labelTier + ' site-' + (territory.siteType ?? 'region') + ' ' + territory.controller + (selected ? ' selected' : '') + (markerPresentation.secondary ? ' secondary-marker' : '') + (territory.supply < 50 ? ' low-supply' : '') + (isPlanningOrigin ? ' planning-origin' : '') + (isValidTarget ? ' valid-target' : '') + (isUnavailableTarget ? ' unavailable-target' : '')}
+            className={'territory-marker label-tier-' + labelTier + ' site-' + (territory.siteType ?? 'region') + ' ' + territory.controller + (selected ? ' selected' : '') + (isOperationalHeadquarters ? ' operational-headquarters' : '') + (markerPresentation.secondary ? ' secondary-marker' : '') + (territory.supply < 50 ? ' low-supply' : '') + (isPlanningOrigin ? ' planning-origin' : '') + (isValidTarget ? ' valid-target' : '') + (isUnavailableTarget ? ' unavailable-target' : '')}
             transform={'translate(' + x + ' ' + y + ')'}
             role="button"
             tabIndex={0}
@@ -4649,12 +4660,18 @@ function MapBoard({ territories, divisions, orders, selectedTerritoryId, plannin
               event.preventDefault();
               onSelect(territory.id);
             }}
-            aria-label={`${territory.name}, ${factionLabels[territory.controller]} 통제, ${territory.terrain}, 보급 ${territory.supply}%`}
+            aria-label={`${territory.name}, ${factionLabels[territory.controller]} 통제, ${territory.terrain}, 보급 ${territory.supply}%${isOperationalHeadquarters ? `, ${operationalHeadquarters.label}` : ''}`}
           >
             {isValidTarget && <circle className="valid-target-ring" r="30" />}
             {selected && <circle className="selection-ring" r="31" />}
             <circle className="territory-halo" r={territory.value > 8 ? 19 : 15} />
             <circle className="territory-core" r={territory.value > 8 ? 9 : 7} />
+            {isOperationalHeadquarters && (
+              <g className="operational-headquarters-badge" transform={`scale(${1 / camera.zoom})`} aria-hidden="true">
+                <rect x="-63" y="-55" width="126" height="20" rx="3" />
+                <text y="-41">{operationalHeadquarters.label}</text>
+              </g>
+            )}
             {markerPresentation.showDetailGlyph && <TerrainGlyph terrain={territory.terrain} />}
             {markerPresentation.showLabel && visibleMapLabelIds.has(`territory:${territory.id}`) && (
               <g className="territory-label" transform={`scale(${1 / camera.zoom})`}>

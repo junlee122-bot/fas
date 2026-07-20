@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { territories } from './data';
-import { getDefaultMapRegion, getMapRegionsForTheater, getTerritoriesForMapRegion, strategicMapRegions } from './mapRegions';
+import { getDefaultMapRegion, getMapRegionForTerritory, getMapRegionsForTheater, getTerritoriesForMapRegion, strategicMapRegions } from './mapRegions';
 
 describe('regional strategic maps', () => {
   it('provides an overview and multiple detailed maps for both theaters', () => {
@@ -21,5 +21,10 @@ describe('regional strategic maps', () => {
     expect(westernIds.has('moscow')).toBe(false);
     expect(indiaBurmaIds.has('imphal')).toBe(true);
     expect(indiaBurmaIds.has('japan_home')).toBe(false);
+  });
+
+  it('opens both the Chongqing command seat and Joseon homeland in the China–Korea regional map', () => {
+    expect(getMapRegionForTerritory(territories, 'china_interior', 'asia').id).toBe('china-korea');
+    expect(getMapRegionForTerritory(territories, 'korea', 'asia').id).toBe('china-korea');
   });
 });
