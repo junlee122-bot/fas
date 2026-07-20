@@ -7577,3 +7577,97 @@ button.triage-step { grid-template-columns: auto minmax(0,1fr) auto; text-align:
   .status-metric-grid article:nth-child(2n) { min-height: 78px; border-right: 0; }
   .status-readiness p { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 }
+
+/* Korea/Joseon campaign: distinguish the Chongqing command base from the occupied homeland. */
+.korea-setup-brief {
+  margin-top: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(102, 151, 160, .3);
+  border-left: 3px solid #6f9fa7;
+  background: linear-gradient(135deg, rgba(67, 117, 126, .12), rgba(8, 14, 13, .38) 58%);
+}
+.korea-setup-brief > header { padding: 11px 12px 9px; border-bottom: 1px solid rgba(102, 151, 160, .16); }
+.korea-setup-brief > header > span { font: 650 6px var(--font-data); color: #85b8c0; letter-spacing: .13em; }
+.korea-setup-brief h2 { margin: 3px 0 4px; font-size: 11px; color: #e3e8e4; }
+.korea-setup-brief > header p { margin: 0; font-size: 7px; line-height: 1.55; color: #91a39e; }
+.korea-setup-geography { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-bottom: 1px solid rgba(102, 151, 160, .14); }
+.korea-setup-geography > div { min-width: 0; display: flex; align-items: center; gap: 7px; padding: 8px 10px; border-right: 1px solid rgba(102, 151, 160, .12); border-bottom: 1px solid rgba(102, 151, 160, .12); color: #76aeb7; }
+.korea-setup-geography > div:nth-child(2n) { border-right: 0; }
+.korea-setup-geography > div:nth-last-child(-n+2) { border-bottom: 0; }
+.korea-setup-geography > div > span { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.korea-setup-geography small { font-size: 6px; color: #718b87; }
+.korea-setup-geography strong { overflow: hidden; font-size: 7px; color: #cbd8d5; text-overflow: ellipsis; white-space: nowrap; }
+.korea-role-mission { display: grid; grid-template-columns: 1fr; gap: 0; }
+.korea-role-mission > span { display: grid; gap: 3px; padding: 9px 11px; border-bottom: 1px solid rgba(102, 151, 160, .12); }
+.korea-role-mission small { font: 600 6px var(--font-data); color: var(--gold); letter-spacing: .06em; }
+.korea-role-mission strong { font-size: 8px; line-height: 1.45; color: #d5dcda; }
+.korea-role-mission em { font-size: 7px; line-height: 1.5; color: #819791; font-style: normal; }
+.korea-setup-brief > footer { display: flex; align-items: flex-start; gap: 6px; padding: 8px 11px; font-size: 7px; line-height: 1.5; color: #a18e63; background: rgba(198, 168, 107, .035); }
+.korea-setup-brief > footer svg { flex: 0 0 auto; margin-top: 1px; }
+
+.korea-command-center {
+  overflow: hidden;
+  border: 1px solid rgba(104, 154, 163, .28);
+  background:
+    radial-gradient(circle at 88% 12%, rgba(85, 137, 148, .12), transparent 35%),
+    linear-gradient(135deg, rgba(20, 34, 33, .96), rgba(14, 21, 20, .96));
+  box-shadow: 0 14px 32px rgba(0, 0, 0, .22);
+}
+.korea-command-center > header { min-height: 102px; display: grid; grid-template-columns: 170px minmax(0, 1fr) auto; align-items: center; gap: 18px; padding: 15px 17px; border-bottom: 1px solid rgba(104, 154, 163, .19); }
+.korea-command-location { display: flex; align-items: center; gap: 9px; color: #78adb5; }
+.korea-command-location > i { display: flex; flex-direction: column; gap: 3px; font-style: normal; }
+.korea-command-location small { font: 600 7px var(--font-data); color: #718d89; }
+.korea-command-location strong { font-size: 11px; color: #c7d8d6; }
+.korea-command-heading { min-width: 0; }
+.korea-command-heading > em { font: 650 7px var(--font-data); color: var(--gold); letter-spacing: .12em; }
+.korea-command-heading h3 { margin: 4px 0 5px; font-size: 17px; color: #ece8dc; }
+.korea-command-heading p { max-width: 680px; margin: 0; font-size: 9px; line-height: 1.55; color: #8fa19c; }
+.korea-command-center > header > button,
+.korea-command-center > footer > button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; padding: 0 10px; border: 1px solid rgba(198, 168, 107, .28); color: #d6c18b; background: rgba(198, 168, 107, .06); cursor: pointer; }
+.korea-command-center > header > button:hover,
+.korea-command-center > footer > button:hover { border-color: rgba(198, 168, 107, .55); background: rgba(198, 168, 107, .11); }
+.korea-liberation-tracks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.korea-liberation-tracks > button { position: relative; min-width: 0; min-height: 164px; display: grid; grid-template-columns: 34px minmax(0, 1fr); grid-template-rows: 1fr auto auto; gap: 8px 9px; padding: 14px 13px 12px; text-align: left; border: 0; border-right: 1px solid rgba(104, 154, 163, .15); color: #a9b8b4; background: rgba(255, 255, 255, .008); cursor: pointer; }
+.korea-liberation-tracks > button:last-child { border-right: 0; }
+.korea-liberation-tracks > button:hover { background: rgba(109, 159, 168, .06); }
+.korea-liberation-tracks > button > .game-icon { grid-row: 1; }
+.korea-liberation-tracks > button > span { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.korea-liberation-tracks small { display: flex; align-items: center; justify-content: space-between; gap: 5px; font-size: 8px; color: #a9bfbb; }
+.korea-liberation-tracks small em { flex: 0 0 auto; padding: 2px 4px; font: 600 6px var(--font-data); color: #bba46d; border: 1px solid rgba(198, 168, 107, .2); font-style: normal; }
+.korea-liberation-tracks strong { font: 650 22px var(--font-data); color: #e2e7e3; }
+.korea-liberation-tracks p { margin: 0; font-size: 8px; line-height: 1.5; color: #788b86; }
+.korea-liberation-tracks > button > b { grid-column: 1 / -1; display: flex; align-items: center; justify-content: flex-end; gap: 3px; font-size: 7px; color: #89b4b7; }
+.korea-liberation-tracks > button > i { grid-column: 1 / -1; height: 3px; overflow: hidden; background: rgba(255, 255, 255, .06); }
+.korea-liberation-tracks > button > i span { display: block; height: 100%; background: #6f9fa7; }
+.korea-liberation-tracks > button.tone-green > i span { background: #6ea47d; }
+.korea-liberation-tracks > button.tone-gold > i span { background: #c6a86b; }
+.korea-liberation-tracks > button.tone-red > i span { background: #b85c4a; }
+.korea-command-center > footer { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border-top: 1px solid rgba(104, 154, 163, .17); background: rgba(0, 0, 0, .12); }
+.korea-command-center > footer > span { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.korea-command-center > footer small { font: 600 6px var(--font-data); color: var(--gold); }
+.korea-command-center > footer strong { overflow: hidden; font-size: 9px; color: #bdc9c5; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 1050px) {
+  .korea-command-center > header { grid-template-columns: 145px minmax(0, 1fr); }
+  .korea-command-center > header > button { grid-column: 2; justify-self: start; }
+  .korea-liberation-tracks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .korea-liberation-tracks > button:nth-child(2) { border-right: 0; }
+  .korea-liberation-tracks > button:nth-child(-n+2) { border-bottom: 1px solid rgba(104, 154, 163, .15); }
+}
+
+@media (max-width: 640px) {
+  .korea-setup-geography { grid-template-columns: minmax(0, 1fr); }
+  .korea-setup-geography > div,
+  .korea-setup-geography > div:nth-child(2n),
+  .korea-setup-geography > div:nth-last-child(-n+2) { border-right: 0; border-bottom: 1px solid rgba(102, 151, 160, .12); }
+  .korea-setup-geography > div:last-child { border-bottom: 0; }
+  .korea-command-center > header { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 13px; }
+  .korea-command-center > header > button { grid-column: 1; justify-self: stretch; }
+  .korea-command-heading h3 { font-size: 15px; }
+  .korea-liberation-tracks { grid-template-columns: minmax(0, 1fr); }
+  .korea-liberation-tracks > button,
+  .korea-liberation-tracks > button:nth-child(2) { min-height: 142px; border-right: 0; border-bottom: 1px solid rgba(104, 154, 163, .15); }
+  .korea-liberation-tracks > button:last-child { border-bottom: 0; }
+  .korea-command-center > footer { align-items: stretch; flex-direction: column; }
+  .korea-command-center > footer strong { white-space: normal; }
+}

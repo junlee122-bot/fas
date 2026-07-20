@@ -881,18 +881,19 @@ export function App() {
     pendingCoupIncident,
   }), [achievementUnlocks, activeTheater, battleReports, battleStance, campaignOutcome, campaignPhase, career, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, economy, equipmentDevelopment, events, game, lastReadWorldWeeklyId, nationManagement, objectiveProgress, operations, orders, pendingBattleReportId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, politicalCrisis, priorityDivisionId, procurementFocusId, production, publicHealth, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized, worldHistoryState, worldWeeklyIssues]);
   const campaignDate = getCampaignDate(game.week);
+  const isKoreaWarCampaign = playerNation.id === 'korea' && campaignPhase === 'war';
   const statusResources: StatusResource[] = [
-    { id: 'treasury', label: '국고', value: formatGameMoney(game.treasury), delta: campaignPhase === 'nation' && nationManagement.reports[0] ? formatGameMoney(nationManagement.reports[0].fiscalBalance, { signed: true }) : formatGameMoney(economyForecast.netTreasuryChange, { signed: true }), detail: '정책·조달·급여의 공통 재원', icon: 'treasury', tone: 'gold', priority: true },
-    { id: 'politics', label: campaignPhase === 'nation' ? '정치 역량' : '정치력', value: formatNumber(game.politicalPower), delta: campaignPhase === 'nation' ? `위임 ${nationManagement.mandateScore}` : '+3/주', detail: '인사·외교·정책 결재에 사용', icon: 'politics', tone: 'gold', priority: true },
-    { id: 'manpower', label: campaignPhase === 'nation' ? '노동·예비 인력' : '가용 인력', value: `${formatNumber(game.manpower)}K`, delta: campaignPhase === 'nation' ? `고용 ${Math.round(nationManagement.employment)}` : '+18/주', detail: campaignPhase === 'nation' ? '산업·행정·국방 인력 기반' : '편제 충원과 손실 보충', icon: 'manpower', tone: 'blue' },
-    { id: 'factories', label: campaignPhase === 'nation' ? '산업 기반' : '군수 공장', value: String(game.factories), delta: campaignPhase === 'nation' ? `민수 ${Math.round(nationManagement.civilianIndustry)}` : undefined, detail: '장비·기반시설 생산 능력', icon: 'industry', tone: 'steel' },
-    { id: 'fuel', label: campaignPhase === 'nation' ? '전략 에너지' : '연료', value: `${formatNumber(game.fuel)}K`, delta: campaignPhase === 'nation' ? undefined : '+2.6/주', detail: '기갑·항공·해군 작전 지속', icon: 'fuel', tone: 'green' },
-    { id: 'steel', label: '강철', value: `${formatNumber(game.steel)}K`, delta: '+9/주', detail: '중장비·차량·함정 생산 원료', icon: 'steel', tone: 'steel' },
+    { id: 'treasury', label: isKoreaWarCampaign ? '독립운동 기금' : '국고', value: formatGameMoney(game.treasury), delta: campaignPhase === 'nation' && nationManagement.reports[0] ? formatGameMoney(nationManagement.reports[0].fiscalBalance, { signed: true }) : formatGameMoney(economyForecast.netTreasuryChange, { signed: true }), detail: isKoreaWarCampaign ? '임시정부 운영·연합 조달·국내 공작 재원' : '정책·조달·급여의 공통 재원', icon: 'treasury', tone: 'gold', priority: true },
+    { id: 'politics', label: isKoreaWarCampaign ? '외교·조직력' : campaignPhase === 'nation' ? '정치 역량' : '정치력', value: formatNumber(game.politicalPower), delta: campaignPhase === 'nation' ? `위임 ${nationManagement.mandateScore}` : '+3/주', detail: isKoreaWarCampaign ? '승인 교섭·정파 통합·인사 결재' : '인사·외교·정책 결재에 사용', icon: 'politics', tone: 'gold', priority: true },
+    { id: 'manpower', label: isKoreaWarCampaign ? '동원 가능 인력' : campaignPhase === 'nation' ? '노동·예비 인력' : '가용 인력', value: `${formatNumber(game.manpower)}K`, delta: campaignPhase === 'nation' ? `고용 ${Math.round(nationManagement.employment)}` : '+18/주', detail: isKoreaWarCampaign ? '광복군 충원·연락망·해방 행정 인력' : campaignPhase === 'nation' ? '산업·행정·국방 인력 기반' : '편제 충원과 손실 보충', icon: 'manpower', tone: 'blue' },
+    { id: 'factories', label: isKoreaWarCampaign ? '협력 생산망' : campaignPhase === 'nation' ? '산업 기반' : '군수 공장', value: String(game.factories), delta: campaignPhase === 'nation' ? `민수 ${Math.round(nationManagement.civilianIndustry)}` : undefined, detail: isKoreaWarCampaign ? '중국·연합군 조달과 분산 작업장' : '장비·기반시설 생산 능력', icon: 'industry', tone: 'steel' },
+    { id: 'fuel', label: isKoreaWarCampaign ? '작전 연료' : campaignPhase === 'nation' ? '전략 에너지' : '연료', value: `${formatNumber(game.fuel)}K`, delta: campaignPhase === 'nation' ? undefined : '+2.6/주', detail: isKoreaWarCampaign ? '광복군 훈련·침투·연합 수송 지원' : '기갑·항공·해군 작전 지속', icon: 'fuel', tone: 'green' },
+    { id: 'steel', label: isKoreaWarCampaign ? '조달 강철' : '강철', value: `${formatNumber(game.steel)}K`, delta: '+9/주', detail: isKoreaWarCampaign ? '연합 조달 장비와 정비 부품 원료' : '중장비·차량·함정 생산 원료', icon: 'steel', tone: 'steel' },
   ];
   const statusMetrics: StatusMetric[] = [
     {
       id: 'coup',
-      label: '국내 정치위기',
+      label: isKoreaWarCampaign ? '독립운동 내부 갈등' : '국내 정치위기',
       value: `${getCoupRiskLabel(coupRisk.tier)} ${coupRisk.score}`,
       detail: `다음 주 시도 확률 ${coupRisk.weeklyChance.toFixed(1)}%`,
       tone: coupRisk.tier === 'critical' || coupRisk.tier === 'dangerous' ? 'danger' : coupRisk.tier === 'watch' ? 'warning' : 'good',
@@ -908,7 +909,7 @@ export function App() {
     },
     {
       id: 'stability',
-      label: '국가 안정도',
+      label: isKoreaWarCampaign ? '독립운동 결속' : '국가 안정도',
       value: `${Math.round(game.stability)}`,
       detail: game.stability < 45 ? '정책 집행과 국내 질서가 위험합니다.' : '정부 집행력과 국내 질서',
       tone: game.stability < 40 ? 'danger' : game.stability < 60 ? 'warning' : 'good',
@@ -916,7 +917,7 @@ export function App() {
     },
     campaignPhase === 'nation'
       ? { id: 'mandate', label: '국민 위임', value: `${nationManagement.mandateScore}`, detail: `사회 불안 ${Math.round(nationManagement.unrest)} · 고용 ${Math.round(nationManagement.employment)}`, tone: nationManagement.mandateScore < 40 ? 'danger' : nationManagement.mandateScore < 60 ? 'warning' : 'good', icon: 'politics' }
-      : { id: 'pressure', label: '적 전선 압력', value: `${Math.round(game.enemyPressure)}`, detail: `전쟁 지지도 ${Math.round(game.warSupport)} · 평균 보급 ${Math.round(averageDivisionSupply)}`, tone: game.enemyPressure >= 75 ? 'danger' : game.enemyPressure >= 58 ? 'warning' : 'neutral', icon: 'army' },
+      : { id: 'pressure', label: isKoreaWarCampaign ? '점령지 압력' : '적 전선 압력', value: `${Math.round(game.enemyPressure)}`, detail: `전쟁 지지도 ${Math.round(game.warSupport)} · 평균 보급 ${Math.round(averageDivisionSupply)}`, tone: game.enemyPressure >= 75 ? 'danger' : game.enemyPressure >= 58 ? 'warning' : 'neutral', icon: 'army' },
   ];
   const hasSave = Boolean(localStorage.getItem(SAVE_KEY));
 
@@ -3518,17 +3519,17 @@ export function App() {
   };
 
   const tabItems: { id: GameTab; label: string; description: string; navHint: string; group: string; guide: [string, string, string]; icon: GameIconName }[] = [
-    { id: 'command', label: campaignPhase === 'nation' ? '국정 상황실' : '지휘 본부', navHint: '이번 주 우선순위', group: '최고 지휘부', description: campaignPhase === 'nation' ? '국민·재정·보건·외교의 긴급 업무를 한 화면에서 파악합니다.' : '결재 업무·전황·조직·생산·연구를 한 화면에서 파악합니다.', guide: ['경고 확인', '권장 행동 결재', '다음 주 진행'], icon: 'command' },
-    { id: 'governance', label: campaignPhase === 'nation' ? '국가 운영' : '전후 설계', navHint: campaignPhase === 'nation' ? '예산·민생·선거' : '종전과 국가 전환', group: '최고 지휘부', description: campaignPhase === 'nation' ? '예산·민생·산업·제도·국민 위임을 주간 단위로 운영합니다.' : '전쟁에서 국가 운영으로 이어질 종전 방식과 전후 초기 조건을 준비합니다.', guide: campaignPhase === 'nation' ? ['국가 지표 확인', '예산·노선 조정', '국정 1주 진행'] : ['전환 준비도 확인', '전후 위험 비교', '종전 경로 선택'], icon: 'organization' },
-    { id: 'map', label: campaignPhase === 'nation' ? '세계·국경 지도' : '전황 지도', navHint: campaignPhase === 'nation' ? '국경과 국제 질서' : '전선과 작전 계획', group: '최고 지휘부', description: campaignPhase === 'nation' ? '종전 이후 국경·교역·안보 관계와 세계선의 변화를 검토합니다.' : '전선·보급·기상·정보를 지도에서 검토하고 공세 목표를 지정합니다.', guide: campaignPhase === 'nation' ? ['세계선 선택', '국경·거점 확인', '외교·안보 검토'] : ['지도층 선택', '부대·거점 확인', '공세 목표 지정'], icon: 'map' },
-    { id: 'organization', label: '조직 운영', navHint: '참모·영입·편제', group: '국가 운영', description: '참모진·영입·편제·조달·국가 원칙을 관리합니다.', guide: ['조직 병목 확인', '인재 비교·영입', '보직과 권한 배정'], icon: 'organization' },
-    { id: 'economy', label: campaignPhase === 'nation' ? '재정·경제부' : '전시 재무성', navHint: '세금·국채·기업지분', group: '국가 운영', description: '주간·월간 세입과 지출, 국가부채, 물가, 역사적 산업지분을 운용합니다.', guide: ['경상수지와 차입 분리 확인', '조세·국채·가격통제 결정', '기업 위험과 지분 배분'], icon: 'treasury' },
-    { id: 'diplomacy', label: '외교', navHint: '관계와 전후 질서', group: '국가 운영', description: '국가 관계와 영향력을 관리해 전후 질서를 설계합니다.', guide: ['관계도 확인', '외교 의제 선택', '파급 효과 검토'], icon: 'diplomacy' },
-    { id: 'intelligence', label: '정보국', navHint: '첩보망·비밀 작전', group: '국가 운영', description: '전구별 첩보망과 비밀 작전, 암호 해독을 지휘합니다.', guide: ['정보 신뢰도 확인', '요원·표적 선택', '노출 위험 승인'], icon: 'intelligence' },
+    { id: 'command', label: isKoreaWarCampaign ? '독립운동 상황실' : campaignPhase === 'nation' ? '국정 상황실' : '지휘 본부', navHint: isKoreaWarCampaign ? '승인·공작·광복군' : '이번 주 우선순위', group: '최고 지휘부', description: isKoreaWarCampaign ? '충칭 지휘부에서 승인 외교·국내 공작망·광복군·귀환 준비를 한 화면에 파악합니다.' : campaignPhase === 'nation' ? '국민·재정·보건·외교의 긴급 업무를 한 화면에서 파악합니다.' : '결재 업무·전황·조직·생산·연구를 한 화면에서 파악합니다.', guide: isKoreaWarCampaign ? ['네 축의 준비도 확인', '보직 권한 안에서 결재', '해방 시간선 진행'] : ['경고 확인', '권장 행동 결재', '다음 주 진행'], icon: 'command' },
+    { id: 'governance', label: isKoreaWarCampaign ? '해방·건국 설계' : campaignPhase === 'nation' ? '국가 운영' : '전후 설계', navHint: isKoreaWarCampaign ? '헌정·통합·국가 전환' : campaignPhase === 'nation' ? '예산·민생·선거' : '종전과 국가 전환', group: '최고 지휘부', description: isKoreaWarCampaign ? '해방 뒤 정부 형태, 헌정 질서, 행정 인력과 무장 세력 통합 방식을 준비합니다.' : campaignPhase === 'nation' ? '예산·민생·산업·제도·국민 위임을 주간 단위로 운영합니다.' : '전쟁에서 국가 운영으로 이어질 종전 방식과 전후 초기 조건을 준비합니다.', guide: isKoreaWarCampaign ? ['귀환 준비도 확인', '헌정·통합안 비교', '해방 이후 경로 선택'] : campaignPhase === 'nation' ? ['국가 지표 확인', '예산·노선 조정', '국정 1주 진행'] : ['전환 준비도 확인', '전후 위험 비교', '종전 경로 선택'], icon: 'organization' },
+    { id: 'map', label: isKoreaWarCampaign ? '한반도 작전도' : campaignPhase === 'nation' ? '세계·국경 지도' : '전황 지도', navHint: isKoreaWarCampaign ? '점령 본토·국내정진' : campaignPhase === 'nation' ? '국경과 국제 질서' : '전선과 작전 계획', group: '최고 지휘부', description: isKoreaWarCampaign ? '조선 본토의 점령 상태와 만주 연락선, 중국 거점, 국내정진 경로를 구분해 검토합니다.' : campaignPhase === 'nation' ? '종전 이후 국경·교역·안보 관계와 세계선의 변화를 검토합니다.' : '전선·보급·기상·정보를 지도에서 검토하고 공세 목표를 지정합니다.', guide: isKoreaWarCampaign ? ['한반도 지역 선택', '점령·연락망 확인', '국내정진 목표 지정'] : campaignPhase === 'nation' ? ['세계선 선택', '국경·거점 확인', '외교·안보 검토'] : ['지도층 선택', '부대·거점 확인', '공세 목표 지정'], icon: 'map' },
+    { id: 'organization', label: isKoreaWarCampaign ? '독립운동 조직' : '조직 운영', navHint: isKoreaWarCampaign ? '임정·광복군·공작망' : '참모·영입·편제', group: '국가 운영', description: isKoreaWarCampaign ? '임시정부·한국광복군·국내외 공작망의 인재와 지휘선을 보직 권한에 맞춰 관리합니다.' : '참모진·영입·편제·조달·국가 원칙을 관리합니다.', guide: isKoreaWarCampaign ? ['조직별 지휘선 확인', '인재 조사·접촉', '보직과 권한 배정'] : ['조직 병목 확인', '인재 비교·영입', '보직과 권한 배정'], icon: 'organization' },
+    { id: 'economy', label: isKoreaWarCampaign ? '독립운동 재정' : campaignPhase === 'nation' ? '재정·경제부' : '전시 재무성', navHint: isKoreaWarCampaign ? '기금·조달·외환' : '세금·국채·기업지분', group: '국가 운영', description: isKoreaWarCampaign ? '독립운동 기금, 중국·연합군 조달, 외환과 분산 생산망의 주간 흐름을 관리합니다.' : '주간·월간 세입과 지출, 국가부채, 물가, 역사적 산업지분을 운용합니다.', guide: isKoreaWarCampaign ? ['기금 수입·지출 확인', '조달·외환 결정', '지원망 위험 검토'] : ['경상수지와 차입 분리 확인', '조세·국채·가격통제 결정', '기업 위험과 지분 배분'], icon: 'treasury' },
+    { id: 'diplomacy', label: isKoreaWarCampaign ? '독립 승인 외교' : '외교', navHint: isKoreaWarCampaign ? '중국·연합국 승인' : '관계와 전후 질서', group: '국가 운영', description: isKoreaWarCampaign ? '중국과 연합국의 지원·승인·전후 발언권을 확보하고 독립의 외교적 근거를 만듭니다.' : '국가 관계와 영향력을 관리해 전후 질서를 설계합니다.', guide: isKoreaWarCampaign ? ['승인 현황 확인', '외교 상대·의제 선택', '전후 발언권 검토'] : ['관계도 확인', '외교 의제 선택', '파급 효과 검토'], icon: 'diplomacy' },
+    { id: 'intelligence', label: isKoreaWarCampaign ? '국내 공작망' : '정보국', navHint: isKoreaWarCampaign ? '침투·연락·방첩' : '첩보망·비밀 작전', group: '국가 운영', description: isKoreaWarCampaign ? '조선·만주의 연락망, 침투 거점, 선전·구출·파괴 공작과 방첩을 지휘합니다.' : '전구별 첩보망과 비밀 작전, 암호 해독을 지휘합니다.', guide: isKoreaWarCampaign ? ['연락망 신뢰도 확인', '요원·침투 경로 선택', '노출 위험 승인'] : ['정보 신뢰도 확인', '요원·표적 선택', '노출 위험 승인'], icon: 'intelligence' },
     { id: 'health', label: '보건 위기', navHint: '감시·유행·의료 대응', group: '국가 운영', description: '발병 위험을 감시하고 격리·병상·연구·사회 대응을 주간 단위로 지휘합니다.', guide: ['발병 위험·유행 단계 확인', '대응 태세 비교', '영구 역량 사업 승인'], icon: 'health' },
-    { id: 'army', label: campaignPhase === 'nation' ? '국방·동원' : '육군', navHint: campaignPhase === 'nation' ? '억지력·동원 해제' : '사단·지휘관·명령', group: campaignPhase === 'nation' ? '국가 역량' : '전쟁 수행', description: campaignPhase === 'nation' ? '전쟁에서 남은 사단과 지휘관을 국방·예비군·동원 해제 관점에서 관리합니다.' : '사단과 지휘관을 배치하고 공세와 훈련을 명령합니다.', guide: ['사단 준비도 확인', '지휘관·장비 배치', campaignPhase === 'nation' ? '국방 태세 검토' : '명령 승인'], icon: 'army' },
-    { id: 'industry', label: campaignPhase === 'nation' ? '산업 전환' : '군수 생산', navHint: campaignPhase === 'nation' ? '민수화·고용·비축' : '공장·비축·보급', group: campaignPhase === 'nation' ? '국가 역량' : '전쟁 수행', description: campaignPhase === 'nation' ? '군수 공장과 장비 생산선을 민간 산업·고용 기반과 함께 관리합니다.' : '군수 공장과 장비 생산선, 전략 비축량을 조정합니다.', guide: ['가동률 확인', '공장 재배정', '주간 생산 예측'], icon: 'industry' },
-    { id: 'research', label: '연구 개발', navHint: '기술과 장비 계보', group: '전쟁 수행', description: '두 개의 연구 슬롯에 전쟁 기술 과제를 배정합니다.', guide: ['전략 목표 선택', '기술·장비 비교', '연구 슬롯 배정'], icon: 'research' },
+    { id: 'army', label: isKoreaWarCampaign ? '한국광복군' : campaignPhase === 'nation' ? '국방·동원' : '육군', navHint: isKoreaWarCampaign ? '부대·지휘관·국내정진' : campaignPhase === 'nation' ? '억지력·동원 해제' : '사단·지휘관·명령', group: campaignPhase === 'nation' ? '국가 역량' : '전쟁 수행', description: isKoreaWarCampaign ? '광복군 부대와 지휘관, 연합 훈련, 장비와 국내정진 작전 준비를 관리합니다.' : campaignPhase === 'nation' ? '전쟁에서 남은 사단과 지휘관을 국방·예비군·동원 해제 관점에서 관리합니다.' : '사단과 지휘관을 배치하고 공세와 훈련을 명령합니다.', guide: isKoreaWarCampaign ? ['부대 준비도 확인', '지휘관·연합 장비 배치', '국내정진 명령 검토'] : ['사단 준비도 확인', '지휘관·장비 배치', campaignPhase === 'nation' ? '국방 태세 검토' : '명령 승인'], icon: 'army' },
+    { id: 'industry', label: isKoreaWarCampaign ? '연합 조달망' : campaignPhase === 'nation' ? '산업 전환' : '군수 생산', navHint: isKoreaWarCampaign ? '중국·연합군·비축' : campaignPhase === 'nation' ? '민수화·고용·비축' : '공장·비축·보급', group: campaignPhase === 'nation' ? '국가 역량' : '전쟁 수행', description: isKoreaWarCampaign ? '중국 내 분산 작업장과 연합군 조달, 광복군 장비 비축과 수송 병목을 관리합니다.' : campaignPhase === 'nation' ? '군수 공장과 장비 생산선을 민간 산업·고용 기반과 함께 관리합니다.' : '군수 공장과 장비 생산선, 전략 비축량을 조정합니다.', guide: isKoreaWarCampaign ? ['지원망 가동률 확인', '조달선 재배정', '광복군 비축 예측'] : ['가동률 확인', '공장 재배정', '주간 생산 예측'], icon: 'industry' },
+    { id: 'research', label: isKoreaWarCampaign ? '독립전쟁 기술' : '연구 개발', navHint: isKoreaWarCampaign ? '무전·침투·연합 훈련' : '기술과 장비 계보', group: '전쟁 수행', description: isKoreaWarCampaign ? '무전·암호·침투·의무·연합 훈련과 장비 운용 능력을 연구합니다.' : '두 개의 연구 슬롯에 전쟁 기술 과제를 배정합니다.', guide: isKoreaWarCampaign ? ['작전 병목 선택', '기술·연합 장비 비교', '연구 슬롯 배정'] : ['전략 목표 선택', '기술·장비 비교', '연구 슬롯 배정'], icon: 'research' },
   ];
   const activeTabMeta = tabItems.find((tab) => tab.id === activeTab) ?? tabItems[0];
   const openGameTab = (tabId: GameTab) => {
@@ -3606,16 +3607,16 @@ export function App() {
           <div className="brand-mark" style={{ borderColor: playerNation.accent }}><NationFlag nationId={playerNation.id} size="standard" decorative /></div>
           <div className="brand-copy">
             <strong>IRON DOMINION</strong>
-            <span>{playerNation.code} · ALTERNATE HISTORY · {1942 + Math.floor(game.week / 52)}</span>
+            <span>{isKoreaWarCampaign ? `${playerNation.code} · ${1942 + Math.floor(game.week / 52)} · 독립운동 세계선` : `${playerNation.code} · ALTERNATE HISTORY · ${1942 + Math.floor(game.week / 52)}`}</span>
           </div>
           <div className="career-rank-chip"><small>TIER {careerRole.tier} · {staffAuthority.label}</small><strong>{currentRoleTitle}</strong></div>
           <button className={`campaign-phase-chip ${campaignPhase}`} onMouseEnter={() => void loadNationManagementPanel()} onFocus={() => void loadNationManagementPanel()} onClick={() => setActiveTab('governance')}>
             <Landmark size={15} />
-            <span><small>{campaignPhase === 'nation' ? 'POSTWAR GOVERNMENT' : 'WAR GOVERNMENT'}</small><strong>{campaignPhase === 'nation' ? '국가 운영 단계' : `전환 준비 ${transitionReadiness.score}`}</strong></span>
+            <span><small>{isKoreaWarCampaign ? 'LIBERATION GOVERNMENT' : campaignPhase === 'nation' ? 'POSTWAR GOVERNMENT' : 'WAR GOVERNMENT'}</small><strong>{isKoreaWarCampaign ? `해방·건국 준비 ${transitionReadiness.score}` : campaignPhase === 'nation' ? '국가 운영 단계' : `전환 준비 ${transitionReadiness.score}`}</strong></span>
           </button>
-          <button className={`political-crisis-chip ${coupRisk.tier}`} onClick={() => { setSpeed(0); setShowPoliticalCrisis(true); }} aria-label={`국내 정치위기 상황실, 쿠데타 위험 ${getCoupRiskLabel(coupRisk.tier)} ${coupRisk.score}점`}>
+          <button className={`political-crisis-chip ${coupRisk.tier}`} onClick={() => { setSpeed(0); setShowPoliticalCrisis(true); }} aria-label={`${isKoreaWarCampaign ? '독립운동 내부 갈등' : '국내 정치위기'} 상황실, 쿠데타 위험 ${getCoupRiskLabel(coupRisk.tier)} ${coupRisk.score}점`}>
             <ShieldAlert size={16} />
-            <span><small>국내 정치위기</small><strong>{getCoupRiskLabel(coupRisk.tier)} {coupRisk.score}</strong></span>
+            <span><small>{isKoreaWarCampaign ? '독립운동 내부 갈등' : '국내 정치위기'}</small><strong>{getCoupRiskLabel(coupRisk.tier)} {coupRisk.score}</strong></span>
             {coupRisk.tier === 'critical' && <em aria-hidden="true" />}
           </button>
           <button className={`health-command-chip ${publicHealthView.activeOutbreak ? 'crisis' : ''}`} onClick={() => setActiveTab('health')} aria-label={publicHealthView.activeOutbreak ? `${publicHealthView.activeOutbreak.codeName} 보건 위기 지휘실 열기` : `보건 대비 본부 열기, 다음 주 발병 확률 ${(publicHealthView.weeklyRisk * 100).toFixed(2)}퍼센트`}>
@@ -3631,12 +3632,12 @@ export function App() {
 
         <div className="resource-row">
           <div className="resource-scroll-track" role="region" tabIndex={0} aria-label="핵심 자원, 좌우로 스크롤 가능">
-            <ResourceChip priority icon="treasury" tone="gold" value={formatGameMoney(game.treasury)} label={`국고 · ${economy.monetarySystem.historicalAutoTransition ? '역사통화' : '신 통화'}`} compactLabel="국고" delta={campaignPhase === 'nation' && nationManagement.reports[0] ? formatGameMoney(nationManagement.reports[0].fiscalBalance, { signed: true }) : formatGameMoney(economyForecast.netTreasuryChange, { signed: true })} />
-            <ResourceChip icon="politics" tone="gold" value={formatNumber(game.politicalPower)} label={campaignPhase === 'nation' ? '정치 역량' : '정치력'} compactLabel="정치" delta={campaignPhase === 'nation' ? `위임 ${nationManagement.mandateScore}` : '+3'} />
-            <ResourceChip icon="manpower" tone="blue" value={formatNumber(game.manpower) + 'K'} label={campaignPhase === 'nation' ? '노동·예비 인력' : '가용 인력'} compactLabel={campaignPhase === 'nation' ? '인력' : '가용 인력'} delta={campaignPhase === 'nation' ? `고용 ${Math.round(nationManagement.employment)}` : '+18'} />
-            <ResourceChip icon="industry" tone="steel" value={String(game.factories)} label={campaignPhase === 'nation' ? '산업 기반' : '군수 공장'} compactLabel={campaignPhase === 'nation' ? '산업' : '군수 공장'} delta={campaignPhase === 'nation' ? `민수 ${Math.round(nationManagement.civilianIndustry)}` : undefined} />
-            <ResourceChip icon="fuel" tone="green" value={formatNumber(game.fuel) + 'K'} label={campaignPhase === 'nation' ? '전략 에너지' : '연료'} delta={campaignPhase === 'nation' ? undefined : '+2.6'} />
-            <ResourceChip icon="steel" tone="steel" value={formatNumber(game.steel) + 'K'} label="강철" delta="+9" />
+            <ResourceChip priority icon="treasury" tone="gold" value={formatGameMoney(game.treasury)} label={`${isKoreaWarCampaign ? '독립운동 기금' : '국고'} · ${economy.monetarySystem.historicalAutoTransition ? '역사통화' : '신 통화'}`} compactLabel={isKoreaWarCampaign ? '독립기금' : '국고'} delta={campaignPhase === 'nation' && nationManagement.reports[0] ? formatGameMoney(nationManagement.reports[0].fiscalBalance, { signed: true }) : formatGameMoney(economyForecast.netTreasuryChange, { signed: true })} />
+            <ResourceChip icon="politics" tone="gold" value={formatNumber(game.politicalPower)} label={isKoreaWarCampaign ? '외교·조직력' : campaignPhase === 'nation' ? '정치 역량' : '정치력'} compactLabel={isKoreaWarCampaign ? '외교·조직' : '정치'} delta={campaignPhase === 'nation' ? `위임 ${nationManagement.mandateScore}` : '+3'} />
+            <ResourceChip icon="manpower" tone="blue" value={formatNumber(game.manpower) + 'K'} label={isKoreaWarCampaign ? '동원 가능 인력' : campaignPhase === 'nation' ? '노동·예비 인력' : '가용 인력'} compactLabel={isKoreaWarCampaign ? '동원 인력' : campaignPhase === 'nation' ? '인력' : '가용 인력'} delta={campaignPhase === 'nation' ? `고용 ${Math.round(nationManagement.employment)}` : '+18'} />
+            <ResourceChip icon="industry" tone="steel" value={String(game.factories)} label={isKoreaWarCampaign ? '협력 생산망' : campaignPhase === 'nation' ? '산업 기반' : '군수 공장'} compactLabel={isKoreaWarCampaign ? '생산망' : campaignPhase === 'nation' ? '산업' : '군수 공장'} delta={campaignPhase === 'nation' ? `민수 ${Math.round(nationManagement.civilianIndustry)}` : undefined} />
+            <ResourceChip icon="fuel" tone="green" value={formatNumber(game.fuel) + 'K'} label={isKoreaWarCampaign ? '작전 연료' : campaignPhase === 'nation' ? '전략 에너지' : '연료'} delta={campaignPhase === 'nation' ? undefined : '+2.6'} />
+            <ResourceChip icon="steel" tone="steel" value={formatNumber(game.steel) + 'K'} label={isKoreaWarCampaign ? '조달 강철' : '강철'} delta="+9" />
           </div>
           <button type="button" className="status-overview-trigger" aria-label="지휘 현황판 열기" aria-keyshortcuts="H" title="핵심 자원·위험·다음 행동 전체 보기 · H" onClick={() => setShowStatusOverview(true)}><LayoutDashboard size={17} /><span>현황</span></button>
         </div>
@@ -4248,7 +4249,7 @@ export function App() {
           nationName={playerNation.shortName}
           roleTitle={currentRoleTitle}
           date={campaignDate.full}
-          phaseLabel={campaignPhase === 'nation' ? '국가 운영 단계' : '전쟁 지휘 단계'}
+          phaseLabel={isKoreaWarCampaign ? '독립운동·해방 준비 단계' : campaignPhase === 'nation' ? '국가 운영 단계' : '전쟁 지휘 단계'}
           resources={statusResources}
           metrics={statusMetrics}
           actions={uxActions}
@@ -4318,7 +4319,7 @@ export function App() {
       )}
       {showTutorial && !showBriefing && !campaignOutcome && !pendingWorldFlashpoint && !pendingCoupIncident && !showPoliticalCrisis && !pendingCouncilEvent && !pendingBattleReport && (
         <Suspense fallback={null}>
-          <TutorialOverlay onNavigate={setActiveTab} onComplete={completeTutorial} />
+          <TutorialOverlay nationId={playerNation.id} onNavigate={setActiveTab} onComplete={completeTutorial} />
         </Suspense>
       )}
       {toast && <div className="toast" role="status" aria-live="polite"><Radio size={16} /><span>{toast}</span></div>}

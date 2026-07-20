@@ -13,6 +13,7 @@ import type { AchievementDefinition, AchievementProgress } from './achievements'
 import { calculateProductionGains } from './engine';
 import { getEquipmentNode } from './equipment';
 import { GameIcon } from './GameIcon';
+import { KoreaCommandCenter } from './KoreaCommandCenter';
 import { NationFlag } from './NationFlag';
 import { NationalSimulationOverview } from './NationalSimulationOverview';
 import type { NationalSimulationSnapshot } from './nationalSimulation';
@@ -150,14 +151,15 @@ export function CommandDashboard({
   const weeklyLead = weeklyIssue?.articles.find((article) => article.id === weeklyIssue.leadArticleId) ?? weeklyIssue?.articles[0];
   const achievementDestination = achievement ? achievementCategoryDestinations[achievement.category] : null;
   const weeklyDecisionState = urgentCount > 0 ? `${urgentCount}건의 긴급 결재가 전황 진행을 막고 있습니다.` : actions.length > 0 ? `${actions.length}건의 지휘 판단을 검토할 수 있습니다.` : '즉시 처리할 지휘 사안이 없습니다.';
+  const isKoreaCampaign = nation.id === 'korea';
 
   return (
     <div className="command-portal" data-tour="command-dashboard">
-      <section className="portal-hero">
+      <section className="portal-hero" data-tour="command-hero">
         <div className="portal-hero-copy">
-          <span className="eyebrow">WEEK {game.week + 1} · EXECUTIVE BRIEFING</span>
-          <h2>{role.title}, 결재할 사안부터 확인하십시오.</h2>
-          <p>{nation.shortName}의 전선·조직·생산·연구를 한 화면에 요약했습니다. 세부 조정은 각 카드에서 담당 부서로 바로 이동할 수 있습니다.</p>
+          <span className="eyebrow">WEEK {game.week + 1} · {isKoreaCampaign ? 'CHONGQING INDEPENDENCE BRIEFING' : 'EXECUTIVE BRIEFING'}</span>
+          <h2>{role.title}, {isKoreaCampaign ? '해방 준비의 네 축부터 확인하십시오.' : '결재할 사안부터 확인하십시오.'}</h2>
+          <p>{isKoreaCampaign ? '지휘 본부는 충칭에 있고 조선 본토는 아직 점령지입니다. 국제 승인·국내 연락망·광복군·국내정진을 따로 판단한 뒤 담당 조직으로 이동하십시오.' : `${nation.shortName}의 전선·조직·생산·연구를 한 화면에 요약했습니다. 세부 조정은 각 카드에서 담당 부서로 바로 이동할 수 있습니다.`}</p>
           <div className="portal-brief-metrics" aria-label="국가 준비도 산정 요소">
             <span className={game.stability < 50 ? 'warning' : ''}><small>안정도</small><strong>{game.stability}</strong></span>
             <span className={game.warSupport < 50 ? 'warning' : ''}><small>전쟁 지지</small><strong>{game.warSupport}</strong></span>
@@ -167,7 +169,7 @@ export function CommandDashboard({
           </div>
           <div className="portal-hero-actions">
             <button className="primary" data-tour="next-week" onClick={onNextWeek}><GameIcon name="advance" size={17} tone="steel" /> 다음 주 진행 <kbd>N</kbd></button>
-            <button onClick={() => onNavigate('map')}><GameIcon name="map" size={17} tone="blue" /> 전황 지도 열기</button>
+            <button onClick={() => onNavigate('map')}><GameIcon name="map" size={17} tone="blue" /> {isKoreaCampaign ? '한반도 작전도' : '전황 지도 열기'}</button>
           </div>
         </div>
         <div className="readiness-gauge" style={readinessStyle} role="meter" aria-label="국가 준비도" aria-valuemin={0} aria-valuemax={100} aria-valuenow={readiness}>
@@ -177,11 +179,22 @@ export function CommandDashboard({
         <div className="portal-identity">
           <NationFlag nationId={nation.id} size="large" decorative />
           <span>{nation.code} · TIER {role.tier}</span>
-          <strong>{nation.shortName}</strong>
-          <small>{role.scope}</small>
+          <strong>{isKoreaCampaign ? '대한민국 임시정부' : nation.shortName}</strong>
+          <small>{isKoreaCampaign ? `충칭 지휘부 · ${role.scope}` : role.scope}</small>
           <div><span>평판 {career.reputation}</span><span>지도부 신임 {career.councilTrust}</span></div>
         </div>
       </section>
+
+      {isKoreaCampaign && (
+        <KoreaCommandCenter
+          role={role}
+          game={game}
+          territories={territories}
+          divisions={divisions}
+          objectiveProgress={objectiveProgress}
+          onNavigate={onNavigate}
+        />
+      )}
 
       <button className={`portal-health-pulse ${publicHealth.activeOutbreak ? 'crisis' : ''}`} onClick={() => onNavigate('health')}>
         <GameIcon name="health" size={24} tone={publicHealth.activeOutbreak ? 'red' : 'green'} framed active={Boolean(publicHealth.activeOutbreak)} />

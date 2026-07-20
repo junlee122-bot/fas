@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { CAREER_TIER_COUNT, careerRoles, getCareerStarCount, getNation, nations } from './campaign';
 import { getHistoricalFlag } from './historicalFlags';
+import { KoreaCampaignBrief } from './KoreaCampaignBrief';
 import { NationFlag } from './NationFlag';
 import type { CareerBranch, NationId, NationStatus } from './types';
 
@@ -112,6 +113,7 @@ export function CampaignSetup({
             <div className="nation-brief" style={{ borderColor: nation.accent }}>
               <div><NationFlag nationId={nation.id} size="standard" /><span><strong>{nation.name}</strong><small>{nation.challenge}</small></span></div>
               <p>{nation.summary}</p>
+              {nation.id === 'korea' && <KoreaCampaignBrief role={selectedRole} />}
               <div className="historical-flag-record">
                 <span>1942 FLAG RECORD</span>
                 <strong>{historicalFlag.name}</strong>
