@@ -7710,3 +7710,307 @@ button:focus-visible,
   .korea-command-center > footer { align-items: stretch; flex-direction: column; }
   .korea-command-center > footer strong { white-space: normal; }
 }
+
+/* Command room visual language: clearer game states, tactile controls and layered panel chrome. */
+.command-portal {
+  --command-gold: 198, 168, 107;
+  --command-steel: 109, 143, 163;
+  --command-green: 110, 157, 127;
+  --command-red: 169, 95, 81;
+  padding-bottom: 22px;
+}
+
+.portal-hero {
+  position: relative;
+  isolation: isolate;
+  border-color: rgba(var(--command-gold), .36);
+  background:
+    radial-gradient(circle at 78% 8%, rgba(var(--command-steel), .16), transparent 32%),
+    linear-gradient(118deg, rgba(var(--command-gold), .12), rgba(22, 31, 28, .97) 45%, #101715);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, .045),
+    inset 0 -24px 40px rgba(0, 0, 0, .1),
+    0 18px 42px rgba(0, 0, 0, .28);
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+.portal-hero::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  opacity: .11;
+  background-image:
+    linear-gradient(rgba(146, 169, 158, .22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(146, 169, 158, .22) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(90deg, transparent 18%, #000 58%, #000);
+}
+
+.portal-hero::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: min(42%, 560px);
+  height: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, #e0c17b, rgba(var(--command-gold), .18), transparent);
+  box-shadow: 0 0 16px rgba(var(--command-gold), .2);
+}
+
+.portal-hero > * { position: relative; z-index: 1; }
+.portal-hero-copy { background: linear-gradient(90deg, rgba(255, 255, 255, .018), transparent 78%); }
+.portal-hero-copy h2 { text-wrap: balance; text-shadow: 0 2px 12px rgba(0, 0, 0, .42); }
+
+.portal-brief-metrics > span {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(var(--command-steel), .17);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .025), rgba(0, 0, 0, .075));
+  box-shadow: inset 0 1px rgba(255, 255, 255, .025);
+}
+
+.portal-brief-metrics > span::after {
+  content: '';
+  position: absolute;
+  right: 7px;
+  bottom: 0;
+  left: 7px;
+  height: 1px;
+  background: rgba(var(--command-steel), .45);
+}
+
+.portal-brief-metrics > span.warning {
+  border-color: rgba(var(--command-red), .28);
+  background: linear-gradient(180deg, rgba(var(--command-red), .08), rgba(0, 0, 0, .075));
+}
+.portal-brief-metrics > span.warning::after { background: rgba(213, 119, 100, .7); }
+
+.portal-hero-actions button {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .035), 0 5px 14px rgba(0, 0, 0, .12);
+}
+.portal-hero-actions button.primary { box-shadow: inset 0 1px rgba(255, 255, 255, .26), 0 7px 18px rgba(0, 0, 0, .22); }
+.portal-hero-actions button.primary::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -50%;
+  width: 38%;
+  pointer-events: none;
+  opacity: .25;
+  background: linear-gradient(90deg, transparent, #fff, transparent);
+  transform: skewX(-18deg);
+  transition: left 220ms ease;
+}
+.portal-hero-actions button.primary:hover::after { left: 115%; }
+.portal-hero-actions button:hover { transform: translateY(-1px); box-shadow: inset 0 1px rgba(255, 255, 255, .075), 0 8px 18px rgba(0, 0, 0, .2); }
+.portal-hero-actions button:active { transform: translateY(1px); filter: brightness(.94); }
+
+.readiness-gauge {
+  box-shadow:
+    0 0 0 1px rgba(var(--command-gold), .2),
+    0 0 0 8px rgba(6, 10, 9, .28),
+    0 12px 30px rgba(0, 0, 0, .3);
+}
+.readiness-gauge::before { z-index: 0; background: radial-gradient(circle at 50% 36%, #1b2824, #111816 72%); }
+.readiness-gauge::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset: -7px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: .6;
+  background: repeating-conic-gradient(from -1deg, rgba(226, 200, 143, .7) 0 1deg, transparent 1deg 15deg);
+  mask: radial-gradient(circle, transparent 0 69%, #000 70% 73%, transparent 74%);
+}
+.readiness-gauge > div { z-index: 2; }
+.readiness-gauge > small {
+  z-index: 2;
+  padding: 3px 6px;
+  border: 1px solid rgba(var(--command-green), .18);
+  background: rgba(8, 13, 11, .8);
+}
+.readiness-gauge > small.warning { border-color: rgba(var(--command-red), .22); }
+.portal-identity { box-shadow: inset 3px 0 rgba(var(--command-steel), .16); }
+.portal-identity > .historical-flag { filter: drop-shadow(0 5px 10px rgba(0, 0, 0, .28)); }
+
+.portal-health-pulse,
+.portal-weekly-brief,
+.portal-achievement-track {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .025), 0 8px 20px rgba(0, 0, 0, .1);
+}
+.portal-health-pulse::after,
+.portal-weekly-brief::after,
+.portal-achievement-track::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  right: 0;
+  width: 180px;
+  height: 100%;
+  pointer-events: none;
+  opacity: .13;
+  background: repeating-linear-gradient(135deg, transparent 0 9px, rgba(255, 255, 255, .12) 9px 10px);
+  mask-image: linear-gradient(90deg, transparent, #000);
+}
+.portal-health-pulse:hover,
+.portal-weekly-brief:hover { transform: translateY(-1px); box-shadow: inset 0 1px rgba(255, 255, 255, .04), 0 11px 24px rgba(0, 0, 0, .17); }
+.portal-health-pulse:active,
+.portal-weekly-brief:active { transform: translateY(1px); }
+
+.command-cycle {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(var(--command-steel), .28);
+  background:
+    linear-gradient(90deg, rgba(var(--command-steel), .075), rgba(var(--command-gold), .045), rgba(var(--command-steel), .04)),
+    rgba(7, 12, 10, .3);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .025), 0 11px 28px rgba(0, 0, 0, .18);
+}
+.command-cycle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 34%;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(var(--command-steel), .85), transparent);
+}
+.command-cycle > div { position: relative; }
+.command-cycle-step { isolation: isolate; box-shadow: inset 0 1px rgba(255, 255, 255, .02); }
+.command-cycle-step::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 2px;
+  opacity: .28;
+  background: currentColor;
+}
+.command-cycle-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  right: -8px;
+  width: 8px;
+  height: 1px;
+  pointer-events: none;
+  opacity: .42;
+  background: currentColor;
+}
+.command-cycle-step.current::before,
+.command-cycle-step.ready::before { opacity: .9; box-shadow: 0 0 11px currentColor; }
+.command-cycle-step.current { box-shadow: inset 3px 0 #c2a45f, inset 0 1px rgba(255, 255, 255, .05), 0 8px 20px rgba(0, 0, 0, .18); }
+.command-cycle-step.ready { box-shadow: inset 3px 0 #679c79, inset 0 1px rgba(255, 255, 255, .045); }
+.command-cycle-step > b { padding: 2px 4px; border: 1px solid currentColor; background: rgba(5, 9, 8, .42); opacity: .82; }
+.command-cycle-step:hover { z-index: 2; }
+.command-cycle-step:active { transform: translateY(1px); }
+
+.portal-card {
+  --portal-card-accent: var(--command-steel);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: rgba(var(--portal-card-accent), .2);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, .028), rgba(9, 14, 12, .09)),
+    #111815;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .025), 0 12px 30px rgba(0, 0, 0, .14);
+}
+.portal-inbox { --portal-card-accent: var(--command-gold); }
+.portal-front { --portal-card-accent: var(--command-steel); }
+.portal-operation { --portal-card-accent: var(--command-red); }
+.portal-departments { --portal-card-accent: var(--command-green); }
+.portal-production { --portal-card-accent: var(--command-steel); }
+.portal-shortcuts { --portal-card-accent: 150, 161, 154; }
+.portal-card::before {
+  content: '';
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  width: min(34%, 190px);
+  height: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(var(--portal-card-accent), .92), transparent);
+}
+.portal-card::after {
+  content: '';
+  position: absolute;
+  z-index: 3;
+  top: 7px;
+  right: 7px;
+  width: 11px;
+  height: 11px;
+  pointer-events: none;
+  opacity: .38;
+  border-top: 1px solid rgba(var(--portal-card-accent), .9);
+  border-right: 1px solid rgba(var(--portal-card-accent), .9);
+}
+.portal-card > header {
+  position: relative;
+  overflow: hidden;
+  border-bottom-color: rgba(var(--portal-card-accent), .17);
+  background: linear-gradient(90deg, rgba(var(--portal-card-accent), .06), rgba(255, 255, 255, .008) 55%, transparent);
+}
+.portal-card > header::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 26%;
+  height: 100%;
+  pointer-events: none;
+  opacity: .09;
+  background: repeating-linear-gradient(135deg, transparent 0 8px, rgba(var(--portal-card-accent), .5) 8px 9px);
+  mask-image: linear-gradient(90deg, transparent, #000);
+}
+.portal-card > header > * { position: relative; z-index: 1; }
+.portal-card > header button:hover { transform: translateX(2px); }
+
+.portal-task,
+.portal-report,
+.department-health-grid button,
+.production-preview-grid button,
+.portal-shortcuts > div > button,
+.front-watchlist button {
+  transition: color 140ms ease, border-color 140ms ease, background 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+.portal-task:hover,
+.portal-report:hover { padding-left: 12px; background: linear-gradient(90deg, rgba(var(--command-gold), .055), rgba(255, 255, 255, .018)); box-shadow: inset 2px 0 rgba(var(--command-gold), .65); }
+.portal-task.urgent:hover,
+.portal-report.bad:hover { background: linear-gradient(90deg, rgba(var(--command-red), .09), rgba(255, 255, 255, .015)); box-shadow: inset 2px 0 rgba(var(--command-red), .85); }
+.department-health-grid button:hover,
+.production-preview-grid button:hover,
+.portal-shortcuts > div > button:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0, 0, 0, .16); }
+.department-health-grid button:active,
+.production-preview-grid button:active,
+.portal-shortcuts > div > button:active,
+.front-watchlist button:active { transform: translateY(1px); }
+
+@media (max-width: 1100px) {
+  .command-cycle-step:not(:last-child)::after { display: none; }
+}
+
+@media (max-width: 640px) {
+  .portal-hero { clip-path: none; }
+  .portal-hero::before { background-size: 24px 24px; opacity: .08; }
+  .readiness-gauge { margin-top: 4px; margin-bottom: 23px; border-top: 0; box-shadow: 0 0 0 1px rgba(var(--command-gold), .18), 0 0 0 6px rgba(6, 10, 9, .25), 0 10px 24px rgba(0, 0, 0, .24); }
+  .portal-health-pulse::after,
+  .portal-weekly-brief::after,
+  .portal-achievement-track::after { width: 92px; }
+  .portal-card::after { display: none; }
+  .portal-task:hover,
+  .portal-report:hover { padding-left: 9px; }
+}
