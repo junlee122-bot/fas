@@ -13,6 +13,15 @@ export interface UXAction {
   tab: GameTab;
 }
 
+export interface CommandReadiness {
+  urgentCount: number;
+  recommendedCount: number;
+  infoCount: number;
+  state: 'blocked' | 'review' | 'clear';
+  title: string;
+  detail: string;
+}
+
 export interface UXPreferences {
   soundOn: boolean;
   highContrast: boolean;
@@ -59,6 +68,36 @@ export const defaultUXPreferences: UXPreferences = {
   largeMapLabels: false,
   reducedMotion: false,
 };
+
+export function deriveCommandReadiness(actions: readonly UXAction[]): CommandReadiness {
+  const urgentCount = actions.filter((action) => action.priority === 'urgent').length;
+  const recommendedCount = actions.filter((action) => action.priority === 'recommended').length;
+  const infoCount = actions.filter((action) => action.priority === 'info').length;
+  if (urgentCount > 0) return {
+    urgentCount,
+    recommendedCount,
+    infoCount,
+    state: 'blocked',
+    title: `긴급 판단 ${urgentCount}건이 남아 있습니다`,
+    detail: '다음 주로 넘어갈 수는 있지만, 미처리 위험이 즉시 악화되거나 기회를 잃을 수 있습니다.',
+  };
+  if (recommendedCount > 0) return {
+    urgentCount,
+    recommendedCount,
+    infoCount,
+    state: 'review',
+    title: `권장 조치 ${recommendedCount}건을 검토하십시오`,
+    detail: '즉시 위기는 없지만 지금 조정하면 다음 주 손실과 복구 비용을 줄일 수 있습니다.',
+  };
+  return {
+    urgentCount,
+    recommendedCount,
+    infoCount,
+    state: 'clear',
+    title: '핵심 결재가 정리되었습니다',
+    detail: '현재 확인된 긴급·권장 행동이 없습니다. 다음 주 진행 준비가 완료됐습니다.',
+  };
+}
 
 export function getInitialNavigationCollapsed(savedValue: string | null, viewportWidth: number) {
   return viewportWidth <= 900 || savedValue === 'true';

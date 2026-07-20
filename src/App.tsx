@@ -21,6 +21,7 @@ import {
   Handshake,
   Landmark,
   Lightbulb,
+  LayoutDashboard,
   LockKeyhole,
   Map,
   Maximize2,
@@ -126,6 +127,8 @@ import { BattleDoctrinePanel } from './BattleDoctrinePanel';
 import { OffensivePlanningModal } from './OffensivePlanningModal';
 import { CommanderDevelopmentPanel } from './CommanderDevelopmentPanel';
 import { ActionCenter } from './ActionCenter';
+import { StatusOverview } from './StatusOverview';
+import type { StatusMetric, StatusResource } from './StatusOverview';
 import { SettingsModal } from './SettingsModal';
 import { WarJournal } from './WarJournal';
 import { createWarEventTrace } from './journal';
@@ -438,6 +441,7 @@ export function App() {
     }
   });
   const [showActionCenter, setShowActionCenter] = useState(false);
+  const [showStatusOverview, setShowStatusOverview] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
@@ -877,6 +881,43 @@ export function App() {
     pendingCoupIncident,
   }), [achievementUnlocks, activeTheater, battleReports, battleStance, campaignOutcome, campaignPhase, career, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, economy, equipmentDevelopment, events, game, lastReadWorldWeeklyId, nationManagement, objectiveProgress, operations, orders, pendingBattleReportId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, politicalCrisis, priorityDivisionId, procurementFocusId, production, publicHealth, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized, worldHistoryState, worldWeeklyIssues]);
   const campaignDate = getCampaignDate(game.week);
+  const statusResources: StatusResource[] = [
+    { id: 'treasury', label: '국고', value: formatGameMoney(game.treasury), delta: campaignPhase === 'nation' && nationManagement.reports[0] ? formatGameMoney(nationManagement.reports[0].fiscalBalance, { signed: true }) : formatGameMoney(economyForecast.netTreasuryChange, { signed: true }), detail: '정책·조달·급여의 공통 재원', icon: 'treasury', tone: 'gold', priority: true },
+    { id: 'politics', label: campaignPhase === 'nation' ? '정치 역량' : '정치력', value: formatNumber(game.politicalPower), delta: campaignPhase === 'nation' ? `위임 ${nationManagement.mandateScore}` : '+3/주', detail: '인사·외교·정책 결재에 사용', icon: 'politics', tone: 'gold', priority: true },
+    { id: 'manpower', label: campaignPhase === 'nation' ? '노동·예비 인력' : '가용 인력', value: `${formatNumber(game.manpower)}K`, delta: campaignPhase === 'nation' ? `고용 ${Math.round(nationManagement.employment)}` : '+18/주', detail: campaignPhase === 'nation' ? '산업·행정·국방 인력 기반' : '편제 충원과 손실 보충', icon: 'manpower', tone: 'blue' },
+    { id: 'factories', label: campaignPhase === 'nation' ? '산업 기반' : '군수 공장', value: String(game.factories), delta: campaignPhase === 'nation' ? `민수 ${Math.round(nationManagement.civilianIndustry)}` : undefined, detail: '장비·기반시설 생산 능력', icon: 'industry', tone: 'steel' },
+    { id: 'fuel', label: campaignPhase === 'nation' ? '전략 에너지' : '연료', value: `${formatNumber(game.fuel)}K`, delta: campaignPhase === 'nation' ? undefined : '+2.6/주', detail: '기갑·항공·해군 작전 지속', icon: 'fuel', tone: 'green' },
+    { id: 'steel', label: '강철', value: `${formatNumber(game.steel)}K`, delta: '+9/주', detail: '중장비·차량·함정 생산 원료', icon: 'steel', tone: 'steel' },
+  ];
+  const statusMetrics: StatusMetric[] = [
+    {
+      id: 'coup',
+      label: '국내 정치위기',
+      value: `${getCoupRiskLabel(coupRisk.tier)} ${coupRisk.score}`,
+      detail: `다음 주 시도 확률 ${coupRisk.weeklyChance.toFixed(1)}%`,
+      tone: coupRisk.tier === 'critical' || coupRisk.tier === 'dangerous' ? 'danger' : coupRisk.tier === 'watch' ? 'warning' : 'good',
+      icon: 'alert',
+    },
+    {
+      id: 'health',
+      label: publicHealthView.activeOutbreak ? '보건 비상' : '감염병 감시',
+      value: publicHealthView.activeOutbreak?.codeName ?? `${(publicHealthView.weeklyRisk * 100).toFixed(2)}%`,
+      detail: publicHealthView.activeOutbreak ? `R ${publicHealthView.activeOutbreak.rEffective.toFixed(2)} · 병상 ${Math.round(publicHealthView.activeOutbreak.hospitalLoad)}%` : '다음 주 발병 추정 확률',
+      tone: publicHealthView.activeOutbreak ? 'danger' : publicHealthView.weeklyRisk >= 0.018 ? 'warning' : 'good',
+      icon: 'health',
+    },
+    {
+      id: 'stability',
+      label: '국가 안정도',
+      value: `${Math.round(game.stability)}`,
+      detail: game.stability < 45 ? '정책 집행과 국내 질서가 위험합니다.' : '정부 집행력과 국내 질서',
+      tone: game.stability < 40 ? 'danger' : game.stability < 60 ? 'warning' : 'good',
+      icon: 'organization',
+    },
+    campaignPhase === 'nation'
+      ? { id: 'mandate', label: '국민 위임', value: `${nationManagement.mandateScore}`, detail: `사회 불안 ${Math.round(nationManagement.unrest)} · 고용 ${Math.round(nationManagement.employment)}`, tone: nationManagement.mandateScore < 40 ? 'danger' : nationManagement.mandateScore < 60 ? 'warning' : 'good', icon: 'politics' }
+      : { id: 'pressure', label: '적 전선 압력', value: `${Math.round(game.enemyPressure)}`, detail: `전쟁 지지도 ${Math.round(game.warSupport)} · 평균 보급 ${Math.round(averageDivisionSupply)}`, tone: game.enemyPressure >= 75 ? 'danger' : game.enemyPressure >= 58 ? 'warning' : 'neutral', icon: 'army' },
+  ];
   const hasSave = Boolean(localStorage.getItem(SAVE_KEY));
 
   const notify = useCallback((message: string) => {
@@ -1812,6 +1853,7 @@ export function App() {
     setCompletedDecisions([]);
     setCampaignOutcome(null);
     setShowActionCenter(false);
+    setShowStatusOverview(false);
     setShowSettings(false);
     setShowResetConfirmation(false);
     setShowCommandPalette(false);
@@ -1982,6 +2024,7 @@ export function App() {
       setCompletedDecisions(data.completedDecisions ?? []);
       setDoctrine(data.doctrine ?? 'coalition');
       setShowActionCenter(false);
+      setShowStatusOverview(false);
       setShowSettings(false);
       setShowResetConfirmation(false);
       setShowCommandPalette(false);
@@ -2054,6 +2097,7 @@ export function App() {
     setCompletedDecisions([]);
     setSpeed(0);
     setShowActionCenter(false);
+    setShowStatusOverview(false);
     setShowSettings(false);
     setShowResetConfirmation(false);
     setShowCommandPalette(false);
@@ -3213,6 +3257,11 @@ export function App() {
     setShowActionCenter(false);
   };
 
+  const navigateFromStatusOverview = (action: UXAction) => {
+    setShowStatusOverview(false);
+    navigateFromActionCenter(action);
+  };
+
   const toggleUXPreference = (key: keyof UXPreferences) => {
     setUXPreferences((current) => ({ ...current, [key]: !current[key] }));
   };
@@ -3236,13 +3285,13 @@ export function App() {
     const handleShortcut = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
         event.preventDefault();
-        if (!showBriefing && !campaignOutcome && !pendingWorldFlashpointId && !pendingCoupIncident && !pendingCouncilEventId && !pendingBattleReportId && !pendingOffensivePlan && !pendingAchievementId && !showJournal && !showSettings && !showActionCenter && !showResetConfirmation && !showFieldManual && !showCommandPalette && !showAchievementGallery && !showWorldHistory && !showWorldWeekly && !showTutorial && !showPoliticalCrisis) {
+        if (!showBriefing && !campaignOutcome && !pendingWorldFlashpointId && !pendingCoupIncident && !pendingCouncilEventId && !pendingBattleReportId && !pendingOffensivePlan && !pendingAchievementId && !showJournal && !showSettings && !showActionCenter && !showStatusOverview && !showResetConfirmation && !showFieldManual && !showCommandPalette && !showAchievementGallery && !showWorldHistory && !showWorldWeekly && !showTutorial && !showPoliticalCrisis) {
           setShowSaveCenter((current) => !current);
         }
         return;
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
-        if (!showBriefing && !campaignOutcome && !pendingWorldFlashpointId && !pendingCoupIncident && !pendingCouncilEventId && !pendingBattleReportId && !pendingOffensivePlan && !pendingAchievementId && !showJournal && !showSettings && !showActionCenter && !showResetConfirmation && !showFieldManual && !showSaveCenter && !showAchievementGallery && !showWorldHistory && !showWorldWeekly && !showTutorial && !showPoliticalCrisis) {
+        if (!showBriefing && !campaignOutcome && !pendingWorldFlashpointId && !pendingCoupIncident && !pendingCouncilEventId && !pendingBattleReportId && !pendingOffensivePlan && !pendingAchievementId && !showJournal && !showSettings && !showActionCenter && !showStatusOverview && !showResetConfirmation && !showFieldManual && !showSaveCenter && !showAchievementGallery && !showWorldHistory && !showWorldWeekly && !showTutorial && !showPoliticalCrisis) {
           event.preventDefault();
           setShowCommandPalette((current) => !current);
         }
@@ -3250,6 +3299,7 @@ export function App() {
       }
       if (event.key === 'Escape') {
         setShowActionCenter(false);
+        setShowStatusOverview(false);
         setShowSettings(false);
         setShowResetConfirmation(false);
         setShowCommandPalette(false);
@@ -3273,7 +3323,7 @@ export function App() {
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName.toLowerCase();
       if (target?.isContentEditable || tag === 'input' || tag === 'select' || tag === 'textarea' || tag === 'button') return;
-      if (showBriefing || campaignOutcome || pendingWorldFlashpointId || pendingCoupIncident || pendingCouncilEventId || pendingBattleReportId || pendingOffensivePlan || pendingAchievementId || showJournal || showSettings || showActionCenter || showResetConfirmation || showCommandPalette || showFieldManual || showSaveCenter || showAchievementGallery || showWorldHistory || showWorldWeekly || showTutorial || showPoliticalCrisis || event.repeat) return;
+      if (showBriefing || campaignOutcome || pendingWorldFlashpointId || pendingCoupIncident || pendingCouncilEventId || pendingBattleReportId || pendingOffensivePlan || pendingAchievementId || showJournal || showSettings || showActionCenter || showStatusOverview || showResetConfirmation || showCommandPalette || showFieldManual || showSaveCenter || showAchievementGallery || showWorldHistory || showWorldWeekly || showTutorial || showPoliticalCrisis || event.repeat) return;
       if (activeTab === 'map' && (event.key === '+' || event.key === '=')) {
         event.preventDefault();
         zoomMap(0.2);
@@ -3299,6 +3349,9 @@ export function App() {
       } else if (event.key.toLowerCase() === 'g') {
         event.preventDefault();
         setShowActionCenter(true);
+      } else if (event.key.toLowerCase() === 'h') {
+        event.preventDefault();
+        setShowStatusOverview(true);
       } else if (event.key.toLowerCase() === 's') {
         event.preventDefault();
         setShowSettings(true);
@@ -3315,7 +3368,7 @@ export function App() {
     };
     window.addEventListener('keydown', handleShortcut);
     return () => window.removeEventListener('keydown', handleShortcut);
-  }, [activeTab, advanceWeek, campaignOutcome, pendingAchievementId, pendingBattleReportId, pendingCouncilEventId, pendingCoupIncident, pendingOffensivePlan, pendingWorldFlashpointId, resetMapCamera, showActionCenter, showAchievementGallery, showBriefing, showCommandPalette, showFieldManual, showJournal, showPoliticalCrisis, showResetConfirmation, showSaveCenter, showSettings, showTutorial, showWorldHistory, showWorldWeekly, toggleMapFocusMode, zoomMap]);
+  }, [activeTab, advanceWeek, campaignOutcome, pendingAchievementId, pendingBattleReportId, pendingCouncilEventId, pendingCoupIncident, pendingOffensivePlan, pendingWorldFlashpointId, resetMapCamera, showActionCenter, showAchievementGallery, showBriefing, showCommandPalette, showFieldManual, showJournal, showPoliticalCrisis, showResetConfirmation, showSaveCenter, showSettings, showStatusOverview, showTutorial, showWorldHistory, showWorldWeekly, toggleMapFocusMode, zoomMap]);
 
   const changePublicHealthPolicy = (policyId: PublicHealthPolicyId) => {
     setPublicHealth((current) => ({ ...current, policyId }));
@@ -3491,6 +3544,7 @@ export function App() {
     { id: 'theater-europe', group: '전구 지도', title: '유럽·지중해 전구', description: '유럽, 북아프리카와 지중해 전선을 엽니다.', keywords: ['유럽', '아프리카', '지도'], icon: <Map size={17} />, active: activeTheater === 'europe' },
     { id: 'theater-asia', group: '전구 지도', title: '아시아·태평양 전구', description: '중국, 인도, 동남아시아와 태평양 전선을 엽니다.', keywords: ['아시아', '태평양', '지도'], icon: <Map size={17} />, active: activeTheater === 'asia' },
     { id: 'action-center', group: '지휘 도구', title: '행동 센터', description: '놓친 결정과 우선 처리할 행동을 확인합니다.', keywords: ['할 일', '다음 행동', '권장'], icon: <Menu size={17} />, meta: `${uxActions.length}건` },
+    { id: 'status-overview', group: '지휘 도구', title: '지휘 현황판', description: '핵심 자원·국가 위험·최우선 행동과 다음 주 준비 상태를 한 화면에서 확인합니다.', keywords: ['현황', '자원', '국고', '위험', '요약', '대시보드'], icon: <LayoutDashboard size={17} />, meta: 'H' },
     { id: 'war-journal', group: '지휘 도구', title: '진행 결과 분석실', description: '선택·계산·즉시효과·장기영향을 추적합니다.', keywords: ['기록', '전문', '이벤트', '결과', '원인', '결산'], icon: <BookOpen size={17} /> },
     { id: 'world-weekly', group: '지휘 도구', title: '세계 주보', description: '지난 7일의 전선·외교·경제·사회·과학·정보를 신뢰도와 인과관계까지 묶어 읽습니다.', keywords: ['신문', '주간', '뉴스', '세계', '이번 주'], icon: <Newspaper size={17} />, meta: latestWorldWeeklyIssue ? `제 ${latestWorldWeeklyIssue.edition}호` : '캠페인 시작 시 발행' },
     { id: 'achievements', group: '지휘 도구', title: '도전과제 기록실', description: '경력 목표, 달성 진척도와 해금된 삽화를 확인합니다.', keywords: ['업적', '도전과제', '삽화', '갤러리'], icon: <Trophy size={17} />, meta: `${achievementUnlocks.length}/${achievementDefinitions.length}` },
@@ -3517,6 +3571,8 @@ export function App() {
       switchTheater(id === 'theater-europe' ? 'europe' : 'asia');
     } else if (id === 'action-center') {
       setShowActionCenter(true);
+    } else if (id === 'status-overview') {
+      setShowStatusOverview(true);
     } else if (id === 'war-journal') {
       setShowJournal(true);
     } else if (id === 'world-weekly') {
@@ -3574,12 +3630,15 @@ export function App() {
         </div>
 
         <div className="resource-row">
-          <ResourceChip priority icon="treasury" tone="gold" value={formatGameMoney(game.treasury)} label={`국고 · ${economy.monetarySystem.historicalAutoTransition ? '역사통화' : '신 통화'}`} compactLabel="국고" delta={campaignPhase === 'nation' && nationManagement.reports[0] ? formatGameMoney(nationManagement.reports[0].fiscalBalance, { signed: true }) : formatGameMoney(economyForecast.netTreasuryChange, { signed: true })} />
-          <ResourceChip icon="politics" tone="gold" value={formatNumber(game.politicalPower)} label={campaignPhase === 'nation' ? '정치 역량' : '정치력'} compactLabel="정치" delta={campaignPhase === 'nation' ? `위임 ${nationManagement.mandateScore}` : '+3'} />
-          <ResourceChip icon="manpower" tone="blue" value={formatNumber(game.manpower) + 'K'} label={campaignPhase === 'nation' ? '노동·예비 인력' : '가용 인력'} compactLabel={campaignPhase === 'nation' ? '인력' : '가용 인력'} delta={campaignPhase === 'nation' ? `고용 ${Math.round(nationManagement.employment)}` : '+18'} />
-          <ResourceChip icon="industry" tone="steel" value={String(game.factories)} label={campaignPhase === 'nation' ? '산업 기반' : '군수 공장'} compactLabel={campaignPhase === 'nation' ? '산업' : '군수 공장'} delta={campaignPhase === 'nation' ? `민수 ${Math.round(nationManagement.civilianIndustry)}` : undefined} />
-          <ResourceChip icon="fuel" tone="green" value={formatNumber(game.fuel) + 'K'} label={campaignPhase === 'nation' ? '전략 에너지' : '연료'} delta={campaignPhase === 'nation' ? undefined : '+2.6'} />
-          <ResourceChip icon="steel" tone="steel" value={formatNumber(game.steel) + 'K'} label="강철" delta="+9" />
+          <div className="resource-scroll-track" role="region" tabIndex={0} aria-label="핵심 자원, 좌우로 스크롤 가능">
+            <ResourceChip priority icon="treasury" tone="gold" value={formatGameMoney(game.treasury)} label={`국고 · ${economy.monetarySystem.historicalAutoTransition ? '역사통화' : '신 통화'}`} compactLabel="국고" delta={campaignPhase === 'nation' && nationManagement.reports[0] ? formatGameMoney(nationManagement.reports[0].fiscalBalance, { signed: true }) : formatGameMoney(economyForecast.netTreasuryChange, { signed: true })} />
+            <ResourceChip icon="politics" tone="gold" value={formatNumber(game.politicalPower)} label={campaignPhase === 'nation' ? '정치 역량' : '정치력'} compactLabel="정치" delta={campaignPhase === 'nation' ? `위임 ${nationManagement.mandateScore}` : '+3'} />
+            <ResourceChip icon="manpower" tone="blue" value={formatNumber(game.manpower) + 'K'} label={campaignPhase === 'nation' ? '노동·예비 인력' : '가용 인력'} compactLabel={campaignPhase === 'nation' ? '인력' : '가용 인력'} delta={campaignPhase === 'nation' ? `고용 ${Math.round(nationManagement.employment)}` : '+18'} />
+            <ResourceChip icon="industry" tone="steel" value={String(game.factories)} label={campaignPhase === 'nation' ? '산업 기반' : '군수 공장'} compactLabel={campaignPhase === 'nation' ? '산업' : '군수 공장'} delta={campaignPhase === 'nation' ? `민수 ${Math.round(nationManagement.civilianIndustry)}` : undefined} />
+            <ResourceChip icon="fuel" tone="green" value={formatNumber(game.fuel) + 'K'} label={campaignPhase === 'nation' ? '전략 에너지' : '연료'} delta={campaignPhase === 'nation' ? undefined : '+2.6'} />
+            <ResourceChip icon="steel" tone="steel" value={formatNumber(game.steel) + 'K'} label="강철" delta="+9" />
+          </div>
+          <button type="button" className="status-overview-trigger" aria-label="지휘 현황판 열기" aria-keyshortcuts="H" title="핵심 자원·위험·다음 행동 전체 보기 · H" onClick={() => setShowStatusOverview(true)}><LayoutDashboard size={17} /><span>현황</span></button>
         </div>
 
         <div className="time-controls">
@@ -4184,6 +4243,20 @@ export function App() {
         <BattleReportModal report={pendingBattleReport} onClose={() => setPendingBattleReportId(null)} />
       )}
       {showJournal && <WarJournal events={events} onClose={() => setShowJournal(false)} />}
+      {showStatusOverview && !showBriefing && !campaignOutcome && !pendingWorldFlashpoint && !pendingCoupIncident && !showPoliticalCrisis && !pendingCouncilEvent && !pendingBattleReport && (
+        <StatusOverview
+          nationName={playerNation.shortName}
+          roleTitle={currentRoleTitle}
+          date={campaignDate.full}
+          phaseLabel={campaignPhase === 'nation' ? '국가 운영 단계' : '전쟁 지휘 단계'}
+          resources={statusResources}
+          metrics={statusMetrics}
+          actions={uxActions}
+          onNavigate={navigateFromStatusOverview}
+          onNextWeek={() => { setShowStatusOverview(false); advanceWeek(); }}
+          onClose={() => setShowStatusOverview(false)}
+        />
+      )}
       {showActionCenter && !showBriefing && !campaignOutcome && !pendingWorldFlashpoint && !pendingCoupIncident && !showPoliticalCrisis && !pendingCouncilEvent && !pendingBattleReport && (
         <ActionCenter actions={uxActions} onNavigate={navigateFromActionCenter} onClose={() => setShowActionCenter(false)} />
       )}

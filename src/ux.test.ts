@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveOnboardingSteps, deriveUXActions, getInitialNavigationCollapsed, normalizeUXPreferences } from './ux';
+import { deriveCommandReadiness, deriveOnboardingSteps, deriveUXActions, getInitialNavigationCollapsed, normalizeUXPreferences } from './ux';
 import type { ActionCenterInput } from './ux';
 
 const baseInput: ActionCenterInput = {
@@ -13,6 +13,26 @@ const baseInput: ActionCenterInput = {
 };
 
 describe('user experience guidance', () => {
+  it('blocks the weekly preflight when an urgent command task remains', () => {
+    const readiness = deriveCommandReadiness(deriveUXActions(baseInput));
+    expect(readiness).toMatchObject({
+      state: 'blocked',
+      urgentCount: 3,
+      recommendedCount: 2,
+    });
+    expect(readiness.title).toContain('긴급 판단 3건');
+  });
+
+  it('clears the weekly preflight when no command task remains', () => {
+    const readiness = deriveCommandReadiness([]);
+    expect(readiness).toMatchObject({
+      state: 'clear',
+      urgentCount: 0,
+      recommendedCount: 0,
+      infoCount: 0,
+    });
+  });
+
   it('surfaces urgent blockers before recommended actions', () => {
     const actions = deriveUXActions(baseInput);
     expect(actions.slice(0, 3).map((action) => action.id)).toEqual(['commander-skill', 'research-slot', 'idle-factories']);

@@ -56,6 +56,7 @@ export function SettingsModal({ preferences, onToggle, onReset, onRestartTutoria
 
           <aside className="shortcut-guide">
             <h3>키보드 단축키</h3>
+            <div><kbd>H</kbd><span><strong>지휘 현황판</strong><small>핵심 자원·위험·최우선 행동 요약</small></span></div>
             <div><kbd>G</kbd><span><strong>행동 센터</strong><small>놓친 결정과 다음 행동 확인</small></span></div>
             <div><kbd>Ctrl K</kbd><span><strong>빠른 이동</strong><small>화면·전구·기능을 검색해 즉시 이동</small></span></div>
             <div><kbd>Ctrl S</kbd><span><strong>저장 센터</strong><small>체크포인트·내보내기·불러오기 관리</small></span></div>
