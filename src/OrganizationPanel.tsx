@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { policyDomains, strategicPolicies } from './choices';
 import { historicalExperts, historicalExpertCoverage, minimumHistoricalExpertsPerNation } from './historicalExperts';
+import { wartimeHistoricalExperts, wartimeHistoricalExpertCoverage, wartimeHistoricalExpertIds } from './wartimeHistoricalExperts';
 import {
   defaultRecruitmentOffer,
   recruitmentChance,
@@ -148,13 +149,14 @@ const disciplineFilters: Array<PersonnelDiscipline | 'all'> = [
   'social-science',
 ];
 
-type TalentMarketScope = 'all' | 'shortlisted' | 'scouting' | 'available' | 'later' | 'deep' | 'identity';
+type TalentMarketScope = 'all' | 'shortlisted' | 'scouting' | 'available' | 'wartime' | 'later' | 'deep' | 'identity';
 
 const talentScopeLabels: Record<TalentMarketScope, string> = {
   all: '전체',
   shortlisted: '관심 명단',
   scouting: '조사 중',
   available: '영입 가능',
+  wartime: '1940년대 정밀 인물',
   later: '후대 인물',
   deep: '심층 검증',
   identity: '대규모 DB',
@@ -284,6 +286,7 @@ export function OrganizationPanel({
   const shortlistCount = candidates.filter((candidate) => candidate.status === 'shortlisted').length;
   const scoutingCount = candidates.filter((candidate) => candidate.status === 'scouting').length;
   const laterEraCount = candidates.filter((candidate) => candidate.historicalEra && candidate.historicalEra !== 'wartime').length;
+  const wartimeCuratedCount = candidates.filter((candidate) => wartimeHistoricalExpertIds.has(candidate.personId)).length;
   const deepProfileCount = candidates.filter((candidate) => candidate.birthYear && !candidate.sourceUrl?.startsWith('https://www.wikidata.org/wiki/Q')).length;
   const filteredCandidates = useMemo(() => {
     const query = talentQuery.trim().toLocaleLowerCase('ko-KR');
@@ -294,6 +297,7 @@ export function OrganizationPanel({
       if (talentScope === 'shortlisted' && candidate.status !== 'shortlisted') return false;
       if (talentScope === 'scouting' && candidate.status !== 'scouting') return false;
       if (talentScope === 'available' && (candidate.status === 'signed' || candidate.status === 'lost')) return false;
+      if (talentScope === 'wartime' && !wartimeHistoricalExpertIds.has(candidate.personId)) return false;
       if (talentScope === 'later' && !laterEra) return false;
       if (talentScope === 'deep' && (!candidate.birthYear || identityOnly || laterEra)) return false;
       if (talentScope === 'identity' && !identityOnly) return false;
@@ -588,12 +592,13 @@ export function OrganizationPanel({
         {workspace === 'market' && (<div className="recruitment-hub" id="staff-recruitment-hub">
           <div className="recruitment-title">
             <div><span>GLOBAL TALENT MARKET · 1942</span><strong>실존 인물 영입 센터</strong></div>
-            <em>검증 DB {historicalExperts.length.toLocaleString('ko-KR')}명 · 현재 접촉권 {candidates.length}명 · 민간 전문가 {expertCount}명 · 조사→접촉→포섭→보직 교체</em>
+            <em>검증 DB {historicalExperts.length.toLocaleString('ko-KR')}명 · 1940년대 정밀 프로필 {wartimeHistoricalExperts.length}명 · 현재 접촉권 {candidates.length}명 · 조사→접촉→포섭→보직 교체</em>
           </div>
           <div className="talent-coverage-audit" aria-label="국가별 실존 인물 데이터 범위">
             <span><small>플레이 권역</small><strong>{Object.keys(historicalExpertCoverage).length}개</strong></span>
             <span><small>국가별 최소 인물</small><strong>{minimumHistoricalExpertsPerNation}명</strong></span>
             <span><small>{nation.name} 소속 실존 인물</small><strong>{historicalExpertCoverage[nation.id]}명</strong></span>
+            <span><small>{nation.name} 1940년대 정밀 인물</small><strong>{wartimeHistoricalExpertCoverage[nation.id]}명</strong></span>
             <span><small>현재 시대 접촉 가능</small><strong>{candidates.length}명</strong></span>
           </div>
           <section className="recruitment-objectives" aria-label="보직별 충원 포커스">
@@ -630,7 +635,7 @@ export function OrganizationPanel({
             <div className="talent-scope-list" aria-label="인재 시장 보기 필터">
               <span><ListFilter size={11} /> 빠른 보기</span>
               {(Object.keys(talentScopeLabels) as TalentMarketScope[]).map((scope) => {
-                const count = scope === 'shortlisted' ? shortlistCount : scope === 'scouting' ? scoutingCount : scope === 'later' ? laterEraCount : scope === 'deep' ? deepProfileCount : null;
+                const count = scope === 'shortlisted' ? shortlistCount : scope === 'scouting' ? scoutingCount : scope === 'wartime' ? wartimeCuratedCount : scope === 'later' ? laterEraCount : scope === 'deep' ? deepProfileCount : null;
                 return <button type="button" className={talentScope === scope ? 'active' : ''} key={scope} onClick={() => { setTalentScope(scope); setTalentPage(0); }}>{talentScopeLabels[scope]}{count !== null && <em>{count}</em>}</button>;
               })}
             </div>
@@ -645,8 +650,8 @@ export function OrganizationPanel({
               <div className={`candidate-verification ${selectedCandidateLaterEra ? 'later-era' : selectedCandidateIdentityOnly ? 'identity-only' : 'deep-profile'}`}>
                 <ShieldCheck size={13} />
                 <span>
-                  <strong>{selectedCandidateLaterEra ? '후대 실존 인물 · 대체역사 임명' : selectedCandidateIdentityOnly ? '신원·국적·생년·직업 확인' : '1942년 경력 심층 검증 프로필'}</strong>
-                  <small>{selectedCandidateLaterEra ? `실제 신원·출생·공개 직업만 사료 정보입니다. ${selectedCandidate.marketEntryYear}년의 접촉 경로·능력·충성·임명 효과는 현재 세계선의 게임 설정입니다.` : selectedCandidateIdentityOnly ? '1942년 실제 소속·직책·정치 성향은 게임 내 조사와 추가 사료 검증이 필요합니다.' : '직책·기관·전시 활동·역사적 제약을 별도 사료로 모델링한 인물입니다.'}</small>
+                  <strong>{selectedCandidateLaterEra ? '후대 실존 인물 · 대체역사 임명' : selectedCandidateIdentityOnly ? '신원·국적·생년·직업 확인' : '1940년대 경력 심층 검증 프로필'}</strong>
+                  <small>{selectedCandidateLaterEra ? `실제 신원·출생·공개 직업만 사료 정보입니다. ${selectedCandidate.marketEntryYear}년의 접촉 경로·능력·충성·임명 효과는 현재 세계선의 게임 설정입니다.` : selectedCandidateIdentityOnly ? '1940년대 실제 소속·직책·정치 성향은 게임 내 조사와 추가 사료 검증이 필요합니다.' : '직책·기관·전시 활동·역사적 제약을 별도 사료로 모델링한 인물입니다.'}</small>
                 </span>
               </div>
               <div className="candidate-report-summary">
@@ -692,7 +697,7 @@ export function OrganizationPanel({
                   </header>
                   <strong>{candidate.name}</strong>
                   <small>{candidate.historicalOffice}</small>
-                  {isExpert && <div className={`historical-verification ${laterEra ? 'later-era' : identityOnly ? 'identity-only' : 'deep-profile'}`}><ShieldCheck size={10} /> {laterEra ? `${candidate.marketEntryYear}년 등장 · 실제 인물 / 가상 임명 분리` : identityOnly ? '신원·직업 확인 · 1942 경력 조사 필요' : '1942 경력 심층 검증'}</div>}
+                  {isExpert && <div className={`historical-verification ${laterEra ? 'later-era' : identityOnly ? 'identity-only' : 'deep-profile'}`}><ShieldCheck size={10} /> {laterEra ? `${candidate.marketEntryYear}년 등장 · 실제 인물 / 가상 임명 분리` : identityOnly ? '신원·직업 확인 · 1940년대 경력 조사 필요' : '1940년대 경력 심층 검증'}</div>}
                   {isExpert && <div className="expert-identity"><span>{candidate.nationality} · {candidate.birthYear}년생</span><em>{candidate.wartimeLocation}</em></div>}
                   {laterEra && candidate.alternateHistoryEntry && <div className="later-era-arrival"><RefreshCw size={10} /><span>가속 세계선 조기 발탁</span><em>세대 기준 {candidate.generationUnlockYear}년</em></div>}
                   <div className="candidate-origin"><span>{candidate.affiliation}</span><em>{availabilityLabels[candidate.availability]}</em></div>

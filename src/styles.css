@@ -4500,7 +4500,7 @@ button:focus-visible,
 .recruitment-title span { font: 600 5px 'IBM Plex Mono', monospace; color: var(--gold); letter-spacing: .1em; }
 .recruitment-title strong { font-size: 9px; color: #cbd1cd; }
 .recruitment-title em { font-size: 5px; color: var(--faint); }
-.talent-coverage-audit { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; border-top: 1px solid rgba(198,168,107,.1); border-bottom: 1px solid var(--line); background: var(--line); }
+.talent-coverage-audit { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; border-top: 1px solid rgba(198,168,107,.1); border-bottom: 1px solid var(--line); background: var(--line); }
 .talent-coverage-audit > span { min-width: 0; min-height: 38px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; background: rgba(9,16,13,.96); }
 .talent-coverage-audit small { overflow: hidden; color: #76877f; font-size: 5.5px; white-space: nowrap; text-overflow: ellipsis; }
 .talent-coverage-audit strong { color: var(--gold-bright); font: 700 8px var(--font-data); white-space: nowrap; }

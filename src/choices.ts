@@ -1,5 +1,6 @@
-import type { CouncilEvent, StrategicPolicy } from './types';
+import type { CareerBranch, CouncilEvent, NationId, StrategicPolicy } from './types';
 import { historicalCouncilEvents } from './historicalCouncilEvents';
+import { wartimeCouncilEvents } from './wartimeCouncilEvents';
 
 export const strategicPolicies: StrategicPolicy[] = [
   { id: 'economy-mass', domain: 'economy', title: '대량생산 체제', description: '소수 표준 장비를 거대한 조립라인에서 생산합니다.', effect: '생산량 +15% · 안정도 -3', productionMultiplier: 1.15, gameDelta: { factories: 4, stability: -3 } },
@@ -76,7 +77,21 @@ const recurringCouncilEvents: CouncilEvent[] = [
   },
 ];
 
-export const councilEvents: CouncilEvent[] = [...recurringCouncilEvents, ...historicalCouncilEvents];
+export const councilEvents: CouncilEvent[] = [...recurringCouncilEvents, ...historicalCouncilEvents, ...wartimeCouncilEvents];
+
+export function getEligibleCouncilEvents(nationId: NationId, roleBranch: CareerBranch, campaignYear: number) {
+  return councilEvents
+    .filter((event) => (!event.nationIds || event.nationIds.includes(nationId)))
+    .filter((event) => (!event.roleBranches || event.roleBranches.includes(roleBranch)))
+    .filter((event) => (!event.historicalYear || event.historicalYear <= campaignYear))
+    .sort((left, right) => {
+      const leftNational = left.nationIds?.includes(nationId) ? 0 : 1;
+      const rightNational = right.nationIds?.includes(nationId) ? 0 : 1;
+      return leftNational - rightNational
+        || (left.historicalYear ?? Number.MAX_SAFE_INTEGER) - (right.historicalYear ?? Number.MAX_SAFE_INTEGER)
+        || left.id.localeCompare(right.id);
+    });
+}
 
 export const policyDomains = [
   { id: 'economy' as const, title: '전시 경제', subtitle: '생산과 민생' },

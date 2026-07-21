@@ -7,6 +7,7 @@ import {
   historicalExpertCoverage,
   minimumHistoricalExpertsPerNation,
 } from './historicalExperts';
+import { wartimeHistoricalExperts, wartimeHistoricalExpertCoverage } from './wartimeHistoricalExperts';
 
 describe('historical civilian expert database', () => {
   it('models a broad, unique roster with traceable historical context', () => {
@@ -56,6 +57,24 @@ describe('historical civilian expert database', () => {
     const represented = new Set(historicalExperts.map((profile) => profile.discipline));
     const civilianDisciplines = ['science', 'engineering', 'medicine', 'economics', 'industry', 'intelligence', 'diplomacy', 'social-science'] as const;
     civilianDisciplines.forEach((discipline) => expect(represented.has(discipline), discipline).toBe(true));
+  });
+
+  it('adds eight deeply modeled 1940s figures for every playable nation', () => {
+    expect(wartimeHistoricalExperts).toHaveLength(104);
+    expect(new Set(wartimeHistoricalExperts.map((profile) => profile.id)).size).toBe(104);
+    expect(new Set(wartimeHistoricalExperts.map((profile) => profile.name)).size).toBe(104);
+    nations.forEach((nation) => {
+      expect(wartimeHistoricalExpertCoverage[nation.id], nation.id).toBe(8);
+      const profiles = wartimeHistoricalExperts.filter((profile) => profile.primaryNation === nation.id);
+      expect(profiles).toHaveLength(8);
+      profiles.forEach((profile) => {
+        expect(profile.office1942.length).toBeGreaterThan(7);
+        expect(profile.office1942).not.toContain('정밀조사 필요');
+        expect(profile.historicalConstraint.length).toBeGreaterThan(35);
+        expect(profile.sourceUrl).toMatch(/^https:\/\//);
+        expect(historicalExperts.some((entry) => entry.id === profile.id), profile.id).toBe(true);
+      });
+    });
   });
 
   it('does not misrepresent Einstein as a Manhattan Project weapons scientist', () => {

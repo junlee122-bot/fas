@@ -121,7 +121,7 @@ import { NationFlag } from './NationFlag';
 import { getHistoricalFlag } from './historicalFlags';
 import { applyDiplomaticAgendaReward, calculateAgendaReadiness, getDiplomaticAgenda, getDiplomaticAgendaOutcome } from './diplomacy';
 import { CouncilEventModal } from './CouncilEventModal';
-import { councilEvents, strategicPolicies } from './choices';
+import { councilEvents, getEligibleCouncilEvents, strategicPolicies } from './choices';
 import { forecastBattle, resolveBattle } from './combat';
 import type { BattleForecast } from './combat';
 import { BattleReportModal } from './BattleReportModal';
@@ -1836,9 +1836,7 @@ export function App() {
     const openedCoup = scheduleCoupCheck(nextWeek);
     const openedWorldFlashpoint = !openedCoup && scheduleWorldFlashpoint(nextWeek);
     if (!openedCoup && !openedWorldFlashpoint && nextWeek % 4 === 0 && !pendingCouncilEventId) {
-      const eligibleEvents = councilEvents.filter((event) =>
-        (!event.nationIds || event.nationIds.includes(playerNation.id))
-        && (!event.roleBranches || event.roleBranches.includes(careerRole.branch)));
+      const eligibleEvents = getEligibleCouncilEvents(playerNation.id, careerRole.branch, 1942 + Math.floor(nextWeek / 52));
       const isUnresolved = (event: (typeof councilEvents)[number]) => !resolvedCouncilChoices.some((record) => record.startsWith(event.id + ':'));
       const unresolvedEvent = eligibleEvents.find((event) => event.nationIds?.includes(playerNation.id) && isUnresolved(event))
         ?? eligibleEvents.find(isUnresolved);

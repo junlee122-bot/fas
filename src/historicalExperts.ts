@@ -2,6 +2,7 @@ import type { NationId, PersonnelAvailability, PersonnelDiscipline, StaffDepartm
 import { extendedHistoricalExperts } from './extendedHistoricalExperts';
 import { expandedHistoricalExperts } from './expandedHistoricalExperts';
 import { massHistoricalExperts } from './massHistoricalExperts';
+import { wartimeHistoricalExperts } from './wartimeHistoricalExperts';
 
 export interface HistoricalExpertProfile {
   id: string;
@@ -233,7 +234,7 @@ const coreHistoricalExperts: HistoricalExpertProfile[] = [
 ];
 
 export const historicalExperts: HistoricalExpertProfile[] = Array.from(
-  [...coreHistoricalExperts, ...massHistoricalExperts]
+  [...wartimeHistoricalExperts, ...coreHistoricalExperts, ...massHistoricalExperts]
     .reduce((profiles, profile) => {
       const normalizedName = profile.name.trim().toLocaleLowerCase('ko-KR');
       if (!profiles.has(normalizedName)) profiles.set(normalizedName, profile);
