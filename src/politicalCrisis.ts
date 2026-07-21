@@ -55,7 +55,7 @@ export interface PoliticalCrisisContext {
   phase: CampaignPhase;
   game: Pick<GameState, 'stability' | 'warSupport' | 'treasury' | 'victoryScore' | 'intelNetwork' | 'enemyPressure' | 'politicalPower' | 'commandPoints'>;
   economy: Pick<EconomyState, 'debt' | 'inflation' | 'publicConfidence'>;
-  nation: Pick<NationManagementState, 'unrest' | 'legitimacy' | 'mandateScore' | 'dynasty'>;
+  nation: Pick<NationManagementState, 'unrest' | 'legitimacy' | 'mandateScore' | 'dynasty' | 'electoral'>;
   averageSupply: number;
   staffLoyalty: number;
   staffOverload: number;
@@ -297,6 +297,7 @@ export function assessCoupRisk(state: PoliticalCrisisState, context: PoliticalCr
   const lead = state.factionStandings[leadingFaction.id];
   const dynasticEffects = getDynasticWeeklyEffects(context.nation.dynasty);
   const governmentForm = getGovernmentForm(context.nation.dynasty.formId);
+  const activeElection = context.nation.electoral.activeCampaign;
   const triggers: CoupRiskTrigger[] = [
     { id: 'stability', label: '국가 안정도', contribution: Math.max(0, (55 - context.game.stability) * 0.42), detail: `현재 ${Math.round(context.game.stability)} · 55 미만에서 권력 공백이 커집니다.` },
     { id: 'war', label: '전쟁 지지·전황', contribution: Math.max(0, (50 - context.game.warSupport) * 0.18) + Math.max(0, (42 - context.game.victoryScore) * 0.15), detail: `전쟁 지지 ${Math.round(context.game.warSupport)} · 승전 지수 ${Math.round(context.game.victoryScore)}` },
@@ -306,6 +307,7 @@ export function assessCoupRisk(state: PoliticalCrisisState, context: PoliticalCr
     { id: 'elite', label: '엘리트 충성·정부 신임', contribution: Math.max(0, 66 - context.staffLoyalty) * 0.2 + Math.max(0, context.staffOverload - 70) * 0.12 + Math.max(0, 58 - context.councilTrust) * 0.2, detail: `참모 충성 ${Math.round(context.staffLoyalty)} · 과부하 ${Math.round(context.staffOverload)} · 지도부 신임 ${Math.round(context.councilTrust)}` },
     { id: 'factions', label: `${leadingFaction.shortName} 동원력`, contribution: Math.max(0, lead.grievance - 25) * 0.22 + Math.max(0, lead.organization - 55) * 0.13 + Math.max(0, 42 - weakestRelationEntry[1]) * 0.22, detail: `불만 ${Math.round(lead.grievance)} · 조직력 ${Math.round(lead.organization)} · 최저 관계 ${Math.round(weakestRelationEntry[1])}` },
     { id: 'succession', label: governmentForm.monarchy ? '왕위계승·궁정 균형' : '헌정 연속성', contribution: context.phase === 'nation' ? dynasticEffects.coupRisk : 0, detail: governmentForm.monarchy ? `계승 안정 ${Math.round(context.nation.dynasty.successionSecurity)} · 궁정 결속 ${Math.round(context.nation.dynasty.courtUnity)} · 영지 부담 ${Math.round(context.nation.dynasty.estateBurden)}` : '비왕정 체제로 왕위 찬탈 위험은 없습니다.' },
+    { id: 'election', label: activeElection ? '선거 불복·정치 양극화' : '선거제도 신뢰', contribution: context.phase === 'nation' ? Math.max(0, 52 - context.nation.electoral.electoralIntegrity) * 0.18 + Math.max(0, (activeElection?.polarization ?? 0) - 55) * 0.14 : 0, detail: activeElection ? `절차 신뢰 ${activeElection.integrity.toFixed(1)} · 양극화 ${activeElection.polarization.toFixed(1)} · ${activeElection.stage}` : `선거 신뢰 ${context.nation.electoral.electoralIntegrity.toFixed(1)} · 진행 중 선거 없음` },
     { id: 'intelligence', label: '방첩 억제력', contribution: -Math.max(0, context.game.intelNetwork - 45) * 0.11, detail: `정보망 ${Math.round(context.game.intelNetwork)}가 사전 적발 가능성을 높입니다.` },
   ].map((trigger) => ({ ...trigger, contribution: round(trigger.contribution) }));
   const raw = triggers.reduce((total, trigger) => total + trigger.contribution, 8 + Math.min(9, state.weeksInDanger * 0.8));
@@ -342,6 +344,7 @@ function updateFactionStanding(definition: PoliticalFactionDefinition, standing:
 
 export function advancePoliticalCrisisWeek(state: PoliticalCrisisState, context: PoliticalCrisisContext): PoliticalWeekResult {
   const profile = getNationPoliticalProfile(state.nationId);
+  const activeElection = context.nation.electoral.activeCampaign;
   const factionStandings = Object.fromEntries(profile.factions.map((definition) => [definition.id, updateFactionStanding(definition, state.factionStandings[definition.id], context)]));
   const averageGrievance = Object.values(factionStandings).reduce((total, item) => total + item.grievance, 0) / profile.factions.length;
   const relationShift = context.game.stability >= 65 && context.councilTrust >= 60 ? 0.28 : -(Math.max(0, averageGrievance - 35) / 32 + Math.max(0, 50 - context.councilTrust) / 45);
@@ -366,7 +369,7 @@ export function advancePoliticalCrisisWeek(state: PoliticalCrisisState, context:
     id: `coup-${state.nationId}-${context.week}-${state.attempts + 1}`,
     week: context.week,
     nationId: state.nationId,
-    title: `${assessment.leadingFaction.name}의 ${getGovernmentForm(context.nation.dynasty.formId).monarchy ? (context.nation.dynasty.successionSecurity < 42 ? '왕위 찬탈' : '궁정 쿠데타') : (detected ? '쿠데타 음모 적발' : '권력 장악 시도')}`,
+    title: `${assessment.leadingFaction.name}의 ${activeElection && activeElection.integrity < 48 ? '개표 불복·권력 장악 시도' : getGovernmentForm(context.nation.dynasty.formId).monarchy ? (context.nation.dynasty.successionSecurity < 42 ? '왕위 찬탈' : '궁정 쿠데타') : (detected ? '쿠데타 음모 적발' : '권력 장악 시도')}`,
     leadingFactionId: assessment.leadingFaction.id,
     riskScore: assessment.score,
     weeklyChance: assessment.weeklyChance,

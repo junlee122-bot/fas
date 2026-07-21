@@ -228,6 +228,8 @@ import {
   setSuccessionLaw,
 } from './dynasticPolitics';
 import type { DynasticActionResult, GovernmentFormId, NobleRankId, SuccessionLawId } from './dynasticPolitics';
+import { applyElectionCampaignAction, launchReferendum } from './electoralPolitics';
+import type { ElectionCampaignActionId, ElectoralActionResult, ElectoralContext, ReferendumTopicId } from './electoralPolitics';
 import {
   calculateStaffSuitability,
   getCareerInstitutionalTitle,
@@ -768,6 +770,15 @@ export function App() {
       instruction: '평가일까지 남은 기간을 확인하고 생활수준과 정부 신뢰를 동시에 높일 예산·제도를 선택하십시오.',
       label: '국정 지표 보기', tab: 'governance',
     });
+    if (nationManagement.electoral.activeCampaign) {
+      const election = nationManagement.electoral.activeCampaign;
+      actions.push({
+        id: 'nation-election-campaign', priority: election.electionWeek - game.week <= 2 ? 'urgent' : 'recommended', title: `${election.type === 'presidential' ? '대통령 선거' : election.type === 'parliamentary' ? '총선거' : election.type === 'referendum' ? '국민투표' : '지방·시장 선거'} ${Math.max(0, election.electionWeek - game.week)}주 전`, detail: `현재 ${election.stage} 단계입니다. 유세 행동과 집중 지역을 선택하지 않으면 상대 후보 조직력이 그대로 득표에 반영됩니다.`,
+        reason: `예상 투표율 ${election.turnoutProjection.toFixed(1)}% · 절차 신뢰 ${election.integrity.toFixed(1)} · 양극화 ${election.polarization.toFixed(1)}`, ifIgnored: '후보 기세·지역 판세·시장 선거 연계에서 주도권을 잃을 수 있습니다.', resolution: `제${election.electionWeek + 1}주 투표·개표 결과에서 확인`,
+        instruction: '선거 상황실에서 후보별 기세와 지역을 확인하고 이번 주 유세·토론·공약·선거관리 행동을 선택하십시오.',
+        label: '선거 상황실', tab: 'governance',
+      });
+    }
     if (publicHealth.activeOutbreak) actions.push({
       id: 'nation-health', priority: 'urgent', title: `${publicHealth.activeOutbreak.codeName} 보건 위기`, detail: '유행 대응 비용과 인명 피해가 복지·재정·국민 위임에 영향을 줍니다.',
       reason: `활성 유행 · ${publicHealth.activeOutbreak.codeName}`, ifIgnored: '인명 피해와 의료비가 재정·생산성·국민 위임을 동시에 압박합니다.', resolution: '보건 태세 변경 즉시 · 다음 주 국정·보건 결산에서 확인',
@@ -981,8 +992,9 @@ export function App() {
       relationAverage,
       completedResearch: projectionCompletedResearch,
       publicHealthPressure: projectionPublicHealthPressure,
+      role: careerRole,
     })
-    : null, [campaignPhase, economy, game, nationManagement, projectionCompletedResearch, projectionPublicHealthPressure, relationAverage]);
+    : null, [campaignPhase, careerRole, economy, game, nationManagement, projectionCompletedResearch, projectionPublicHealthPressure, relationAverage]);
   const projectionResearchGain = campaignPhase === 'nation' && nationWeekProjection
     ? 6 + Math.floor(nationWeekProjection.state.education / 18) + scienceAdvisorBonus
     : (doctrine === 'methodical' ? 13 : 11) + 2 + scienceAdvisorBonus + (scienceAdvisor?.discipline === 'science' ? 1 : 0);
@@ -1318,6 +1330,7 @@ export function App() {
       relationAverage,
       completedResearch,
       publicHealthPressure,
+      role: careerRole,
     });
     const researchGain = 6 + Math.floor(result.state.education / 18) + scienceAdvisorBonus;
     const breakthroughs = research.filter((project) => project.active && !project.complete && project.progress + researchGain >= project.duration);
@@ -1428,7 +1441,7 @@ export function App() {
     );
     const openedCoup = scheduleCoupCheck(nextWeek);
     if (!openedCoup) scheduleWorldFlashpoint(nextWeek);
-  }, [addEvent, economy, formatGameMoney, game, nationManagement, nationWeekProjection, notify, playerNation.id, publicHealth, publicHealthContext, relationAverage, research, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisorBonus]);
+  }, [addEvent, careerRole, economy, formatGameMoney, game, nationManagement, nationWeekProjection, notify, playerNation.id, publicHealth, publicHealthContext, relationAverage, research, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisorBonus]);
 
   const advanceWeek = useCallback(() => {
     if (pendingWorldFlashpointId || pendingCouncilEventId || pendingCoupIncident) return;
@@ -2138,6 +2151,64 @@ export function App() {
       return;
     }
     applyDynasticActionResult(result);
+  };
+
+  const electoralContext = useCallback((): ElectoralContext => ({
+    week: game.week,
+    role: displayedCareerRole,
+    politicalPower: game.politicalPower,
+    treasury: game.treasury,
+    stability: game.stability,
+    legitimacy: nationManagement.legitimacy,
+    mandateScore: nationManagement.mandateScore,
+    unrest: nationManagement.unrest,
+    education: nationManagement.education,
+    institutionalCapacity: nationManagement.institutionalCapacity,
+    inflation: economy.inflation,
+    publicConfidence: economy.publicConfidence,
+  }), [displayedCareerRole, economy.inflation, economy.publicConfidence, game.politicalPower, game.stability, game.treasury, game.week, nationManagement.education, nationManagement.institutionalCapacity, nationManagement.legitimacy, nationManagement.mandateScore, nationManagement.unrest]);
+
+  const applyElectoralActionResult = useCallback((result: ElectoralActionResult) => {
+    setNationManagement((current) => ({
+      ...current,
+      electoral: result.state,
+      legitimacy: Math.max(0, Math.min(100, current.legitimacy + result.legitimacyDelta)),
+      unrest: Math.max(0, Math.min(100, current.unrest + result.unrestDelta)),
+    }));
+    setGame((current) => applyGameDelta(current, { politicalPower: result.politicalPowerDelta, treasury: result.treasuryDelta }));
+    addEvent(result.title, result.detail, result.legitimacyDelta >= 1 ? 'good' : result.unrestDelta > 1 ? 'bad' : 'neutral', game.week, {
+      domain: 'management',
+      decision: result.title,
+      trigger: '선거·국민투표 상황실에서 유세 또는 투표 발의안을 결재했습니다.',
+      factors: [`현재 보직: ${displayedCareerRole.title}`, `국민 위임 ${nationManagement.mandateScore}`, `정통성 ${Math.round(nationManagement.legitimacy)}`, `사회 불안 ${Math.round(nationManagement.unrest)}`],
+      effects: [
+        { label: '정치력', value: `${result.politicalPowerDelta}`, tone: 'negative' },
+        { label: '국고', value: formatGameMoney(result.treasuryDelta, { signed: true }), tone: result.treasuryDelta < 0 ? 'negative' : 'positive' },
+        { label: '정통성', value: `${result.legitimacyDelta >= 0 ? '+' : ''}${result.legitimacyDelta}`, tone: result.legitimacyDelta >= 0 ? 'positive' : 'negative' },
+      ],
+      ongoing: ['후보 기세·지역 집중도·투표율·선거 신뢰는 투표일까지 누적되고 최종 득표·선거인·의석·시장 당선에 반영됩니다.'],
+      nextActions: ['선거 상황실에서 지역별 판세와 반복 유세의 효율 저하를 확인하십시오.', '다음 국정 1주 진행으로 선거운동 단계를 진전시키십시오.'],
+      certainty: 'confirmed',
+    });
+    notify(result.detail);
+  }, [addEvent, displayedCareerRole.title, formatGameMoney, game.week, nationManagement.legitimacy, nationManagement.mandateScore, nationManagement.unrest, notify]);
+
+  const runElectionCampaignAction = (actionId: ElectionCampaignActionId, regionId: string | null) => {
+    const result = applyElectionCampaignAction(nationManagement.electoral, actionId, regionId, electoralContext());
+    if (!result) {
+      notify('현재 선거 일정, 보직 권한, 정치력·국고 또는 지역 선택을 확인하십시오. 같은 행동을 반복하면 효과가 점차 줄어듭니다.');
+      return;
+    }
+    applyElectoralActionResult(result);
+  };
+
+  const proposeReferendum = (topicId: ReferendumTopicId) => {
+    const result = launchReferendum(nationManagement.electoral, topicId, electoralContext());
+    if (!result) {
+      notify('진행 중인 선거가 없고, 2단계 이상 정치 보직과 안건별 정통성·정치력·국고 요건을 충족해야 합니다.');
+      return;
+    }
+    applyElectoralActionResult(result);
   };
 
   const startCampaign = () => {
@@ -4541,6 +4612,8 @@ export function App() {
                   onRevokeTitle={revokeNobleTitle}
                   onArrangeMarriage={arrangeRoyalMarriage}
                   onSuccessionLawChange={changeSuccessionLaw}
+                  onElectionCampaignAction={runElectionCampaignAction}
+                  onLaunchReferendum={proposeReferendum}
                   onNavigate={setActiveTab}
                   onNextWeek={advanceWeek}
                 />

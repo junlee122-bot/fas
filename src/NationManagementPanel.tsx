@@ -36,6 +36,8 @@ import {
   type SuccessionLawId,
 } from './dynasticPolitics';
 import type { EconomyState } from './economy';
+import { ElectionSituationRoom } from './ElectionSituationRoom';
+import type { ElectionCampaignActionId, ReferendumTopicId } from './electoralPolitics';
 import { NationalSimulationOverview } from './NationalSimulationOverview';
 import type { NationalSimulationSnapshot } from './nationalSimulation';
 import {
@@ -85,6 +87,8 @@ interface NationManagementPanelProps {
   onRevokeTitle: (grantId: string) => void;
   onArrangeMarriage: (nationId: string) => void;
   onSuccessionLawChange: (lawId: SuccessionLawId) => void;
+  onElectionCampaignAction: (actionId: ElectionCampaignActionId, regionId: string | null) => void;
+  onLaunchReferendum: (topicId: ReferendumTopicId) => void;
   onNavigate: (tab: GameTab) => void;
   onNextWeek: () => void;
 }
@@ -131,6 +135,8 @@ export function NationManagementPanel({
   onRevokeTitle,
   onArrangeMarriage,
   onSuccessionLawChange,
+  onElectionCampaignAction,
+  onLaunchReferendum,
   onNavigate,
   onNextWeek,
 }: NationManagementPanelProps) {
@@ -268,6 +274,17 @@ export function NationManagementPanel({
       </section>
 
       <NationalSimulationOverview snapshot={nationalSimulation} phase="nation" onNavigate={onNavigate} />
+
+      <ElectionSituationRoom
+        state={state.electoral}
+        nation={state}
+        game={game}
+        economy={economy}
+        role={role}
+        formatMoney={formatMoney}
+        onCampaignAction={onElectionCampaignAction}
+        onLaunchReferendum={onLaunchReferendum}
+      />
 
       <div className="nation-government-grid">
         <section className="nation-surface fiscal-cabinet">

@@ -1,12 +1,20 @@
 import type { EconomyState } from './economy';
 import {
+  advanceElectoralPoliticsWeek,
+  createElectoralPoliticsState,
+  getCampaignStageName,
+  getElectionTypeName,
+  normalizeElectoralPoliticsState,
+  type ElectoralPoliticsState,
+} from './electoralPolitics';
+import {
   createDynasticPoliticsState,
   getDynasticWeeklyEffects,
   getGovernmentForm,
   normalizeDynasticPoliticsState,
   type DynasticPoliticsState,
 } from './dynasticPolitics';
-import type { GameState, NationId } from './types';
+import type { CareerRole, GameState, NationId } from './types';
 
 export type CampaignPhase = 'war' | 'nation';
 export type NationBudgetDomain = 'reconstruction' | 'welfare' | 'education' | 'industry' | 'diplomacy' | 'security';
@@ -78,6 +86,7 @@ export interface NationManagementState {
   nextElectionWeek: number;
   electionWins: number;
   dynasty: DynasticPoliticsState;
+  electoral: ElectoralPoliticsState;
   reports: NationWeeklyReport[];
 }
 
@@ -88,6 +97,7 @@ export interface NationManagementContext {
   relationAverage: number;
   completedResearch: number;
   publicHealthPressure: number;
+  role?: CareerRole;
 }
 
 export interface NationAdvanceResult {
@@ -199,6 +209,7 @@ export function createNationManagementState(
     nextElectionWeek: game.week + 208,
     electionWins: 0,
     dynasty: createDynasticPoliticsState(nationId),
+    electoral: createElectoralPoliticsState(nationId, game.week),
     reports: [],
   };
   state.nationalScore = calculateNationScore(state);
@@ -343,6 +354,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
       courtUnity: clamp(state.dynasty.courtUnity + (context.game.stability >= 65 ? 0.08 : -0.04) - Math.max(0, state.dynasty.estateBurden - 50) * 0.003),
       successionSecurity: clamp(state.dynasty.successionSecurity + (state.dynasty.successionLawId === 'unsettled' && getGovernmentForm(state.dynasty.formId).monarchy ? -0.05 : 0.03)),
     },
+    electoral: state.electoral,
     reports: state.reports,
   };
   next.legitimacy = clamp(
@@ -355,6 +367,23 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     + dynasticEffects.legitimacy
     + (state.strategyId === 'security-republic' ? -0.025 : 0.015),
   );
+  const electoralResult = advanceElectoralPoliticsWeek(state.electoral, {
+    week: context.week,
+    role: context.role ?? ({ tier: 1, branch: 'politics' } as CareerRole),
+    politicalPower: context.game.politicalPower,
+    treasury: context.game.treasury,
+    stability: context.game.stability,
+    legitimacy: next.legitimacy,
+    mandateScore: state.mandateScore,
+    unrest: next.unrest,
+    education: next.education,
+    institutionalCapacity: next.institutionalCapacity,
+    inflation: context.economy.inflation,
+    publicConfidence: context.economy.publicConfidence,
+  });
+  next.electoral = electoralResult.state;
+  next.legitimacy = clamp(next.legitimacy + electoralResult.legitimacyDelta);
+  next.unrest = clamp(next.unrest + electoralResult.unrestDelta);
   const projectedEconomy = {
     inflation: clamp(context.economy.inflation + inflationChange, 0, 60),
     publicConfidence: clamp(context.economy.publicConfidence + (fiscalBalance >= 0 ? 0.08 : -0.08) + (next.legitimacy - state.legitimacy) * 0.12),
@@ -363,23 +392,12 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
   next.mandateScore = calculateMandateScore(next, projectedEconomy);
   const event = selectNationEvent(next, context);
   const dynasticEvent = selectDynasticEvent(next, context);
-  const electionDue = context.week >= state.nextElectionWeek;
-  const electionWon = electionDue && next.mandateScore >= 50;
-  if (electionDue) {
-    next.nextElectionWeek += 208;
-    if (electionWon) next.electionWins += 1;
-  }
+  if (electoralResult.playerWonElection) next.electionWins += 1;
+  next.nextElectionWeek = Math.min(next.electoral.nextPresidentialWeek, next.electoral.nextParliamentaryWeek);
   const events = [
     ...(event ? [event] : []),
     ...(dynasticEvent ? [dynasticEvent] : []),
-    ...(electionDue ? [{
-      id: `election-${context.week}`,
-      title: electionWon ? '국민 위임 갱신' : '연립정부 재구성 압력',
-      detail: electionWon ? `국민 위임 ${next.mandateScore}/100으로 정부가 다음 임기를 확보했습니다.` : `국민 위임 ${next.mandateScore}/100으로 단독 국정운영이 어려워졌습니다.`,
-      tone: electionWon ? 'good' as const : 'bad' as const,
-      cause: '4년 임기 동안의 생활수준·고용·불평등·물가·정당성을 종합해 선거를 판정했습니다.',
-      consequence: electionWon ? '정치력과 제도 신뢰가 회복됩니다.' : '정치력과 정당성이 하락하고 정책연합을 재구성해야 합니다.',
-    }] : []),
+    ...electoralResult.events,
   ];
   const report: NationWeeklyReport = {
     week: context.week,
@@ -395,6 +413,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
       `지출 = 공공지출 ${state.spendingLevel}/100 · 부채이자 £${(context.economy.debt * 0.0012).toFixed(1)}M · 보건·사회불안 비용`,
       `정책효율 = ${nationStrategies.find((candidate) => candidate.id === state.strategyId)?.name ?? state.strategyId} × 부처별 예산배분`,
       ...(getGovernmentForm(state.dynasty.formId).monarchy ? [`왕실재정 = ${dynasticEffects.note} · 궁정 결속 ${Math.round(state.dynasty.courtUnity)} · 계승 안정 ${Math.round(state.dynasty.successionSecurity)}`] : []),
+      ...(state.electoral.activeCampaign ? [`선거일정 = ${getElectionTypeName(state.electoral.activeCampaign.type)} · ${getCampaignStageName(state.electoral.activeCampaign.stage)} · 투표일까지 ${Math.max(0, state.electoral.activeCampaign.electionWeek - context.week)}주`] : []),
     ],
     effects: [
       `국가 성과 ${state.nationalScore} → ${next.nationalScore}`,
@@ -411,8 +430,8 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     gameDelta: {
       week: 1,
       treasury: fiscalBalance,
-      stability: round((next.legitimacy - state.legitimacy) * 0.18 - Math.max(0, next.unrest - 65) * 0.01, 2),
-      politicalPower: electionDue ? (electionWon ? 12 : -10) : 1,
+      stability: round((next.legitimacy - state.legitimacy) * 0.18 - Math.max(0, next.unrest - 65) * 0.01 + electoralResult.stabilityDelta, 2),
+      politicalPower: 1 + electoralResult.politicalPowerDelta,
       enemyPressure: -1.4,
       commandPoints: 1,
     },
@@ -435,6 +454,7 @@ export function normalizeNationManagementState(value: unknown, fallback: NationM
     ...candidate,
     budget,
     dynasty: normalizeDynasticPoliticsState(candidate.dynasty, fallback.nationId),
+    electoral: normalizeElectoralPoliticsState(candidate.electoral, fallback.nationId, fallback.startedWeek),
     reports: Array.isArray(candidate.reports) ? candidate.reports.slice(0, 208) : [],
   };
 }

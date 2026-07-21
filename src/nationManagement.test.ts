@@ -80,14 +80,25 @@ describe('war-to-state nation management', () => {
 
   it('turns the scheduled public evaluation into a renewable four-year mandate', () => {
     const economy = { ...createEconomyState('britain'), inflation: 2, publicConfidence: 90 };
+    const base = createNationManagementState('britain', game, economy, 5, 'victory');
+    const campaign = base.electoral.activeCampaign!;
     const state = {
-      ...createNationManagementState('britain', game, economy, 5, 'victory'),
+      ...base,
       legitimacy: 90,
       welfare: 88,
       employment: 92,
       inequality: 18,
       unrest: 12,
       nextElectionWeek: game.week + 1,
+      electoral: {
+        ...base.electoral,
+        nextParliamentaryWeek: game.week + 1,
+        activeCampaign: {
+          ...campaign,
+          electionWeek: game.week + 1,
+          momentum: Object.fromEntries(base.electoral.candidates.map((candidate, index) => [candidate.id, index === 0 ? 92 : 12])),
+        },
+      },
     };
     const result = advanceNationManagementWeek(state, {
       week: game.week + 1,
@@ -97,7 +108,7 @@ describe('war-to-state nation management', () => {
       completedResearch: 5,
       publicHealthPressure: 0,
     });
-    expect(result.report.events.some((event) => event.id.startsWith('election-'))).toBe(true);
+    expect(result.report.events.some((event) => event.id.startsWith('result-'))).toBe(true);
     expect(result.state.electionWins).toBe(1);
     expect(result.state.nextElectionWeek).toBe(game.week + 1 + 208);
   });

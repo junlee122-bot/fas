@@ -1051,6 +1051,125 @@
 .national-strategy-grid button > p { margin: 0 0 10px; line-height: 1.55; color: #829087; }
 .national-strategy-grid button > small, .national-strategy-grid button > em { display: block; margin-top: auto; line-height: 1.45; color: #83998b; }
 .national-strategy-grid button > em { margin-top: 7px; color: #9b7b73; }
+.election-situation-room { border-color: rgba(102, 137, 158, .26); background: linear-gradient(180deg, rgba(69, 105, 123, .035), rgba(0, 0, 0, .015)); }
+.election-system-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; padding: 14px; }
+.election-system-strip article { min-width: 0; display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 2px 7px; padding: 10px; border: 1px solid rgba(110, 143, 160, .15); background: rgba(0, 0, 0, .12); }
+.election-system-strip svg { grid-row: 1 / 4; width: 17px; color: #7899aa; }
+.election-system-strip span, .election-system-strip small { overflow: hidden; color: #72837f; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.election-system-strip strong { overflow: hidden; color: #ced6d2; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.election-campaign-hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; margin: 0 14px 10px; padding: 14px; border: 1px solid rgba(101, 143, 164, .22); background: linear-gradient(120deg, rgba(74, 111, 131, .1), rgba(0, 0, 0, .13)); }
+.election-campaign-hero > div:first-child > span { color: #7196aa; font-size: 8px; letter-spacing: .08em; }
+.election-campaign-hero h4 { margin: 4px 0; color: #d5dcd8; font-size: 16px; }
+.election-campaign-hero p { max-width: 680px; margin: 0; color: #7d8c85; line-height: 1.55; }
+.election-campaign-metrics { display: grid; grid-template-columns: repeat(2, minmax(94px, 1fr)); gap: 5px; }
+.election-campaign-metrics span { display: grid; place-content: center; min-height: 50px; padding: 6px 9px; border: 1px solid rgba(255, 255, 255, .05); background: rgba(0, 0, 0, .15); text-align: center; }
+.election-campaign-metrics small { color: #71817c; font-size: 8px; }
+.election-campaign-metrics strong { color: #d1d8d4; font: 700 13px var(--font-data); }
+.candidate-poll-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; padding: 0 14px 12px; }
+.candidate-poll-grid article { min-width: 0; padding: 11px; border: 1px solid rgba(255, 255, 255, .055); border-top: 2px solid var(--candidate-color); background: rgba(0, 0, 0, .1); }
+.candidate-poll-grid article.player { background: rgba(87, 126, 146, .08); box-shadow: inset 0 0 0 1px rgba(99, 148, 172, .17); }
+.candidate-poll-grid article > div:first-child { display: flex; justify-content: space-between; gap: 8px; }
+.candidate-poll-grid article > div > span { color: var(--candidate-color); font-size: 9px; }
+.candidate-poll-grid article em { padding: 2px 5px; color: #97b4c1; background: rgba(99, 148, 172, .1); font-size: 8px; font-style: normal; }
+.candidate-poll-grid article > strong { display: block; margin-top: 5px; color: #d0d7d3; font-size: 13px; }
+.candidate-poll-grid article > small { display: block; overflow: hidden; margin-top: 2px; color: #74827b; text-overflow: ellipsis; white-space: nowrap; }
+.candidate-momentum { position: relative; height: 20px; margin-top: 9px; background: rgba(0, 0, 0, .22); }
+.candidate-momentum i { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--candidate-color) 58%, transparent); }
+.candidate-momentum b { position: relative; display: grid; place-items: center; height: 100%; color: #d7ddda; font: 700 10px var(--font-data); }
+.candidate-poll-grid article > p { margin: 7px 0 0; color: #7b8982; font-size: 8px; }
+.referendum-live-card { display: flex; align-items: center; gap: 12px; margin: 0 14px 12px; padding: 13px; border-left: 3px solid #879e72; background: rgba(91, 123, 73, .07); }
+.referendum-live-card > svg { color: #91aa7b; }
+.referendum-live-card > div { display: grid; gap: 3px; }
+.referendum-live-card small { color: #7e956f; }
+.referendum-live-card strong { color: #d2d8d3; }
+.referendum-live-card p { margin: 0; color: #839087; }
+.election-action-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 8px; padding: 0 14px 14px; }
+.election-region-target { align-self: start; display: grid; gap: 7px; padding: 11px; border: 1px solid rgba(255, 255, 255, .055); background: rgba(0, 0, 0, .12); }
+.election-region-target label { color: #839a9f; font-size: 9px; }
+.election-region-target select { min-width: 0; height: 36px; padding: 0 8px; border: 1px solid rgba(108, 145, 164, .24); background: #111916; color: #c4ceca; font: 600 9px var(--font-body); }
+.election-region-target p { margin: 0; color: #718079; font-size: 8px; line-height: 1.5; }
+.election-action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.election-action-grid > button { min-width: 0; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 3px 8px; padding: 9px; border: 1px solid rgba(255, 255, 255, .055); background: rgba(255, 255, 255, .012); color: #84938b; text-align: left; cursor: pointer; }
+.election-action-grid > button:hover:not(:disabled) { border-color: rgba(101, 146, 168, .35); background: rgba(74, 111, 131, .05); }
+.election-action-grid > button:disabled { opacity: .43; cursor: not-allowed; }
+.election-action-grid svg { grid-row: 1 / 3; width: 16px; color: #789baa; }
+.election-action-grid button > span { min-width: 0; display: grid; gap: 2px; }
+.election-action-grid button strong { color: #cbd3cf; }
+.election-action-grid button small { overflow: hidden; color: #718078; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.election-action-grid button em { color: #9e8b61; font-size: 8px; font-style: normal; }
+.election-action-grid button > b { grid-column: 2 / 4; color: #7993a0; font-size: 8px; font-weight: 500; }
+.campaign-action-log { margin: 0 14px 14px; padding: 10px; border: 1px solid rgba(255, 255, 255, .05); background: rgba(0, 0, 0, .1); }
+.campaign-action-log h4 { margin: 0 0 6px; color: #91a6aa; font-size: 9px; }
+.campaign-action-log article { display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; gap: 8px; padding: 5px 0; border-top: 1px solid rgba(255, 255, 255, .04); }
+.campaign-action-log span, .campaign-action-log small { color: #718079; font-size: 8px; }
+.campaign-action-log strong { overflow: hidden; color: #aebbb5; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.election-idle-state { display: flex; gap: 11px; margin: 0 14px 12px; padding: 13px; border: 1px dashed rgba(102, 139, 158, .25); }
+.election-idle-state svg { color: #7696a5; }
+.election-idle-state strong { color: #c8d0cc; }
+.election-idle-state p { margin: 3px 0 0; color: #75847c; }
+.referendum-launcher { margin: 0 14px 14px; border: 1px solid rgba(114, 144, 126, .15); }
+.referendum-launcher-heading { display: flex; align-items: center; gap: 9px; padding: 10px; border-bottom: 1px solid rgba(255, 255, 255, .05); }
+.referendum-launcher-heading > svg { color: #829c83; }
+.referendum-launcher-heading > div { flex: 1; }
+.referendum-launcher-heading span { color: #769078; font-size: 8px; }
+.referendum-launcher-heading h4 { margin: 2px 0 0; color: #cbd2ce; font-size: 11px; }
+.referendum-launcher-heading > small { color: #708078; font-size: 8px; }
+.referendum-launcher > div:last-child { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 9px; }
+.referendum-launcher button { min-width: 0; min-height: 150px; display: flex; flex-direction: column; align-items: flex-start; padding: 10px; border: 1px solid rgba(255, 255, 255, .05); background: rgba(255, 255, 255, .012); color: #7f8d85; text-align: left; cursor: pointer; }
+.referendum-launcher button:disabled { opacity: .48; cursor: not-allowed; }
+.referendum-launcher button > span { color: #809a82; font-size: 8px; }
+.referendum-launcher button > strong { margin: 4px 0; color: #c8d0cc; font-size: 10px; line-height: 1.4; }
+.referendum-launcher button > p { margin: 0 0 8px; color: #74827b; font-size: 8px; line-height: 1.45; }
+.referendum-launcher button > small { margin-top: auto; color: #96845e; font-size: 8px; }
+.referendum-launcher button > em { margin-top: 5px; color: #738f99; font-size: 8px; font-style: normal; }
+.election-results-ledger, .mayor-results-board { margin: 0 14px 14px; border: 1px solid rgba(255, 255, 255, .055); background: rgba(0, 0, 0, .1); }
+.election-result-heading { display: grid; grid-template-columns: 25px minmax(0, 1fr) auto; gap: 8px; padding: 11px; border-bottom: 1px solid rgba(255, 255, 255, .05); }
+.election-result-heading > svg { color: #7899aa; }
+.election-result-heading > div { display: grid; gap: 2px; }
+.election-result-heading span { color: #718f9e; font-size: 8px; }
+.election-result-heading h4 { margin: 0; color: #d0d7d3; }
+.election-result-heading p { margin: 0; color: #74827b; }
+.election-result-heading > strong { align-self: center; color: #d3c487; }
+.candidate-result-table { display: grid; gap: 3px; padding: 9px; }
+.candidate-result-table article { display: grid; grid-template-columns: 24px minmax(0, 1fr) 70px 90px; align-items: center; gap: 7px; padding: 7px; border: 1px solid rgba(255, 255, 255, .04); }
+.candidate-result-table article.winner { border-color: rgba(119, 157, 131, .3); background: rgba(83, 120, 94, .055); }
+.candidate-result-table article > span { color: #718079; font: 700 11px var(--font-data); }
+.candidate-result-table article > div { min-width: 0; display: grid; }
+.candidate-result-table strong { color: #c7cfca; }
+.candidate-result-table small { color: #718079; font-size: 8px; }
+.candidate-result-table b, .candidate-result-table em { text-align: right; font: 700 10px var(--font-data); }
+.candidate-result-table b { color: #d3c487; }
+.candidate-result-table em { color: #7895a0; font-style: normal; }
+.regional-result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 0 9px 9px; }
+.regional-result-grid article { min-width: 0; display: grid; grid-template-columns: 19px minmax(0, 1fr); gap: 2px 6px; padding: 8px; border: 1px solid rgba(255, 255, 255, .04); }
+.regional-result-grid svg { grid-row: 1 / 3; width: 14px; color: #718f9d; }
+.regional-result-grid span { min-width: 0; display: grid; }
+.regional-result-grid strong { overflow: hidden; color: #bfc8c3; text-overflow: ellipsis; white-space: nowrap; }
+.regional-result-grid small { color: #708078; font-size: 8px; }
+.regional-result-grid b { color: #9daa9f; font-size: 8px; }
+.regional-result-grid em { color: #8a7b5d; font-size: 8px; font-style: normal; text-align: right; }
+.referendum-result { display: grid; gap: 7px; padding: 10px; }
+.referendum-result span { display: grid; grid-template-columns: 110px minmax(0, 1fr); align-items: center; gap: 8px; }
+.referendum-result b { color: #bdc7c1; }
+.referendum-result i { height: 8px; background: #779b80; }
+.referendum-result span:nth-child(2) i { background: #9d6b60; }
+.referendum-result p { margin: 0; color: #7d8b83; }
+.mayor-results-board > div:first-child { display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid rgba(255, 255, 255, .05); }
+.mayor-results-board > div:first-child svg { color: #7899aa; }
+.mayor-results-board > div:first-child span { display: grid; }
+.mayor-results-board > div:first-child small { color: #718f9d; font-size: 8px; }
+.mayor-results-board > div:first-child strong { color: #c9d1cd; }
+.mayor-results-board > div:nth-child(2) { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 9px; }
+.mayor-results-board article { display: grid; gap: 2px; padding: 8px; border-left: 2px solid #987064; background: rgba(0, 0, 0, .1); }
+.mayor-results-board article.government { border-color: #739b80; }
+.mayor-results-board article > span { color: #7896a2; font-size: 8px; }
+.mayor-results-board article > strong { color: #c4ccc7; }
+.mayor-results-board article > small { color: #718079; font-size: 8px; }
+.mayor-results-board article > em { color: #8e7d5b; font-size: 8px; font-style: normal; }
+.mayor-results-board > p { margin: 0; padding: 13px; color: #75837c; }
+.election-causality-note { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 8px; margin: 0 14px 14px; padding: 9px; border-left: 2px solid rgba(106, 145, 162, .4); background: rgba(68, 105, 120, .035); }
+.election-causality-note span { color: #7899a6; }
+.election-causality-note p { margin: 0; color: #77857e; line-height: 1.5; }
 .dynastic-politics-board { border-color: rgba(190, 158, 89, .28); background: linear-gradient(180deg, rgba(151, 113, 50, .035), rgba(0, 0, 0, .02)); }
 .dynastic-status-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 7px; padding: 14px 14px 0; }
 .dynastic-status-grid article { min-width: 0; display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 2px 7px; padding: 10px; border: 1px solid rgba(196, 164, 91, .14); background: rgba(0, 0, 0, .13); }
@@ -1126,6 +1245,7 @@
   .national-strategy-grid { grid-template-columns: repeat(3,1fr); }
   .government-form-grid { grid-template-columns: repeat(3, 1fr); }
   .dynastic-status-grid { grid-template-columns: repeat(3, 1fr); }
+  .referendum-launcher > div:last-child, .regional-result-grid, .mayor-results-board > div:nth-child(2) { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 1360px) {
@@ -1137,6 +1257,7 @@
   .ministry-budget-grid { grid-template-columns: repeat(2,1fr); }
   .national-strategy-grid { grid-template-columns: repeat(2,1fr); }
   .government-form-grid { grid-template-columns: repeat(2, 1fr); }
+  .election-action-layout { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
@@ -1144,6 +1265,13 @@
   .transition-readiness-seal { width: 130px; }
   .inheritance-cards, .transition-routes > div, .ministry-budget-grid, .national-strategy-grid { grid-template-columns: 1fr; }
   .government-form-grid, .dynastic-status-grid, .court-management-grid, .court-ledger { grid-template-columns: 1fr; }
+  .election-system-strip, .candidate-poll-grid, .election-action-grid, .referendum-launcher > div:last-child, .regional-result-grid, .mayor-results-board > div:nth-child(2) { grid-template-columns: 1fr; }
+  .election-campaign-hero { grid-template-columns: 1fr; }
+  .election-campaign-metrics { grid-template-columns: repeat(2, 1fr); }
+  .campaign-action-log article, .candidate-result-table article { grid-template-columns: 46px minmax(0, 1fr); }
+  .campaign-action-log small, .candidate-result-table article > b, .candidate-result-table article > em { grid-column: 2; text-align: left; }
+  .referendum-launcher-heading { align-items: flex-start; flex-wrap: wrap; }
+  .election-causality-note { grid-template-columns: 1fr; }
   .nation-kpi-grid, .fiscal-summary { grid-template-columns: repeat(2,1fr); }
   .transition-pillar { grid-template-columns: 120px 1fr 30px; }
   .nation-hero-scores { grid-template-columns: repeat(2,minmax(0,1fr)); }
