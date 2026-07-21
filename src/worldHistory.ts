@@ -2,11 +2,14 @@ import type { GameState, NationId, NationProfile } from './types';
 import { extendedWorldHistoryEvents } from './extendedWorldHistory';
 import { expandedAlternateHistoryEvents } from './expandedAlternateHistory';
 import { intelligenceWorldHistoryEvents } from './intelligenceWorldHistory';
+import { historicalAgencyEvents } from './historicalAgencyEvents';
 import { resolveIntelligenceHistory } from './intelligenceHistory';
 import type { ResolvedIntelligenceOrganization } from './intelligenceHistory';
 import { getEndingAlternatives, historicalEndings, resolveHistoricalEnding } from './historicalEndings';
 import type { HistoricalEnding, ResolvedHistoricalEnding } from './historicalEndings';
 import type { EmergentHistoryProfile, HistoryForce } from './emergentHistory';
+import { getHistoricalExpert } from './historicalExperts';
+import { getLaterEraFigure } from './laterEraFigures';
 
 export type WorldHistoryCategory = 'nuclear' | 'world-order' | 'economy' | 'decolonization' | 'proxy-war' | 'space' | 'society' | 'technology' | 'environment' | 'public-health' | 'intelligence';
 export type WorldHistoryEra = 'war-end' | 'reconstruction' | 'early-rivalry' | 'high-rivalry' | 'detente' | 'transformation' | 'post-cold-war' | 'connected-world';
@@ -30,6 +33,7 @@ export interface WorldHistoryEvent {
   sourceLabel: string;
   sourceUrl: string;
   historicalActorIds?: string[];
+  historicalFigureQids?: string[];
   variants: [WorldHistoryVariant, WorldHistoryVariant, WorldHistoryVariant];
 }
 
@@ -324,6 +328,7 @@ export const worldHistoryEvents: WorldHistoryEvent[] = [
   ...extendedWorldHistoryEvents,
   ...expandedAlternateHistoryEvents,
   ...intelligenceWorldHistoryEvents,
+  ...historicalAgencyEvents,
 ];
 
 export const worldHistoryCategoryLabels: Record<WorldHistoryCategory, string> = {
@@ -524,11 +529,17 @@ export function generateWorldline(input: WorldHistoryInput): GeneratedWorldline 
     applyMetrics(metrics, variant.metricDelta);
     const jitter = Math.floor(seeded(input.state.seed, `${entry.id}:year`) * 5) - 1;
     const actorOffset = entry.category === 'decolonization' ? 2 : entry.category === 'nuclear' || entry.category === 'space' ? index % 2 : index % 3;
+    const laterHistoricalActors = (entry.historicalFigureQids ?? []).map((qid) => getLaterEraFigure(qid)?.name).filter((name): name is string => Boolean(name));
+    const wartimeHistoricalActors = (entry.historicalActorIds ?? []).map((id) => getHistoricalExpert(id)?.name).filter((name): name is string => Boolean(name));
+    const historicalActors = laterHistoricalActors.length > 0 ? laterHistoricalActors : wartimeHistoricalActors;
+    const historicalActorIndex = historicalActors.length > 0
+      ? Math.floor(seeded(input.state.seed, `${entry.id}:historical-actor`) * historicalActors.length)
+      : -1;
     return {
       event: entry,
       variant,
       year: Math.max(1942, entry.historicalYear + jitter),
-      actor: actors[actorOffset],
+      actor: historicalActorIndex >= 0 ? historicalActors[historicalActorIndex] : actors[actorOffset],
       isPlayerChoice: Boolean(input.state.choices[entry.id]),
       causalFactors: resolution.causalFactors,
     };

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   createLaterEraCandidates,
+  curatedLaterEraDossiers,
   getEligibleLaterEraFigures,
+  getLaterEraFigure,
   getLaterEraRosterSummary,
   laterEraFigures,
 } from './laterEraFigures';
@@ -41,8 +43,18 @@ describe('later-era real-person generations', () => {
     const second = createLaterEraCandidates('usa', 1980, 1980);
     expect(first).toEqual(second);
     expect(first.length).toBeGreaterThan(0);
-    expect(first.every((candidate) => candidate.sourceUrl?.startsWith('https://www.wikidata.org/wiki/Q'))).toBe(true);
-    expect(first.every((candidate) => candidate.historicalConstraint?.includes('대체역사 시뮬레이션'))).toBe(true);
+    expect(first.every((candidate) => candidate.sourceUrl?.startsWith('https://'))).toBe(true);
+    expect(first.every((candidate) => candidate.historicalConstraint?.includes('대체역사'))).toBe(true);
     expect(first.every((candidate) => candidate.birthYear && 1980 >= candidate.birthYear + 18)).toBe(true);
+  });
+
+  it('overrides generic generation with sourced dossiers for major historical actors', () => {
+    expect(curatedLaterEraDossiers.length).toBeGreaterThanOrEqual(24);
+    expect(curatedLaterEraDossiers.every((entry) => getLaterEraFigure(entry.qid))).toBe(true);
+    const tim = createLaterEraCandidates('britain', 1991, 1991).find((candidate) => candidate.personId === 'later-Q80');
+    expect(tim?.role).toBe('개방형 정보망 설계고문');
+    expect(tim?.expertise).toContain('개방형 네트워크 표준');
+    expect(tim?.sourceUrl).toContain('cern');
+    expect(getLaterEraFigure('Q80')?.generationUnlockYear).toBe(1989);
   });
 });

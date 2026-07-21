@@ -23,6 +23,7 @@ import type { EmergentHistoryProfile, HistoryForce } from './emergentHistory';
 import { historyForceDescriptions, historyForceLabels } from './emergentHistory';
 import { endingHorizonAxes, endingOrderAxes, endingSettlementAxes, filterHistoricalEndings, historicalEndings } from './historicalEndings';
 import { getHistoricalExpert } from './historicalExperts';
+import { getCuratedLaterEraDossier, getLaterEraFigure } from './laterEraFigures';
 
 interface WorldHistoryAtlasProps {
   worldline: GeneratedWorldline;
@@ -384,12 +385,17 @@ export function WorldHistoryAtlas({ worldline, trajectory, onClose }: WorldHisto
                           <p>{entry.event.historicalBasis}</p>
                           <a href={entry.event.sourceUrl} target="_blank" rel="noreferrer">사료 기준선 · {entry.event.sourceLabel} <ExternalLink size={12} /></a>
                         </div>
-                        {entry.event.historicalActorIds && entry.event.historicalActorIds.length > 0 && (
+                        {((entry.event.historicalActorIds?.length ?? 0) + (entry.event.historicalFigureQids?.length ?? 0) > 0) && (
                           <div className="world-event-people" aria-label="이 사건과 연결된 실존 인물">
-                            <span>연결된 실존 인물</span>
-                            {entry.event.historicalActorIds.map((actorId) => {
+                            <span>실제 행위자 · 사료 연결</span>
+                            {(entry.event.historicalActorIds ?? []).map((actorId) => {
                               const expert = getHistoricalExpert(actorId);
                               return expert ? <b title={`${expert.office1942} · ${expert.appointmentTitle}`} key={actorId}>{expert.name}<small>{expert.nationality}</small></b> : null;
+                            })}
+                            {(entry.event.historicalFigureQids ?? []).map((qid) => {
+                              const figure = getLaterEraFigure(qid);
+                              const curated = getCuratedLaterEraDossier(qid);
+                              return figure ? <b className="later-era" title={`${figure.birthYear}년생 · ${curated?.role ?? figure.occupation}`} key={qid}>{figure.name}<small>{curated?.role ?? figure.occupation}</small></b> : null;
                             })}
                           </div>
                         )}

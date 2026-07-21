@@ -14,6 +14,7 @@ interface AlternateHistorySeed {
   pattern: Pattern;
   outcomes: readonly [continuity: string, compact: string, rupture: string];
   historicalActorIds?: string[];
+  historicalFigureQids?: string[];
 }
 
 const source = {
@@ -112,9 +113,9 @@ const seeds: AlternateHistorySeed[] = [
   { id: 'alma-ata-primary-health', title: '알마아타와 일차보건의료', year: 1978, era: 'detente', category: 'public-health', basis: '알마아타 선언은 병원 중심 의료를 지역사회·예방·보편 접근 중심의 일차보건 전략으로 확장했다.', source: source.who, pattern: 'health', outcomes: ['국가 일차보건망', '국경없는 지역보건연합', '민영 병원·의약블록'] },
   { id: 'cedaw-gender-order', title: '여성차별철폐협약과 국가의무', year: 1979, era: 'transformation', category: 'society', basis: 'CEDAW는 정치·교육·노동·가족에서 여성차별 철폐를 국제 보고와 국내법 의무로 연결했다.', source: source.women, pattern: 'rights', outcomes: ['유보부 국내개혁', '개인청원·동등대표 의무', '문화전쟁과 협약탈퇴'] },
   { id: 'global-debt-crisis-1982', title: '세계 채무위기와 구조조정', year: 1982, era: 'transformation', category: 'economy', basis: '고금리·원자재가격·외화부채 위기는 개발국의 재정·복지·산업정책을 국제채권자 협상에 종속시켰다.', source: source.imf, pattern: 'economy', outcomes: ['긴축·채무재조정', '채무국 공동협상기구', '연쇄 디폴트와 자급권'] },
-  { id: 'people-power-philippines', title: '필리핀 피플파워와 비폭력 정권교체', year: 1986, era: 'transformation', category: 'society', basis: '선거부정 논란, 군 이탈, 교회·시민의 대중동원은 권위주의 정권을 비폭력적으로 교체했다.', source: source.philippines, pattern: 'rights', outcomes: ['헌정민주주의 복구', '시민평의회형 개헌', '군부 분열과 장기내전'], historicalActorIds: ['ph-lorenzo-tanada', 'ph-claro-recto'] },
+  { id: 'people-power-philippines', title: '필리핀 피플파워와 비폭력 정권교체', year: 1986, era: 'transformation', category: 'society', basis: '선거부정 논란, 군 이탈, 교회·시민의 대중동원은 권위주의 정권을 비폭력적으로 교체했다.', source: source.philippines, pattern: 'rights', outcomes: ['헌정민주주의 복구', '시민평의회형 개헌', '군부 분열과 장기내전'], historicalActorIds: ['ph-lorenzo-tanada', 'ph-claro-recto'], historicalFigureQids: ['Q1480', 'Q215351'] },
   { id: 'chernobyl-openness', title: '체르노빌과 초국경 핵안전', year: 1986, era: 'transformation', category: 'nuclear', basis: '원자로 사고와 초기 정보통제는 핵안전·재난정보·국경을 넘는 방사능 피해를 국제규칙 문제로 만들었다.', source: source.iaea, pattern: 'environment', outcomes: ['국가별 안전개혁', '초국가 원자로감독청', '정보봉쇄와 핵공포 블록'] },
-  { id: 'korea-democracy-1987', title: '한국 6월항쟁과 직선제 개헌', year: 1987, era: 'transformation', category: 'society', basis: '대중시위·노동운동·야권협상은 군부권위주의에서 직선제 헌정으로의 전환을 이끌었다.', source: source.korea, pattern: 'rights', outcomes: ['직선제 민주화', '시민·노동 참여개헌', '비상계엄과 저항확대'], historicalActorIds: ['kr-kim-kyu-sik', 'kr-an-jae-hong'] },
+  { id: 'korea-democracy-1987', title: '한국 6월항쟁과 직선제 개헌', year: 1987, era: 'transformation', category: 'society', basis: '대중시위·노동운동·야권협상은 군부권위주의에서 직선제 헌정으로의 전환을 이끌었다.', source: source.korea, pattern: 'rights', outcomes: ['직선제 민주화', '시민·노동 참여개헌', '비상계엄과 저항확대'], historicalActorIds: ['kr-kim-kyu-sik', 'kr-an-jae-hong'], historicalFigureQids: ['Q165210', 'Q242651'] },
   { id: 'human-genome-project-launch', title: '인간게놈프로젝트와 생명정보', year: 1990, era: 'post-cold-war', category: 'technology', basis: '국제 공공연구와 자동염기서열 분석은 인간 유전정보를 의학·산업·권리의 공동 기반으로 만들었다.', source: source.genome, pattern: 'knowledge', outcomes: ['공공데이터·민간특허 혼합', '세계 생명정보공유재', '유전자 데이터 군비경쟁'] },
   { id: 'rio-earth-summit', title: '리우 환경개발회의와 지속가능발전', year: 1992, era: 'post-cold-war', category: 'environment', basis: '리우회의는 기후·생물다양성·개발재정을 하나의 지속가능발전 의제로 제도화했다.', source: source.unfccc, pattern: 'environment', outcomes: ['자발적 국가행동계획', '구속력 있는 지구개발협약', '남북 환경무역전쟁'] },
   { id: 'rome-statute-court', title: '로마규정과 상설 국제형사재판소', year: 1998, era: 'post-cold-war', category: 'world-order', basis: '로마규정은 집단살해·전쟁범죄·반인도범죄의 개인책임을 상설 국제재판으로 제도화했다.', source: source.icc, pattern: 'rights', outcomes: ['보충성 원칙의 ICC', '보편관할 국제검찰', '강대국 면책·지역재판권'] },
@@ -152,6 +153,7 @@ function materialize(seed: AlternateHistorySeed): WorldHistoryEvent {
     sourceLabel: seed.source[0],
     sourceUrl: seed.source[1],
     historicalActorIds: seed.historicalActorIds,
+    historicalFigureQids: seed.historicalFigureQids,
     variants: [
       variant('continuity', seed.outcomes[0], summaries[seed.pattern][0], `${seed.outcomes[0]}의 성과와 미해결 문제가 다음 사건의 기준선이 된다.`, deltas[seed.pattern][0]),
       variant('compact', seed.outcomes[1], summaries[seed.pattern][1], `${seed.outcomes[1]}이 행위자·제도·자원배분의 규칙을 다시 쓴다.`, deltas[seed.pattern][1]),

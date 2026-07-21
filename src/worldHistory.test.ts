@@ -4,6 +4,7 @@ import { strategicPolicies } from './choices';
 import { deriveEmergentHistory } from './emergentHistory';
 import { createWorldHistorySeed, generateWorldline, normalizeWorldHistoryState, previewWorldHistoryChoice, worldHistoryEvents } from './worldHistory';
 import { historicalExperts } from './historicalExperts';
+import { curatedLaterEraDossiers, laterEraFigures } from './laterEraFigures';
 
 const game = {
   victoryScore: 68,
@@ -18,13 +19,14 @@ const game = {
 
 describe('alternate Earth worldline engine', () => {
   it('provides a large sourced event atlas with three outcomes per event', () => {
-    expect(worldHistoryEvents).toHaveLength(180);
+    expect(worldHistoryEvents).toHaveLength(195);
     expect(new Set(worldHistoryEvents.map((entry) => entry.id)).size).toBe(worldHistoryEvents.length);
     worldHistoryEvents.forEach((entry) => {
       expect(entry.variants).toHaveLength(3);
       expect(entry.sourceUrl.startsWith('https://')).toBe(true);
       expect(new Set(entry.variants.map((variant) => variant.id)).size).toBe(3);
       entry.historicalActorIds?.forEach((actorId) => expect(historicalExperts.some((expert) => expert.id === actorId), `${entry.id} -> ${actorId}`).toBe(true));
+      entry.historicalFigureQids?.forEach((qid) => expect(laterEraFigures.some((figure) => figure.qid === qid), `${entry.id} -> ${qid}`).toBe(true));
     });
     expect(3n ** BigInt(worldHistoryEvents.length)).toBeGreaterThan(1000n);
     expect(worldHistoryEvents.some((entry) => entry.category === 'public-health')).toBe(true);
@@ -32,7 +34,9 @@ describe('alternate Earth worldline engine', () => {
     expect(worldHistoryEvents.some((entry) => entry.era === 'connected-world' && entry.historicalYear >= 2020)).toBe(true);
     ['tripartite-social-pact', 'unclos-common-heritage', 'multistakeholder-internet-governance', 'sendai-resilient-cities', 'healthy-ageing-social-contract', 'renewable-flexibility-supergrid']
       .forEach((eventId) => expect(worldHistoryEvents.some((entry) => entry.id === eventId), eventId).toBe(true));
-    expect(worldHistoryEvents.filter((entry) => (entry.historicalActorIds?.length ?? 0) > 0).length).toBeGreaterThanOrEqual(25);
+    expect(worldHistoryEvents.filter((entry) => (entry.historicalActorIds?.length ?? 0) + (entry.historicalFigureQids?.length ?? 0) > 0).length).toBeGreaterThanOrEqual(40);
+    curatedLaterEraDossiers.flatMap((entry) => entry.relatedEventIds)
+      .forEach((eventId) => expect(worldHistoryEvents.some((entry) => entry.id === eventId), eventId).toBe(true));
   });
 
   it('is deterministic for an identical campaign and seed', () => {
@@ -46,6 +50,7 @@ describe('alternate Earth worldline engine', () => {
     expect(generateWorldline(input).endingCount).toBe(4096);
     expect(generateWorldline(input).ending.anchors).toHaveLength(3);
     expect(generateWorldline(input).intelligenceHistory.length).toBeGreaterThanOrEqual(35);
+    expect(generateWorldline(input).timeline.find((entry) => entry.event.id === 'civil-rights-march-1963')?.actor).toBe('마틴 루터 킹 2세');
   });
 
   it('does not hardcode the cold war as the United States versus the Soviet Union', () => {

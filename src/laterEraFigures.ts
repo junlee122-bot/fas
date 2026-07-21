@@ -6,6 +6,8 @@ import type {
   StaffDepartment,
 } from './types';
 import { wikidataLaterEraFigureSeeds } from './wikidataLaterEraFigures.generated';
+import { getCuratedLaterEraDossier } from './curatedLaterEraFigures';
+export { curatedLaterEraDossiers, getCuratedLaterEraDossier } from './curatedLaterEraFigures';
 
 export interface LaterEraFigure {
   qid: string;
@@ -86,14 +88,16 @@ export const laterEraFigures: readonly LaterEraFigure[] = wikidataLaterEraFigure
   discipline,
   sitelinks,
 ]) => {
-  const generationUnlockYear = Math.max(1945, birthYear + disciplineModel[discipline].unlockAge);
+  const curated = getCuratedLaterEraDossier(qid);
+  const resolvedDiscipline = curated?.discipline ?? discipline;
+  const generationUnlockYear = Math.max(1945, birthYear + 18, curated?.historicalEntryYear ?? birthYear + disciplineModel[resolvedDiscipline].unlockAge);
   return {
     qid,
     nationId,
     name,
     birthYear,
     occupation,
-    discipline,
+    discipline: resolvedDiscipline,
     sitelinks,
     generationUnlockYear,
     minimumAdultYear: birthYear + 18,
@@ -114,6 +118,7 @@ function availabilityFor(figure: LaterEraFigure, playerNationId: NationId): Pers
 
 function createCandidate(figure: LaterEraFigure, playerNationId: NationId, campaignYear: number): StaffCandidate {
   const model = disciplineModel[figure.discipline];
+  const curated = getCuratedLaterEraDossier(figure.qid);
   const seed = stableHash(`${figure.qid}:${playerNationId}`);
   const age = Math.max(18, campaignYear - figure.birthYear);
   const recognitionBonus = Math.min(10, Math.floor(figure.sitelinks / 30));
@@ -126,10 +131,10 @@ function createCandidate(figure: LaterEraFigure, playerNationId: NationId, campa
     id: `later-${figure.qid}`,
     personId: `later-${figure.qid}`,
     name: figure.name,
-    role: model.role,
+    role: curated?.role ?? model.role,
     historicalOffice: `${figure.occupation} · 후대 실존 인물`,
-    affiliation: `${origin} ${eraLabel} 인재 네트워크`,
-    summary: `${figure.name}은(는) ${figure.birthYear}년생 실존 인물이며 공개 직업 기록은 ‘${figure.occupation}’입니다. ${campaignYear}년의 이 직책·접촉 경로와 능력 수치는 현재 세계선이 만든 대체역사 설정입니다.`,
+    affiliation: curated?.affiliation ?? `${origin} ${eraLabel} 인재 네트워크`,
+    summary: curated ? `${curated.summary} ${campaignYear}년의 임명과 능력 수치는 현재 세계선이 만든 대체역사 설정입니다.` : `${figure.name}은(는) ${figure.birthYear}년생 실존 인물이며 공개 직업 기록은 ‘${figure.occupation}’입니다. ${campaignYear}년의 이 직책·접촉 경로와 능력 수치는 현재 세계선이 만든 대체역사 설정입니다.`,
     department: model.department,
     ability,
     potential,
@@ -149,18 +154,22 @@ function createCandidate(figure: LaterEraFigure, playerNationId: NationId, campa
     birthYear: figure.birthYear,
     nationality: origin,
     wartimeLocation: `${eraLabel} 인물 풀 · ${campaignYear}년 세계선에서 접촉`,
-    historicalConstraint: `실존 정보는 신원·국적·출생연도·공개 직업까지입니다. ${campaignYear}년의 임명 가능성, 충성도, 능력치와 조직 효과는 대체역사 시뮬레이션이며 실제 평가가 아닙니다.`,
-    expertise: figure.occupation.split(' · ').slice(0, 3),
-    networks: [`${origin} 인맥`, `${eraLabel} 세대`, isAccelerated ? '가속 세계선 조기 발탁' : '달력 연도에 따른 세대 등장'],
-    friction: figure.nationId === playerNationId ? '기성 엘리트와 신세대 인물의 권한 충돌' : '국적·이념·기관 충성 및 해외 포섭 위험',
-    appointmentEffect: model.appointmentEffect,
-    sourceLabel: `Wikidata ${figure.qid} · 신원·직업`,
-    sourceUrl: `https://www.wikidata.org/wiki/${figure.qid}`,
+    historicalConstraint: curated?.historicalConstraint ?? `실존 정보는 신원·국적·출생연도·공개 직업까지입니다. ${campaignYear}년의 임명 가능성, 충성도, 능력치와 조직 효과는 대체역사 시뮬레이션이며 실제 평가가 아닙니다.`,
+    expertise: curated?.expertise ?? figure.occupation.split(' · ').slice(0, 3),
+    networks: curated?.networks ?? [`${origin} 인맥`, `${eraLabel} 세대`, isAccelerated ? '가속 세계선 조기 발탁' : '달력 연도에 따른 세대 등장'],
+    friction: curated?.friction ?? (figure.nationId === playerNationId ? '기성 엘리트와 신세대 인물의 권한 충돌' : '국적·이념·기관 충성 및 해외 포섭 위험'),
+    appointmentEffect: curated?.appointmentEffect ?? model.appointmentEffect,
+    sourceLabel: curated?.sourceLabel ?? `Wikidata ${figure.qid} · 신원·직업`,
+    sourceUrl: curated?.sourceUrl ?? `https://www.wikidata.org/wiki/${figure.qid}`,
     historicalEra: figure.historicalEra,
     marketEntryYear: campaignYear,
     generationUnlockYear: figure.generationUnlockYear,
     alternateHistoryEntry: isAccelerated,
   };
+}
+
+export function getLaterEraFigure(qid: string) {
+  return laterEraFigures.find((figure) => figure.qid === qid);
 }
 
 export function getEligibleLaterEraFigures(
