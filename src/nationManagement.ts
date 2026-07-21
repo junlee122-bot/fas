@@ -1,4 +1,11 @@
 import type { EconomyState } from './economy';
+import {
+  createDynasticPoliticsState,
+  getDynasticWeeklyEffects,
+  getGovernmentForm,
+  normalizeDynasticPoliticsState,
+  type DynasticPoliticsState,
+} from './dynasticPolitics';
 import type { GameState, NationId } from './types';
 
 export type CampaignPhase = 'war' | 'nation';
@@ -70,6 +77,7 @@ export interface NationManagementState {
   mandateScore: number;
   nextElectionWeek: number;
   electionWins: number;
+  dynasty: DynasticPoliticsState;
   reports: NationWeeklyReport[];
 }
 
@@ -190,6 +198,7 @@ export function createNationManagementState(
     mandateScore: 0,
     nextElectionWeek: game.week + 208,
     electionWins: 0,
+    dynasty: createDynasticPoliticsState(nationId),
     reports: [],
   };
   state.nationalScore = calculateNationScore(state);
@@ -250,7 +259,38 @@ function selectNationEvent(state: NationManagementState, context: NationManageme
   };
 }
 
+function selectDynasticEvent(state: NationManagementState, context: NationManagementContext): NationWeeklyEvent | null {
+  const form = getGovernmentForm(state.dynasty.formId);
+  if (!form.monarchy || (context.week - state.startedWeek) % 13 !== 0) return null;
+  if (state.dynasty.successionSecurity < 36) return {
+    id: `succession-crisis-${context.week}`,
+    title: '왕위계승 요구권 충돌',
+    detail: '확정되지 않은 계승 원칙을 두고 왕실 방계·군 지휘부·유력 작위가 서로 다른 후보를 지지하기 시작했습니다.',
+    tone: 'bad',
+    cause: `계승 안정 ${Math.round(state.dynasty.successionSecurity)} · 궁정 결속 ${Math.round(state.dynasty.courtUnity)}. 계승법 또는 혼인 동맹이 충분히 정비되지 않았습니다.`,
+    consequence: '계승법을 확정하거나 왕실 혼인을 체결하지 않으면 왕위 찬탈·궁정 쿠데타 위험이 다음 주에도 누적됩니다.',
+  };
+  if (state.dynasty.estateBurden >= 58) return {
+    id: `estate-crisis-${context.week}`,
+    title: '귀족원과 지방 영지의 특권 요구',
+    detail: '대작위 보유자들이 세금 감면·지방 지휘권·세습권 확대를 공동 요구했습니다.',
+    tone: 'bad',
+    cause: `영지 부담 ${Math.round(state.dynasty.estateBurden)} · 서임 작위 ${state.dynasty.titleGrants.length}건. 왕실이 충성을 얻기 위해 너무 많은 특권을 배분했습니다.`,
+    consequence: '작위를 회수하면 즉시 반발이 발생하고, 유지하면 국고 지출과 귀족 주도 쿠데타 위험이 증가합니다.',
+  };
+  if (state.dynasty.courtUnity >= 68 && state.dynasty.successionSecurity >= 62) return {
+    id: `court-settlement-${context.week}`,
+    title: '왕실·내각·귀족원 대타협',
+    detail: '계승 원칙과 영지 책임을 둘러싼 협약이 정착되며 왕실 의례가 국가 통합의 상징으로 기능했습니다.',
+    tone: 'good',
+    cause: `궁정 결속 ${Math.round(state.dynasty.courtUnity)} · 계승 안정 ${Math.round(state.dynasty.successionSecurity)}가 함께 안정권에 진입했습니다.`,
+    consequence: '정통성과 외교 신뢰가 완만하게 상승하며 왕위 찬탈 세력의 명분이 약해집니다.',
+  };
+  return null;
+}
+
 export function advanceNationManagementWeek(state: NationManagementState, context: NationManagementContext): NationAdvanceResult {
+  const dynasticEffects = getDynasticWeeklyEffects(state.dynasty);
   const strategy = strategyModifiers(state.strategyId);
   const investmentScale = state.spendingLevel / 100;
   const pressure = (domain: NationBudgetDomain) => state.budget[domain] * investmentScale;
@@ -272,7 +312,8 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     state.spendingLevel * 0.78
     + context.economy.debt * 0.0012
     + context.publicHealthPressure * 0.08
-    + Math.max(0, state.unrest - 55) * 0.08,
+    + Math.max(0, state.unrest - 55) * 0.08
+    + dynasticEffects.weeklyCost,
   );
   const fiscalBalance = round(fiscalRevenue - fiscalExpenditure);
   const debtChange = round(fiscalBalance < 0 ? Math.abs(fiscalBalance) * 0.72 : -Math.min(context.economy.debt * 0.002, fiscalBalance * 0.22));
@@ -295,8 +336,13 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     institutionalCapacity: clamp(state.institutionalCapacity + education * 0.005 + diplomacy * 0.005 + security * 0.003 - Math.max(0, state.unrest - 60) * 0.005),
     tradeBalance: clamp(state.tradeBalance + diplomacy * 0.025 + industry * 0.018 - state.spendingLevel * 0.004, -100, 100),
     inequality: clamp(state.inequality - welfare * 0.009 - Math.max(0, state.taxBurden - 45) * 0.004 + industry * 0.003),
-    unrest: clamp(state.unrest - welfare * 0.006 - security * 0.007 - state.legitimacy * 0.0015 + Math.max(0, context.economy.inflation - 7) * 0.025),
+    unrest: clamp(state.unrest - welfare * 0.006 - security * 0.007 - state.legitimacy * 0.0015 + Math.max(0, context.economy.inflation - 7) * 0.025 + dynasticEffects.unrest),
     legitimacy: state.legitimacy,
+    dynasty: {
+      ...state.dynasty,
+      courtUnity: clamp(state.dynasty.courtUnity + (context.game.stability >= 65 ? 0.08 : -0.04) - Math.max(0, state.dynasty.estateBurden - 50) * 0.003),
+      successionSecurity: clamp(state.dynasty.successionSecurity + (state.dynasty.successionLawId === 'unsettled' && getGovernmentForm(state.dynasty.formId).monarchy ? -0.05 : 0.03)),
+    },
     reports: state.reports,
   };
   next.legitimacy = clamp(
@@ -306,6 +352,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     + (next.institutionalCapacity - state.institutionalCapacity) * 0.18
     - Math.max(0, next.unrest - 50) * 0.004
     - Math.max(0, context.economy.inflation - 8) * 0.008
+    + dynasticEffects.legitimacy
     + (state.strategyId === 'security-republic' ? -0.025 : 0.015),
   );
   const projectedEconomy = {
@@ -315,6 +362,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
   next.nationalScore = calculateNationScore(next);
   next.mandateScore = calculateMandateScore(next, projectedEconomy);
   const event = selectNationEvent(next, context);
+  const dynasticEvent = selectDynasticEvent(next, context);
   const electionDue = context.week >= state.nextElectionWeek;
   const electionWon = electionDue && next.mandateScore >= 50;
   if (electionDue) {
@@ -323,6 +371,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
   }
   const events = [
     ...(event ? [event] : []),
+    ...(dynasticEvent ? [dynasticEvent] : []),
     ...(electionDue ? [{
       id: `election-${context.week}`,
       title: electionWon ? '국민 위임 갱신' : '연립정부 재구성 압력',
@@ -345,11 +394,13 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
       `세입 = 산업기반 ${context.game.factories}개 · 조세부담 ${state.taxBurden}/100 · 안정도 ${context.game.stability}/100 · 무역수지 ${state.tradeBalance.toFixed(1)}`,
       `지출 = 공공지출 ${state.spendingLevel}/100 · 부채이자 £${(context.economy.debt * 0.0012).toFixed(1)}M · 보건·사회불안 비용`,
       `정책효율 = ${nationStrategies.find((candidate) => candidate.id === state.strategyId)?.name ?? state.strategyId} × 부처별 예산배분`,
+      ...(getGovernmentForm(state.dynasty.formId).monarchy ? [`왕실재정 = ${dynasticEffects.note} · 궁정 결속 ${Math.round(state.dynasty.courtUnity)} · 계승 안정 ${Math.round(state.dynasty.successionSecurity)}`] : []),
     ],
     effects: [
       `국가 성과 ${state.nationalScore} → ${next.nationalScore}`,
       `국민 위임 ${state.mandateScore} → ${next.mandateScore}`,
       `재정 ${fiscalBalance >= 0 ? '+' : ''}£${fiscalBalance.toFixed(1)}M · 부채 ${debtChange >= 0 ? '+' : ''}£${debtChange.toFixed(1)}M · 물가 ${inflationChange >= 0 ? '+' : ''}${inflationChange.toFixed(2)}%p`,
+      ...(getGovernmentForm(state.dynasty.formId).monarchy ? [`왕실 상태: 왕권 ${Math.round(next.dynasty.crownAuthority)} · 궁정 결속 ${Math.round(next.dynasty.courtUnity)} · 찬탈 위험 보정 +${dynasticEffects.coupRisk.toFixed(1)}`] : []),
     ],
     events,
   };
@@ -383,6 +434,7 @@ export function normalizeNationManagementState(value: unknown, fallback: NationM
     ...fallback,
     ...candidate,
     budget,
+    dynasty: normalizeDynasticPoliticsState(candidate.dynasty, fallback.nationId),
     reports: Array.isArray(candidate.reports) ? candidate.reports.slice(0, 208) : [],
   };
 }

@@ -72,7 +72,7 @@ describe('war-to-state nation management', () => {
     });
     expect(result.gameDelta.week).toBe(1);
     expect(result.state.reports[0]).toEqual(result.report);
-    expect(result.report.causes).toHaveLength(3);
+    expect(result.report.causes.length).toBeGreaterThanOrEqual(3);
     expect(result.report.effects.some((effect) => effect.includes('국가 성과'))).toBe(true);
     expect(result.report.fiscalBalance).toBeCloseTo(result.report.fiscalRevenue - result.report.fiscalExpenditure, 1);
     expect(result.state.infrastructure).toBeGreaterThan(state.infrastructure);

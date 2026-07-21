@@ -219,6 +219,16 @@ import {
 } from './nationManagement';
 import type { CampaignPhase, NationBudgetDomain, NationStrategyId, NationTransitionReason } from './nationManagement';
 import {
+  adoptGovernmentForm,
+  arrangeDynasticMarriage,
+  getGovernmentForm,
+  getMarriageCandidates,
+  grantNobleTitle,
+  revokeNobleGrant,
+  setSuccessionLaw,
+} from './dynasticPolitics';
+import type { DynasticActionResult, GovernmentFormId, NobleRankId, SuccessionLawId } from './dynasticPolitics';
+import {
   calculateStaffSuitability,
   getCareerInstitutionalTitle,
   getStaffAuthorityProfile,
@@ -2018,6 +2028,116 @@ export function App() {
   const changeNationStrategy = (strategyId: NationStrategyId) => {
     setNationManagement((current) => ({ ...current, strategyId }));
     notify(`${nationStrategies.find((strategy) => strategy.id === strategyId)?.name ?? '국가 발전 노선'}을 내각의 장기 노선으로 채택했습니다.`);
+  };
+
+  const applyDynasticActionResult = useCallback((result: DynasticActionResult) => {
+    setNationManagement((current) => ({
+      ...current,
+      dynasty: result.state,
+      legitimacy: Math.max(0, Math.min(100, current.legitimacy + result.legitimacyDelta)),
+      unrest: Math.max(0, Math.min(100, current.unrest + result.unrestDelta)),
+    }));
+    setGame((current) => applyGameDelta(current, {
+      politicalPower: result.politicalPowerDelta,
+      treasury: result.treasuryDelta,
+      stability: result.stabilityDelta,
+    }));
+    if (result.relationDelta) {
+      setRelations((current) => current.map((relation) => relation.id === result.relationDelta?.nationId ? {
+        ...relation,
+        value: Math.max(0, Math.min(100, relation.value + (result.relationDelta?.value ?? 0))),
+        status: relation.value + (result.relationDelta?.value ?? 0) >= 72 ? '왕실 혼인 동맹' : relation.status,
+      } : relation));
+    }
+    addEvent(result.title, result.detail, result.unrestDelta >= 5 || result.legitimacyDelta < 0 ? 'bad' : result.legitimacyDelta >= 3 ? 'good' : 'neutral', game.week, {
+      domain: 'management',
+      decision: result.title,
+      trigger: '전후 국가 운영 화면에서 헌정·왕실 조치를 직접 결재했습니다.',
+      factors: [`현재 보직: ${displayedCareerRole.title}`, `국가체제: ${getGovernmentForm(result.state.formId).name}`, `왕실: ${result.state.houseName}`],
+      effects: [
+        { label: '정치력', value: `${result.politicalPowerDelta}`, tone: 'negative' },
+        { label: '국고', value: formatGameMoney(result.treasuryDelta, { signed: true }), tone: 'negative' },
+        { label: '정통성', value: `${result.legitimacyDelta >= 0 ? '+' : ''}${result.legitimacyDelta}`, tone: result.legitimacyDelta >= 0 ? 'positive' : 'negative' },
+        { label: '사회 불안', value: `${result.unrestDelta >= 0 ? '+' : ''}${result.unrestDelta}`, tone: result.unrestDelta > 0 ? 'negative' : 'positive' },
+      ],
+      ongoing: ['왕권·궁정 결속·계승 안정·영지 부담은 매주 국정 결산과 쿠데타 위험에 계속 반영됩니다.'],
+      nextActions: ['정치위기 상황실에서 왕위 찬탈·궁정 쿠데타 위험 변화를 확인하십시오.', '다음 국정 1주 진행에서 왕실비와 정통성 변화를 검증하십시오.'],
+      certainty: 'confirmed',
+    });
+    notify(result.detail);
+  }, [addEvent, displayedCareerRole.title, formatGameMoney, game.week, notify]);
+
+  const dynasticActionContext = useCallback(() => ({
+    week: game.week,
+    politicalPower: game.politicalPower,
+    treasury: game.treasury,
+    stability: game.stability,
+    legitimacy: nationManagement.legitimacy,
+    role: careerRole,
+  }), [careerRole, game.politicalPower, game.stability, game.treasury, game.week, nationManagement.legitimacy]);
+
+  const changeGovernmentForm = (formId: GovernmentFormId) => {
+    const result = adoptGovernmentForm(nationManagement.dynasty, formId, dynasticActionContext());
+    if (!result) {
+      notify('헌정 전환 요건·보직 권한·정치력·국고 또는 26주 냉각기간을 확인하십시오.');
+      return;
+    }
+    applyDynasticActionResult(result);
+    setPoliticalCrisis((current) => ({ ...current, governmentName: getGovernmentForm(formId).name, generation: current.generation + 1, lastOutcome: result.title }));
+  };
+
+  const appointNobleTitle = (input: { recipientId: string; rankId: NobleRankId; domainId: string }) => {
+    const recipient = staff.find((member) => member.id === input.recipientId);
+    const domain = territories.find((territory) => territory.id === input.domainId);
+    if (!recipient || !domain) return;
+    const result = grantNobleTitle(nationManagement.dynasty, {
+      week: game.week,
+      recipientId: recipient.id,
+      recipientName: recipient.name,
+      loyalty: recipient.loyalty,
+      influence: recipient.influence,
+      rankId: input.rankId,
+      domainId: domain.id,
+      domainName: domain.name,
+    }, dynasticActionContext());
+    if (!result) {
+      notify('왕정 체제·서임 권한·비어 있는 영지·정치력·국고 요건을 확인하십시오.');
+      return;
+    }
+    applyDynasticActionResult(result);
+    setStaff((current) => current.map((member) => member.id === recipient.id ? { ...member, loyalty: Math.min(100, member.loyalty + 8), roleSatisfaction: Math.min(100, (member.roleSatisfaction ?? 60) + 12), appointmentPromise: 'succession' } : member));
+  };
+
+  const revokeNobleTitle = (grantId: string) => {
+    const result = revokeNobleGrant(nationManagement.dynasty, grantId, dynasticActionContext());
+    if (!result) {
+      notify('작위 회수에는 왕실 인사권과 정치력 12가 필요합니다.');
+      return;
+    }
+    const grant = nationManagement.dynasty.titleGrants.find((item) => item.id === grantId);
+    applyDynasticActionResult(result);
+    if (grant) setStaff((current) => current.map((member) => member.id === grant.recipientId ? { ...member, loyalty: Math.max(0, member.loyalty - 16), roleSatisfaction: Math.max(0, (member.roleSatisfaction ?? 60) - 24) } : member));
+  };
+
+  const arrangeRoyalMarriage = (nationId: string) => {
+    const relation = relations.find((item) => item.id === nationId);
+    const candidate = getMarriageCandidates(relations).find((item) => item.nationId === nationId);
+    if (!relation || !candidate) return;
+    const result = arrangeDynasticMarriage(nationManagement.dynasty, candidate, relation.value, dynasticActionContext());
+    if (!result) {
+      notify('왕정 체제·외교 관계 30·혼인 권한·정치력 18·국고 65M 요건을 확인하십시오.');
+      return;
+    }
+    applyDynasticActionResult(result);
+  };
+
+  const changeSuccessionLaw = (lawId: SuccessionLawId) => {
+    const result = setSuccessionLaw(nationManagement.dynasty, lawId, dynasticActionContext());
+    if (!result) {
+      notify('왕정 체제와 계승법 제정 권한, 정치력 16, 국고 24M이 필요합니다.');
+      return;
+    }
+    applyDynasticActionResult(result);
   };
 
   const startCampaign = () => {
@@ -4403,6 +4523,10 @@ export function App() {
                   game={game}
                   economy={economy}
                   nation={playerNation}
+                  role={displayedCareerRole}
+                  staff={staff}
+                  territories={territories}
+                  relations={relations}
                   nationalSimulation={nationalSimulation}
                   worldlineTitle={worldline.title}
                   readiness={transitionReadiness}
@@ -4412,6 +4536,11 @@ export function App() {
                   onTaxChange={changeNationTax}
                   onSpendingChange={changeNationSpending}
                   onStrategyChange={changeNationStrategy}
+                  onGovernmentFormChange={changeGovernmentForm}
+                  onGrantTitle={appointNobleTitle}
+                  onRevokeTitle={revokeNobleTitle}
+                  onArrangeMarriage={arrangeRoyalMarriage}
+                  onSuccessionLawChange={changeSuccessionLaw}
                   onNavigate={setActiveTab}
                   onNextWeek={advanceWeek}
                 />

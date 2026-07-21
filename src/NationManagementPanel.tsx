@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import {
   ArrowRight,
   Building2,
+  Castle,
   CheckCircle2,
   ChevronRight,
   CircleDollarSign,
+  Crown,
   Factory,
   GraduationCap,
   Handshake,
@@ -12,11 +15,26 @@ import {
   Minus,
   Plus,
   Scale,
+  ScrollText,
   ShieldCheck,
   TrendingDown,
   TrendingUp,
   Users,
 } from 'lucide-react';
+import {
+  canAdoptGovernmentForm,
+  canManageDynasticPolitics,
+  getDynasticWeeklyEffects,
+  getGovernmentForm,
+  getMarriageCandidates,
+  getSuccessionLawName,
+  governmentForms,
+  nobleRanks,
+  type DynasticActionContext,
+  type GovernmentFormId,
+  type NobleRankId,
+  type SuccessionLawId,
+} from './dynasticPolitics';
 import type { EconomyState } from './economy';
 import { NationalSimulationOverview } from './NationalSimulationOverview';
 import type { NationalSimulationSnapshot } from './nationalSimulation';
@@ -29,7 +47,7 @@ import {
   type NationStrategyId,
   type NationTransitionReason,
 } from './nationManagement';
-import type { GameState, GameTab, NationProfile } from './types';
+import type { CareerRole, DiplomaticRelation, GameState, GameTab, NationProfile, StaffMember, Territory } from './types';
 
 interface TransitionReadiness {
   score: number;
@@ -49,6 +67,10 @@ interface NationManagementPanelProps {
   game: GameState;
   economy: EconomyState;
   nation: NationProfile;
+  role: CareerRole;
+  staff: StaffMember[];
+  territories: Territory[];
+  relations: DiplomaticRelation[];
   nationalSimulation: NationalSimulationSnapshot;
   worldlineTitle: string;
   readiness: TransitionReadiness;
@@ -58,6 +80,11 @@ interface NationManagementPanelProps {
   onTaxChange: (delta: -5 | 5) => void;
   onSpendingChange: (delta: -5 | 5) => void;
   onStrategyChange: (strategyId: NationStrategyId) => void;
+  onGovernmentFormChange: (formId: GovernmentFormId) => void;
+  onGrantTitle: (input: { recipientId: string; rankId: NobleRankId; domainId: string }) => void;
+  onRevokeTitle: (grantId: string) => void;
+  onArrangeMarriage: (nationId: string) => void;
+  onSuccessionLawChange: (lawId: SuccessionLawId) => void;
   onNavigate: (tab: GameTab) => void;
   onNextWeek: () => void;
 }
@@ -86,6 +113,10 @@ export function NationManagementPanel({
   game,
   economy,
   nation,
+  role,
+  staff,
+  territories,
+  relations,
   nationalSimulation,
   worldlineTitle,
   readiness,
@@ -95,13 +126,43 @@ export function NationManagementPanel({
   onTaxChange,
   onSpendingChange,
   onStrategyChange,
+  onGovernmentFormChange,
+  onGrantTitle,
+  onRevokeTitle,
+  onArrangeMarriage,
+  onSuccessionLawChange,
   onNavigate,
   onNextWeek,
 }: NationManagementPanelProps) {
+  const [selectedRecipientId, setSelectedRecipientId] = useState('');
+  const [selectedDomainId, setSelectedDomainId] = useState('');
+  const [selectedRankId, setSelectedRankId] = useState<NobleRankId>('baron');
+  const [selectedMarriageNationId, setSelectedMarriageNationId] = useState('');
   const latestReport = state.reports[0] ?? null;
   const localizeMoney = (text: string) => text.replace(/([+−-]?)£([\d.]+)M/g, (_match, sign: string, amount: string) => formatMoney(Number(amount) * (sign === '−' || sign === '-' ? -1 : 1), { signed: sign === '+' }));
   const electionWeeks = Math.max(0, state.nextElectionWeek - game.week);
   const currentStrategy = nationStrategies.find((strategy) => strategy.id === state.strategyId) ?? nationStrategies[0];
+  const currentGovernmentForm = getGovernmentForm(state.dynasty.formId);
+  const dynasticEffects = getDynasticWeeklyEffects(state.dynasty);
+  const dynasticAuthority = canManageDynasticPolitics(role);
+  const dynasticContext: DynasticActionContext = {
+    week: game.week,
+    politicalPower: game.politicalPower,
+    treasury: game.treasury,
+    stability: game.stability,
+    legitimacy: state.legitimacy,
+    role,
+  };
+  const availableRecipients = staff.filter((member) => !state.dynasty.titleGrants.some((grant) => grant.recipientId === member.id));
+  const availableDomains = territories
+    .filter((territory) => (territory.ownerId === nation.id || territory.id === nation.capitalTerritoryId || nation.strategicTargets.includes(territory.id)) && territory.siteType !== 'sea')
+    .filter((territory, index, list) => list.findIndex((candidate) => candidate.id === territory.id) === index)
+    .filter((territory) => !state.dynasty.titleGrants.some((grant) => grant.domainId === territory.id))
+    .slice(0, 12);
+  const selectedRecipient = availableRecipients.find((member) => member.id === selectedRecipientId) ?? availableRecipients[0] ?? null;
+  const selectedDomain = availableDomains.find((territory) => territory.id === selectedDomainId) ?? availableDomains[0] ?? null;
+  const marriageCandidates = getMarriageCandidates(relations).filter((candidate) => !state.dynasty.marriages.some((marriage) => marriage.partnerNationId === candidate.nationId));
+  const selectedMarriage = marriageCandidates.find((candidate) => candidate.nationId === selectedMarriageNationId) ?? marriageCandidates[0] ?? null;
 
   if (phase === 'war') {
     const pillarRows = [
@@ -264,6 +325,75 @@ export function NationManagementPanel({
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="nation-surface dynastic-politics-board">
+        <header>
+          <div><span>헌정·왕실 운영</span><h3>국가체제, 작위, 영지와 왕위계승</h3></div>
+          <small>{currentGovernmentForm.name} · {dynasticAuthority ? '직접 결재 가능' : `${role.title} 권한 밖`}</small>
+        </header>
+
+        <div className="dynastic-status-grid">
+          <article><Landmark /><span>현 국가체제</span><strong>{currentGovernmentForm.name}</strong><small>{currentGovernmentForm.doctrine}</small></article>
+          <article><Crown /><span>왕권·헌정 권위</span><strong>{Math.round(state.dynasty.crownAuthority)}</strong><small>{state.dynasty.houseName}</small></article>
+          <article><Castle /><span>궁정 결속</span><strong>{Math.round(state.dynasty.courtUnity)}</strong><small>낮을수록 궁정 쿠데타 증가</small></article>
+          <article><ScrollText /><span>계승 안정</span><strong>{Math.round(state.dynasty.successionSecurity)}</strong><small>{getSuccessionLawName(state.dynasty.successionLawId)}</small></article>
+          <article className={state.dynasty.estateBurden >= 55 ? 'warning' : ''}><Scale /><span>영지 특권 부담</span><strong>{Math.round(state.dynasty.estateBurden)}</strong><small>작위 {state.dynasty.titleGrants.length}건</small></article>
+          <article><CircleDollarSign /><span>주간 왕실비</span><strong>{formatMoney(-dynasticEffects.weeklyCost, { signed: true })}</strong><small>{currentGovernmentForm.monarchy ? dynasticEffects.note : '왕실 지출 없음'}</small></article>
+        </div>
+
+        <div className="government-form-grid">
+          {governmentForms.map((form) => {
+            const eligibility = canAdoptGovernmentForm(state.dynasty, form.id, dynasticContext);
+            const active = form.id === state.dynasty.formId;
+            return (
+              <button key={form.id} className={active ? 'active' : ''} disabled={active || !eligibility.allowed} onClick={() => onGovernmentFormChange(form.id)} title={active ? '현재 체제' : eligibility.reason}>
+                <span>{form.monarchy ? <Crown size={15} /> : <Landmark size={15} />}{form.doctrine}</span>
+                <strong>{form.name}</strong>
+                <p>{form.description}</p>
+                <small>정치력 {form.politicalCost} · {formatMoney(form.treasuryCost)} · 정통성 {form.minimumLegitimacy}+</small>
+                <em>{active ? '현재 시행 중' : eligibility.allowed ? '헌정회의 소집 가능' : eligibility.reason}</em>
+              </button>
+            );
+          })}
+        </div>
+
+        {!currentGovernmentForm.monarchy ? (
+          <div className="dynastic-locked-state"><Crown /><div><strong>왕실 운영은 왕정 체제 전환 뒤 열립니다</strong><p>입헌군주국·왕권국가·제국연방·군사섭정을 선택하면 작위 서임, 영지 배분, 정략결혼, 왕위계승법과 왕위 찬탈 사건이 활성화됩니다.</p></div></div>
+        ) : (
+          <div className="court-management-grid">
+            <section className="court-action-card">
+              <div className="court-action-heading"><Castle /><span><small>작위·영지 배분</small><strong>참모에게 봉사 계약 부여</strong></span></div>
+              <label>피서임자<select value={selectedRecipient?.id ?? ''} onChange={(event) => setSelectedRecipientId(event.target.value)} disabled={!dynasticAuthority || !selectedRecipient}>{availableRecipients.map((member) => <option key={member.id} value={member.id}>{member.name} · 충성 {member.loyalty} · 영향 {member.influence}</option>)}</select></label>
+              <label>작위 등급<select value={selectedRankId} onChange={(event) => setSelectedRankId(event.target.value as NobleRankId)} disabled={!dynasticAuthority}>{nobleRanks.map((rank) => <option key={rank.id} value={rank.id}>{rank.name} · 정치 {rank.politicalCost} · {formatMoney(rank.treasuryCost)}</option>)}</select></label>
+              <label>영지·책임구역<select value={selectedDomain?.id ?? ''} onChange={(event) => setSelectedDomainId(event.target.value)} disabled={!dynasticAuthority || !selectedDomain}>{availableDomains.map((territory) => <option key={territory.id} value={territory.id}>{territory.name} · {territory.region} · 가치 {territory.value}</option>)}</select></label>
+              {selectedRecipient && <p>예상: 충성 {selectedRecipient.loyalty}가 높으면 결속이 오르고, 영향력 {selectedRecipient.influence}가 지나치게 크면 독자 권력과 찬탈 위험도 함께 커집니다.</p>}
+              <button disabled={!dynasticAuthority || !selectedRecipient || !selectedDomain} onClick={() => selectedRecipient && selectedDomain && onGrantTitle({ recipientId: selectedRecipient.id, rankId: selectedRankId, domainId: selectedDomain.id })}>작위와 영지 서임</button>
+            </section>
+
+            <section className="court-action-card">
+              <div className="court-action-heading"><HeartHandshake /><span><small>정략·왕실 혼인</small><strong>관계와 계승을 한 조약으로</strong></span></div>
+              <label>상대 왕가<select value={selectedMarriage?.nationId ?? ''} onChange={(event) => setSelectedMarriageNationId(event.target.value)} disabled={!dynasticAuthority || !selectedMarriage}>{marriageCandidates.map((candidate) => {
+                const relation = relations.find((item) => item.id === candidate.nationId);
+                return <option key={candidate.nationId} value={candidate.nationId}>{candidate.houseName} · 관계 {relation?.value ?? 0}</option>;
+              })}</select></label>
+              {selectedMarriage && <div className="marriage-candidate-brief"><strong>{selectedMarriage.spouseStyle}</strong><p>{selectedMarriage.historicalBasis}</p><small>정치력 18 · {formatMoney(65)} · 관계 30 이상</small></div>}
+              <button disabled={!dynasticAuthority || !selectedMarriage || (relations.find((relation) => relation.id === selectedMarriage.nationId)?.value ?? 0) < 30} onClick={() => selectedMarriage && onArrangeMarriage(selectedMarriage.nationId)}>혼인 조약 체결</button>
+
+              <div className="succession-law-list">
+                <strong>왕위계승법</strong>
+                {(['primogeniture', 'absolute-primogeniture', 'elective', 'appointed'] as SuccessionLawId[]).map((lawId) => <button key={lawId} className={state.dynasty.successionLawId === lawId ? 'active' : ''} disabled={!dynasticAuthority || state.dynasty.successionLawId === lawId || game.politicalPower < 16} onClick={() => onSuccessionLawChange(lawId)}>{getSuccessionLawName(lawId)}</button>)}
+              </div>
+            </section>
+          </div>
+        )}
+
+        {(state.dynasty.titleGrants.length > 0 || state.dynasty.marriages.length > 0) && (
+          <div className="court-ledger">
+            <div><h4>서임 작위·영지</h4>{state.dynasty.titleGrants.length === 0 ? <p>아직 서임한 작위가 없습니다.</p> : state.dynasty.titleGrants.map((grant) => <article key={grant.id}><span><strong>{grant.titleName}</strong><small>{grant.recipientName} · {grant.hereditary ? '세습' : '비세습'} · 주 {formatMoney(grant.weeklyStipend)}</small></span><button disabled={!dynasticAuthority || game.politicalPower < 12} onClick={() => onRevokeTitle(grant.id)}>회수</button></article>)}</div>
+            <div><h4>혼인·계승 조약</h4>{state.dynasty.marriages.length === 0 ? <p>아직 체결한 왕실 혼인이 없습니다.</p> : state.dynasty.marriages.map((marriage) => <article key={marriage.id}><span><strong>{marriage.partnerHouse}</strong><small>{marriage.partnerNationName} · 관계 +{marriage.treatyValue} · 계승 +{marriage.successionGain}</small></span><b>제{marriage.arrangedWeek + 1}주</b></article>)}</div>
+          </div>
+        )}
       </section>
 
       {latestReport && (

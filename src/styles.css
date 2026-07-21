@@ -1051,6 +1051,60 @@
 .national-strategy-grid button > p { margin: 0 0 10px; line-height: 1.55; color: #829087; }
 .national-strategy-grid button > small, .national-strategy-grid button > em { display: block; margin-top: auto; line-height: 1.45; color: #83998b; }
 .national-strategy-grid button > em { margin-top: 7px; color: #9b7b73; }
+.dynastic-politics-board { border-color: rgba(190, 158, 89, .28); background: linear-gradient(180deg, rgba(151, 113, 50, .035), rgba(0, 0, 0, .02)); }
+.dynastic-status-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 7px; padding: 14px 14px 0; }
+.dynastic-status-grid article { min-width: 0; display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 2px 7px; padding: 10px; border: 1px solid rgba(196, 164, 91, .14); background: rgba(0, 0, 0, .13); }
+.dynastic-status-grid article.warning { border-color: rgba(185, 92, 69, .42); background: rgba(121, 45, 38, .08); }
+.dynastic-status-grid svg { grid-row: 1 / 4; width: 17px; color: #9f8958; }
+.dynastic-status-grid span { overflow: hidden; color: #75837b; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.dynastic-status-grid strong { overflow: hidden; color: #d4d9d5; font: 700 15px var(--font-data); text-overflow: ellipsis; white-space: nowrap; }
+.dynastic-status-grid small { overflow: hidden; color: #8d7c58; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.government-form-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 7px; padding: 10px 14px 14px; }
+.government-form-grid > button { min-width: 0; min-height: 182px; display: flex; flex-direction: column; align-items: flex-start; padding: 11px; border: 1px solid rgba(255, 255, 255, .055); background: rgba(255, 255, 255, .012); color: #829088; text-align: left; cursor: pointer; }
+.government-form-grid > button:hover:not(:disabled) { border-color: rgba(190, 158, 89, .38); background: rgba(158, 121, 55, .045); }
+.government-form-grid > button.active { border-color: rgba(190, 158, 89, .55); background: rgba(158, 121, 55, .09); box-shadow: inset 3px 0 #ad9052; }
+.government-form-grid > button:disabled:not(.active) { opacity: .53; cursor: not-allowed; }
+.government-form-grid button > span { display: flex; align-items: center; gap: 5px; color: #a89058; font-size: 9px; }
+.government-form-grid button > strong { margin: 5px 0 7px; color: #d5d9d6; }
+.government-form-grid button > p { margin: 0 0 9px; color: #7f8c85; font-size: 10px; line-height: 1.5; }
+.government-form-grid button > small { margin-top: auto; color: #9d8a61; font-size: 8px; line-height: 1.45; }
+.government-form-grid button > em { margin-top: 6px; color: #806f55; font-size: 8px; font-style: normal; line-height: 1.35; }
+.dynastic-locked-state { display: flex; align-items: center; gap: 13px; margin: 0 14px 14px; padding: 15px; border: 1px dashed rgba(183, 154, 89, .28); background: rgba(0, 0, 0, .12); }
+.dynastic-locked-state > svg { flex: 0 0 auto; color: #8d7a51; }
+.dynastic-locked-state strong { color: #cbd2cd; }
+.dynastic-locked-state p { margin: 4px 0 0; color: #7b8981; line-height: 1.55; }
+.court-management-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding: 0 14px 14px; }
+.court-action-card { display: grid; align-content: start; gap: 9px; padding: 13px; border: 1px solid rgba(190, 158, 89, .18); background: rgba(0, 0, 0, .12); }
+.court-action-heading { display: flex; align-items: center; gap: 9px; padding-bottom: 8px; border-bottom: 1px solid rgba(255, 255, 255, .05); }
+.court-action-heading > svg { color: #9b8454; }
+.court-action-heading > span { display: grid; gap: 2px; }
+.court-action-heading small { color: #8a744b; font-size: 8px; letter-spacing: .08em; }
+.court-action-heading strong { color: #cfd5d1; }
+.court-action-card > label { display: grid; grid-template-columns: 110px minmax(0, 1fr); align-items: center; gap: 8px; color: #829087; font-size: 9px; }
+.court-action-card select { min-width: 0; height: 34px; padding: 0 8px; border: 1px solid rgba(179, 151, 87, .22); background: #111916; color: #c3cbc6; font: 600 10px var(--font-body); }
+.court-action-card select:disabled { opacity: .45; }
+.court-action-card > p, .marriage-candidate-brief { margin: 0; padding: 9px; border-left: 2px solid rgba(169, 139, 76, .35); background: rgba(169, 139, 76, .035); color: #7b8981; font-size: 9px; line-height: 1.5; }
+.court-action-card > button { min-height: 36px; border: 1px solid rgba(185, 153, 82, .35); background: rgba(164, 128, 57, .08); color: #c5ae70; cursor: pointer; }
+.court-action-card > button:disabled { opacity: .38; cursor: not-allowed; }
+.marriage-candidate-brief strong { display: block; color: #c5cbc7; }
+.marriage-candidate-brief p { margin: 3px 0; }
+.marriage-candidate-brief small { color: #9a8455; }
+.succession-law-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; padding-top: 3px; }
+.succession-law-list > strong { grid-column: 1 / -1; color: #9c8a61; font-size: 9px; }
+.succession-law-list > button { min-height: 30px; border: 1px solid rgba(255, 255, 255, .07); background: rgba(255, 255, 255, .015); color: #86938c; font-size: 9px; cursor: pointer; }
+.succession-law-list > button.active { border-color: rgba(119, 157, 131, .4); color: #a8bcae; background: rgba(85, 126, 100, .08); }
+.succession-law-list > button:disabled { opacity: .5; cursor: not-allowed; }
+.court-ledger { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding: 0 14px 14px; }
+.court-ledger > div { padding: 11px; border: 1px solid rgba(255, 255, 255, .05); background: rgba(0, 0, 0, .1); }
+.court-ledger h4 { margin: 0 0 8px; color: #b7a36e; font-size: 10px; }
+.court-ledger > div > p { color: #748079; }
+.court-ledger article { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 0; border-top: 1px solid rgba(255, 255, 255, .045); }
+.court-ledger article > span { min-width: 0; display: grid; gap: 2px; }
+.court-ledger article strong { overflow: hidden; color: #c9d0cc; text-overflow: ellipsis; white-space: nowrap; }
+.court-ledger article small { color: #75847c; font-size: 8px; }
+.court-ledger article button { padding: 5px 8px; border: 1px solid rgba(164, 88, 71, .32); background: rgba(129, 56, 47, .07); color: #ad756b; font-size: 8px; cursor: pointer; }
+.court-ledger article button:disabled { opacity: .35; }
+.court-ledger article b { color: #8d7d58; font: 600 9px var(--font-data); }
 .nation-weekly-causality > header > strong { font: 700 16px var(--font-data); }
 .causality-columns { display: grid; grid-template-columns: 1fr 30px 1fr; align-items: center; gap: 8px; padding: 14px; }
 .causality-columns > div { min-height: 132px; padding: 11px; border: 1px solid rgba(255,255,255,.05); background: rgba(255,255,255,.012); }
@@ -1070,6 +1124,8 @@
 @media (max-width: 1500px) {
   .nation-kpi-grid { grid-template-columns: repeat(3,1fr); }
   .national-strategy-grid { grid-template-columns: repeat(3,1fr); }
+  .government-form-grid { grid-template-columns: repeat(3, 1fr); }
+  .dynastic-status-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 1360px) {
@@ -1080,12 +1136,14 @@
   .nation-transition-grid, .nation-government-grid { grid-template-columns: 1fr; }
   .ministry-budget-grid { grid-template-columns: repeat(2,1fr); }
   .national-strategy-grid { grid-template-columns: repeat(2,1fr); }
+  .government-form-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 720px) {
   .nation-transition-hero, .nation-government-hero { grid-template-columns: 1fr; padding: 18px; }
   .transition-readiness-seal { width: 130px; }
   .inheritance-cards, .transition-routes > div, .ministry-budget-grid, .national-strategy-grid { grid-template-columns: 1fr; }
+  .government-form-grid, .dynastic-status-grid, .court-management-grid, .court-ledger { grid-template-columns: 1fr; }
   .nation-kpi-grid, .fiscal-summary { grid-template-columns: repeat(2,1fr); }
   .transition-pillar { grid-template-columns: 120px 1fr 30px; }
   .nation-hero-scores { grid-template-columns: repeat(2,minmax(0,1fr)); }

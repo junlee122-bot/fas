@@ -1,4 +1,5 @@
 import type { EconomyState } from './economy';
+import { getDynasticWeeklyEffects, getGovernmentForm } from './dynasticPolitics';
 import type { CampaignPhase, NationManagementState } from './nationManagement';
 import type { CareerRole, GameState, NationId } from './types';
 
@@ -54,7 +55,7 @@ export interface PoliticalCrisisContext {
   phase: CampaignPhase;
   game: Pick<GameState, 'stability' | 'warSupport' | 'treasury' | 'victoryScore' | 'intelNetwork' | 'enemyPressure' | 'politicalPower' | 'commandPoints'>;
   economy: Pick<EconomyState, 'debt' | 'inflation' | 'publicConfidence'>;
-  nation: Pick<NationManagementState, 'unrest' | 'legitimacy' | 'mandateScore'>;
+  nation: Pick<NationManagementState, 'unrest' | 'legitimacy' | 'mandateScore' | 'dynasty'>;
   averageSupply: number;
   staffLoyalty: number;
   staffOverload: number;
@@ -294,6 +295,8 @@ export function assessCoupRisk(state: PoliticalCrisisState, context: PoliticalCr
       - (leftState.grievance * 0.48 + leftState.organization * 0.32 + leftState.support * 0.2);
   })[0];
   const lead = state.factionStandings[leadingFaction.id];
+  const dynasticEffects = getDynasticWeeklyEffects(context.nation.dynasty);
+  const governmentForm = getGovernmentForm(context.nation.dynasty.formId);
   const triggers: CoupRiskTrigger[] = [
     { id: 'stability', label: '국가 안정도', contribution: Math.max(0, (55 - context.game.stability) * 0.42), detail: `현재 ${Math.round(context.game.stability)} · 55 미만에서 권력 공백이 커집니다.` },
     { id: 'war', label: '전쟁 지지·전황', contribution: Math.max(0, (50 - context.game.warSupport) * 0.18) + Math.max(0, (42 - context.game.victoryScore) * 0.15), detail: `전쟁 지지 ${Math.round(context.game.warSupport)} · 승전 지수 ${Math.round(context.game.victoryScore)}` },
@@ -302,6 +305,7 @@ export function assessCoupRisk(state: PoliticalCrisisState, context: PoliticalCr
     { id: 'supply', label: '보급·전선 압박', contribution: Math.max(0, 58 - context.averageSupply) * 0.16 + Math.max(0, context.game.enemyPressure - 72) * 0.13, detail: `평균 보급 ${Math.round(context.averageSupply)} · 적 압박 ${Math.round(context.game.enemyPressure)}` },
     { id: 'elite', label: '엘리트 충성·정부 신임', contribution: Math.max(0, 66 - context.staffLoyalty) * 0.2 + Math.max(0, context.staffOverload - 70) * 0.12 + Math.max(0, 58 - context.councilTrust) * 0.2, detail: `참모 충성 ${Math.round(context.staffLoyalty)} · 과부하 ${Math.round(context.staffOverload)} · 지도부 신임 ${Math.round(context.councilTrust)}` },
     { id: 'factions', label: `${leadingFaction.shortName} 동원력`, contribution: Math.max(0, lead.grievance - 25) * 0.22 + Math.max(0, lead.organization - 55) * 0.13 + Math.max(0, 42 - weakestRelationEntry[1]) * 0.22, detail: `불만 ${Math.round(lead.grievance)} · 조직력 ${Math.round(lead.organization)} · 최저 관계 ${Math.round(weakestRelationEntry[1])}` },
+    { id: 'succession', label: governmentForm.monarchy ? '왕위계승·궁정 균형' : '헌정 연속성', contribution: context.phase === 'nation' ? dynasticEffects.coupRisk : 0, detail: governmentForm.monarchy ? `계승 안정 ${Math.round(context.nation.dynasty.successionSecurity)} · 궁정 결속 ${Math.round(context.nation.dynasty.courtUnity)} · 영지 부담 ${Math.round(context.nation.dynasty.estateBurden)}` : '비왕정 체제로 왕위 찬탈 위험은 없습니다.' },
     { id: 'intelligence', label: '방첩 억제력', contribution: -Math.max(0, context.game.intelNetwork - 45) * 0.11, detail: `정보망 ${Math.round(context.game.intelNetwork)}가 사전 적발 가능성을 높입니다.` },
   ].map((trigger) => ({ ...trigger, contribution: round(trigger.contribution) }));
   const raw = triggers.reduce((total, trigger) => total + trigger.contribution, 8 + Math.min(9, state.weeksInDanger * 0.8));
@@ -362,7 +366,7 @@ export function advancePoliticalCrisisWeek(state: PoliticalCrisisState, context:
     id: `coup-${state.nationId}-${context.week}-${state.attempts + 1}`,
     week: context.week,
     nationId: state.nationId,
-    title: `${assessment.leadingFaction.name}의 ${detected ? '쿠데타 음모 적발' : '권력 장악 시도'}`,
+    title: `${assessment.leadingFaction.name}의 ${getGovernmentForm(context.nation.dynasty.formId).monarchy ? (context.nation.dynasty.successionSecurity < 42 ? '왕위 찬탈' : '궁정 쿠데타') : (detected ? '쿠데타 음모 적발' : '권력 장악 시도')}`,
     leadingFactionId: assessment.leadingFaction.id,
     riskScore: assessment.score,
     weeklyChance: assessment.weeklyChance,
