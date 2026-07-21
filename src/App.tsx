@@ -154,7 +154,7 @@ import {
   restCommander,
   unlockCommanderSkill,
 } from './development';
-import { defaultUXPreferences, deriveOnboardingSteps, deriveUXActions, deriveWeeklyCommandCycle, getInitialNavigationCollapsed, normalizeUXPreferences } from './ux';
+import { defaultUXPreferences, deriveOnboardingSteps, deriveUXActions, deriveWeeklyCommandCycle, getInitialNavigationCollapsed, isTrackedActionResolved, normalizeUXPreferences } from './ux';
 import type { UXAction, UXPreferences } from './ux';
 import {
   applyEquipmentToDivision,
@@ -416,6 +416,8 @@ export function App() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState<GameTab>('command');
   const [trackedActionId, setTrackedActionId] = useState<string | null>(null);
+  const [trackedActionSnapshot, setTrackedActionSnapshot] = useState<UXAction | null>(null);
+  const [completedTrackedAction, setCompletedTrackedAction] = useState<UXAction | null>(null);
   const [navigationCollapsed, setNavigationCollapsed] = useState(() => {
     try {
       return getInitialNavigationCollapsed(localStorage.getItem(NAVIGATION_COLLAPSED_KEY), window.innerWidth);
@@ -981,6 +983,14 @@ export function App() {
       toastTimerRef.current = null;
     }, 3200);
   }, []);
+
+  useEffect(() => {
+    if (!isTrackedActionResolved(trackedActionId, uxActions) || trackedAction || trackedActionSnapshot?.id !== trackedActionId) return;
+    setCompletedTrackedAction(trackedActionSnapshot);
+    setTrackedActionSnapshot(null);
+    setTrackedActionId(null);
+    notify(`지시 완료 · ${trackedActionSnapshot.title} · ${trackedActionSnapshot.resolution ?? '다음 주 결산에서 결과를 확인하십시오.'}`);
+  }, [notify, trackedAction, trackedActionId, trackedActionSnapshot, uxActions]);
 
   useEffect(() => () => {
     if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
@@ -1919,6 +1929,8 @@ export function App() {
     setShowWorldHistory(false);
     setShowWorldWeekly(false);
     setTrackedActionId(null);
+    setTrackedActionSnapshot(null);
+    setCompletedTrackedAction(null);
     setPendingAchievementId(null);
     setAchievementUnlocks([]);
     setWorldWeeklyIssues([openingWorldWeeklyIssue]);
@@ -2094,6 +2106,8 @@ export function App() {
       setShowWorldHistory(false);
       setShowWorldWeekly(false);
       setTrackedActionId(null);
+      setTrackedActionSnapshot(null);
+      setCompletedTrackedAction(null);
       setActiveTab(restoredPhase === 'nation' ? 'governance' : 'command');
       setShowBriefing(false);
       if (typeof data.pendingWorldFlashpointId === 'string' || data.pendingCoupIncident) setSpeed(0);
@@ -2168,6 +2182,8 @@ export function App() {
     setShowWorldHistory(false);
     setShowWorldWeekly(false);
     setTrackedActionId(null);
+    setTrackedActionSnapshot(null);
+    setCompletedTrackedAction(null);
     setPendingAchievementId(null);
     setAchievementUnlocks([]);
     setWorldWeeklyIssues([]);
@@ -3294,6 +3310,8 @@ export function App() {
     if (action.id === 'political-crisis') {
       setSpeed(0);
       setTrackedActionId(null);
+      setTrackedActionSnapshot(null);
+      setCompletedTrackedAction(null);
       setShowPoliticalCrisis(true);
       setShowActionCenter(false);
       return;
@@ -3313,6 +3331,8 @@ export function App() {
         setSelectedTerritoryId(readyDivision.territoryId);
       }
     }
+    setCompletedTrackedAction(null);
+    setTrackedActionSnapshot(action);
     setTrackedActionId(action.id);
     deckScrollPositionsRef.current[action.tab] = 0;
     setActiveTab(action.tab);
@@ -4008,6 +4028,20 @@ export function App() {
               <button className="quick-navigation-trigger" onClick={() => setShowCommandPalette(true)} aria-keyshortcuts="Control+K Meta+K"><Search size={15} /><span>빠른 이동</span><kbd>Ctrl K</kbd></button>
             </div>
           </div>
+          {trackedAction && activeTab !== trackedAction.tab && (
+            <button
+              type="button"
+              className={`tracked-command-return ${trackedAction.priority}`}
+              onClick={() => {
+                deckScrollPositionsRef.current[trackedAction.tab] = 0;
+                setActiveTab(trackedAction.tab);
+              }}
+            >
+              <GameIcon name="command" size={18} tone={trackedAction.priority === 'urgent' ? 'red' : 'gold'} framed active />
+              <span><small>추적 중인 지시</small><strong>{trackedAction.title}</strong></span>
+              <em>{trackedAction.label} 화면으로 복귀 <ChevronRight size={14} /></em>
+            </button>
+          )}
           {publicHealth.activeOutbreak && activeTab !== 'health' && (
             <button className={`workspace-crisis-ribbon ${publicHealth.activeOutbreak.phase}`} onClick={() => setActiveTab('health')}>
               <span className="crisis-ribbon-icon"><GameIcon name="health" size={19} tone="red" framed active /></span>
@@ -4016,6 +4050,17 @@ export function App() {
             </button>
           )}
           <div className="deck-content" ref={deckContentRef}>
+            {completedTrackedAction && (
+              <section className="tracked-command-complete" role="status" aria-live="polite" aria-atomic="true">
+                <span className="tracked-command-complete-icon" aria-hidden="true"><CheckCircle2 size={20} /></span>
+                <span>
+                  <small>ORDER COMPLETE · 지시 해결</small>
+                  <strong>{completedTrackedAction.title}</strong>
+                  <p>{completedTrackedAction.resolution ?? '다음 주 결산에서 최종 결과를 확인하십시오.'}</p>
+                </span>
+                <button type="button" onClick={() => setCompletedTrackedAction(null)}>확인 <X size={14} /></button>
+              </section>
+            )}
             {trackedAction && activeTab === trackedAction.tab && (
               <section className={`tracked-command-brief ${trackedAction.priority}`} aria-label={`추적 중인 지시: ${trackedAction.title}`}>
                 <span className="tracked-command-icon" aria-hidden="true">
@@ -4030,7 +4075,7 @@ export function App() {
                   <small>결과 확인</small>
                   <strong>{trackedAction.resolution ?? '다음 주 결산에서 확인'}</strong>
                 </span>
-                <button type="button" onClick={() => setTrackedActionId(null)} aria-label={`${trackedAction.title} 추적 해제`}>
+                <button type="button" onClick={() => { setTrackedActionId(null); setTrackedActionSnapshot(null); }} aria-label={`${trackedAction.title} 추적 해제`}>
                   <X size={15} />
                 </button>
               </section>

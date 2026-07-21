@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveCommandReadiness, deriveOnboardingSteps, deriveUXActions, deriveWeeklyCommandCycle, getInitialNavigationCollapsed, normalizeUXPreferences } from './ux';
+import { deriveCommandReadiness, deriveOnboardingSteps, deriveUXActions, deriveWeeklyCommandCycle, getInitialNavigationCollapsed, isTrackedActionResolved, normalizeUXPreferences } from './ux';
 import type { ActionCenterInput } from './ux';
 
 const baseInput: ActionCenterInput = {
@@ -53,6 +53,13 @@ describe('user experience guidance', () => {
       commanderDevelopment: [{ ...baseInput.commanderDevelopment[0], skills: ['operational-planner'] }],
     });
     expect(actions).toHaveLength(0);
+  });
+
+  it('marks a tracked order complete only after its action leaves the queue', () => {
+    const actions = deriveUXActions(baseInput);
+    expect(isTrackedActionResolved('idle-factories', actions)).toBe(false);
+    expect(isTrackedActionResolved('idle-factories', actions.filter((action) => action.id !== 'idle-factories'))).toBe(true);
+    expect(isTrackedActionResolved(null, actions)).toBe(false);
   });
 
   it('separates an operating deficit and inflation warning from headline borrowing', () => {

@@ -17,6 +17,10 @@ export interface UXAction {
   tab: GameTab;
 }
 
+export function isTrackedActionResolved(trackedActionId: string | null, actions: UXAction[]) {
+  return trackedActionId !== null && !actions.some((action) => action.id === trackedActionId);
+}
+
 export interface CommandReadiness {
   urgentCount: number;
   recommendedCount: number;

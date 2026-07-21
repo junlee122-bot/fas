@@ -55,7 +55,7 @@ export function ActionCenter({ actions, onNavigate, onClose }: ActionCenterProps
         <div className="action-center-summary">
           <div>
             <strong>{urgentCount > 0 ? '지휘부의 즉각적인 판단이 필요합니다.' : recommendedCount > 0 ? '필수 준비는 끝났고 권장 조정이 남았습니다.' : '상태 보고만 확인하면 다음 주로 진행할 수 있습니다.'}</strong>
-            <span>항목을 선택하면 실행 방법이 담당 화면 상단에 추적 지시로 고정됩니다.</span>
+            <span>항목을 선택하면 담당 화면에 추적되고, 해결된 지시는 완료 확인서로 바뀝니다.</span>
           </div>
           <div className="action-center-counts" aria-label="행동 우선순위별 건수">
             <span className="urgent"><small>긴급</small><strong>{urgentCount}</strong></span>
@@ -74,7 +74,7 @@ export function ActionCenter({ actions, onNavigate, onClose }: ActionCenterProps
             const meta = priorityMeta[action.priority];
             const guidance = fallbackGuidance[action.priority];
             return (
-              <button key={action.id} className={action.priority} onClick={() => onNavigate(action)}>
+              <button key={action.id} data-action-id={action.id} className={action.priority} onClick={() => onNavigate(action)}>
                 <i>{meta.icon}</i>
                 <span className="action-center-card-copy">
                   <em>{meta.label}</em><strong>{action.title}</strong><small>{action.detail}</small>
