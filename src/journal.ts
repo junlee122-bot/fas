@@ -1,4 +1,4 @@
-import type { WarEvent, WarEventDomain, WarEventTrace } from './types';
+import type { WarEvent, WarEventComparison, WarEventDomain, WarEventTrace } from './types';
 
 export type JournalFilter = 'all' | WarEventDomain;
 
@@ -111,6 +111,7 @@ export function createWarEventTrace(title: string, detail: string, tone: WarEven
     trigger: override.trigger ?? trigger,
     factors: override.factors ?? factors,
     effects: override.effects ?? effects,
+    comparisons: override.comparisons,
     ongoing: override.ongoing ?? ongoing,
     nextActions: override.nextActions ?? nextActions,
     certainty: override.certainty ?? certainty,
@@ -121,6 +122,25 @@ export function getWarEventTrace(event: WarEvent) {
   return event.trace ?? createWarEventTrace(event.title, event.detail, event.tone);
 }
 
+export function getJournalComparisonStatus(expected: number, actual: number, higherIsBetter = true, tolerance = 0.005): WarEventComparison['status'] {
+  if (Math.abs(actual - expected) <= tolerance) return 'matched';
+  const improved = higherIsBetter ? actual > expected : actual < expected;
+  return improved ? 'better' : 'worse';
+}
+
+export function summarizeJournalComparisons(events: WarEvent[], week: number) {
+  const comparisons = events
+    .filter((event) => event.week === week)
+    .flatMap((event) => getWarEventTrace(event).comparisons ?? []);
+  return {
+    total: comparisons.length,
+    matched: comparisons.filter((comparison) => comparison.status === 'matched').length,
+    better: comparisons.filter((comparison) => comparison.status === 'better').length,
+    worse: comparisons.filter((comparison) => comparison.status === 'worse').length,
+    variance: comparisons.filter((comparison) => comparison.status === 'variance').length,
+  };
+}
+
 export function filterWarEvents(events: WarEvent[], filter: JournalFilter, query: string) {
   const normalizedQuery = query.trim().toLocaleLowerCase('ko-KR');
   return events.filter((event) => {
@@ -128,7 +148,7 @@ export function filterWarEvents(events: WarEvent[], filter: JournalFilter, query
     const queryMatches = normalizedQuery.length === 0
       || (() => {
         const trace = getWarEventTrace(event);
-        return `${event.title} ${event.detail} ${trace.decision} ${trace.trigger} ${trace.factors.join(' ')} ${trace.effects.map((entry) => `${entry.label} ${entry.value}`).join(' ')} ${trace.ongoing.join(' ')} ${trace.nextActions.join(' ')}`
+        return `${event.title} ${event.detail} ${trace.decision} ${trace.trigger} ${trace.factors.join(' ')} ${trace.effects.map((entry) => `${entry.label} ${entry.value}`).join(' ')} ${(trace.comparisons ?? []).map((entry) => `${entry.label} ${entry.expected} ${entry.actual} ${entry.explanation}`).join(' ')} ${trace.ongoing.join(' ')} ${trace.nextActions.join(' ')}`
           .toLocaleLowerCase('ko-KR').includes(normalizedQuery);
       })();
     return categoryMatches && queryMatches;

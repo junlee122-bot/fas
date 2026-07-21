@@ -451,12 +451,21 @@ export interface WarEventEffect {
   tone: 'positive' | 'negative' | 'neutral';
 }
 
+export interface WarEventComparison {
+  label: string;
+  expected: string;
+  actual: string;
+  status: 'matched' | 'better' | 'worse' | 'variance';
+  explanation: string;
+}
+
 export interface WarEventTrace {
   domain: WarEventDomain;
   decision: string;
   trigger: string;
   factors: string[];
   effects: WarEventEffect[];
+  comparisons?: WarEventComparison[];
   ongoing: string[];
   nextActions: string[];
   certainty: 'confirmed' | 'developing' | 'forecast';

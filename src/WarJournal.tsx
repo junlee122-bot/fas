@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ArrowRight, Check, ChevronDown, CircleDot, Minus, Radio, Search, TrendingDown, TrendingUp, X } from 'lucide-react';
-import { categorizeWarEvent, filterWarEvents, getWarEventTrace, summarizeJournalProgress } from './journal';
+import { categorizeWarEvent, filterWarEvents, getWarEventTrace, summarizeJournalComparisons, summarizeJournalProgress } from './journal';
 import type { JournalFilter } from './journal';
 import type { WarEvent } from './types';
 
@@ -19,6 +19,7 @@ const filters: Array<{ id: JournalFilter; label: string }> = [
 
 const domainLabels = { operations: '작전', management: '국정·조직', diplomacy: '외교', history: '대체역사' } as const;
 const certaintyLabels = { confirmed: '확정 결과', developing: '진행 중', forecast: '전망' } as const;
+const comparisonLabels = { matched: '예상 일치', better: '예상 상회', worse: '예상 하회', variance: '확률 변동' } as const;
 
 function formatJournalDate(week: number) {
   const date = new Date(Date.UTC(1942, 9, 25 + week * 7));
@@ -43,12 +44,22 @@ export function WarJournal({ events, onClose }: WarJournalProps) {
   const latestGood = latestEvents.filter((event) => event.tone === 'good').length;
   const latestBad = latestEvents.filter((event) => event.tone === 'bad').length;
   const progressSummary = useMemo(() => summarizeJournalProgress(events), [events]);
+  const comparisonSummary = useMemo(() => summarizeJournalComparisons(events, latestWeek), [events, latestWeek]);
   const trendLabel = progressSummary.trend === 'improving' ? '전주보다 개선' : progressSummary.trend === 'worsening' ? '전주보다 악화' : progressSummary.trend === 'stable' ? '전주와 동일' : '비교 기준 생성';
   const TrendIcon = progressSummary.trend === 'improving' ? TrendingUp : progressSummary.trend === 'worsening' ? TrendingDown : Minus;
 
   useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
     searchRef.current?.focus();
-  }, []);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [onClose]);
 
   return (
     <div className="journal-overlay" onClick={onClose}>
@@ -63,6 +74,18 @@ export function WarJournal({ events, onClose }: WarJournalProps) {
           <div className="negative"><span>불리한 결과</span><strong>{latestBad}</strong><small>대응 필요</small></div>
           <div><span>전체 변화</span><strong>{latestEvents.length}</strong><small>같은 주에 해결</small></div>
         </section>
+        {comparisonSummary.total > 0 && (
+          <section className="journal-comparison-brief" aria-label="최근 결산 예상 정확도">
+            <header><span><CircleDot size={14} /><strong>예상 대비 확정</strong></span><em>{comparisonSummary.matched}/{comparisonSummary.total}건 일치</em></header>
+            <div>
+              <span className="matched"><small>예상 일치</small><strong>{comparisonSummary.matched}</strong></span>
+              <span className="better"><small>예상 상회</small><strong>{comparisonSummary.better}</strong></span>
+              <span className="worse"><small>예상 하회</small><strong>{comparisonSummary.worse}</strong></span>
+              <span className="variance"><small>확률 변동</small><strong>{comparisonSummary.variance}</strong></span>
+            </div>
+            <p>현황판에서 본 사전 결산과 실제 주간 결과를 비교합니다. 전투·발병·국제사건은 별도 확률 판정으로 설명됩니다.</p>
+          </section>
+        )}
         <section className={`journal-progress-review ${progressSummary.trend}`} aria-label="최근 6주 지휘 성과 추세">
           <div className="journal-progress-heading">
             <span><TrendIcon size={15} /><strong>{trendLabel}</strong><small>순성과 = 유리 {latestGood} − 불리 {latestBad} = {progressSummary.balance >= 0 ? '+' : ''}{progressSummary.balance}</small></span>
@@ -98,6 +121,7 @@ export function WarJournal({ events, onClose }: WarJournalProps) {
           {visibleEvents.length > 0 ? visibleEvents.map((event) => {
             const trace = getWarEventTrace(event);
             const isOpen = openId === event.id;
+            const comparisons = trace.comparisons ?? [];
             return (
             <article className={`${event.tone} ${isOpen ? 'open' : ''}`} key={event.id}>
               <button className="journal-event-summary" aria-expanded={isOpen} onClick={() => setOpenId(isOpen ? null : event.id)}>
@@ -113,6 +137,20 @@ export function WarJournal({ events, onClose }: WarJournalProps) {
                     <section><span>02 · 해결 조건</span><strong>{trace.trigger}</strong></section><ArrowRight size={16} />
                     <section><span>03 · 확정 결과</span><strong>{trace.effects[0]?.value ?? event.detail}</strong></section>
                   </div>
+                  {comparisons.length > 0 && (
+                    <section className="journal-comparison-review" aria-label="예상과 확정 결과 비교">
+                      <header><span><CircleDot size={13} /><strong>예상 대비 확정</strong></span><em>{comparisons.filter((comparison) => comparison.status === 'matched').length}/{comparisons.length}건 일치</em></header>
+                      <div>
+                        {comparisons.map((comparison) => (
+                          <article className={comparison.status} key={comparison.label}>
+                            <header><strong>{comparison.label}</strong><span>{comparisonLabels[comparison.status]}</span></header>
+                            <div><span><small>예상</small><b>{comparison.expected}</b></span><ArrowRight size={13} /><span><small>확정</small><b>{comparison.actual}</b></span></div>
+                            <p>{comparison.explanation}</p>
+                          </article>
+                        ))}
+                      </div>
+                    </section>
+                  )}
                   <div className="journal-analysis-grid">
                     <section>
                       <h4><CircleDot size={13} /> 왜 이 결과가 나왔나</h4>

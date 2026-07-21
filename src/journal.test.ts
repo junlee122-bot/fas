@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { WarEvent } from './types';
-import { categorizeWarEvent, createWarEventTrace, filterWarEvents, getWarEventTrace, summarizeJournalProgress } from './journal';
+import { categorizeWarEvent, createWarEventTrace, filterWarEvents, getJournalComparisonStatus, getWarEventTrace, summarizeJournalComparisons, summarizeJournalProgress } from './journal';
 
 const events: WarEvent[] = [
   { id: 1, week: 1, title: '전선 돌파 — 알제리', detail: '기갑부대가 목표를 확보했습니다.', tone: 'good' },
@@ -46,6 +46,33 @@ describe('war journal filtering', () => {
     };
     expect(getWarEventTrace(event).effects[0]).toEqual({ label: '수지', value: '재정 +12', tone: 'positive' });
     expect(filterWarEvents([event], 'management', '급여 12')).toHaveLength(1);
+  });
+
+  it('classifies forecast accuracy in the direction that benefits the player', () => {
+    expect(getJournalComparisonStatus(10, 10)).toBe('matched');
+    expect(getJournalComparisonStatus(10, 12)).toBe('better');
+    expect(getJournalComparisonStatus(10, 8)).toBe('worse');
+    expect(getJournalComparisonStatus(2, 1.5, false)).toBe('better');
+    expect(getJournalComparisonStatus(2, 2.5, false)).toBe('worse');
+  });
+
+  it('preserves, searches, and summarizes expected-versus-actual comparisons', () => {
+    const comparisonEvent: WarEvent = {
+      id: 5,
+      week: 6,
+      title: '주간 지휘 결산 — 제 7주',
+      detail: '예상치와 확정치를 비교했습니다.',
+      tone: 'neutral',
+      trace: createWarEventTrace('주간 지휘 결산 — 제 7주', '결산 완료', 'neutral', {
+        comparisons: [
+          { label: '전시 재정', expected: '+£10M', actual: '+£10M', status: 'matched', explanation: '국채 조달금을 포함했습니다.' },
+          { label: '작전 명령', expected: '승산 62%', actual: '패배', status: 'worse', explanation: '주력 교전 난수가 불리했습니다.' },
+        ],
+      }),
+    };
+    expect(getWarEventTrace(comparisonEvent).comparisons).toHaveLength(2);
+    expect(filterWarEvents([comparisonEvent], 'management', '승산 62')).toHaveLength(1);
+    expect(summarizeJournalComparisons([comparisonEvent], 6)).toEqual({ total: 2, matched: 1, better: 0, worse: 1, variance: 0 });
   });
 
   it('compares weekly outcome balance and extracts urgent follow-up actions', () => {

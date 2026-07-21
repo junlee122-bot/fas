@@ -91,6 +91,7 @@ import type {
   Territory,
   TheaterId,
   WarEvent,
+  WarEventComparison,
   WarEventTrace,
 } from './types';
 import type { CampaignOutcome } from './types';
@@ -132,7 +133,7 @@ import { StatusOverview } from './StatusOverview';
 import type { StatusMetric, StatusProjection, StatusResource } from './StatusOverview';
 import { SettingsModal } from './SettingsModal';
 import { WarJournal } from './WarJournal';
-import { createWarEventTrace } from './journal';
+import { createWarEventTrace, getJournalComparisonStatus } from './journal';
 import { ConfirmResetModal } from './ConfirmResetModal';
 import { CommandPalette } from './CommandPalette';
 import type { CommandPaletteItem } from './CommandPalette';
@@ -948,7 +949,7 @@ export function App() {
   const projectionPublicHealthPressure = publicHealth.activeOutbreak
     ? Math.max(publicHealth.activeOutbreak.hospitalLoad, publicHealth.activeOutbreak.weeklyCases / 10_000)
     : publicHealth.outbreakPressure * 0.12;
-  const nationWeekProjection = campaignPhase === 'nation'
+  const nationWeekProjection = useMemo(() => campaignPhase === 'nation'
     ? advanceNationManagementWeek(nationManagement, {
       week: game.week + 1,
       game,
@@ -957,7 +958,7 @@ export function App() {
       completedResearch: projectionCompletedResearch,
       publicHealthPressure: projectionPublicHealthPressure,
     })
-    : null;
+    : null, [campaignPhase, economy, game, nationManagement, projectionCompletedResearch, projectionPublicHealthPressure, relationAverage]);
   const projectionResearchGain = campaignPhase === 'nation' && nationWeekProjection
     ? 6 + Math.floor(nationWeekProjection.state.education / 18) + scienceAdvisorBonus
     : (doctrine === 'methodical' ? 13 : 11) + 2 + scienceAdvisorBonus + (scienceAdvisor?.discipline === 'science' ? 1 : 0);
@@ -1350,6 +1351,7 @@ export function App() {
       nextActions: ['국가 운영 화면에서 다음 주 예산과 발전 노선을 재검토하십시오.'],
       certainty: 'confirmed',
     }));
+    const expectedNationResult = nationWeekProjection ?? result;
     addEvent(
       `국가 운영 결산 — 제 ${nextWeek + 1}주`,
       `세입 ${formatGameMoney(result.report.fiscalRevenue)}, 지출 ${formatGameMoney(result.report.fiscalExpenditure)}, 수지 ${formatGameMoney(result.report.fiscalBalance, { signed: true })}. 국가 성과 ${result.state.nationalScore}, 국민 위임 ${result.state.mandateScore}.`,
@@ -1361,6 +1363,36 @@ export function App() {
         trigger: '“국정 1주 진행”으로 재정·민생·산업·외교·보건·연구 계산을 동시에 확정했습니다.',
         factors: result.report.causes,
         effects: result.report.effects.map((effect) => ({ label: '주간 결과', value: effect, tone: effect.includes('부채 +') || effect.includes('물가 +') ? 'negative' : 'neutral' })),
+        comparisons: [
+          {
+            label: '재정 수지',
+            expected: formatGameMoney(expectedNationResult.report.fiscalBalance, { signed: true }),
+            actual: formatGameMoney(result.report.fiscalBalance, { signed: true }),
+            status: getJournalComparisonStatus(expectedNationResult.report.fiscalBalance, result.report.fiscalBalance),
+            explanation: '세입·조세·공공지출·부채이자를 진행 직전 예상치와 같은 기준으로 재계산했습니다.',
+          },
+          {
+            label: '국가 성과',
+            expected: `${expectedNationResult.state.nationalScore}`,
+            actual: `${result.state.nationalScore}`,
+            status: getJournalComparisonStatus(expectedNationResult.state.nationalScore, result.state.nationalScore),
+            explanation: '인프라·교육·복지·산업·제도 성과의 종합점수입니다.',
+          },
+          {
+            label: '국민 위임',
+            expected: `${expectedNationResult.state.mandateScore}`,
+            actual: `${result.state.mandateScore}`,
+            status: getJournalComparisonStatus(expectedNationResult.state.mandateScore, result.state.mandateScore),
+            explanation: '생활수준·고용·불평등·물가·정당성이 유권자 평가에 반영됐습니다.',
+          },
+          {
+            label: '물가 변화',
+            expected: `${expectedNationResult.economyDelta.inflation >= 0 ? '+' : ''}${expectedNationResult.economyDelta.inflation.toFixed(2)}%p`,
+            actual: `${result.economyDelta.inflation >= 0 ? '+' : ''}${result.economyDelta.inflation.toFixed(2)}%p`,
+            status: getJournalComparisonStatus(expectedNationResult.economyDelta.inflation, result.economyDelta.inflation, false),
+            explanation: '지출 압력과 산업 공급·조세 효과를 함께 반영한 주간 물가 변화입니다.',
+          },
+        ],
         ongoing: [`다음 국민 평가까지 ${Math.max(0, result.state.nextElectionWeek - nextWeek)}주`, `현재 사회 불안 ${Math.round(result.state.unrest)} · 민수 산업 ${Math.round(result.state.civilianIndustry)}`],
         nextActions: [result.report.fiscalBalance < 0 ? '적자를 줄이려면 조세 부담·공공지출·산업 예산의 조합을 조정하십시오.' : '흑자를 부채 감축과 장기 교육·인프라 투자 중 어디에 쓸지 결정하십시오.', result.state.mandateScore < 50 ? '복지·고용·주택과 물가를 개선해 다음 국민 평가 전 위임을 회복하십시오.' : '현재 위임을 장기 제도·산업 성과로 전환하십시오.'],
         certainty: 'confirmed',
@@ -1368,7 +1400,7 @@ export function App() {
     );
     const openedCoup = scheduleCoupCheck(nextWeek);
     if (!openedCoup) scheduleWorldFlashpoint(nextWeek);
-  }, [addEvent, economy, formatGameMoney, game, nationManagement, notify, playerNation.id, publicHealth, publicHealthContext, relationAverage, research, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisorBonus]);
+  }, [addEvent, economy, formatGameMoney, game, nationManagement, nationWeekProjection, notify, playerNation.id, publicHealth, publicHealthContext, relationAverage, research, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisorBonus]);
 
   const advanceWeek = useCallback(() => {
     if (pendingWorldFlashpointId || pendingCouncilEventId || pendingCoupIncident) return;
@@ -1378,6 +1410,7 @@ export function App() {
     }
     const nextWeek = game.week + 1;
     const currentOrder = orders[0];
+    let weeklyOrderComparison: WarEventComparison | null = null;
     const publicHealthResult = advancePublicHealthWeek(publicHealth, publicHealthContext);
     const economyResult = advanceEconomyWeek(economy, {
       week: nextWeek,
@@ -1395,6 +1428,13 @@ export function App() {
       if (division && target && commander) {
         const orderStance = currentOrder.stance ?? battleStance;
         if (target.controller === playerFaction) {
+          weeklyOrderComparison = {
+            label: '작전 명령',
+            expected: `${target.name} 우군 집결`,
+            actual: `${division.name} 이동 완료`,
+            status: 'matched',
+            explanation: '이미 확보한 영토로의 이동은 전투 판정 없이 예정대로 해결됐습니다.',
+          };
           setDivisions((current) => current.map((item) => item.id === division.id ? {
             ...item,
             territoryId: target.id,
@@ -1407,7 +1447,7 @@ export function App() {
         } else {
           const doctrineBonus = doctrine === 'maneuver' && division.type === 'armor' ? 14 : doctrine === 'methodical' ? 7 : 4;
           const priorityBonus = division.id === priorityDivisionId ? 5 : 0;
-          const resolvedBattle = resolveBattle({
+          const battleInput = {
             week: nextWeek,
             division,
             commander,
@@ -1418,6 +1458,10 @@ export function App() {
             doctrineBonus,
             policyAttackBonus,
             priorityBonus,
+          };
+          const preBattleForecast = forecastBattle(battleInput);
+          const resolvedBattle = resolveBattle({
+            ...battleInput,
             randomRolls: [Math.random(), Math.random(), Math.random(), Math.random()],
           });
           const existingDevelopment = getCommanderRecord(commanderDevelopment, commander);
@@ -1428,6 +1472,14 @@ export function App() {
             ...resolvedBattle,
             commanderXpGained: developmentResult.xpGained,
             battleHonor,
+          };
+          const expectedVictory = preBattleForecast.successChance >= 50;
+          weeklyOrderComparison = {
+            label: `${target.name} 공세`,
+            expected: `승산 ${preBattleForecast.successChance}% · 병력 손실 ${preBattleForecast.strengthLoss[0]}~${preBattleForecast.strengthLoss[1]}`,
+            actual: `${battleReport.victory ? '승리' : '패배'} · 병력 -${battleReport.attackerStrengthLoss} · 작전 마진 ${battleReport.margin >= 0 ? '+' : ''}${battleReport.margin}`,
+            status: battleReport.victory === expectedVictory ? 'matched' : battleReport.victory ? 'better' : 'worse',
+            explanation: `정보 신뢰도 ${preBattleForecast.confidence === 'high' ? '높음' : preBattleForecast.confidence === 'medium' ? '보통' : '낮음'} 전망과 정찰·전개·교전·추격 4단계 확률 판정을 비교했습니다.`,
           };
           setCommanderDevelopment((current) => {
             const exists = current.some((record) => record.commanderId === commander.id);
@@ -1767,6 +1819,7 @@ export function App() {
     const weeklyFuelDelta = Number((8 - game.factories * 0.18 - (supplyPolicy === 'frontline' ? 2 : 0)).toFixed(1));
     const weeklyTreasuryDelta = economyResult.ledger.netTreasuryChange;
     const activeResearchNames = research.filter((project) => project.active && !project.complete).map((project) => project.name);
+    const actualProductionTotal = Object.values(actualProduction).reduce((total, amount) => total + amount, 0);
     const reportDetail = `생산: 보병장비 +${actualProduction.infantryEquipment}, 전차 +${actualProduction.tanks}, 항공기 +${actualProduction.aircraft}, 야포 +${actualProduction.artillery}, 트럭 +${actualProduction.trucks}, 수송선 +${actualProduction.convoys}. 국력 기준 변화: 인력 +${weeklyManpowerGain}, 정치력 +${weeklyPoliticalGain}, 지휘점수 +${weeklyCommandGain}, 연료 ${weeklyFuelDelta >= 0 ? '+' : ''}${weeklyFuelDelta}, 재정 ${weeklyTreasuryDelta >= 0 ? '+' : ''}${weeklyTreasuryDelta}.`;
     addEvent(`주간 지휘 결산 — 제 ${nextWeek + 1}주`, reportDetail, weeklyTreasuryDelta < 0 || game.fuel + weeklyFuelDelta < 25 ? 'bad' : 'neutral', nextWeek, {
       domain: 'management',
@@ -1785,6 +1838,37 @@ export function App() {
         { label: '수지', value: `연료 ${weeklyFuelDelta >= 0 ? '+' : ''}${weeklyFuelDelta} · 재정 ${weeklyTreasuryDelta >= 0 ? '+' : ''}${weeklyTreasuryDelta}`, tone: weeklyTreasuryDelta < 0 || weeklyFuelDelta < 0 ? 'negative' : 'neutral' },
         { label: '연구 진행', value: activeResearchNames.length > 0 ? `${activeResearchNames.join(' · ')} 각각 +${researchGain}` : '활성 연구 없음 — 연구 슬롯이 비어 있음', tone: activeResearchNames.length > 0 ? 'positive' : 'negative' },
       ],
+      comparisons: [
+        {
+          label: '전시 재정',
+          expected: formatGameMoney(economyForecast.netTreasuryChange, { signed: true }),
+          actual: formatGameMoney(weeklyTreasuryDelta, { signed: true }),
+          status: getJournalComparisonStatus(economyForecast.netTreasuryChange, weeklyTreasuryDelta),
+          explanation: '사전 현황판과 확정 결산의 세입·지출·국채 조달을 동일한 구매력 기준으로 비교했습니다.',
+        },
+        {
+          label: '군수 생산',
+          expected: `총 +${formatNumber(projectionProductionTotal)}`,
+          actual: `총 +${formatNumber(actualProductionTotal)}`,
+          status: getJournalComparisonStatus(projectionProductionTotal, actualProductionTotal),
+          explanation: '공장 배정·라인 효율·국가 생산계수·조달 포커스를 장비 6종에 적용했습니다.',
+        },
+        {
+          label: '일반 연구',
+          expected: `${projectionActiveResearch.length}건 · 각각 +${projectionResearchGain}`,
+          actual: `${activeResearchNames.length}건 · 각각 +${researchGain}`,
+          status: getJournalComparisonStatus(projectionResearchGain, researchGain),
+          explanation: '진행 직전 활성 슬롯과 교리·과학고문·위임 보너스를 확정치와 비교했습니다.',
+        },
+        {
+          label: '연료 수지',
+          expected: `${projectionFuelDelta >= 0 ? '+' : ''}${projectionFuelDelta}K`,
+          actual: `${weeklyFuelDelta >= 0 ? '+' : ''}${weeklyFuelDelta}K`,
+          status: getJournalComparisonStatus(projectionFuelDelta, weeklyFuelDelta),
+          explanation: '기본 공급에서 공장 소비와 전선 우선 보급 비용을 차감했습니다.',
+        },
+        ...(weeklyOrderComparison ? [weeklyOrderComparison] : []),
+      ],
       ongoing: [
         `생산라인 효율은 배정 라인마다 +1${procurementFocusId ? ', 조달 포커스 라인은 추가 +1' : ''}${delegatedDepartments.has('armaments') ? ', 군수 위임으로 추가 +1' : ''} 상승합니다.`,
         currentOrder ? '이번 주 작전 결과의 병력·조직·보급 손실은 별도 전투 보고서와 다음 주 회복 계산에 이어집니다.' : '작전 명령이 없어 커리어 경험은 행정 주간 기준으로만 증가했습니다.',
@@ -1797,7 +1881,7 @@ export function App() {
       ],
       certainty: 'confirmed',
     });
-  }, [activeTheater, addEvent, advanceNationWeek, battleStance, campaignPhase, career.experience, career.nationId, careerRole.tier, commanderDevelopment, completedDecisions, delegatedDepartments, developmentFocusId, divisions, doctrine, economy, economyAdvisorBonus, effectiveCommanders, effectiveDivisions, enemyFaction, equipmentDevelopment, formatGameMoney, game, historyTrajectory.dominantForce, notify, orders, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, playerFaction, playerNation.id, playerNation.shortName, policyAttackBonus, policyDefenseBonus, policyProductionMultiplier, policySupplyRecovery, priorityDivisionId, procurementFocusId, production, publicHealth, publicHealthContext, research, resolvedCouncilChoices, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisor, scienceAdvisorBonus, staffCandidates, staffWeeklyCost, supplyPolicy, territories, worldline]);
+  }, [activeTheater, addEvent, advanceNationWeek, battleStance, campaignPhase, career.experience, career.nationId, careerRole.tier, commanderDevelopment, completedDecisions, delegatedDepartments, developmentFocusId, divisions, doctrine, economy, economyAdvisorBonus, economyForecast.netTreasuryChange, effectiveCommanders, effectiveDivisions, enemyFaction, equipmentDevelopment, formatGameMoney, game, historyTrajectory.dominantForce, notify, orders, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, playerFaction, playerNation.id, playerNation.shortName, policyAttackBonus, policyDefenseBonus, policyProductionMultiplier, policySupplyRecovery, priorityDivisionId, procurementFocusId, production, projectionActiveResearch.length, projectionFuelDelta, projectionProductionTotal, projectionResearchGain, publicHealth, publicHealthContext, research, resolvedCouncilChoices, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisor, scienceAdvisorBonus, staffCandidates, staffWeeklyCost, supplyPolicy, territories, worldline]);
 
   useEffect(() => {
     if (speed === 0 || pendingWorldFlashpointId || pendingCoupIncident || showBriefing || showWorldHistory || showWorldWeekly || showTutorial) return;

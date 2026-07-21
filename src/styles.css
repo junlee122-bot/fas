@@ -3688,6 +3688,20 @@ button:focus-visible,
 .journal-week-brief small { font-size: 6px; color: #6f7d76; }
 .journal-week-brief .positive strong { color: #80af8d; }
 .journal-week-brief .negative strong { color: #d37c6a; }
+.journal-comparison-brief { display: grid; grid-template-columns: 155px minmax(0,1fr); gap: 7px 11px; margin: 9px 12px 0; padding: 9px 11px; border: 1px solid rgba(109,143,163,.24); background: linear-gradient(110deg,rgba(109,143,163,.055),rgba(255,255,255,.008)); }
+.journal-comparison-brief > header { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+.journal-comparison-brief > header > span { display: flex; align-items: center; gap: 5px; color: #8eaaa0; }
+.journal-comparison-brief > header strong { font-size: 8px; color: #cad3ce; }
+.journal-comparison-brief > header em { font: 600 6px var(--font-data); color: #7e8e87; }
+.journal-comparison-brief > div { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); border: 1px solid rgba(255,255,255,.045); }
+.journal-comparison-brief > div > span { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 5px; padding: 6px 7px; border-right: 1px solid rgba(255,255,255,.045); }
+.journal-comparison-brief > div > span:last-child { border-right: 0; }
+.journal-comparison-brief small { font-size: 5px; color: #6d7a74; }
+.journal-comparison-brief > div strong { font: 700 10px var(--font-data); color: #aab7b1; }
+.journal-comparison-brief .matched strong, .journal-comparison-brief .better strong { color: #80aa8c; }
+.journal-comparison-brief .worse strong { color: #c67664; }
+.journal-comparison-brief .variance strong { color: #b9a160; }
+.journal-comparison-brief > p { grid-column: 1 / -1; margin: 0; padding-top: 6px; font-size: 6px; line-height: 1.45; color: #6f7c76; border-top: 1px solid rgba(255,255,255,.04); }
 .journal-progress-review { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(210px, .8fr); gap: 10px; margin: 9px 12px 0; padding: 10px 12px; border: 1px solid var(--line); background: rgba(255,255,255,.012); }
 .journal-progress-review.improving { border-color: rgba(110,157,127,.26); }
 .journal-progress-review.worsening { border-color: rgba(187,105,87,.3); }
@@ -3741,6 +3755,27 @@ button:focus-visible,
 .journal-cause-chain section { min-height: 78px; display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid rgba(126,157,151,.18); background: rgba(9,16,14,.42); }
 .journal-cause-chain section span { font: 650 6px 'IBM Plex Mono', monospace; color: #879b93; letter-spacing: .04em; }
 .journal-cause-chain section strong { font-size: 7px; font-weight: 550; line-height: 1.55; color: #bec9c4; }
+.journal-comparison-review { margin-bottom: 8px; padding: 10px; border: 1px solid rgba(109,143,163,.2); background: rgba(69,105,108,.025); }
+.journal-comparison-review > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.journal-comparison-review > header > span { display: flex; align-items: center; gap: 5px; color: #86a29a; }
+.journal-comparison-review > header strong { font-size: 8px; color: #c5cfca; }
+.journal-comparison-review > header em { font: 600 6px var(--font-data); color: #7d8b85; }
+.journal-comparison-review > div { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; }
+.journal-comparison-review article { min-width: 0; min-height: 110px; padding: 8px 9px; border: 1px solid rgba(255,255,255,.055); border-left: 2px solid #718d89; background: rgba(0,0,0,.1); }
+.journal-comparison-review article.better, .journal-comparison-review article.matched { border-left-color: #6e9980; }
+.journal-comparison-review article.worse { border-left-color: #ad6253; background: rgba(169,95,81,.035); }
+.journal-comparison-review article.variance { border-left-color: #b29759; background: rgba(179,144,74,.03); }
+.journal-comparison-review article > header { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,.04); }
+.journal-comparison-review article > header strong { overflow: hidden; font-size: 7px; color: #bcc7c1; text-overflow: ellipsis; white-space: nowrap; }
+.journal-comparison-review article > header span { flex: 0 0 auto; padding: 2px 4px; font: 600 5px var(--font-data); color: #82aa8e; border: 1px solid rgba(110,157,127,.2); }
+.journal-comparison-review article.worse > header span { color: #ca7663; border-color: rgba(169,95,81,.25); }
+.journal-comparison-review article.variance > header span { color: #c1a666; border-color: rgba(179,144,74,.25); }
+.journal-comparison-review article > div { display: grid; grid-template-columns: minmax(0,1fr) 13px minmax(0,1fr); align-items: center; gap: 5px; padding: 7px 0 5px; }
+.journal-comparison-review article > div > span { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.journal-comparison-review article > div small { font-size: 5px; color: #68766f; }
+.journal-comparison-review article > div b { overflow: hidden; font: 600 7px var(--font-data); color: #aebbb4; text-overflow: ellipsis; white-space: nowrap; }
+.journal-comparison-review article > div svg { color: #687a73; }
+.journal-comparison-review article p { margin: 0; font-size: 6px; line-height: 1.5; color: #74817b; }
 .journal-analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 7px; }
 .journal-analysis-grid > section { min-height: 118px; padding: 10px 11px; border: 1px solid var(--line); background: rgba(255,255,255,.012); }
 .journal-analysis-grid h4 { display: flex; align-items: center; gap: 5px; margin: 0 0 8px; font-size: 8px; color: #c2ccc7; }
@@ -3764,6 +3799,16 @@ button:focus-visible,
   .journal-week-brief > div:nth-child(2) { border-right: 0; }
   .journal-week-brief > div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
   .journal-progress-review { grid-template-columns: 1fr; }
+  .journal-comparison-brief { grid-template-columns: 1fr; }
+  .journal-comparison-brief > header strong { font-size: 9px; }
+  .journal-comparison-brief > header em,
+  .journal-comparison-brief > p { font-size: 7px; }
+  .journal-comparison-brief > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .journal-comparison-brief > div > span { min-height: 34px; padding: 7px 9px; }
+  .journal-comparison-brief > div > span:nth-child(2) { border-right: 0; }
+  .journal-comparison-brief > div > span:nth-child(-n+2) { border-bottom: 1px solid rgba(255,255,255,.045); }
+  .journal-comparison-brief small { font-size: 7px; }
+  .journal-comparison-brief > div strong { font-size: 12px; }
   .journal-momentum { justify-content: flex-start; }
   .journal-priority-review { grid-template-columns: repeat(2, 1fr); }
   .journal-priority-review > div { grid-column: 1 / -1; }
@@ -3771,6 +3816,10 @@ button:focus-visible,
   .journal-filter button { min-width: 30%; min-height: 36px; }
   .journal-cause-chain { grid-template-columns: 1fr; }
   .journal-cause-chain > svg { justify-self: center; transform: rotate(90deg); }
+  .journal-comparison-review > div { grid-template-columns: 1fr; }
+  .journal-comparison-review article > header strong,
+  .journal-comparison-review article > div b { font-size: 8px; }
+  .journal-comparison-review article p { font-size: 7px; }
   .journal-analysis-grid { grid-template-columns: 1fr; }
 }
 
