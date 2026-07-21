@@ -9,6 +9,9 @@ export interface UXAction {
   priority: UXActionPriority;
   title: string;
   detail: string;
+  reason?: string;
+  ifIgnored?: string;
+  resolution?: string;
   label: string;
   tab: GameTab;
 }
@@ -296,6 +299,9 @@ export function deriveUXActions({
       priority: outbreak.phase === 'pandemic' || outbreak.hospitalLoad >= 100 ? 'urgent' : 'recommended',
       title: `${outbreak.codeName} 보건 위기 대응`,
       detail: `주간 추정 ${Math.round(outbreak.weeklyCases).toLocaleString('ko-KR')}건 · R ${outbreak.rEffective.toFixed(2)} · 병상 부하 ${Math.round(outbreak.hospitalLoad)}%. 대응 태세를 검토하십시오.`,
+      reason: `유행 단계 ${outbreak.phase} · 병상 부하 ${Math.round(outbreak.hospitalLoad)}%`,
+      ifIgnored: '감염·사망·병상 압력이 누적되어 전선과 국가 생산성까지 낮아질 수 있습니다.',
+      resolution: '대응 태세 즉시 적용 · 다음 주 보건 결산에서 검증',
       label: '위기 지휘실',
       tab: 'health',
     });
@@ -305,6 +311,9 @@ export function deriveUXActions({
       priority: 'recommended',
       title: `감염병 주간 위험 ${(publicHealth.weeklyRisk * 100).toFixed(1)}%`,
       detail: '전선 압력과 보급 상황이 발병 위험을 높이고 있습니다. 감시 실험실·의료 역량을 선제 확충할 수 있습니다.',
+      reason: '전선 압력·보급 저하·감시 공백이 선제 대응 기준을 넘었습니다.',
+      ifIgnored: '발병 시 초기 탐지가 늦어지고 첫 주 감염 규모가 커질 수 있습니다.',
+      resolution: '대비 투자 즉시 반영 · 다음 주 발병 위험 재계산',
       label: '대비 태세',
       tab: 'health',
     });
@@ -316,6 +325,9 @@ export function deriveUXActions({
       priority: economyOperatingBalance < -60 ? 'urgent' : 'recommended',
       title: `주간 경상적자 ${formatMoney(Math.abs(economyOperatingBalance))}`,
       detail: `국채 조달을 제외한 세입보다 지출이 큽니다. 현재 부채 ${formatMoney(economyDebt ?? 0)}의 이자와 조세·지출 구성을 검토하십시오.`,
+      reason: `경상수지 ${formatMoney(economyOperatingBalance, { signed: true })} · 금융조달 제외`,
+      ifIgnored: '차환 의존과 이자비용이 늘어 다음 정책의 가용 국고가 줄어듭니다.',
+      resolution: '세입·지출·국채 조정 즉시 · 다음 주 재정 결산에서 확인',
       label: '재정 결산',
       tab: 'economy',
     });
@@ -327,6 +339,9 @@ export function deriveUXActions({
       priority: economyInflation >= 18 ? 'urgent' : 'recommended',
       title: `전시 인플레이션 ${economyInflation.toFixed(1)}%`,
       detail: '중앙은행 신용, 물자 부족과 가격통제 수준을 함께 점검하십시오. 조달액이 커도 실질 구매력은 줄어들 수 있습니다.',
+      reason: `물가 ${economyInflation.toFixed(1)}% · 전시 공급과 통화량의 불균형`,
+      ifIgnored: '군수 조달비와 생활비가 함께 올라 안정도·실질 세입이 악화됩니다.',
+      resolution: '통화·공급 정책 적용 · 다음 주 물가와 구매력에 반영',
       label: '물가 대책',
       tab: 'economy',
     });
@@ -338,6 +353,9 @@ export function deriveUXActions({
       priority: 'urgent',
       title: `지휘관 특기 ${availableSkills}개 대기`,
       detail: '실전 경험으로 얻은 특기 점수를 투자하면 다음 전투부터 능력치가 반영됩니다.',
+      reason: `전투 경험으로 사용 가능한 특기 점수 ${availableSkills}개가 쌓였습니다.`,
+      ifIgnored: '점수는 보존되지만 다음 전투에서 받을 수 있는 지휘 보정을 놓칩니다.',
+      resolution: '선택 즉시 지휘관 능력 반영 · 다음 전투부터 적용',
       label: '특기 선택',
       tab: 'army',
     });
@@ -349,6 +367,9 @@ export function deriveUXActions({
       priority: activeResearch === 0 ? 'urgent' : 'recommended',
       title: activeResearch === 0 ? '연구가 중단됨' : '연구 슬롯 1개 비어 있음',
       detail: '동시에 두 개 과제를 진행할 수 있습니다. 비어 있는 슬롯은 매주 손실되는 연구 기회입니다.',
+      reason: `활성 연구 ${activeResearch}/2 · 주간 연구역량 일부 미사용`,
+      ifIgnored: '비어 있는 슬롯의 이번 주 연구 진척은 이후에 복구할 수 없습니다.',
+      resolution: '과제 배정 즉시 · 다음 주 연구 진척에 반영',
       label: '연구 배정',
       tab: 'research',
     });
@@ -360,6 +381,9 @@ export function deriveUXActions({
       priority: idleFactories >= 5 ? 'urgent' : 'recommended',
       title: `미배정 군수 공장 ${idleFactories}개`,
       detail: '생산 라인에 공장을 배정하면 장비 비축량과 생산 효율이 매주 증가합니다.',
+      reason: `가용 ${factories}개 중 ${idleFactories}개 공장이 생산 명령을 받지 않았습니다.`,
+      ifIgnored: '이번 주 생산량과 라인 효율 상승분을 영구적으로 잃습니다.',
+      resolution: '공장 배정 즉시 · 다음 주 장비 생산량에 반영',
       label: '생산 조정',
       tab: 'industry',
     });
@@ -371,6 +395,9 @@ export function deriveUXActions({
       priority: 'recommended',
       title: `국가 원칙 ${selectedPolicies.length}/4 선택`,
       detail: '경제·교리·사회·외교 원칙을 하나씩 정해 국가 운영 방향을 완성하십시오.',
+      reason: `운영 원칙 ${4 - selectedPolicies.length}개 영역이 아직 비어 있습니다.`,
+      ifIgnored: '국가 보정과 대체역사 분기 조건이 활성화되지 않습니다.',
+      resolution: '채택 즉시 국가 보정 적용 · 이후 사건 조건에 지속 반영',
       label: '원칙 결정',
       tab: 'organization',
     });
@@ -382,6 +409,9 @@ export function deriveUXActions({
       priority: 'recommended',
       title: `명령 대기 중인 준비 사단 ${readyDivisions}개`,
       detail: '인접 적 지역에 공세를 계획하거나 야전 훈련으로 다음 작전을 준비할 수 있습니다.',
+      reason: `준비 완료 사단 ${readyDivisions}개 · 활성 작전 명령 0건`,
+      ifIgnored: '전선 주도권과 경험 획득 기회를 넘기지만 병력·보급은 보존됩니다.',
+      resolution: '명령 승인 즉시 · 다음 주 전투 또는 훈련 결과로 계산',
       label: '부대 지휘',
       tab: 'army',
     });
@@ -393,6 +423,9 @@ export function deriveUXActions({
       priority: 'info',
       title: `재편 중인 사단 ${recoveringDivisions}개`,
       detail: '보급 정책과 최우선 편제를 조정하면 조직력·전력 회복 속도를 높일 수 있습니다.',
+      reason: `조직력 또는 전력이 기준 아래인 사단 ${recoveringDivisions}개`,
+      ifIgnored: '현재 속도로 회복하지만 해당 사단의 작전 복귀가 늦어질 수 있습니다.',
+      resolution: '보급·편제 우선순위 변경 · 다음 주 회복량에 반영',
       label: '회복 상태 보기',
       tab: 'organization',
     });
