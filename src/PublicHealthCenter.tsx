@@ -17,6 +17,7 @@ import { HealthMeter } from './HealthMeter';
 import { PublicHealthForecast } from './PublicHealthForecast';
 import {
   canFundPublicHealthInvestment,
+  comparePublicHealthPolicies,
   formatOutbreakPhase,
   getOutbreakRiskBreakdown,
   getOutbreakTemplate,
@@ -48,6 +49,7 @@ export function PublicHealthCenter({ state, game, context, onPolicyChange, onInv
   const riskFactors = getOutbreakRiskBreakdown(state, context)
     .filter((factor) => Math.abs(factor.contribution) >= 0.00005)
     .sort((left, right) => Math.abs(right.contribution) - Math.abs(left.contribution));
+  const policyForecasts = outbreak ? comparePublicHealthPolicies(state, context) : [];
 
   return (
     <div className="public-health-center">
@@ -114,9 +116,11 @@ export function PublicHealthCenter({ state, game, context, onPolicyChange, onInv
             <span className="health-code">현재 · {activePolicy.name}</span>
           </div>
           <p className="health-section-intro">태세는 다음 주 전파·사망·신뢰에 직접 반영됩니다. 강한 조치는 효과만큼 재정과 정치 비용도 큽니다.</p>
+          <div className="health-policy-verification"><BookOpenCheck size={15} /><span><strong>{activePolicy.name} 적용 예정</strong><small>정책 효과는 다음 주 계산에 반영되며 제 {context.week + 1}주 통합 주간 브리핑에서 실제 수치와 비교합니다.</small></span></div>
           <div className="health-policy-grid">
-            {publicHealthPolicies.map((policy) => (
-              <button key={policy.id} className={`health-policy ${state.policyId === policy.id ? 'selected' : ''}`} aria-pressed={state.policyId === policy.id} onClick={() => onPolicyChange(policy.id)}>
+            {publicHealthPolicies.map((policy) => {
+              const forecast = policyForecasts.find((item) => item.policyId === policy.id);
+              return <button key={policy.id} className={`health-policy ${state.policyId === policy.id ? 'selected' : ''}`} aria-pressed={state.policyId === policy.id} onClick={() => onPolicyChange(policy.id)}>
                 <span><strong>{policy.name}</strong><small>{policy.posture}</small></span>
                 {state.policyId === policy.id && <CheckCircle2 size={17} />}
                 <p>{policy.description}</p>
@@ -124,9 +128,10 @@ export function PublicHealthCenter({ state, game, context, onPolicyChange, onInv
                   <div><dt>전파 억제</dt><dd>-{policy.transmissionControl.toFixed(2)} R</dd></div>
                   <div><dt>주간 비용</dt><dd>₩ {policy.weeklyTreasury}{policy.weeklyPoliticalPower ? ` · 정치 ${policy.weeklyPoliticalPower}` : ''}</dd></div>
                 </dl>
+                <div className="health-policy-forecast"><small>다음 주 예상</small>{forecast ? <span><b>R {forecast.rEffective.toFixed(2)}</b><b>사례 {formatNumber(forecast.weeklyCases)}</b><b>사망 {formatNumber(forecast.weeklyDeaths)}</b><b>병상 {Math.round(forecast.hospitalLoad)}%</b></span> : <span><b>발병 위험 {formatRisk(state.weeklyRisk)}</b><b>발병 시 R −{policy.transmissionControl.toFixed(2)}</b></span>}</div>
                 <em>{policy.tradeoff}</em>
-              </button>
-            ))}
+              </button>;
+            })}
           </div>
         </section>
 

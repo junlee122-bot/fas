@@ -155,8 +155,8 @@ import {
   restCommander,
   unlockCommanderSkill,
 } from './development';
-import { defaultUXPreferences, deriveOnboardingSteps, deriveUXActions, deriveWeeklyCommandCycle, getInitialNavigationCollapsed, isTrackedActionResolved, normalizeUXPreferences } from './ux';
-import type { UXAction, UXPreferences } from './ux';
+import { acknowledgeUXActions, decorateUXActions, defaultUXPreferences, deriveOnboardingSteps, deriveUXActions, deriveWeeklyCommandCycle, getInitialNavigationCollapsed, isTrackedActionResolved, markUXActionsForVerification, normalizeUXActionLifecycle, normalizeUXPreferences, reconcileUXActionLifecycle, startUXAction } from './ux';
+import type { UXAction, UXActionLifecycleRecord, UXPreferences } from './ux';
 import {
   applyEquipmentToDivision,
   calculatePrototype,
@@ -419,6 +419,9 @@ export function App() {
   const [trackedActionId, setTrackedActionId] = useState<string | null>(null);
   const [trackedActionSnapshot, setTrackedActionSnapshot] = useState<UXAction | null>(null);
   const [completedTrackedAction, setCompletedTrackedAction] = useState<UXAction | null>(null);
+  const [uxActionLifecycle, setUXActionLifecycle] = useState<UXActionLifecycleRecord[]>([]);
+  const [visitedOnboardingTabs, setVisitedOnboardingTabs] = useState<GameTab[]>(['command']);
+  const [onboardingMilestones, setOnboardingMilestones] = useState<string[]>([]);
   const [navigationCollapsed, setNavigationCollapsed] = useState(() => {
     try {
       return getInitialNavigationCollapsed(localStorage.getItem(NAVIGATION_COLLAPSED_KEY), window.innerWidth);
@@ -770,7 +773,7 @@ export function App() {
     return actions;
   }, [economy.inflation, game.week, nationManagement, publicHealth.activeOutbreak]);
   const baseUXActions = campaignPhase === 'nation' ? nationUXActions : warUXActions;
-  const uxActions = useMemo<UXAction[]>(() => {
+  const rawUXActions = useMemo<UXAction[]>(() => {
     const coupAction: UXAction | null = coupRisk.tier === 'stable' ? null : {
       id: 'political-crisis',
       priority: coupRisk.tier === 'critical' || coupRisk.tier === 'dangerous' ? 'urgent' : 'recommended',
@@ -782,11 +785,14 @@ export function App() {
       instruction: '최대 위험 파벌과 장악 기관을 확인하고 회유·감찰·인사 조치 중 권한과 자원에 맞는 대응을 선택하십시오.',
       label: '정치위기 상황실',
       tab: 'command',
+      signalValue: coupRisk.score,
     };
     const actions = coupAction ? [coupAction, ...baseUXActions] : baseUXActions;
     const order = { urgent: 0, recommended: 1, info: 2 } as const;
     return [...actions].sort((left, right) => order[left.priority] - order[right.priority]);
   }, [baseUXActions, coupRisk]);
+  const uxActionSignature = rawUXActions.map((action) => `${action.id}:${action.priority}:${action.signalValue ?? ''}`).join('|');
+  const uxActions = useMemo(() => decorateUXActions(rawUXActions, uxActionLifecycle), [rawUXActions, uxActionLifecycle]);
   const trackedAction = trackedActionId
     ? uxActions.find((action) => action.id === trackedActionId) ?? null
     : null;
@@ -810,13 +816,20 @@ export function App() {
     });
     return { counts, urgentTabs };
   }, [uxActions]);
+  const latestWorldWeeklyIssue = worldWeeklyIssues[0] ?? null;
+  const hasUnreadWorldWeekly = Boolean(latestWorldWeeklyIssue && latestWorldWeeklyIssue.id !== lastReadWorldWeeklyId);
   const onboardingSteps = useMemo(() => deriveOnboardingSteps({
+    role: careerRole,
+    week: game.week,
+    briefingRead: !hasUnreadWorldWeekly,
+    visitedTabs: visitedOnboardingTabs,
+    milestones: onboardingMilestones,
     factories: game.factories,
     production,
     research,
     selectedPolicies,
     orders,
-  }), [game.factories, orders, production, research, selectedPolicies]);
+  }), [careerRole, game.factories, game.week, hasUnreadWorldWeekly, onboardingMilestones, orders, production, research, selectedPolicies, visitedOnboardingTabs]);
   const historyTrajectory = useMemo(() => deriveEmergentHistory({
     doctrine,
     roleBranch: careerRole.branch,
@@ -875,8 +888,6 @@ export function App() {
     () => forecastNextWorldFlashpoint(worldline.timeline, game.week, completedDecisions),
     [completedDecisions, game.week, worldline.timeline],
   );
-  const latestWorldWeeklyIssue = worldWeeklyIssues[0] ?? null;
-  const hasUnreadWorldWeekly = Boolean(latestWorldWeeklyIssue && latestWorldWeeklyIssue.id !== lastReadWorldWeeklyId);
   const globalWeeklyCycle = useMemo(() => deriveWeeklyCommandCycle({
     week: game.week,
     hasCurrentWeekResults: events.some((event) => event.week === game.week),
@@ -888,7 +899,7 @@ export function App() {
     activeResearch: research.filter((project) => project.active && !project.complete).length,
   }), [events, game.week, hasUnreadWorldWeekly, lastReviewedJournalWeek, orders.length, research, uxActions]);
   const savePayload = useMemo<CampaignSavePayload>(() => ({
-    version: 21,
+    version: 22,
     game,
     territories,
     divisions,
@@ -930,11 +941,14 @@ export function App() {
     worldWeeklyIssues,
     lastReadWorldWeeklyId,
     lastReviewedJournalWeek,
+    uxActionLifecycle,
+    visitedOnboardingTabs,
+    onboardingMilestones,
     campaignPhase,
     nationManagement,
     politicalCrisis,
     pendingCoupIncident,
-  }), [achievementUnlocks, activeTheater, battleReports, battleStance, campaignOutcome, campaignPhase, career, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, economy, equipmentDevelopment, events, game, lastReadWorldWeeklyId, lastReviewedJournalWeek, nationManagement, objectiveProgress, operations, orders, pendingBattleReportId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, politicalCrisis, priorityDivisionId, procurementFocusId, production, publicHealth, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized, worldHistoryState, worldWeeklyIssues]);
+  }), [achievementUnlocks, activeTheater, battleReports, battleStance, campaignOutcome, campaignPhase, career, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, economy, equipmentDevelopment, events, game, lastReadWorldWeeklyId, lastReviewedJournalWeek, nationManagement, objectiveProgress, onboardingMilestones, operations, orders, pendingBattleReportId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, politicalCrisis, priorityDivisionId, procurementFocusId, production, publicHealth, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized, uxActionLifecycle, visitedOnboardingTabs, worldHistoryState, worldWeeklyIssues]);
   const campaignDate = getCampaignDate(game.week);
   const isKoreaWarCampaign = playerNation.id === 'korea' && campaignPhase === 'war';
   const statusResources: StatusResource[] = [
@@ -1096,6 +1110,10 @@ export function App() {
       toastTimerRef.current = null;
     }, 3200);
   }, []);
+
+  useEffect(() => {
+    setUXActionLifecycle((current) => reconcileUXActionLifecycle(current, rawUXActions, game.week));
+  }, [game.week, rawUXActions, uxActionSignature]);
 
   useEffect(() => {
     if (!isTrackedActionResolved(trackedActionId, uxActions) || trackedAction || trackedActionSnapshot?.id !== trackedActionId) return;
@@ -1404,6 +1422,7 @@ export function App() {
 
   const advanceWeek = useCallback(() => {
     if (pendingWorldFlashpointId || pendingCouncilEventId || pendingCoupIncident) return;
+    setUXActionLifecycle((current) => markUXActionsForVerification(current, game.week));
     if (campaignPhase === 'nation') {
       advanceNationWeek();
       return;
@@ -2127,6 +2146,9 @@ export function App() {
     setTrackedActionId(null);
     setTrackedActionSnapshot(null);
     setCompletedTrackedAction(null);
+    setUXActionLifecycle([]);
+    setVisitedOnboardingTabs(['command']);
+    setOnboardingMilestones([]);
     setPendingAchievementId(null);
     setAchievementUnlocks([]);
     setWorldWeeklyIssues([openingWorldWeeklyIssue]);
@@ -2273,6 +2295,13 @@ export function App() {
       })]);
       setLastReadWorldWeeklyId(typeof data.lastReadWorldWeeklyId === 'string' ? data.lastReadWorldWeeklyId : null);
       setLastReviewedJournalWeek(typeof data.lastReviewedJournalWeek === 'number' ? data.lastReviewedJournalWeek : -1);
+      setUXActionLifecycle(normalizeUXActionLifecycle(data.uxActionLifecycle));
+      setVisitedOnboardingTabs(Array.isArray(data.visitedOnboardingTabs)
+        ? Array.from(new Set(['command', ...data.visitedOnboardingTabs.filter((tab: unknown): tab is GameTab => typeof tab === 'string')]))
+        : ['command']);
+      setOnboardingMilestones(Array.isArray(data.onboardingMilestones)
+        ? data.onboardingMilestones.filter((milestone: unknown): milestone is string => typeof milestone === 'string')
+        : []);
       setWorldHistoryState(restoredWorldHistoryState);
       setPendingAchievementId(null);
       setCareer(restoredCareer);
@@ -2380,6 +2409,9 @@ export function App() {
     setTrackedActionId(null);
     setTrackedActionSnapshot(null);
     setCompletedTrackedAction(null);
+    setUXActionLifecycle([]);
+    setVisitedOnboardingTabs(['command']);
+    setOnboardingMilestones([]);
     setPendingAchievementId(null);
     setAchievementUnlocks([]);
     setWorldWeeklyIssues([]);
@@ -2537,6 +2569,10 @@ export function App() {
     notify('계획 승인을 보류했습니다. 지도에서 다른 목표를 선택할 수 있습니다.');
   };
 
+  const completeOnboardingMilestone = useCallback((milestoneId: string) => {
+    setOnboardingMilestones((current) => current.includes(milestoneId) ? current : [...current, milestoneId]);
+  }, []);
+
   const confirmOffensivePlan = () => {
     if (campaignPhase === 'nation') {
       setPendingOffensivePlan(null);
@@ -2572,6 +2608,7 @@ export function App() {
     setPendingOffensivePlan(null);
     setPlanningMode(false);
     setSelectedTerritoryId(target.id);
+    completeOnboardingMilestone('military-action');
     addEvent(
       '공세 계획 승인 — ' + target.name,
       `${division.name}에 ${stanceLabel}를 명령했습니다.${forecast ? ` 참모부 예상 승산은 ${forecast.successChance}%입니다.` : ''}`,
@@ -2600,6 +2637,7 @@ export function App() {
     setDivisions((current) => current.map((division) => operationDivisions.some((item) => item.id === division.id) ? { ...division, status: 'moving' } : division));
     setGame((current) => ({ ...current, politicalPower: current.politicalPower - 20, commandPoints: current.commandPoints - 10 }));
     setTorchAuthorized(true);
+    completeOnboardingMilestone('military-action');
     addEvent(playerNation.majorOperation + ' 승인', playerNation.majorOperationDetail, 'good', game.week);
     notify(playerNation.majorOperation + '이(가) 개시되었습니다.');
   };
@@ -3040,6 +3078,7 @@ export function App() {
       status: 'scouting',
       knowledge: Math.min(100, item.knowledge + 8),
     } : item));
+    completeOnboardingMilestone('intelligence-action');
     addEvent('인재 조사 — ' + candidate.name, candidate.role + ' 후보에 대한 경력·평판·충성도 검증을 시작했습니다.', 'neutral', game.week);
     notify(candidate.name + ' 정밀 조사를 시작했습니다.');
   };
@@ -3051,6 +3090,7 @@ export function App() {
       ...item,
       status: item.status === 'shortlisted' ? 'unscouted' : 'shortlisted',
     } : item));
+    completeOnboardingMilestone('intelligence-action');
     notify(candidate.name + (candidate.status === 'shortlisted' ? '을(를) 관심 명단에서 제외했습니다.' : '을(를) 최종 관심 명단에 올렸습니다.'));
   };
 
@@ -3320,6 +3360,7 @@ export function App() {
       policy.id,
     ]);
     setGame((current) => applyGameDelta({ ...current, politicalPower: current.politicalPower - (isSwitch ? transitionCost : 0) }, appliedDelta));
+    completeOnboardingMilestone('political-action');
     if (isSwitch) setCompletedDecisions((current) => Array.from(new Set([...current, switchDecisionId])));
     if (policy.domain === 'diplomacy') {
       setRelations((current) => current.map((relation) => {
@@ -3503,6 +3544,7 @@ export function App() {
   };
 
   const navigateFromActionCenter = (action: UXAction) => {
+    setUXActionLifecycle((current) => startUXAction(current, action.id, game.week));
     if (action.id === 'political-crisis') {
       setSpeed(0);
       setTrackedActionId(null);
@@ -3535,6 +3577,10 @@ export function App() {
     setShowActionCenter(false);
   };
 
+  const acknowledgeActionCenter = useCallback((actionIds: string[]) => {
+    setUXActionLifecycle((current) => acknowledgeUXActions(current, actionIds, game.week));
+  }, [game.week]);
+
   const navigateFromStatusOverview = (action: UXAction) => {
     setShowStatusOverview(false);
     navigateFromActionCenter(action);
@@ -3565,29 +3611,34 @@ export function App() {
     setShowJournal(true);
   }, [game.week]);
 
+  const acknowledgeWeeklyBriefing = useCallback(() => {
+    setSpeed(0);
+    setLastReviewedJournalWeek(game.week);
+    if (latestWorldWeeklyIssue) setLastReadWorldWeeklyId(latestWorldWeeklyIssue.id);
+    notify(`제 ${game.week + 1}주 통합 브리핑을 확인했습니다.`);
+  }, [game.week, latestWorldWeeklyIssue, notify]);
+
   const continueWeeklyFlow = useCallback(() => {
     setSpeed(0);
     if (campaignPhase === 'nation' || globalWeeklyCycle.primaryDestination === 'advance') {
       advanceWeek();
       return;
     }
-    if (globalWeeklyCycle.primaryDestination === 'journal') {
-      openWarJournal();
-      return;
-    }
-    if (globalWeeklyCycle.primaryDestination === 'weekly') {
-      openWorldWeekly();
+    if (globalWeeklyCycle.primaryDestination === 'briefing') {
+      acknowledgeWeeklyBriefing();
       return;
     }
     setShowActionCenter(true);
-  }, [advanceWeek, campaignPhase, globalWeeklyCycle.primaryDestination, openWarJournal, openWorldWeekly]);
+  }, [acknowledgeWeeklyBriefing, advanceWeek, campaignPhase, globalWeeklyCycle.primaryDestination]);
 
   const globalNextLabel = campaignPhase === 'nation'
     ? '다음 주'
-    : globalWeeklyCycle.primaryDestination === 'journal'
-      ? '결산'
-      : globalWeeklyCycle.primaryDestination === 'weekly'
-        ? '주보'
+    : globalWeeklyCycle.primaryDestination === 'briefing'
+      ? '브리핑'
+      : globalWeeklyCycle.primaryDestination === 'journal'
+        ? '결산'
+        : globalWeeklyCycle.primaryDestination === 'weekly'
+          ? '주보'
         : globalWeeklyCycle.primaryDestination === 'actions'
           ? '결재'
           : '다음 주';
@@ -3846,6 +3897,7 @@ export function App() {
   const activeTabMeta = tabItems.find((tab) => tab.id === activeTab) ?? tabItems[0];
   const openGameTab = useCallback((tabId: GameTab) => {
     preloadGameTab(tabId);
+    setVisitedOnboardingTabs((current) => current.includes(tabId) ? current : [...current, tabId]);
     if (tabId === 'map' && isKoreaWarCampaign) {
       setMapFocusMode(false);
       focusMapTerritory('korea');
@@ -4310,6 +4362,7 @@ export function App() {
                   onOpenActionCenter={() => setShowActionCenter(true)}
                   onOpenJournal={openWarJournal}
                   onOpenWorldWeekly={openWorldWeekly}
+                  onAcknowledgeWeeklyBriefing={acknowledgeWeeklyBriefing}
                   onOpenAchievements={() => setShowAchievementGallery(true)}
                   onNextWeek={advanceWeek}
                 />
@@ -4628,7 +4681,13 @@ export function App() {
         />
       )}
       {showActionCenter && !showBriefing && !campaignOutcome && !pendingWorldFlashpoint && !pendingCoupIncident && !showPoliticalCrisis && !pendingCouncilEvent && !pendingBattleReport && (
-        <ActionCenter actions={uxActions} onNavigate={navigateFromActionCenter} onClose={() => setShowActionCenter(false)} />
+        <ActionCenter
+          actions={uxActions}
+          lifecycleRecords={uxActionLifecycle}
+          onAcknowledge={acknowledgeActionCenter}
+          onNavigate={navigateFromActionCenter}
+          onClose={() => setShowActionCenter(false)}
+        />
       )}
       {showSettings && !showBriefing && !campaignOutcome && !pendingWorldFlashpoint && !pendingCoupIncident && !showPoliticalCrisis && !pendingCouncilEvent && !pendingBattleReport && (
         <SettingsModal
@@ -4688,7 +4747,7 @@ export function App() {
       )}
       {showTutorial && !showBriefing && !campaignOutcome && !pendingWorldFlashpoint && !pendingCoupIncident && !showPoliticalCrisis && !pendingCouncilEvent && !pendingBattleReport && (
         <Suspense fallback={null}>
-          <TutorialOverlay nationId={playerNation.id} onNavigate={openGameTab} onComplete={completeTutorial} />
+          <TutorialOverlay nationId={playerNation.id} role={careerRole} onNavigate={openGameTab} onComplete={completeTutorial} />
         </Suspense>
       )}
       {toast && <div className="toast" role="status" aria-live="polite"><Radio size={16} /><span>{toast}</span></div>}

@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { AlertTriangle, CheckCircle2, ChevronRight, CircleAlert, Lightbulb, Menu, X } from 'lucide-react';
-import type { UXAction, UXActionPriority } from './ux';
+import type { UXAction, UXActionLifecycleRecord, UXActionLifecycleStatus, UXActionPriority } from './ux';
 
 interface ActionCenterProps {
   actions: UXAction[];
+  lifecycleRecords: UXActionLifecycleRecord[];
+  onAcknowledge: (actionIds: string[]) => void;
   onNavigate: (action: UXAction) => void;
   onClose: () => void;
 }
@@ -32,15 +34,26 @@ const fallbackGuidance: Record<UXActionPriority, { reason: string; ifIgnored: st
   },
 };
 
-export function ActionCenter({ actions, onNavigate, onClose }: ActionCenterProps) {
+const lifecycleLabels: Record<UXActionLifecycleStatus, string> = {
+  detected: '발생',
+  acknowledged: '확인',
+  'in-progress': '조치 중',
+  verifying: '검증',
+  resolved: '해결',
+};
+
+export function ActionCenter({ actions, lifecycleRecords, onAcknowledge, onNavigate, onClose }: ActionCenterProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const urgentCount = actions.filter((action) => action.priority === 'urgent').length;
   const recommendedCount = actions.filter((action) => action.priority === 'recommended').length;
   const infoCount = actions.filter((action) => action.priority === 'info').length;
+  const recentlyResolved = lifecycleRecords.filter((record) => record.status === 'resolved').slice(0, 3);
 
   useEffect(() => {
     closeButtonRef.current?.focus();
-  }, []);
+    const detectedIds = actions.filter((action) => (action.lifecycleStatus ?? 'detected') === 'detected').map((action) => action.id);
+    if (detectedIds.length > 0) onAcknowledge(detectedIds);
+  }, [actions, onAcknowledge]);
 
   return (
     <div className="ux-backdrop action-center-backdrop" onClick={onClose}>
@@ -63,11 +76,20 @@ export function ActionCenter({ actions, onNavigate, onClose }: ActionCenterProps
             <span className="info"><small>보고</small><strong>{infoCount}</strong></span>
           </div>
           <div className="action-center-flow" aria-label="결재 처리 흐름">
-            <span><b>1</b> 원인 확인</span><ChevronRight size={12} />
-            <span><b>2</b> 담당 화면에서 조정</span><ChevronRight size={12} />
-            <span><b>3</b> 다음 주 결과 확인</span>
+            <span><b>1</b> 발생</span><ChevronRight size={12} />
+            <span><b>2</b> 확인</span><ChevronRight size={12} />
+            <span><b>3</b> 조치 중</span><ChevronRight size={12} />
+            <span><b>4</b> 검증</span><ChevronRight size={12} />
+            <span><b>5</b> 해결</span>
           </div>
         </div>
+
+        {recentlyResolved.length > 0 && (
+          <section className="action-center-resolved" aria-label="최근 해결된 지시">
+            <strong><CheckCircle2 size={15} /> 최근 해결</strong>
+            <div>{recentlyResolved.map((record) => <span key={record.actionId}><b>{record.snapshot.title}</b><small>제 {(record.resolvedWeek ?? 0) + 1}주 검증 완료</small></span>)}</div>
+          </section>
+        )}
 
         <div className="action-center-list">
           {actions.length > 0 ? actions.map((action) => {
@@ -77,7 +99,8 @@ export function ActionCenter({ actions, onNavigate, onClose }: ActionCenterProps
               <button key={action.id} data-action-id={action.id} className={action.priority} onClick={() => onNavigate(action)}>
                 <i>{meta.icon}</i>
                 <span className="action-center-card-copy">
-                  <em>{meta.label}</em><strong>{action.title}</strong><small>{action.detail}</small>
+                  <span className="action-center-card-state"><em>{meta.label}</em><b className={`state-${action.lifecycleStatus ?? 'detected'}`}>{lifecycleLabels[action.lifecycleStatus ?? 'detected']}</b></span>
+                  <strong>{action.title}</strong><small>{action.detail}</small>
                   <span className="action-center-impact">
                     <span><b>발생 이유</b><small>{action.reason ?? guidance.reason}</small></span>
                     <span><b>미처리 시</b><small>{action.ifIgnored ?? guidance.ifIgnored}</small></span>

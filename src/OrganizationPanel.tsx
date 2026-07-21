@@ -266,6 +266,7 @@ export function OrganizationPanel({
   const [talentPage, setTalentPage] = useState(0);
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [staffView, setStaffView] = useState<'planner' | 'roster' | 'responsibilities' | 'dynamics'>('planner');
+  const [workspace, setWorkspace] = useState<'squad' | 'market'>('squad');
   const [negotiatingCandidateId, setNegotiatingCandidateId] = useState<string | null>(null);
   const [meetingStaffId, setMeetingStaffId] = useState<string | null>(null);
   const [recruitmentOffer, setRecruitmentOffer] = useState<RecruitmentOffer>(defaultRecruitmentOffer);
@@ -350,7 +351,8 @@ export function OrganizationPanel({
             : '기본 협상력이 충분합니다. 권한·임기·보수·보직 약속과 장기 재정 부담을 비교해 제안하십시오.';
   const revealCandidateReport = (candidateId: string) => {
     setSelectedCandidateId(candidateId);
-    requestAnimationFrame(() => document.getElementById('staff-recruitment-hub')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    setWorkspace('market');
+    window.setTimeout(() => document.getElementById('staff-recruitment-hub')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
   };
   const openNegotiation = (candidate: StaffCandidate) => {
     setSelectedCandidateId(candidate.id);
@@ -359,12 +361,18 @@ export function OrganizationPanel({
   };
 
   return (
-    <div className="organization-grid">
+    <div className={`organization-grid workspace-${workspace}`}>
+      <nav className="organization-workspace-switch" aria-label="조직 운영 작업공간">
+        <button type="button" className={workspace === 'squad' ? 'active' : ''} aria-pressed={workspace === 'squad'} onClick={() => setWorkspace('squad')}><UsersRound size={18} /><span><strong>참모 스쿼드</strong><small>보직·위임·계약·조직 분위기</small></span><em>{staff.length}</em></button>
+        <button type="button" className={workspace === 'market' ? 'active' : ''} aria-pressed={workspace === 'market'} onClick={() => setWorkspace('market')}><Search size={18} /><span><strong>후보 시장</strong><small>탐색·조사·접촉·협상·영입</small></span><em>{shortlistCount + scoutingCount || candidates.length}</em></button>
+        <p>{workspace === 'squad' ? '현재 참모진을 FM의 선수단처럼 배치하고 책임·관계·성장을 관리합니다.' : '외부 실존 인물을 검색하고 조사 보고서에서 영입 가능성과 위험을 비교합니다.'}</p>
+      </nav>
       <section className="management-card staff-card">
         <div className="management-heading">
-          <div><span>STAFF PLANNER</span><h3>참모진·책임 관리</h3></div>
-          <em>{authority.managedDepartments.length}/{staff.length}개 보직 관리 · 주급 {formatMoney(weeklyPayroll)}</em>
+          <div><span>{workspace === 'squad' ? 'STAFF SQUAD' : 'GLOBAL TALENT MARKET'}</span><h3>{workspace === 'squad' ? '참모진·책임 관리' : '후보 조사·영입 센터'}</h3></div>
+          <em>{workspace === 'squad' ? `${authority.managedDepartments.length}/${staff.length}개 보직 관리 · 주급 ${formatMoney(weeklyPayroll)}` : `${candidates.length}명 접촉 가능 · 관심 ${shortlistCount} · 조사 중 ${scoutingCount}`}</em>
         </div>
+        {workspace === 'squad' && <>
         <div className="staff-management-hero">
           <div className="staff-command-identity">
             <span className="staff-command-icon">{role.tier === 1 ? <Crown size={22} /> : <BriefcaseBusiness size={22} />}</span>
@@ -466,7 +474,7 @@ export function OrganizationPanel({
                       </button>
                     ))}
                   </section>
-                  {selectedSeatMember && calculateStaffSuitability(selectedSeatMember, selectedStaffDepartment).score < 65 && <button type="button" className="staff-recruitment-prompt" onClick={() => { setDisciplineFilter(selectedSeat.preferredDisciplines[0]); setTalentQuery(''); }}><Search size={13} /> 적합도 부족 — 아래 인재 시장에서 {departmentLabels[selectedSeat.department]} 후보 찾기</button>}
+                  {selectedSeatMember && calculateStaffSuitability(selectedSeatMember, selectedStaffDepartment).score < 65 && <button type="button" className="staff-recruitment-prompt" onClick={() => { setDisciplineFilter(selectedSeat.preferredDisciplines[0]); setTalentQuery(''); setWorkspace('market'); }}><Search size={13} /> 적합도 부족 — 후보 시장에서 {departmentLabels[selectedSeat.department]} 후보 찾기</button>}
                 </>
               )}
             </aside>
@@ -575,7 +583,9 @@ export function OrganizationPanel({
           </section>
         )}
 
-        <div className="recruitment-hub" id="staff-recruitment-hub">
+        </>}
+
+        {workspace === 'market' && (<div className="recruitment-hub" id="staff-recruitment-hub">
           <div className="recruitment-title">
             <div><span>GLOBAL TALENT MARKET · 1942</span><strong>실존 인물 영입 센터</strong></div>
             <em>검증 DB {historicalExperts.length.toLocaleString('ko-KR')}명 · 현재 접촉권 {candidates.length}명 · 민간 전문가 {expertCount}명 · 조사→접촉→포섭→보직 교체</em>
@@ -722,7 +732,7 @@ export function OrganizationPanel({
               <button type="button" disabled={visibleTalentPage >= talentPageCount - 1} onClick={() => setTalentPage((current) => Math.min(talentPageCount - 1, current + 1))}>다음 <ChevronRight size={13} /></button>
             </nav>
           )}
-        </div>
+        </div>)}
         {negotiatingCandidate && (
           <RecruitmentNegotiation
             candidate={negotiatingCandidate}

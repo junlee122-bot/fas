@@ -76,6 +76,7 @@ interface CommandDashboardProps {
   onOpenActionCenter: () => void;
   onOpenJournal: () => void;
   onOpenWorldWeekly: () => void;
+  onAcknowledgeWeeklyBriefing: () => void;
   onOpenAchievements: () => void;
   onNextWeek: () => void;
 }
@@ -120,6 +121,7 @@ export function CommandDashboard({
   onOpenActionCenter,
   onOpenJournal,
   onOpenWorldWeekly,
+  onAcknowledgeWeeklyBriefing,
   onOpenAchievements,
   onNextWeek,
 }: CommandDashboardProps) {
@@ -152,6 +154,12 @@ export function CommandDashboard({
   const readinessStyle = useMemo(() => ({ '--readiness': `${readiness * 3.6}deg` }) as CSSProperties, [readiness]);
   const primaryAction = actions[0];
   const weeklyLead = weeklyIssue?.articles.find((article) => article.id === weeklyIssue.leadArticleId) ?? weeklyIssue?.articles[0];
+  const currentWeekEvents = events.filter((event) => event.week === game.week).slice(0, 3);
+  const briefingArticles = weeklyIssue?.articles.slice(0, 3) ?? [];
+  const briefingActions = [...actions].sort((left, right) => (
+    (left.priority === 'urgent' ? 0 : left.priority === 'recommended' ? 1 : 2)
+    - (right.priority === 'urgent' ? 0 : right.priority === 'recommended' ? 1 : 2)
+  )).slice(0, 3);
   const achievementDestination = achievement ? achievementCategoryDestinations[achievement.category] : null;
   const isKoreaCampaign = nation.id === 'korea';
   const weeklyCycle = deriveWeeklyCommandCycle({
@@ -166,19 +174,12 @@ export function CommandDashboard({
   });
   const runCycleDestination = (destination: WeeklyCommandDestination) => {
     const effectiveDestination = destination === 'advance' && !weeklyCycle.readyToAdvance ? weeklyCycle.primaryDestination : destination;
-    if (effectiveDestination === 'journal') onOpenJournal();
+    if (effectiveDestination === 'briefing') onAcknowledgeWeeklyBriefing();
+    else if (effectiveDestination === 'journal') onOpenJournal();
     else if (effectiveDestination === 'weekly') onOpenWorldWeekly();
     else if (effectiveDestination === 'actions') primaryAction ? onAction(primaryAction) : onOpenActionCenter();
     else onNextWeek();
   };
-  const cycleStatusLabels = {
-    complete: '확인 완료',
-    current: '지금 할 일',
-    optional: '선택 사항',
-    waiting: '대기',
-    ready: '진행 가능',
-  } as const;
-
   return (
     <div className="command-portal" data-tour="command-dashboard">
       <section className="portal-hero" data-tour="command-hero">
@@ -236,15 +237,30 @@ export function CommandDashboard({
         <b>{publicHealth.activeOutbreak ? '위기 대응' : '대비 본부'}<ChevronRight size={15} /></b>
       </button>
 
-      <button data-tour="world-weekly" className={`portal-weekly-brief ${weeklyUnread ? 'unread' : ''}`} onClick={onOpenWorldWeekly}>
-        <span className="portal-weekly-icon"><Newspaper size={23} /></span>
-        <span className="portal-weekly-copy">
-          <small>{weeklyUnread ? 'NEW EDITION · 새 호 발행' : 'THE WORLD WIRE · 세계 주보'}</small>
-          <strong>{weeklyLead?.headline ?? '캠페인 시작과 함께 세계선 창간호가 발행됩니다.'}</strong>
-          <em>{weeklyIssue ? `${weeklyIssue.dateRange} · 사건 ${weeklyIssue.metrics.eventCount}건 · 활성 전선 ${weeklyIssue.metrics.activeFronts}곳` : '선택한 국가·보직·세계선의 전선·외교·경제·사회·과학·정보를 한 호에 정리합니다.'}</em>
-        </span>
-        <b>{weeklyIssue ? `제 ${weeklyIssue.edition}호 읽기` : '발행 안내'}<ChevronRight size={15} /></b>
-      </button>
+      <section className={`weekly-command-briefing ${weeklyCycle.primaryDestination === 'briefing' ? 'unread' : ''}`} data-tour="world-weekly" aria-labelledby="weekly-command-briefing-title">
+        <header>
+          <div><span className="eyebrow">WEEKLY COMMAND BRIEFING · WEEK {game.week + 1}</span><h3 id="weekly-command-briefing-title">결산·세계 주보·긴급 결재</h3><p>{weeklyIssue?.dateRange ?? '취임 주간'} · 이 화면에서 이번 주 판단에 필요한 세 흐름을 함께 확인합니다.</p></div>
+          <span className="weekly-briefing-status"><i className={resultsReviewed ? 'complete' : ''}>{resultsReviewed ? '결산 확인' : '결산 도착'}</i><i className={!weeklyUnread ? 'complete' : ''}>{weeklyUnread ? '새 주보' : '주보 확인'}</i><i className={urgentCount === 0 ? 'complete' : 'urgent'}>{urgentCount > 0 ? `긴급 ${urgentCount}` : '긴급 없음'}</i></span>
+        </header>
+        <div className="weekly-briefing-columns">
+          <section>
+            <header><GameIcon name="report" size={17} tone="green" /><span><small>지난 선택의 결과</small><strong>{currentWeekEvents.length > 0 ? `${currentWeekEvents.length}건 요약` : '취임 주간'}</strong></span><button type="button" onClick={onOpenJournal}>상세</button></header>
+            <div>{currentWeekEvents.length > 0 ? currentWeekEvents.map((event) => <button type="button" key={event.id} onClick={onOpenJournal}><em>{event.tone === 'bad' ? '악화' : event.tone === 'good' ? '개선' : '변화'}</em><span><strong>{event.title}</strong><small>{event.detail}</small></span></button>) : <p>아직 이전 주간 결산이 없습니다. 첫 결정을 내린 뒤 다음 주 결과에서 원인과 영향을 확인할 수 있습니다.</p>}</div>
+          </section>
+          <section>
+            <header><Newspaper size={17} /><span><small>세계의 지난 7일</small><strong>{weeklyIssue ? `제 ${weeklyIssue.edition}호` : '창간 준비'}</strong></span><button type="button" onClick={onOpenWorldWeekly}>전체</button></header>
+            <div>{briefingArticles.length > 0 ? briefingArticles.map((article) => <button type="button" key={article.id} onClick={onOpenWorldWeekly}><em>{article.category}</em><span><strong>{article.headline}</strong><small>{article.summary}</small></span></button>) : <p>{weeklyLead?.headline ?? '캠페인 시작과 함께 선택한 세계선의 창간호가 발행됩니다.'}</p>}</div>
+          </section>
+          <section>
+            <header><GameIcon name="command" size={17} tone={urgentCount > 0 ? 'red' : 'gold'} /><span><small>이번 주 결재</small><strong>{actions.length > 0 ? `${actions.length}건 대기` : '필수 결재 없음'}</strong></span><button type="button" onClick={onOpenActionCenter}>전체</button></header>
+            <div>{briefingActions.length > 0 ? briefingActions.map((action) => <button type="button" key={action.id} onClick={() => onAction(action)}><em className={action.priority}>{priorityLabels[action.priority]}</em><span><strong>{action.title}</strong><small>{action.reason}</small></span></button>) : <p>현재 확인된 긴급·권장 행동이 없습니다. 다음 주 계산을 진행할 수 있습니다.</p>}</div>
+          </section>
+        </div>
+        <footer>
+          <span>{weeklyCycle.primaryDestination === 'briefing' ? '요약을 확인하면 결재 또는 다음 주 진행으로 이어집니다.' : weeklyCycle.detail}</span>
+          <button type="button" className="primary" onClick={() => runCycleDestination(weeklyCycle.primaryDestination)}>{weeklyCycle.primaryLabel}<ChevronRight size={15} /></button>
+        </footer>
+      </section>
 
       {achievement && achievementDestination && (
         <section className="portal-achievement-track" aria-label="추천 도전과제 추적">
@@ -264,32 +280,6 @@ export function CommandDashboard({
           </span>
         </section>
       )}
-
-      <section className="command-cycle" aria-label="이번 주 지휘 사이클">
-        <header>
-          <span><small>WEEKLY COMMAND LOOP</small><strong>결과 → 세계 파악 → 결재·배치 → 진행</strong></span>
-          <em>{weeklyCycle.readyToAdvance ? '필수 준비 완료' : weeklyCycle.primaryLabel}</em>
-        </header>
-        <div>
-          {weeklyCycle.steps.map((step) => (
-            <button
-              type="button"
-              className={`command-cycle-step ${step.state}`}
-              key={step.id}
-              aria-current={step.id === weeklyCycle.currentStage ? 'step' : undefined}
-              onClick={() => runCycleDestination(step.destination)}
-            >
-              <span className="cycle-step-icon">
-                {step.state === 'complete'
-                  ? <CheckCircle2 size={18} />
-                  : <GameIcon name={step.id === 'decisions' ? 'command' : step.id === 'advance' ? 'advance' : 'report'} size={18} tone={step.state === 'current' ? 'gold' : step.state === 'ready' ? 'green' : 'steel'} />}
-              </span>
-              <span className="cycle-step-copy"><small>{step.label}</small><strong>{step.title}</strong><em>{step.detail}</em></span>
-              <b>{cycleStatusLabels[step.state]}<ChevronRight size={13} /></b>
-            </button>
-          ))}
-        </div>
-      </section>
 
       <NationalSimulationOverview snapshot={nationalSimulation} phase="war" onNavigate={onNavigate} />
 

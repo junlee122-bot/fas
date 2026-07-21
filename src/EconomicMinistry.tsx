@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowDownRight, ArrowLeftRight, ArrowUpRight, Ban, Banknote, Building2, CalendarDays, CheckCircle2, CircleDollarSign, ExternalLink, Info, Landmark, PieChart, RefreshCw, Scale, ShieldAlert, TrendingDown, TrendingUp, WalletCards } from 'lucide-react';
 import {
   bondPrograms,
+  advanceEconomyWeek,
   calculateEconomyLedger,
   getAvailableCompanies,
   getCompanyInvestmentSnapshot,
@@ -92,6 +93,11 @@ export function EconomicMinistry({
   const companySnapshots = companies
     .map((company) => ({ company, snapshot: getCompanyInvestmentSnapshot(state, company) }))
     .sort((left, right) => Number(Boolean(right.snapshot.holding)) - Number(Boolean(left.snapshot.holding)) || right.snapshot.weeklyChange - left.snapshot.weeklyChange || left.company.name.localeCompare(right.company.name, 'ko'));
+  const policyForecast = (change: Partial<Pick<EconomyState, 'taxPolicy' | 'bondProgram' | 'priceControl'>>) => {
+    const preview = advanceEconomyWeek({ ...state, ...change }, context);
+    const previewOperatingBalance = preview.ledger.operatingRevenue - preview.ledger.totalExpenses;
+    return `국고 ${money(preview.ledger.netTreasuryChange)} · 경상 ${money(previewOperatingBalance)} · 물가 ${state.inflation.toFixed(1)}→${preview.state.inflation.toFixed(1)}% · 신뢰 ${state.publicConfidence.toFixed(0)}→${preview.state.publicConfidence.toFixed(0)}`;
+  };
 
   return (
     <section className="economy-ministry">
@@ -171,9 +177,10 @@ export function EconomicMinistry({
 
         <aside className="economy-policy-panel">
           <div className="economy-section-heading"><div><small>FISCAL CABINET</small><h3>어떻게 재정을 당길 것인가</h3></div></div>
-          <PolicySelector title="조세 정책" value={state.taxPolicy} options={taxPolicies} onChange={(id) => onTaxPolicy(id as TaxPolicyId)} />
-          <PolicySelector title="국채·신용 조달" value={state.bondProgram} options={bondPrograms} onChange={(id) => onBondProgram(id as BondProgramId)} />
-          <PolicySelector title="물가·배급 통제" value={state.priceControl} options={priceControls} onChange={(id) => onPriceControl(id as PriceControlId)} />
+          <div className="economy-policy-verification"><CalendarDays size={14} /><span><strong>선택 즉시 전망 갱신</strong><small>실제 국고·부채·물가 변화는 제 {context.week + 1}주 통합 주간 브리핑에서 확인합니다.</small></span></div>
+          <PolicySelector title="조세 정책" value={state.taxPolicy} options={taxPolicies} forecast={(id) => policyForecast({ taxPolicy: id })} onChange={(id) => onTaxPolicy(id as TaxPolicyId)} />
+          <PolicySelector title="국채·신용 조달" value={state.bondProgram} options={bondPrograms} forecast={(id) => policyForecast({ bondProgram: id })} onChange={(id) => onBondProgram(id as BondProgramId)} />
+          <PolicySelector title="물가·배급 통제" value={state.priceControl} options={priceControls} forecast={(id) => policyForecast({ priceControl: id })} onChange={(id) => onPriceControl(id as PriceControlId)} />
           <div className="economy-policy-warning"><ShieldAlert size={15} /><span><strong>부채는 수입이 아닙니다.</strong><small>{debtRate}. 중앙은행 인수는 빠르지만 물가와 신뢰를 훼손하며, 저축채권도 매주 이자비용을 남깁니다.</small></span></div>
         </aside>
       </div>
@@ -218,11 +225,11 @@ export function EconomicMinistry({
   );
 }
 
-function PolicySelector<T extends string>({ title, value, options, onChange }: { title: string; value: T; options: Array<{ id: T; name: string; summary: string; effect: string }>; onChange: (id: T) => void }) {
+function PolicySelector<T extends string>({ title, value, options, forecast, onChange }: { title: string; value: T; options: Array<{ id: T; name: string; summary: string; effect: string }>; forecast: (id: T) => string; onChange: (id: T) => void }) {
   return (
     <fieldset className="economy-policy-selector">
       <legend>{title}</legend>
-      {options.map((option) => <button type="button" className={value === option.id ? 'active' : ''} aria-pressed={value === option.id} key={option.id} onClick={() => onChange(option.id)}><span><strong>{option.name}</strong><small>{option.summary}</small></span><em>{option.effect}</em></button>)}
+      {options.map((option) => <button type="button" className={value === option.id ? 'active' : ''} aria-pressed={value === option.id} key={option.id} onClick={() => onChange(option.id)}><span><strong>{option.name}</strong><small>{option.summary}</small></span><em>{option.effect}</em><b className="economy-policy-forecast"><small>다음 주 예상</small>{forecast(option.id)}</b></button>)}
     </fieldset>
   );
 }

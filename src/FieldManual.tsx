@@ -84,7 +84,7 @@ export function FieldManual({ steps, onNavigate, onRestartTutorial, onClose }: F
           <aside className="first-week-guide">
             <div className="manual-section-heading"><span>FIRST WEEK</span><strong>첫 주 지휘 체크리스트</strong><small>{completedCount}/{steps.length} 완료</small></div>
             <div className="first-week-progress" aria-label={`첫 주 체크리스트 ${completedCount}/${steps.length} 완료`}><i style={{ width: `${completedCount / Math.max(1, steps.length) * 100}%` }} /></div>
-            <p>아래 다섯 항목을 마치면 생산·연구·정책·전투의 기본 순환이 완성됩니다.</p>
+            <p>현재 보직과 직급에 맞춘 {steps.length}개 항목을 마치면 판단·실행·결산의 첫 주 지휘 순환이 완성됩니다.</p>
             <div className="first-week-steps">
               {steps.map((step, index) => (
                 <button key={step.id} className={step.complete ? 'complete' : ''} aria-label={`${step.title} · ${step.complete ? '완료' : '미완료'} · ${step.detail}`} onClick={() => onNavigate(step.tab)}>

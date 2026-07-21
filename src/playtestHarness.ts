@@ -273,7 +273,24 @@ export function runPlaytestSession(id: number, weeksPlayed = 104): PlaytestSessi
       }
     }
 
-    const onboarding = deriveOnboardingSteps({ factories: game.factories, production, research, selectedPolicies, orders });
+    const roleTab = role.branch === 'military' ? 'army' : role.branch === 'politics' ? 'economy' : 'intelligence';
+    const roleMilestone = role.branch === 'military' && orders.length > 0
+      ? ['military-action']
+      : role.branch === 'politics' && selectedPolicies.length > 0
+        ? ['political-action']
+        : [];
+    const onboarding = deriveOnboardingSteps({
+      role,
+      week,
+      briefingRead: week > 0,
+      visitedTabs: ['command', 'organization', roleTab],
+      milestones: roleMilestone,
+      factories: game.factories,
+      production,
+      research,
+      selectedPolicies,
+      orders,
+    });
     if (onboardingCompletedWeek === null && onboarding.every((step) => step.complete)) onboardingCompletedWeek = week + 1;
 
     const economyResult = advanceEconomyWeek(economy, { week, nationId: nation.id, game, staffWeeklyCost, economyAdvisorBonus });
@@ -312,7 +329,19 @@ export function runPlaytestSession(id: number, weeksPlayed = 104): PlaytestSessi
     });
   }
 
-  const finalOnboarding = deriveOnboardingSteps({ factories: game.factories, production, research, selectedPolicies, orders });
+  const finalRoleTab = role.branch === 'military' ? 'army' : role.branch === 'politics' ? 'economy' : 'intelligence';
+  const finalOnboarding = deriveOnboardingSteps({
+    role,
+    week: weeksPlayed,
+    briefingRead: true,
+    visitedTabs: ['command', 'organization', finalRoleTab, 'research', 'industry'],
+    milestones: role.branch === 'military' ? ['military-action'] : role.branch === 'politics' ? ['political-action'] : ['intelligence-action'],
+    factories: game.factories,
+    production,
+    research,
+    selectedPolicies,
+    orders,
+  });
   return {
     id,
     nationId: nation.id,

@@ -1,6 +1,6 @@
 import { getAvailableSkillPoints } from './development';
 import type { PublicHealthState } from './publicHealth';
-import type { CommanderDevelopment, Division, GameTab, Order, ProductionLine, ResearchProject } from './types';
+import type { CareerRole, CommanderDevelopment, Division, GameTab, Order, ProductionLine, ResearchProject } from './types';
 
 export type UXActionPriority = 'urgent' | 'recommended' | 'info';
 
@@ -15,6 +15,160 @@ export interface UXAction {
   instruction?: string;
   label: string;
   tab: GameTab;
+  signalValue?: number;
+  lifecycleStatus?: UXActionLifecycleStatus;
+}
+
+export type UXActionLifecycleStatus = 'detected' | 'acknowledged' | 'in-progress' | 'verifying' | 'resolved';
+
+export interface UXActionLifecycleRecord {
+  actionId: string;
+  status: UXActionLifecycleStatus;
+  firstDetectedWeek: number;
+  lastChangedWeek: number;
+  acknowledgedWeek: number | null;
+  actionWeek: number | null;
+  verificationWeek: number | null;
+  resolvedWeek: number | null;
+  recurrenceCount: number;
+  lastPriority: UXActionPriority;
+  lastSignalValue: number | null;
+  snapshot: UXAction;
+}
+
+const prioritySeverity: Record<UXActionPriority, number> = { info: 0, recommended: 1, urgent: 2 };
+
+function createLifecycleRecord(action: UXAction, week: number, recurrenceCount = 0): UXActionLifecycleRecord {
+  return {
+    actionId: action.id,
+    status: 'detected',
+    firstDetectedWeek: week,
+    lastChangedWeek: week,
+    acknowledgedWeek: null,
+    actionWeek: null,
+    verificationWeek: null,
+    resolvedWeek: null,
+    recurrenceCount,
+    lastPriority: action.priority,
+    lastSignalValue: action.signalValue ?? null,
+    snapshot: { ...action, lifecycleStatus: 'detected' },
+  };
+}
+
+function hasSignalWorsened(record: UXActionLifecycleRecord, action: UXAction) {
+  if (prioritySeverity[action.priority] > prioritySeverity[record.lastPriority]) return true;
+  if (action.signalValue === undefined || record.lastSignalValue === null) return false;
+  const threshold = Math.max(1, Math.abs(record.lastSignalValue) * 0.05);
+  return action.signalValue > record.lastSignalValue + threshold;
+}
+
+export function reconcileUXActionLifecycle(records: UXActionLifecycleRecord[], actions: UXAction[], week: number) {
+  const currentById = new Map(records.map((record) => [record.actionId, record]));
+  const activeIds = new Set(actions.map((action) => action.id));
+  const next = actions.map((action) => {
+    const existing = currentById.get(action.id);
+    if (!existing) return createLifecycleRecord(action, week);
+    if (existing.status === 'resolved') return createLifecycleRecord(action, week, existing.recurrenceCount + 1);
+    if (existing.status === 'verifying' && hasSignalWorsened(existing, action)) {
+      return {
+        ...createLifecycleRecord(action, week, existing.recurrenceCount + 1),
+        firstDetectedWeek: existing.firstDetectedWeek,
+      };
+    }
+    return {
+      ...existing,
+      lastPriority: action.priority,
+      lastSignalValue: action.signalValue ?? existing.lastSignalValue,
+      snapshot: { ...action, lifecycleStatus: existing.status },
+    };
+  });
+  records.forEach((record) => {
+    if (activeIds.has(record.actionId)) return;
+    if (record.status === 'resolved') {
+      if (week - (record.resolvedWeek ?? week) <= 8) next.push(record);
+      return;
+    }
+    next.push({
+      ...record,
+      status: 'resolved',
+      lastChangedWeek: week,
+      resolvedWeek: week,
+      snapshot: { ...record.snapshot, lifecycleStatus: 'resolved' },
+    });
+  });
+  return next.sort((left, right) => right.lastChangedWeek - left.lastChangedWeek || left.actionId.localeCompare(right.actionId));
+}
+
+export function acknowledgeUXActions(records: UXActionLifecycleRecord[], actionIds: readonly string[], week: number) {
+  const ids = new Set(actionIds);
+  return records.map((record) => record.status === 'detected' && ids.has(record.actionId) ? {
+    ...record,
+    status: 'acknowledged' as const,
+    acknowledgedWeek: week,
+    lastChangedWeek: week,
+    snapshot: { ...record.snapshot, lifecycleStatus: 'acknowledged' as const },
+  } : record);
+}
+
+export function startUXAction(records: UXActionLifecycleRecord[], actionId: string, week: number) {
+  return records.map((record) => record.actionId === actionId && record.status !== 'resolved' ? {
+    ...record,
+    status: 'in-progress' as const,
+    actionWeek: week,
+    lastChangedWeek: week,
+    snapshot: { ...record.snapshot, lifecycleStatus: 'in-progress' as const },
+  } : record);
+}
+
+export function markUXActionsForVerification(records: UXActionLifecycleRecord[], week: number) {
+  return records.map((record) => record.status === 'in-progress' ? {
+    ...record,
+    status: 'verifying' as const,
+    verificationWeek: week + 1,
+    lastChangedWeek: week,
+    snapshot: { ...record.snapshot, lifecycleStatus: 'verifying' as const },
+  } : record);
+}
+
+export function decorateUXActions(actions: UXAction[], records: UXActionLifecycleRecord[]) {
+  const lifecycleById = new Map(records.map((record) => [record.actionId, record]));
+  return actions.map((action) => {
+    const record = lifecycleById.get(action.id);
+    if (!record) return { ...action, lifecycleStatus: 'detected' as const };
+    if (record.status === 'verifying') return {
+      ...action,
+      priority: 'info' as const,
+      lifecycleStatus: record.status,
+      detail: `조치를 적용했습니다. ${action.detail}`,
+      resolution: `제 ${(record.verificationWeek ?? record.lastChangedWeek + 1) + 1}주 결산에서 지표 개선·해결·재발을 검증합니다.`,
+      label: '검증 현황',
+    };
+    return { ...action, lifecycleStatus: record.status };
+  });
+}
+
+export function normalizeUXActionLifecycle(value: unknown): UXActionLifecycleRecord[] {
+  if (!Array.isArray(value)) return [];
+  const statuses = new Set<UXActionLifecycleStatus>(['detected', 'acknowledged', 'in-progress', 'verifying', 'resolved']);
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') return [];
+    const record = entry as Partial<UXActionLifecycleRecord>;
+    if (typeof record.actionId !== 'string' || !record.snapshot || typeof record.snapshot.id !== 'string' || !record.status || !statuses.has(record.status)) return [];
+    return [{
+      actionId: record.actionId,
+      status: record.status,
+      firstDetectedWeek: Number(record.firstDetectedWeek) || 0,
+      lastChangedWeek: Number(record.lastChangedWeek) || 0,
+      acknowledgedWeek: typeof record.acknowledgedWeek === 'number' ? record.acknowledgedWeek : null,
+      actionWeek: typeof record.actionWeek === 'number' ? record.actionWeek : null,
+      verificationWeek: typeof record.verificationWeek === 'number' ? record.verificationWeek : null,
+      resolvedWeek: typeof record.resolvedWeek === 'number' ? record.resolvedWeek : null,
+      recurrenceCount: Number(record.recurrenceCount) || 0,
+      lastPriority: (record.lastPriority === 'urgent' || record.lastPriority === 'info' ? record.lastPriority : 'recommended') as UXActionPriority,
+      lastSignalValue: typeof record.lastSignalValue === 'number' ? record.lastSignalValue : null,
+      snapshot: { ...record.snapshot, lifecycleStatus: record.status },
+    }];
+  }).slice(0, 48);
 }
 
 export function isTrackedActionResolved(trackedActionId: string | null, actions: UXAction[]) {
@@ -32,7 +186,7 @@ export interface CommandReadiness {
 
 export type WeeklyCommandStageId = 'review' | 'briefing' | 'decisions' | 'advance';
 export type WeeklyCommandStageState = 'complete' | 'current' | 'optional' | 'waiting' | 'ready';
-export type WeeklyCommandDestination = 'journal' | 'weekly' | 'actions' | 'advance';
+export type WeeklyCommandDestination = 'briefing' | 'journal' | 'weekly' | 'actions' | 'advance';
 
 export interface WeeklyCommandStage {
   id: WeeklyCommandStageId;
@@ -93,9 +247,15 @@ export interface OnboardingStep {
   detail: string;
   tab: GameTab;
   complete: boolean;
+  category?: 'common' | 'role';
 }
 
 export interface OnboardingInput {
+  role: Pick<CareerRole, 'branch' | 'tier' | 'scope'>;
+  week: number;
+  briefingRead: boolean;
+  visitedTabs: readonly GameTab[];
+  milestones: readonly string[];
   factories: number;
   production: ProductionLine[];
   research: ResearchProject[];
@@ -162,9 +322,9 @@ export function deriveWeeklyCommandCycle({
         : 'advance';
   const readyToAdvance = currentStage === 'advance';
   const primaryDestination: WeeklyCommandDestination = currentStage === 'review'
-    ? 'journal'
+    ? 'briefing'
     : currentStage === 'briefing'
-      ? 'weekly'
+      ? 'briefing'
       : currentStage === 'decisions'
         ? 'actions'
         : 'advance';
@@ -176,7 +336,7 @@ export function deriveWeeklyCommandCycle({
       title: week === 0 || !hasCurrentWeekResults ? '취임 주간 · 이전 결산 없음' : resultsReviewed ? '지난주 결산 확인 완료' : '새 주간 결산 도착',
       detail: week === 0 || !hasCurrentWeekResults ? '첫 지휘 판단을 준비하십시오.' : resultsReviewed ? '선택과 결과의 인과관계를 확인했습니다.' : '무엇이 왜 바뀌었는지 먼저 검토하십시오.',
       state: resultsPending ? 'current' : 'complete',
-      destination: 'journal',
+      destination: 'briefing',
     },
     {
       id: 'briefing',
@@ -184,7 +344,7 @@ export function deriveWeeklyCommandCycle({
       title: weeklyUnread ? '새 세계 주보 읽기' : '세계 주보 확인 완료',
       detail: weeklyUnread ? '전선·외교·경제의 지난 7일을 확인하십시오.' : '현재 세계선의 변화를 파악했습니다.',
       state: weeklyUnread ? (resultsPending ? 'waiting' : 'current') : 'complete',
-      destination: 'weekly',
+      destination: 'briefing',
     },
     {
       id: 'decisions',
@@ -204,23 +364,14 @@ export function deriveWeeklyCommandCycle({
     },
   ];
 
-  if (currentStage === 'review') return {
+  if (currentStage === 'review' || currentStage === 'briefing') return {
     steps,
     currentStage,
     primaryDestination,
-    primaryLabel: '이번 주 결산 확인',
+    primaryLabel: '주간 브리핑 확인',
     readyToAdvance,
-    headline: '결과를 읽고 다음 판단을 시작하십시오.',
-    detail: '지난 선택의 즉시 효과와 계속 남는 영향을 확인하면 다음 결재의 우선순위가 선명해집니다.',
-  };
-  if (currentStage === 'briefing') return {
-    steps,
-    currentStage,
-    primaryDestination,
-    primaryLabel: '세계 주보 읽기',
-    readyToAdvance,
-    headline: '새 주간의 세계 상황을 파악하십시오.',
-    detail: '지난 7일의 전선·외교·경제 변화가 이번 주 선택의 조건이 됩니다.',
+    headline: '결산·세계 변화·긴급 결재를 한 번에 파악하십시오.',
+    detail: '지난 선택의 결과와 세계의 지난 7일, 지금 처리할 위험을 한 브리핑에서 이어서 검토합니다.',
   };
   if (currentStage === 'decisions') return {
     steps,
@@ -257,6 +408,11 @@ export function normalizeUXPreferences(value: Partial<UXPreferences> | null | un
 }
 
 export function deriveOnboardingSteps({
+  role,
+  week,
+  briefingRead,
+  visitedTabs,
+  milestones,
   factories,
   production,
   research,
@@ -265,13 +421,28 @@ export function deriveOnboardingSteps({
 }: OnboardingInput): OnboardingStep[] {
   const usedFactories = production.reduce((total, line) => total + line.assigned, 0);
   const activeResearch = research.filter((project) => project.active && !project.complete).length;
-
-  return [
-    { id: 'path', title: '첫 역사 압력 만들기', detail: '국가 원칙 하나를 채택하면 그 행동부터 미래 사건의 조건이 달라집니다.', tab: 'organization', complete: selectedPolicies.length > 0 },
-    { id: 'research', title: '연구 슬롯 2개 배정', detail: '비어 있는 연구 슬롯은 매주 기술 성장 기회를 잃습니다.', tab: 'research', complete: activeResearch >= 2 },
-    { id: 'factories', title: '군수 공장 전부 배정', detail: '모든 공장을 장비 생산선에 투입해 주간 산출량을 확보합니다.', tab: 'industry', complete: usedFactories >= factories },
-    { id: 'policies', title: '국가 원칙 4개 확정', detail: '경제·교리·사회·외교 영역의 운영 원칙을 하나씩 선택합니다.', tab: 'organization', complete: selectedPolicies.length >= 4 },
-    { id: 'order', title: '첫 작전 명령 수립', detail: '준비된 사단에 공세 명령을 내려 전선의 주도권을 시험합니다.', tab: 'army', complete: orders.length > 0 },
+  const visited = new Set(visitedTabs);
+  const completed = new Set(milestones);
+  const junior = role.tier >= 4;
+  const shared: OnboardingStep[] = [
+    { id: 'briefing', title: '취임 브리핑 읽기', detail: '현재 세계선의 지난 7일과 가장 위험한 변화를 먼저 확인합니다.', tab: 'command', complete: briefingRead, category: 'common' },
+    { id: 'authority', title: `TIER ${role.tier} 권한 범위 확인`, detail: `${role.scope}. 잠긴 결정은 직접 집행하지 않고 상신·설득·위임 요청으로 처리합니다.`, tab: 'organization', complete: visited.has('organization'), category: 'common' },
+    { id: 'advance', title: '첫 주 지휘 결산 확인', detail: '첫 결정을 반영한 뒤 한 주를 진행해 결과와 원인의 연결을 확인합니다.', tab: 'command', complete: week > 0, category: 'common' },
+  ];
+  if (role.branch === 'military') return [...shared,
+    { id: 'military-review', title: '지휘 가능 부대 확인', detail: '전력·조직력·보급과 현재 명령을 확인해 실제로 움직일 수 있는 편제를 찾습니다.', tab: 'army', complete: visited.has('army'), category: 'role' },
+    { id: 'military-action', title: junior ? '작전안 상신 또는 훈련 요청' : '첫 작전·훈련 명령 승인', detail: junior ? '직접 통솔 범위의 부대를 준비하고 상급 지휘부에 목표와 위험을 상신합니다.' : '준비된 사단에 공세 또는 훈련 의도를 부여합니다.', tab: 'army', complete: completed.has('military-action') || orders.length > 0, category: 'role' },
+    { id: 'military-support', title: '보급·연구 지원선 확인', detail: '공장과 연구는 직접 의무가 아니라 작전 요구서와 참모 위임으로 연결됩니다.', tab: activeResearch < 2 ? 'research' : usedFactories < factories ? 'industry' : 'organization', complete: visited.has('research') || visited.has('industry'), category: 'role' },
+  ];
+  if (role.branch === 'politics') return [...shared,
+    { id: 'political-review', title: '내각·이해집단 구도 확인', detail: '정책을 집행할 조직, 반대 파벌과 현재 정치적 자원을 먼저 파악합니다.', tab: 'organization', complete: visited.has('organization') || visited.has('governance'), category: 'role' },
+    { id: 'political-action', title: junior ? '정책 건의안 상신' : '첫 국가 원칙 결재', detail: junior ? '권한 범위의 정책 근거를 만들고 상급 의사결정자에게 채택을 요청합니다.' : '경제·사회·외교·교리 가운데 첫 운영 원칙을 채택합니다.', tab: 'organization', complete: completed.has('political-action') || selectedPolicies.length > 0, category: 'role' },
+    { id: 'political-economy', title: '재정 파급효과 확인', detail: '정책 비용과 경상수지·물가·국민 신뢰의 다음 주 변화를 비교합니다.', tab: 'economy', complete: visited.has('economy') || visited.has('governance'), category: 'role' },
+  ];
+  return [...shared,
+    { id: 'intelligence-review', title: '정보망·노출 위험 확인', detail: '정보 신뢰도, 작전망과 적 방첩 압력을 확인한 뒤 첫 표적을 정합니다.', tab: 'intelligence', complete: visited.has('intelligence'), category: 'role' },
+    { id: 'intelligence-action', title: junior ? '정보 수집·공작안 상신' : '첫 정보작전·인재 조사 승인', detail: junior ? '접촉선과 신뢰도를 확보해 상급기관에 실행 가능한 공작안을 제출합니다.' : '요원 또는 후보 한 명의 조사·접촉을 시작합니다.', tab: 'intelligence', complete: completed.has('intelligence-action'), category: 'role' },
+    { id: 'intelligence-people', title: '요원·포섭 후보 비교', detail: '능력뿐 아니라 충성도·이중공작 위험·소속 조직과의 마찰을 함께 검토합니다.', tab: 'organization', complete: visited.has('organization'), category: 'role' },
   ];
 }
 
@@ -292,6 +463,7 @@ export function deriveUXActions({
   const actions: UXAction[] = [];
   const availableSkills = commanderDevelopment.reduce((total, record) => total + getAvailableSkillPoints(record), 0);
   const activeResearch = research.filter((project) => project.active && !project.complete).length;
+  const assignableResearch = research.filter((project) => !project.active && !project.complete).length;
   const usedFactories = production.reduce((total, line) => total + line.assigned, 0);
   const idleFactories = Math.max(0, factories - usedFactories);
   const readyDivisions = divisions.filter((division) => division.status === 'ready').length;
@@ -310,6 +482,7 @@ export function deriveUXActions({
       instruction: '태세별 다음 주 전망을 비교한 뒤 병상 부하를 감당할 대응 태세와 의료 투자를 선택하십시오.',
       label: '위기 지휘실',
       tab: 'health',
+      signalValue: Math.max(outbreak.hospitalLoad, outbreak.rEffective * 50),
     });
   } else if (publicHealth && publicHealth.weeklyRisk >= 0.018) {
     actions.push({
@@ -323,6 +496,7 @@ export function deriveUXActions({
       instruction: '감시 실험실과 의료 역량 투자부터 확충하고, 주간 발병 위험이 낮아지는지 비교하십시오.',
       label: '대비 태세',
       tab: 'health',
+      signalValue: publicHealth.weeklyRisk * 100,
     });
   }
 
@@ -338,6 +512,7 @@ export function deriveUXActions({
       instruction: '주간 현금흐름에서 적자 원인을 확인하고 조세·지출을 조정한 뒤 부족분만 국채로 조달하십시오.',
       label: '재정 결산',
       tab: 'economy',
+      signalValue: Math.abs(economyOperatingBalance),
     });
   }
 
@@ -353,6 +528,7 @@ export function deriveUXActions({
       instruction: '중앙은행 정책과 민생·산업 공급을 함께 조정해 물가 억제가 생산을 과도하게 훼손하지 않게 하십시오.',
       label: '물가 대책',
       tab: 'economy',
+      signalValue: economyInflation,
     });
   }
 
@@ -368,21 +544,24 @@ export function deriveUXActions({
       instruction: '선택된 지휘관의 특기 트리에서 현재 교리와 주력 전구에 맞는 특기 한 개를 확정하십시오.',
       label: '특기 선택',
       tab: 'army',
+      signalValue: availableSkills,
     });
   }
 
-  if (activeResearch < 2) {
+  if (activeResearch < 2 && assignableResearch > 0) {
+    const openSlots = Math.min(2 - activeResearch, assignableResearch);
     actions.push({
       id: 'research-slot',
       priority: activeResearch === 0 ? 'urgent' : 'recommended',
-      title: activeResearch === 0 ? '연구가 중단됨' : '연구 슬롯 1개 비어 있음',
+      title: activeResearch === 0 ? '연구가 중단됨' : `연구 슬롯 ${openSlots}개 비어 있음`,
       detail: '동시에 두 개 과제를 진행할 수 있습니다. 비어 있는 슬롯은 매주 손실되는 연구 기회입니다.',
-      reason: `활성 연구 ${activeResearch}/2 · 주간 연구역량 일부 미사용`,
+      reason: `활성 연구 ${activeResearch}/2 · 배정 가능 과제 ${assignableResearch}개`,
       ifIgnored: '비어 있는 슬롯의 이번 주 연구 진척은 이후에 복구할 수 없습니다.',
       resolution: '과제 배정 즉시 · 다음 주 연구 진척에 반영',
       instruction: '비어 있는 연구 슬롯을 선택하고, 현재 장비 병목이나 장기 교리에 맞는 과제를 배정하십시오.',
       label: '연구 배정',
       tab: 'research',
+      signalValue: openSlots,
     });
   }
 
@@ -398,6 +577,7 @@ export function deriveUXActions({
       instruction: '생산 라인의 증감 제어로 미배정 공장을 0개로 만들고, 보급 부족 장비를 우선하십시오.',
       label: '생산 조정',
       tab: 'industry',
+      signalValue: idleFactories,
     });
   }
 
@@ -413,6 +593,7 @@ export function deriveUXActions({
       instruction: '경제·교리·사회·외교 영역에서 원칙을 하나씩 선택해 4개 운영 축을 완성하십시오.',
       label: '원칙 결정',
       tab: 'organization',
+      signalValue: 4 - selectedPolicies.length,
     });
   }
 
@@ -428,6 +609,7 @@ export function deriveUXActions({
       instruction: '준비 사단을 선택하고 인접 목표와 공세 태세를 비교한 뒤, 승인하거나 야전 훈련을 선택하십시오.',
       label: '부대 지휘',
       tab: 'army',
+      signalValue: readyDivisions,
     });
   }
 
@@ -443,6 +625,7 @@ export function deriveUXActions({
       instruction: '재편 사단의 보급 우선순위와 담당 참모·편제를 점검해 회복 병목을 제거하십시오.',
       label: '회복 상태 보기',
       tab: 'organization',
+      signalValue: recoveringDivisions,
     });
   }
 

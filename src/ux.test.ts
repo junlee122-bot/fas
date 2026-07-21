@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveCommandReadiness, deriveOnboardingSteps, deriveUXActions, deriveWeeklyCommandCycle, getInitialNavigationCollapsed, isTrackedActionResolved, normalizeUXPreferences } from './ux';
+import { acknowledgeUXActions, decorateUXActions, deriveCommandReadiness, deriveOnboardingSteps, deriveUXActions, deriveWeeklyCommandCycle, getInitialNavigationCollapsed, isTrackedActionResolved, markUXActionsForVerification, normalizeUXActionLifecycle, normalizeUXPreferences, reconcileUXActionLifecycle, startUXAction } from './ux';
 import type { ActionCenterInput } from './ux';
 
 const baseInput: ActionCenterInput = {
@@ -10,6 +10,14 @@ const baseInput: ActionCenterInput = {
   divisions: [{ id: 'division', name: '시험 사단', type: 'infantry', strength: 90, organization: 80, experience: 50, supply: 70, territoryId: 'home', commanderId: 'general', status: 'ready' }],
   orders: [],
   commanderDevelopment: [{ commanderId: 'general', xp: 22, battles: 1, victories: 1, fatigue: 20, skills: [] }],
+};
+
+const militaryOnboarding = {
+  role: { branch: 'military' as const, tier: 2 as const, scope: '전구 작전과 예하 사단 지휘' },
+  week: 0,
+  briefingRead: false,
+  visitedTabs: [] as Array<'command' | 'organization' | 'army' | 'industry' | 'research'>,
+  milestones: [] as string[],
 };
 
 describe('user experience guidance', () => {
@@ -55,6 +63,28 @@ describe('user experience guidance', () => {
     expect(actions).toHaveLength(0);
   });
 
+  it('does not create an impossible research alert after every project is complete', () => {
+    const actions = deriveUXActions({
+      ...baseInput,
+      research: baseInput.research.map((project) => ({ ...project, progress: project.duration, active: false, complete: true })),
+    });
+    expect(actions.some((action) => action.id === 'research-slot')).toBe(false);
+  });
+
+  it('only reports research capacity that can still be assigned', () => {
+    const actions = deriveUXActions({
+      ...baseInput,
+      research: [
+        { ...baseInput.research[0], id: 'complete', progress: 100, complete: true },
+        { ...baseInput.research[0], id: 'available' },
+      ],
+    });
+    expect(actions.find((action) => action.id === 'research-slot')).toMatchObject({
+      title: '연구가 중단됨',
+      reason: '활성 연구 0/2 · 배정 가능 과제 1개',
+    });
+  });
+
   it('marks a tracked order complete only after its action leaves the queue', () => {
     const actions = deriveUXActions(baseInput);
     expect(isTrackedActionResolved('idle-factories', actions)).toBe(false);
@@ -91,18 +121,25 @@ describe('user experience guidance', () => {
 
   it('derives a live first-week checklist from campaign state', () => {
     const steps = deriveOnboardingSteps({
+      ...militaryOnboarding,
       factories: baseInput.factories,
       production: baseInput.production,
       research: baseInput.research,
       selectedPolicies: baseInput.selectedPolicies,
       orders: baseInput.orders,
     });
-    expect(steps).toHaveLength(5);
+    expect(steps).toHaveLength(6);
     expect(steps.every((step) => !step.complete)).toBe(true);
+    expect(steps.map((step) => step.id)).toContain('military-action');
   });
 
   it('marks onboarding complete only when the corresponding systems are configured', () => {
     const steps = deriveOnboardingSteps({
+      ...militaryOnboarding,
+      week: 1,
+      briefingRead: true,
+      visitedTabs: ['command', 'organization', 'army', 'industry', 'research'],
+      milestones: ['military-action'],
       factories: 12,
       production: [{ ...baseInput.production[0], assigned: 12 }],
       research: [
@@ -113,6 +150,26 @@ describe('user experience guidance', () => {
       orders: [{ divisionId: 'division', fromId: 'home', targetId: 'front', startedWeek: 1 }],
     });
     expect(steps.every((step) => step.complete)).toBe(true);
+  });
+
+  it('changes onboarding duties and authority language by branch and rank', () => {
+    const sharedState = {
+      factories: baseInput.factories,
+      production: baseInput.production,
+      research: baseInput.research,
+      selectedPolicies: baseInput.selectedPolicies,
+      orders: baseInput.orders,
+      week: 0,
+      briefingRead: false,
+      visitedTabs: [] as Array<'command'>,
+      milestones: [] as string[],
+    };
+    const political = deriveOnboardingSteps({ ...sharedState, role: { branch: 'politics', tier: 2, scope: '내각 정책 결재' } });
+    const intelligenceJunior = deriveOnboardingSteps({ ...sharedState, role: { branch: 'intelligence', tier: 5, scope: '현장 정보 수집' } });
+    expect(political.some((step) => step.id === 'political-action')).toBe(true);
+    expect(political.some((step) => step.id === 'military-action')).toBe(false);
+    expect(intelligenceJunior.find((step) => step.id === 'intelligence-action')?.title).toContain('상신');
+    expect(intelligenceJunior.find((step) => step.id === 'authority')?.title).toContain('TIER 5');
   });
 
   it('guides a new week from result review through briefing and urgent decisions', () => {
@@ -126,7 +183,7 @@ describe('user experience guidance', () => {
       activeOrders: 1,
       activeResearch: 2,
     });
-    expect(review).toMatchObject({ currentStage: 'review', primaryDestination: 'journal', readyToAdvance: false });
+    expect(review).toMatchObject({ currentStage: 'review', primaryDestination: 'briefing', primaryLabel: '주간 브리핑 확인', readyToAdvance: false });
     expect(review.steps.map((step) => step.state)).toEqual(['current', 'waiting', 'waiting', 'waiting']);
 
     const briefing = deriveWeeklyCommandCycle({
@@ -139,7 +196,7 @@ describe('user experience guidance', () => {
       activeOrders: 1,
       activeResearch: 2,
     });
-    expect(briefing).toMatchObject({ currentStage: 'briefing', primaryDestination: 'weekly' });
+    expect(briefing).toMatchObject({ currentStage: 'briefing', primaryDestination: 'briefing' });
   });
 
   it('keeps recommended adjustments optional once mandatory weekly checks are complete', () => {
@@ -156,5 +213,43 @@ describe('user experience guidance', () => {
     expect(cycle).toMatchObject({ currentStage: 'advance', primaryDestination: 'advance', readyToAdvance: true });
     expect(cycle.steps.find((step) => step.id === 'decisions')?.state).toBe('optional');
     expect(cycle.primaryLabel).toBe('다음 주 진행');
+  });
+
+  it('moves an action through detection, acknowledgement, work and verification', () => {
+    const action = deriveUXActions(baseInput).find((item) => item.id === 'idle-factories')!;
+    const detected = reconcileUXActionLifecycle([], [action], 2);
+    expect(detected[0]).toMatchObject({ status: 'detected', firstDetectedWeek: 2 });
+
+    const acknowledged = acknowledgeUXActions(detected, [action.id], 2);
+    expect(acknowledged[0]).toMatchObject({ status: 'acknowledged', acknowledgedWeek: 2 });
+
+    const working = startUXAction(acknowledged, action.id, 2);
+    expect(working[0]).toMatchObject({ status: 'in-progress', actionWeek: 2 });
+
+    const verifying = markUXActionsForVerification(working, 2);
+    expect(verifying[0]).toMatchObject({ status: 'verifying', verificationWeek: 3 });
+    expect(decorateUXActions([action], verifying)[0]).toMatchObject({ priority: 'info', lifecycleStatus: 'verifying', label: '검증 현황' });
+  });
+
+  it('resolves a verified action when its trigger disappears and reopens only after recurrence', () => {
+    const action = deriveUXActions(baseInput).find((item) => item.id === 'idle-factories')!;
+    const verifying = markUXActionsForVerification(startUXAction(reconcileUXActionLifecycle([], [action], 0), action.id, 0), 0);
+    const resolved = reconcileUXActionLifecycle(verifying, [], 1);
+    expect(resolved[0]).toMatchObject({ status: 'resolved', resolvedWeek: 1 });
+
+    const recurred = reconcileUXActionLifecycle(resolved, [{ ...action, signalValue: (action.signalValue ?? 0) + 2 }], 3);
+    expect(recurred[0]).toMatchObject({ status: 'detected', recurrenceCount: 1 });
+  });
+
+  it('keeps an unchanged warning in verification instead of making it urgent every week', () => {
+    const action = deriveUXActions({ ...baseInput, economyOperatingBalance: -70 }).find((item) => item.id === 'economy-operating-deficit')!;
+    const verifying = markUXActionsForVerification(startUXAction(reconcileUXActionLifecycle([], [action], 0), action.id, 0), 0);
+    const nextWeek = reconcileUXActionLifecycle(verifying, [{ ...action }], 1);
+    expect(nextWeek[0].status).toBe('verifying');
+    expect(decorateUXActions([action], nextWeek)[0].priority).toBe('info');
+  });
+
+  it('normalizes saved lifecycle data without trusting malformed records', () => {
+    expect(normalizeUXActionLifecycle([null, { actionId: 'broken' }])).toEqual([]);
   });
 });
