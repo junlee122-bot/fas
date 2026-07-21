@@ -8057,3 +8057,109 @@ button:focus-visible,
   .action-center-impact > span:nth-child(3) { grid-column: 1 / -1; }
   .action-center > footer { white-space: nowrap; overflow-x: auto; }
 }
+
+/* Keeps the selected action-center task visible after entering its work surface. */
+.tracked-command-brief {
+  --tracked-accent: var(--command-gold);
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1.45fr) minmax(210px, .8fr) 30px;
+  align-items: center;
+  gap: 12px;
+  min-height: 92px;
+  margin: 0 0 12px;
+  padding: 12px 11px 12px 13px;
+  overflow: hidden;
+  border: 1px solid rgba(var(--tracked-accent), .28);
+  border-left: 3px solid rgba(var(--tracked-accent), .88);
+  background:
+    linear-gradient(100deg, rgba(var(--tracked-accent), .11), rgba(12, 19, 16, .94) 42%, rgba(7, 12, 10, .98)),
+    #0d1411;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .035), 0 10px 26px rgba(0, 0, 0, .2);
+}
+.tracked-command-brief::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 190px;
+  height: 100%;
+  pointer-events: none;
+  opacity: .12;
+  background: repeating-linear-gradient(135deg, transparent 0 9px, rgba(var(--tracked-accent), .6) 9px 10px);
+  mask-image: linear-gradient(90deg, transparent, #000);
+}
+.tracked-command-brief.urgent { --tracked-accent: var(--command-red); }
+.tracked-command-brief.info { --tracked-accent: var(--command-steel); }
+.tracked-command-icon,
+.tracked-command-copy,
+.tracked-command-outcome,
+.tracked-command-brief > button { position: relative; z-index: 1; }
+.tracked-command-icon { display: grid; place-items: center; }
+.tracked-command-copy { display: grid; min-width: 0; gap: 3px; }
+.tracked-command-copy small,
+.tracked-command-outcome small {
+  color: rgba(var(--tracked-accent), .9);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .13em;
+  line-height: 1.3;
+}
+.tracked-command-copy strong {
+  overflow: hidden;
+  color: #eee7d6;
+  font-size: 14px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tracked-command-copy p {
+  margin: 0;
+  color: #aeb9b3;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.tracked-command-outcome {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  align-self: stretch;
+  align-content: center;
+  padding-left: 13px;
+  border-left: 1px solid rgba(var(--tracked-accent), .2);
+}
+.tracked-command-outcome strong {
+  color: #d7d6ca;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+.tracked-command-brief > button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: #8f9d96;
+  border: 1px solid rgba(154, 170, 161, .18);
+  background: rgba(5, 9, 8, .48);
+}
+.tracked-command-brief > button:hover {
+  color: #f0e8d6;
+  border-color: rgba(var(--tracked-accent), .55);
+  background: rgba(var(--tracked-accent), .12);
+}
+
+@media (max-width: 900px) {
+  .tracked-command-brief { grid-template-columns: 40px minmax(0, 1fr) 30px; }
+  .tracked-command-outcome { grid-column: 2 / -1; padding: 8px 0 0; border-top: 1px solid rgba(var(--tracked-accent), .18); border-left: 0; }
+  .tracked-command-brief > button { grid-column: 3; grid-row: 1; }
+}
+
+@media (max-width: 560px) {
+  .tracked-command-brief { grid-template-columns: 34px minmax(0, 1fr) 28px; gap: 9px; min-height: 0; margin-bottom: 10px; padding: 10px 8px 10px 9px; }
+  .tracked-command-copy strong { font-size: 13px; white-space: normal; }
+  .tracked-command-copy p { font-size: 10px; }
+  .tracked-command-outcome { grid-column: 2 / -1; }
+  .tracked-command-brief::before { width: 100px; }
+}

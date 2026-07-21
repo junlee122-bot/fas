@@ -415,6 +415,7 @@ export function App() {
   const [events, setEvents] = useState<WarEvent[]>(initialEvents);
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState<GameTab>('command');
+  const [trackedActionId, setTrackedActionId] = useState<string | null>(null);
   const [navigationCollapsed, setNavigationCollapsed] = useState(() => {
     try {
       return getInitialNavigationCollapsed(localStorage.getItem(NAVIGATION_COLLAPSED_KEY), window.innerWidth);
@@ -730,31 +731,37 @@ export function App() {
     if (!latestReport) actions.push({
       id: 'nation-first-week', priority: 'recommended', title: '첫 국정 결산이 필요합니다', detail: '예산과 국가 발전 노선을 확인한 뒤 한 주를 진행해 정책 결과를 계산하십시오.',
       reason: '건국·종전 이후 아직 기준 국정 보고서가 만들어지지 않았습니다.', ifIgnored: '예산과 발전 노선의 효과를 비교할 첫 기준선이 늦어집니다.', resolution: '한 주 진행 후 첫 국정 결산에서 확인',
+      instruction: '국가 발전 노선과 예산 배분을 확인하고, 상단의 주간 진행으로 첫 국정 기준선을 확정하십시오.',
       label: '국가 운영 열기', tab: 'governance',
     });
     if (economy.inflation >= 10) actions.push({
       id: 'nation-inflation', priority: 'urgent', title: `물가가 ${economy.inflation.toFixed(1)}%까지 상승했습니다`, detail: '공공지출·산업 공급·가격 통제의 조합을 재검토해야 합니다.',
       reason: `물가 ${economy.inflation.toFixed(1)}% · 안정 관리 기준 10% 초과`, ifIgnored: '생활수준·실질임금·정부 신뢰가 함께 낮아질 수 있습니다.', resolution: '예산·산업 정책 조정 · 다음 주 국정 결산에 반영',
+      instruction: '물가를 올리는 지출과 공급 부족을 확인하고 산업·복지·가격 정책을 함께 재배분하십시오.',
       label: '재정 조정', tab: 'governance',
     });
     if (nationManagement.unrest >= 55) actions.push({
       id: 'nation-unrest', priority: 'urgent', title: `사회 불안 ${Math.round(nationManagement.unrest)}`, detail: '복지·주택·고용 예산과 정통성의 부족이 국내 질서를 압박합니다.',
       reason: `사회 불안 ${Math.round(nationManagement.unrest)} · 위기 기준 55 초과`, ifIgnored: '파업·폭동·쿠데타 세력의 조직화 가능성이 커집니다.', resolution: '예산·제도 조정 · 다음 주 불안도와 권력집단 반응 확인',
+      instruction: '불만이 큰 인구집단을 확인한 뒤 복지·주택·고용 예산과 정통성 제도를 우선 조정하십시오.',
       label: '예산 재배분', tab: 'governance',
     });
     if (nationManagement.mandateScore < 50) actions.push({
       id: 'nation-mandate', priority: 'recommended', title: `국민 위임 ${nationManagement.mandateScore}`, detail: `다음 평가까지 ${Math.max(0, nationManagement.nextElectionWeek - game.week)}주 남았습니다. 생활 지표와 정부 신뢰를 회복하십시오.`,
       reason: `국민 위임 ${nationManagement.mandateScore} · 안정 기준 50 미만`, ifIgnored: '선거·당대회·정권 평가에서 정책 권한이 축소될 수 있습니다.', resolution: '생활·신뢰 정책 조정 · 매주 위임 점수에 누적 반영',
+      instruction: '평가일까지 남은 기간을 확인하고 생활수준과 정부 신뢰를 동시에 높일 예산·제도를 선택하십시오.',
       label: '국정 지표 보기', tab: 'governance',
     });
     if (publicHealth.activeOutbreak) actions.push({
       id: 'nation-health', priority: 'urgent', title: `${publicHealth.activeOutbreak.codeName} 보건 위기`, detail: '유행 대응 비용과 인명 피해가 복지·재정·국민 위임에 영향을 줍니다.',
       reason: `활성 유행 · ${publicHealth.activeOutbreak.codeName}`, ifIgnored: '인명 피해와 의료비가 재정·생산성·국민 위임을 동시에 압박합니다.', resolution: '보건 태세 변경 즉시 · 다음 주 국정·보건 결산에서 확인',
+      instruction: '태세별 감염·사망·병상 전망과 비용을 비교해 국가 운영이 감당할 대응책을 확정하십시오.',
       label: '보건 위기 지휘', tab: 'health',
     });
     if (actions.length === 0) actions.push({
       id: 'nation-stable', priority: 'info', title: '국정 운영이 안정적입니다', detail: '장기 산업·교육·외교 목표를 향해 다음 주를 진행할 수 있습니다.',
       reason: '긴급 임계치를 넘은 국정 지표가 없습니다.', ifIgnored: '즉시 위험은 없지만 장기 성장 기회를 활용하지 못할 수 있습니다.', resolution: '장기 목표 선택 · 다음 주 성장 지표에서 확인',
+      instruction: '산업·교육·외교 중 이번 임기의 우선 목표를 정하고 예산을 집중한 뒤 다음 주를 진행하십시오.',
       label: '국정 현황', tab: 'governance',
     });
     return actions;
@@ -769,6 +776,7 @@ export function App() {
       reason: `${coupRisk.leadingFaction.name} 주도 · 위험 점수 ${coupRisk.score}`,
       ifIgnored: `다음 주 쿠데타 시도 확률 ${coupRisk.weeklyChance.toFixed(1)}%가 그대로 적용됩니다.`,
       resolution: '파벌·기관 대응 즉시 · 다음 주 정치위기 판정에서 검증',
+      instruction: '최대 위험 파벌과 장악 기관을 확인하고 회유·감찰·인사 조치 중 권한과 자원에 맞는 대응을 선택하십시오.',
       label: '정치위기 상황실',
       tab: 'command',
     };
@@ -776,6 +784,9 @@ export function App() {
     const order = { urgent: 0, recommended: 1, info: 2 } as const;
     return [...actions].sort((left, right) => order[left.priority] - order[right.priority]);
   }, [baseUXActions, coupRisk]);
+  const trackedAction = trackedActionId
+    ? uxActions.find((action) => action.id === trackedActionId) ?? null
+    : null;
   const relationAverage = useMemo(
     () => relations.reduce((total, relation) => total + relation.value, 0) / Math.max(1, relations.length),
     [relations],
@@ -1907,6 +1918,7 @@ export function App() {
     setShowAchievementGallery(false);
     setShowWorldHistory(false);
     setShowWorldWeekly(false);
+    setTrackedActionId(null);
     setPendingAchievementId(null);
     setAchievementUnlocks([]);
     setWorldWeeklyIssues([openingWorldWeeklyIssue]);
@@ -2081,6 +2093,7 @@ export function App() {
       setShowAchievementGallery(false);
       setShowWorldHistory(false);
       setShowWorldWeekly(false);
+      setTrackedActionId(null);
       setActiveTab(restoredPhase === 'nation' ? 'governance' : 'command');
       setShowBriefing(false);
       if (typeof data.pendingWorldFlashpointId === 'string' || data.pendingCoupIncident) setSpeed(0);
@@ -2154,6 +2167,7 @@ export function App() {
     setShowAchievementGallery(false);
     setShowWorldHistory(false);
     setShowWorldWeekly(false);
+    setTrackedActionId(null);
     setPendingAchievementId(null);
     setAchievementUnlocks([]);
     setWorldWeeklyIssues([]);
@@ -3279,6 +3293,7 @@ export function App() {
   const navigateFromActionCenter = (action: UXAction) => {
     if (action.id === 'political-crisis') {
       setSpeed(0);
+      setTrackedActionId(null);
       setShowPoliticalCrisis(true);
       setShowActionCenter(false);
       return;
@@ -3298,6 +3313,8 @@ export function App() {
         setSelectedTerritoryId(readyDivision.territoryId);
       }
     }
+    setTrackedActionId(action.id);
+    deckScrollPositionsRef.current[action.tab] = 0;
     setActiveTab(action.tab);
     setShowActionCenter(false);
   };
@@ -3999,6 +4016,25 @@ export function App() {
             </button>
           )}
           <div className="deck-content" ref={deckContentRef}>
+            {trackedAction && activeTab === trackedAction.tab && (
+              <section className={`tracked-command-brief ${trackedAction.priority}`} aria-label={`추적 중인 지시: ${trackedAction.title}`}>
+                <span className="tracked-command-icon" aria-hidden="true">
+                  <GameIcon name="command" size={20} tone={trackedAction.priority === 'urgent' ? 'red' : 'gold'} framed active />
+                </span>
+                <span className="tracked-command-copy">
+                  <small>TRACKED ORDER · {trackedAction.priority === 'urgent' ? '긴급 지시' : trackedAction.priority === 'recommended' ? '권장 지시' : '상태 추적'}</small>
+                  <strong>{trackedAction.title}</strong>
+                  <p>{trackedAction.instruction ?? `${trackedAction.label} 관련 설정을 조정하십시오.`}</p>
+                </span>
+                <span className="tracked-command-outcome">
+                  <small>결과 확인</small>
+                  <strong>{trackedAction.resolution ?? '다음 주 결산에서 확인'}</strong>
+                </span>
+                <button type="button" onClick={() => setTrackedActionId(null)} aria-label={`${trackedAction.title} 추적 해제`}>
+                  <X size={15} />
+                </button>
+              </section>
+            )}
             {activeTab === 'command' && campaignPhase === 'war' && (
               <div className="command-home">
                 <CommandDashboard

@@ -37,7 +37,7 @@ describe('user experience guidance', () => {
     const actions = deriveUXActions(baseInput);
     expect(actions.slice(0, 3).map((action) => action.id)).toEqual(['commander-skill', 'research-slot', 'idle-factories']);
     expect(actions.every((action, index) => index === 0 || actions[index - 1].priority !== 'recommended' || action.priority !== 'urgent')).toBe(true);
-    expect(actions.every((action) => action.reason && action.ifIgnored && action.resolution)).toBe(true);
+    expect(actions.every((action) => action.reason && action.ifIgnored && action.resolution && action.instruction)).toBe(true);
   });
 
   it('removes resolved recommendations from the action center', () => {
