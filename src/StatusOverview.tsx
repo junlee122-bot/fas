@@ -25,6 +25,15 @@ export interface StatusMetric {
   icon: GameIconName;
 }
 
+export interface StatusProjection {
+  id: string;
+  label: string;
+  value: string;
+  detail: string;
+  tone: 'good' | 'warning' | 'danger' | 'neutral';
+  icon: GameIconName;
+}
+
 interface StatusOverviewProps {
   nationName: string;
   roleTitle: string;
@@ -32,9 +41,11 @@ interface StatusOverviewProps {
   phaseLabel: string;
   resources: StatusResource[];
   metrics: StatusMetric[];
+  projections: StatusProjection[];
   actions: UXAction[];
+  primaryActionLabel: string;
   onNavigate: (action: UXAction) => void;
-  onNextWeek: () => void;
+  onContinue: () => void;
   onClose: () => void;
 }
 
@@ -44,7 +55,7 @@ const priorityLabels = {
   info: '보고',
 };
 
-export function StatusOverview({ nationName, roleTitle, date, phaseLabel, resources, metrics, actions, onNavigate, onNextWeek, onClose }: StatusOverviewProps) {
+export function StatusOverview({ nationName, roleTitle, date, phaseLabel, resources, metrics, projections, actions, primaryActionLabel, onNavigate, onContinue, onClose }: StatusOverviewProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const readiness = deriveCommandReadiness(actions);
   const visibleActions = actions.slice(0, 4);
@@ -86,6 +97,18 @@ export function StatusOverview({ nationName, roleTitle, date, phaseLabel, resour
               </div>
             </section>
 
+            <section className="status-panel status-projection-panel">
+              <header><span><Clock3 size={15} /><strong>다음 주 예상 결산</strong></span><em>현재 명령·배정 기준 · 확률 사건 제외</em></header>
+              <div className="status-projection-grid">
+                {projections.map((projection) => (
+                  <article className={projection.tone} key={projection.id}>
+                    <GameIcon name={projection.icon} size={17} tone={projection.tone === 'danger' ? 'red' : projection.tone === 'warning' ? 'gold' : projection.tone === 'good' ? 'green' : 'blue'} framed />
+                    <span><small>{projection.label}</small><strong>{projection.value}</strong><em>{projection.detail}</em></span>
+                  </article>
+                ))}
+              </div>
+            </section>
+
             <section className="status-panel status-metrics-panel">
               <header><span><GameIcon name="command" size={16} tone="blue" /><strong>국가·전쟁 상태</strong></span><em>위험부터 정렬</em></header>
               <div className="status-metric-grid">
@@ -105,7 +128,10 @@ export function StatusOverview({ nationName, roleTitle, date, phaseLabel, resour
               {visibleActions.map((action, index) => (
                 <button className={action.priority} key={action.id} onClick={() => onNavigate(action)}>
                   <i>{String(index + 1).padStart(2, '0')}</i>
-                  <span><small>{priorityLabels[action.priority]}</small><strong>{action.title}</strong><em>{action.detail}</em></span>
+                  <span>
+                    <small>{priorityLabels[action.priority]}</small><strong>{action.title}</strong><em>{action.detail}</em>
+                    {action.ifIgnored && <p className="status-priority-risk"><AlertTriangle size={11} /> 이월 시 · {action.ifIgnored}</p>}
+                  </span>
                   <b>{action.label}<ChevronRight size={13} /></b>
                 </button>
               ))}
@@ -117,7 +143,7 @@ export function StatusOverview({ nationName, roleTitle, date, phaseLabel, resour
 
         <footer>
           <span><kbd>H</kbd> 현황판 · <kbd>G</kbd> 행동 센터 · <kbd>Esc</kbd> 닫기</span>
-          <div><button onClick={onClose}>돌아가기</button><button className={readiness.state === 'blocked' ? 'warning' : 'primary'} onClick={onNextWeek}><Clock3 size={14} /> {readiness.state === 'blocked' ? '위험을 감수하고 다음 주' : '다음 주 진행'}</button></div>
+          <div><button onClick={onClose}>돌아가기</button><button className={readiness.state === 'blocked' ? 'warning' : 'primary'} onClick={onContinue}><Clock3 size={14} /> {primaryActionLabel}</button></div>
         </footer>
       </section>
     </div>

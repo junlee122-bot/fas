@@ -129,7 +129,7 @@ import { OffensivePlanningModal } from './OffensivePlanningModal';
 import { CommanderDevelopmentPanel } from './CommanderDevelopmentPanel';
 import { ActionCenter } from './ActionCenter';
 import { StatusOverview } from './StatusOverview';
-import type { StatusMetric, StatusResource } from './StatusOverview';
+import type { StatusMetric, StatusProjection, StatusResource } from './StatusOverview';
 import { SettingsModal } from './SettingsModal';
 import { WarJournal } from './WarJournal';
 import { createWarEventTrace } from './journal';
@@ -944,6 +944,118 @@ export function App() {
     { id: 'fuel', label: isKoreaWarCampaign ? '작전 연료' : campaignPhase === 'nation' ? '전략 에너지' : '연료', value: `${formatNumber(game.fuel)}K`, delta: campaignPhase === 'nation' ? undefined : '+2.6/주', detail: isKoreaWarCampaign ? '광복군 훈련·침투·연합 수송 지원' : '기갑·항공·해군 작전 지속', icon: 'fuel', tone: 'green' },
     { id: 'steel', label: isKoreaWarCampaign ? '조달 강철' : '강철', value: `${formatNumber(game.steel)}K`, delta: '+9/주', detail: isKoreaWarCampaign ? '연합 조달 장비와 정비 부품 원료' : '중장비·차량·함정 생산 원료', icon: 'steel', tone: 'steel' },
   ];
+  const projectionCompletedResearch = research.filter((project) => project.complete).length;
+  const projectionPublicHealthPressure = publicHealth.activeOutbreak
+    ? Math.max(publicHealth.activeOutbreak.hospitalLoad, publicHealth.activeOutbreak.weeklyCases / 10_000)
+    : publicHealth.outbreakPressure * 0.12;
+  const nationWeekProjection = campaignPhase === 'nation'
+    ? advanceNationManagementWeek(nationManagement, {
+      week: game.week + 1,
+      game,
+      economy,
+      relationAverage,
+      completedResearch: projectionCompletedResearch,
+      publicHealthPressure: projectionPublicHealthPressure,
+    })
+    : null;
+  const projectionResearchGain = campaignPhase === 'nation' && nationWeekProjection
+    ? 6 + Math.floor(nationWeekProjection.state.education / 18) + scienceAdvisorBonus
+    : (doctrine === 'methodical' ? 13 : 11) + 2 + scienceAdvisorBonus + (scienceAdvisor?.discipline === 'science' ? 1 : 0);
+  const projectionActiveResearch = research.filter((project) => project.active && !project.complete);
+  const projectionBreakthroughs = projectionActiveResearch.filter((project) => project.progress + projectionResearchGain >= project.duration);
+  const baseProductionProjection = calculateProductionGains(production, game.week + 1);
+  const projectionFocusMultiplier = (lineId: string) => procurementFocusId === lineId ? 1.12 : 1;
+  const productionProjection = {
+    tanks: Math.round(baseProductionProjection.tanks * policyProductionMultiplier * projectionFocusMultiplier('sherman')),
+    aircraft: Math.round(baseProductionProjection.aircraft * policyProductionMultiplier * projectionFocusMultiplier('spitfire')),
+    infantryEquipment: Math.round(baseProductionProjection.infantryEquipment * policyProductionMultiplier * projectionFocusMultiplier('rifle')),
+    convoys: Math.round(baseProductionProjection.convoys * policyProductionMultiplier * projectionFocusMultiplier('convoy')),
+    artillery: Math.round(baseProductionProjection.artillery * policyProductionMultiplier * projectionFocusMultiplier('artillery')),
+    trucks: Math.round(baseProductionProjection.trucks * policyProductionMultiplier * projectionFocusMultiplier('truck')),
+  };
+  const projectionProductionTotal = Object.values(productionProjection).reduce((total, amount) => total + amount, 0);
+  const projectionManpowerGain = 18 + (scienceAdvisor?.delegated && scienceAdvisor.discipline === 'medicine' ? 6 : 0);
+  const projectionPoliticalGain = 3 + (delegatedDepartments.has('political') ? 1 : 0) + (scienceAdvisor?.delegated && scienceAdvisor.discipline === 'social-science' ? 1 : 0);
+  const projectionCommandGain = 6 + (delegatedDepartments.has('operations') ? 2 : 0);
+  const projectionFuelDelta = Number((8 - game.factories * 0.18 - (supplyPolicy === 'frontline' ? 2 : 0)).toFixed(1));
+  const projectionOrderTarget = orders[0] ? territories.find((territory) => territory.id === orders[0].targetId)?.name : null;
+  const statusProjections: StatusProjection[] = campaignPhase === 'nation' && nationWeekProjection
+    ? [
+      {
+        id: 'nation-finance',
+        label: '재정 수지',
+        value: formatGameMoney(nationWeekProjection.report.fiscalBalance, { signed: true }),
+        detail: `세입 ${formatGameMoney(nationWeekProjection.report.fiscalRevenue)} · 지출 ${formatGameMoney(nationWeekProjection.report.fiscalExpenditure)}`,
+        tone: nationWeekProjection.report.fiscalBalance < -12 ? 'danger' : nationWeekProjection.report.fiscalBalance < 0 ? 'warning' : 'good',
+        icon: 'treasury',
+      },
+      {
+        id: 'nation-performance',
+        label: '국가 성과·위임',
+        value: `${nationManagement.nationalScore} → ${nationWeekProjection.state.nationalScore}`,
+        detail: `국민 위임 ${nationManagement.mandateScore} → ${nationWeekProjection.state.mandateScore} · 사회 불안 ${nationWeekProjection.state.unrest.toFixed(1)}`,
+        tone: nationWeekProjection.state.mandateScore < 40 ? 'danger' : nationWeekProjection.state.mandateScore < 55 ? 'warning' : 'good',
+        icon: 'politics',
+      },
+      {
+        id: 'nation-economy',
+        label: '물가·부채',
+        value: `물가 ${nationWeekProjection.economyDelta.inflation >= 0 ? '+' : ''}${nationWeekProjection.economyDelta.inflation.toFixed(2)}%p`,
+        detail: `부채 ${formatGameMoney(nationWeekProjection.economyDelta.debt, { signed: true })} · 공공신뢰 ${nationWeekProjection.economyDelta.publicConfidence >= 0 ? '+' : ''}${nationWeekProjection.economyDelta.publicConfidence.toFixed(2)}`,
+        tone: nationWeekProjection.economyDelta.inflation > 0.2 || nationWeekProjection.economyDelta.debt > 12 ? 'warning' : 'neutral',
+        icon: 'industry',
+      },
+      {
+        id: 'nation-research',
+        label: '국가 연구',
+        value: projectionActiveResearch.length ? `${projectionActiveResearch.length}건 · 각각 +${projectionResearchGain}` : '배정 필요',
+        detail: projectionBreakthroughs.length ? `완료 예정: ${projectionBreakthroughs.map((project) => project.name).join(' · ')}` : projectionActiveResearch.map((project) => project.name).join(' · ') || '빈 연구 슬롯은 주간 연구량을 잃습니다.',
+        tone: projectionActiveResearch.length ? 'good' : 'warning',
+        icon: 'research',
+      },
+    ]
+    : [
+      {
+        id: 'war-finance',
+        label: '전시 재정',
+        value: formatGameMoney(economyForecast.netTreasuryChange, { signed: true }),
+        detail: `경상세입 ${formatGameMoney(economyForecast.operatingRevenue)} · 총지출 ${formatGameMoney(economyForecast.totalExpenses)} · 조달 ${formatGameMoney(economyForecast.financingRaised)}`,
+        tone: economyForecast.netTreasuryChange < -12 ? 'danger' : economyForecast.netTreasuryChange < 0 ? 'warning' : 'good',
+        icon: 'treasury',
+      },
+      {
+        id: 'war-production',
+        label: '군수 생산',
+        value: `총 +${formatNumber(projectionProductionTotal)}`,
+        detail: `보병 +${formatNumber(productionProjection.infantryEquipment)} · 전차 +${formatNumber(productionProjection.tanks)} · 항공 +${formatNumber(productionProjection.aircraft)} · 야포 +${formatNumber(productionProjection.artillery)}`,
+        tone: productionProjection.infantryEquipment > 0 ? 'good' : 'warning',
+        icon: 'industry',
+      },
+      {
+        id: 'war-research',
+        label: '연구 진척',
+        value: projectionActiveResearch.length ? `${projectionActiveResearch.length}건 · 각각 +${projectionResearchGain}` : '배정 필요',
+        detail: projectionBreakthroughs.length ? `완료 예정: ${projectionBreakthroughs.map((project) => project.name).join(' · ')}` : projectionActiveResearch.map((project) => project.name).join(' · ') || '연구 슬롯이 비어 있습니다.',
+        tone: projectionActiveResearch.length ? 'good' : 'warning',
+        icon: 'research',
+      },
+      {
+        id: 'war-operations',
+        label: '작전 판정',
+        value: orders.length ? `${orders.length}건 예약` : '명령 없음',
+        detail: orders.length ? `다음 판정: ${projectionOrderTarget ?? '목표 지역'} · ${battleStance === 'aggressive' ? '강공' : battleStance === 'cautious' ? '신중' : '균형'} 태세` : '작전 결과 없이 행정 주간으로 진행됩니다.',
+        tone: orders.length ? 'good' : 'warning',
+        icon: 'army',
+      },
+      {
+        id: 'war-resources',
+        label: '국력 변화',
+        value: `인력 +${projectionManpowerGain} · 연료 ${projectionFuelDelta >= 0 ? '+' : ''}${projectionFuelDelta}`,
+        detail: `정치력 +${projectionPoliticalGain} · 지휘 +${projectionCommandGain} · 강철 +9`,
+        tone: game.fuel + projectionFuelDelta < 25 ? 'danger' : projectionFuelDelta < 0 ? 'warning' : 'neutral',
+        icon: 'supply',
+      },
+    ];
   const statusMetrics: StatusMetric[] = [
     {
       id: 'coup',
@@ -4423,9 +4535,11 @@ export function App() {
           phaseLabel={isKoreaWarCampaign ? '독립운동·해방 준비 단계' : campaignPhase === 'nation' ? '국가 운영 단계' : '전쟁 지휘 단계'}
           resources={statusResources}
           metrics={statusMetrics}
+          projections={statusProjections}
           actions={uxActions}
+          primaryActionLabel={globalNextAriaLabel}
           onNavigate={navigateFromStatusOverview}
-          onNextWeek={() => { setShowStatusOverview(false); continueWeeklyFlow(); }}
+          onContinue={() => { setShowStatusOverview(false); continueWeeklyFlow(); }}
           onClose={() => setShowStatusOverview(false)}
         />
       )}
