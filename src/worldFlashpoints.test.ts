@@ -7,6 +7,7 @@ import {
   getHistoricalHorizon,
   getWorldFlashpointDecisionId,
   selectNextWorldFlashpoint,
+  WORLD_FLASHPOINT_INTERVAL_WEEKS,
 } from './worldFlashpoints';
 
 function timelineEntry(event: WorldHistoryEvent): GeneratedWorldEvent {
@@ -29,37 +30,37 @@ function eventById(id: string) {
 describe('in-campaign world flashpoints', () => {
   it('waits for the first quarterly decision window', () => {
     const atomic = timelineEntry(eventById('atomic-program'));
-    expect(selectNextWorldFlashpoint([atomic], 12, [])).toBeNull();
-    expect(selectNextWorldFlashpoint([atomic], 13, [])?.entry.event.id).toBe('atomic-program');
+    expect(selectNextWorldFlashpoint([atomic], WORLD_FLASHPOINT_INTERVAL_WEEKS - 1, [])).toBeNull();
+    expect(selectNextWorldFlashpoint([atomic], WORLD_FLASHPOINT_INTERVAL_WEEKS, [])?.entry.event.id).toBe('atomic-program');
   });
 
   it('selects historically due crises first and never repeats a resolved event', () => {
     const atomic = timelineEntry(eventById('atomic-program'));
     const berlin = timelineEntry(eventById('berlin-crisis'));
-    const first = selectNextWorldFlashpoint([berlin, atomic], 13, []);
+    const first = selectNextWorldFlashpoint([berlin, atomic], WORLD_FLASHPOINT_INTERVAL_WEEKS, []);
     expect(first?.entry.event.id).toBe('atomic-program');
     const resolved = [getWorldFlashpointDecisionId('atomic-program', 'authority', 13)];
-    expect(selectNextWorldFlashpoint([berlin, atomic], 13, resolved)).toBeNull();
+    expect(selectNextWorldFlashpoint([berlin, atomic], WORLD_FLASHPOINT_INTERVAL_WEEKS, resolved)).toBeNull();
   });
 
   it('forecasts the next quarterly decision and skips years with no eligible crisis', () => {
     const berlin = timelineEntry(eventById('berlin-crisis'));
     const forecast = forecastNextWorldFlashpoint([berlin], 0, []);
     expect(forecast?.entry.event.id).toBe('berlin-crisis');
-    expect(forecast?.decisionWeek).toBe(312);
-    expect(forecast?.weeksUntil).toBe(312);
+    expect(forecast?.decisionWeek).toBe(323);
+    expect(forecast?.weeksUntil).toBe(323);
     expect(forecast?.campaignYear).toBe(1948);
   });
 
-  it('accelerates later institutions as the player resolves alternate-history crises', () => {
-    const hormuz = timelineEntry(eventById('hormuz-tanker-war'));
+  it('keeps alternate-history acceleration bounded instead of consuming decades early', () => {
+    const warTermination = timelineEntry(eventById('war-termination'));
     const priorDecisions = Array.from({ length: 23 }, (_, index) => `world-flashpoint:prior-${index}:historical:${index}`);
-    const selection = selectNextWorldFlashpoint([hormuz], 52, priorDecisions);
-    expect(selection?.entry.event.id).toBe('hormuz-tanker-war');
+    const selection = selectNextWorldFlashpoint([warTermination], 52, priorDecisions);
+    expect(selection?.entry.event.id).toBe('war-termination');
     expect(selection?.campaignYear).toBe(1943);
-    expect(selection?.historicalHorizon).toBe(1989);
+    expect(selection?.historicalHorizon).toBe(1945);
     expect(selection?.accelerated).toBe(true);
-    expect(getHistoricalHorizon(52, priorDecisions)).toBe(1989);
+    expect(getHistoricalHorizon(52, priorDecisions)).toBe(1945);
   });
 
   it('makes Hormuz choices visibly affect fuel, convoys, naval pressure and diplomacy', () => {

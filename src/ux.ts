@@ -1,6 +1,7 @@
 import { getAvailableSkillPoints } from './development';
 import type { PublicHealthState } from './publicHealth';
 import type { CareerRole, CommanderDevelopment, Division, GameTab, Order, ProductionLine, ResearchProject } from './types';
+import { getResearchAvailability } from './researchProgression';
 
 export type UXActionPriority = 'urgent' | 'recommended' | 'info';
 
@@ -62,13 +63,28 @@ function hasSignalWorsened(record: UXActionLifecycleRecord, action: UXAction) {
   return action.signalValue > record.lastSignalValue + threshold;
 }
 
+function recurrenceCooldownWeeks(action: UXAction, recurrenceCount: number) {
+  const base = action.priority === 'urgent' ? 2 : action.priority === 'recommended' ? 4 : 8;
+  return Math.min(26, base + recurrenceCount * 2);
+}
+
 export function reconcileUXActionLifecycle(records: UXActionLifecycleRecord[], actions: UXAction[], week: number) {
   const currentById = new Map(records.map((record) => [record.actionId, record]));
   const activeIds = new Set(actions.map((action) => action.id));
   const next = actions.map((action) => {
     const existing = currentById.get(action.id);
     if (!existing) return createLifecycleRecord(action, week);
-    if (existing.status === 'resolved') return createLifecycleRecord(action, week, existing.recurrenceCount + 1);
+    if (existing.status === 'resolved') {
+      const resolvedWeek = existing.resolvedWeek ?? existing.lastChangedWeek;
+      const coolingDown = week - resolvedWeek < recurrenceCooldownWeeks(action, existing.recurrenceCount);
+      if (coolingDown && !hasSignalWorsened(existing, action)) return {
+        ...existing,
+        lastPriority: action.priority,
+        lastSignalValue: action.signalValue ?? existing.lastSignalValue,
+        snapshot: { ...action, lifecycleStatus: 'resolved' as const },
+      };
+      return createLifecycleRecord(action, week, existing.recurrenceCount + 1);
+    }
     if (existing.status === 'verifying' && hasSignalWorsened(existing, action)) {
       return {
         ...createLifecycleRecord(action, week, existing.recurrenceCount + 1),
@@ -142,6 +158,14 @@ export function decorateUXActions(actions: UXAction[], records: UXActionLifecycl
       detail: `조치를 적용했습니다. ${action.detail}`,
       resolution: `제 ${(record.verificationWeek ?? record.lastChangedWeek + 1) + 1}주 결산에서 지표 개선·해결·재발을 검증합니다.`,
       label: '검증 현황',
+    };
+    if (record.status === 'resolved') return {
+      ...action,
+      priority: 'info' as const,
+      lifecycleStatus: 'resolved' as const,
+      detail: `최근 조치에서 해결됐습니다. 같은 지표를 관찰 중이며 악화될 때만 다시 긴급화합니다. ${action.detail}`,
+      resolution: `제 ${(record.resolvedWeek ?? record.lastChangedWeek) + recurrenceCooldownWeeks(action, record.recurrenceCount) + 1}주까지 재발 감시`,
+      label: '해결 · 관찰 중',
     };
     return { ...action, lifecycleStatus: record.status };
   });
@@ -239,6 +263,7 @@ export interface ActionCenterInput {
   economyInflation?: number;
   economyDebt?: number;
   formatMoney?: (value: number, options?: { signed?: boolean; exact?: boolean }) => string;
+  currentYear?: number;
 }
 
 export interface OnboardingStep {
@@ -459,11 +484,12 @@ export function deriveUXActions({
   economyInflation,
   economyDebt,
   formatMoney = (value) => `${value < 0 ? '−' : ''}${Math.abs(value).toFixed(1)} 재정가치`,
+  currentYear = 1942,
 }: ActionCenterInput): UXAction[] {
   const actions: UXAction[] = [];
   const availableSkills = commanderDevelopment.reduce((total, record) => total + getAvailableSkillPoints(record), 0);
   const activeResearch = research.filter((project) => project.active && !project.complete).length;
-  const assignableResearch = research.filter((project) => !project.active && !project.complete).length;
+  const assignableResearch = research.filter((project) => !project.active && !project.complete && getResearchAvailability(project, research, currentYear).available).length;
   const usedFactories = production.reduce((total, line) => total + line.assigned, 0);
   const idleFactories = Math.max(0, factories - usedFactories);
   const readyDivisions = divisions.filter((division) => division.status === 'ready').length;

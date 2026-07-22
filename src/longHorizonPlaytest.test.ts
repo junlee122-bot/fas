@@ -13,7 +13,7 @@ describe('1942-2020 long-horizon production-engine playtest', () => {
     expect(first.warWeeks).toBe(104);
     expect(first.nationWeeks).toBe(156);
     expect(first.worldFlashpointCount).toBeGreaterThan(0);
-    expect(first.finalResearchCompleted).toBe(6);
+    expect(first.finalResearchCompleted).toBeGreaterThan(6);
   }, 30_000);
 
   it('aggregates independently generated session ranges without rerunning them', () => {

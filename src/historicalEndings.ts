@@ -39,6 +39,19 @@ export interface HistoricalEnding {
 export interface ResolvedHistoricalEnding extends HistoricalEnding {
   fitScore: number;
   reasons: [string, string, string];
+  decisiveChoices: Array<{
+    year: number;
+    eventTitle: string;
+    choiceTitle: string;
+    consequence: string;
+    axisImpact: string;
+  }>;
+  epilogueChapters: Array<{
+    id: 'government' | 'economy' | 'society' | 'technology' | 'world-order';
+    label: string;
+    title: string;
+    detail: string;
+  }>;
 }
 
 export interface HistoricalEndingInput {
@@ -233,9 +246,57 @@ function scoreAxis(axisDefinition: EndingAxis, input: HistoricalEndingInput, fam
 }
 
 function chooseAxis(axes: EndingAxis[], input: HistoricalEndingInput, family: string) {
-  return axes
+  const ranked = axes
     .map((candidate) => ({ candidate, score: scoreAxis(candidate, input, family) }))
-    .sort((a, b) => b.score - a.score || a.candidate.id.localeCompare(b.candidate.id))[0];
+    .sort((a, b) => b.score - a.score || a.candidate.id.localeCompare(b.candidate.id));
+  const bestScore = ranked[0].score;
+  // Keep the result inside a historically plausible score band, then let the campaign's
+  // concrete decision fingerprint decide between near-equivalent futures. This prevents
+  // hundreds of distinct worlds from collapsing into one mathematically dominant epilogue
+  // while preserving the metrics, trajectory and historical-signal scoring above.
+  const plausible = ranked.filter((entry) => entry.score >= bestScore - 18).slice(0, 6);
+  const decisionFingerprint = input.timeline
+    .filter((entry) => entry.isPlayerChoice)
+    .map((entry) => `${entry.event.id}:${entry.variant.id}:${entry.year}`)
+    .join('|');
+  const selectedIndex = hash(`${input.seed}:${input.nationId}:${family}:${decisionFingerprint}`) % plausible.length;
+  return plausible[selectedIndex];
+}
+
+const metricNames: Record<WorldMetric, string> = {
+  deterrence: '억지', multipolarity: '다극성', decolonization: '탈식민', rights: '권리', prosperity: '번영', instability: '불안정',
+};
+
+function buildDecisiveChoices(input: HistoricalEndingInput) {
+  return input.timeline
+    .filter((entry) => entry.isPlayerChoice)
+    .map((entry) => {
+      const ranked = (Object.entries(entry.variant.metricDelta) as [WorldMetric, number][])
+        .sort((left, right) => Math.abs(right[1]) - Math.abs(left[1]));
+      return {
+        score: ranked.reduce((total, [, value]) => total + Math.abs(value), 0),
+        year: entry.year,
+        eventTitle: entry.event.title,
+        choiceTitle: entry.variant.title,
+        consequence: entry.variant.consequence,
+        axisImpact: ranked.slice(0, 2).map(([metric, value]) => `${metricNames[metric]} ${value >= 0 ? '+' : ''}${value}`).join(' · ') || '장기 지표 간접 반영',
+      };
+    })
+    .sort((left, right) => right.score - left.score || left.year - right.year || left.eventTitle.localeCompare(right.eventTitle))
+    .slice(0, 10)
+    .map(({ score: _score, ...choice }) => choice);
+}
+
+function buildEpilogueChapters(order: EndingAxis, settlement: EndingAxis, horizon: EndingAxis, input: HistoricalEndingInput): ResolvedHistoricalEnding['epilogueChapters'] {
+  const rightsBalance = input.metrics.rights - input.metrics.instability;
+  const powerShape = input.metrics.multipolarity >= 65 ? '여러 지역권력이 협상하는 다극 체제' : input.metrics.deterrence >= 65 ? '강한 억지와 동맹 위계가 지배하는 체제' : '유동적인 지역 연합 체제';
+  return [
+    { id: 'government', label: '정권·헌정', title: order.name, detail: `${order.description} ${order.tension}` },
+    { id: 'economy', label: '경제·재건', title: settlement.name, detail: `${settlement.description} ${settlement.legacy}` },
+    { id: 'society', label: '사회·권리', title: rightsBalance >= 25 ? '권리 중심 사회계약' : rightsBalance <= -15 ? '안보 우선 동원사회' : '교섭형 혼합 사회계약', detail: `권리 ${Math.round(input.metrics.rights)} · 번영 ${Math.round(input.metrics.prosperity)} · 불안정 ${Math.round(input.metrics.instability)}의 결합이 시민의 일상과 국가 정당성을 결정했습니다.` },
+    { id: 'technology', label: '기술·미래', title: horizon.name, detail: `${horizon.description} ${horizon.tension}` },
+    { id: 'world-order', label: '국제질서', title: powerShape, detail: `다극성 ${Math.round(input.metrics.multipolarity)} · 억지 ${Math.round(input.metrics.deterrence)} · 탈식민 ${Math.round(input.metrics.decolonization)}. ${order.legacy}` },
+  ];
 }
 
 export function resolveHistoricalEnding(input: HistoricalEndingInput): ResolvedHistoricalEnding {
@@ -255,6 +316,8 @@ export function resolveHistoricalEnding(input: HistoricalEndingInput): ResolvedH
       `${settlement.candidate.name}: 재건·경제 선택의 적합도 ${Math.round(settlement.score)}`,
       `${horizon.candidate.name}: 과학·사회 미래 선택의 적합도 ${Math.round(horizon.score)}`,
     ],
+    decisiveChoices: buildDecisiveChoices(input),
+    epilogueChapters: buildEpilogueChapters(order.candidate, settlement.candidate, horizon.candidate, input),
   };
 }
 

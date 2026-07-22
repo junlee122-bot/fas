@@ -1,4 +1,5 @@
 import type { Commander, CovertOperation, DiplomaticRelation, Division, ProductionLine, ResearchProject, Territory } from './types';
+import { longHorizonResearchProjects } from './researchProgression';
 import { buildStrategicTerritories } from './strategicMapData';
 
 const legacyTerritories: Territory[] = [
@@ -76,12 +77,13 @@ export const initialDivisions: Division[] = [
 ];
 
 export const initialResearch: ResearchProject[] = [
-  { id: 'radar', name: '센티미터파 레이더', branch: '전자전', description: '공중 탐지와 야간 요격 효율 +15%', progress: 68, duration: 100, active: true, complete: false, icon: '⌁' },
-  { id: 'tank', name: '차세대 순항전차', branch: '기갑', description: '기갑사단 공격력과 돌파력 +12%', progress: 34, duration: 120, active: true, complete: false, icon: '▰' },
-  { id: 'logistics', name: '기계화 군수 교리', branch: '교리', description: '보급 소모 -10%, 이동 회복 +20%', progress: 0, duration: 90, active: false, complete: false, icon: '⌬' },
-  { id: 'code', name: '울트라 해독 체계', branch: '정보', description: '적 작전 탐지 확률 +25%', progress: 0, duration: 130, active: false, complete: false, icon: '◈' },
-  { id: 'landing', name: '합동 상륙 교리', branch: '해군', description: '해안 공격 불이익 절반 감소', progress: 0, duration: 110, active: false, complete: false, icon: '≋' },
-  { id: 'penicillin', name: '페니실린 대량 생산', branch: '산업', description: '전투 손실 회복률 +18%', progress: 0, duration: 80, active: false, complete: false, icon: '✚' },
+  { id: 'radar', name: '센티미터파 레이더', branch: '전자전', description: '공중 탐지와 야간 요격 효율 +15%', progress: 68, duration: 100, active: true, complete: false, icon: '⌁', minimumYear: 1942, prerequisites: [], era: 'wartime', historicalBasis: '공동 마그네트론 연구와 전시 레이더망', outcomeTags: ['air-defense', 'electronics'] },
+  { id: 'tank', name: '차세대 순항전차', branch: '기갑', description: '기갑사단 공격력과 돌파력 +12%', progress: 34, duration: 120, active: true, complete: false, icon: '▰', minimumYear: 1942, prerequisites: [], era: 'wartime', historicalBasis: '1942년 중형·순항전차 개발 경쟁', outcomeTags: ['armor', 'industry'] },
+  { id: 'logistics', name: '기계화 군수 교리', branch: '교리', description: '보급 소모 -10%, 이동 회복 +20%', progress: 0, duration: 90, active: false, complete: false, icon: '⌬', minimumYear: 1942, prerequisites: [], era: 'wartime', historicalBasis: '연합군 차량화 보급과 추축군 철도·차량 보급 경험', outcomeTags: ['logistics', 'command'] },
+  { id: 'code', name: '울트라 해독 체계', branch: '정보', description: '적 작전 탐지 확률 +25%', progress: 0, duration: 130, active: false, complete: false, icon: '◈', minimumYear: 1942, prerequisites: [], era: 'wartime', historicalBasis: '블레츨리 파크와 각국 신호정보 조직', outcomeTags: ['intelligence', 'computing'] },
+  { id: 'landing', name: '합동 상륙 교리', branch: '해군', description: '해안 공격 불이익 절반 감소', progress: 0, duration: 110, active: false, complete: false, icon: '≋', minimumYear: 1942, prerequisites: [], era: 'wartime', historicalBasis: '연합군 합동 상륙작전 교리', outcomeTags: ['naval', 'command'] },
+  { id: 'penicillin', name: '페니실린 대량 생산', branch: '산업', description: '전투 손실 회복률 +18%', progress: 0, duration: 80, active: false, complete: false, icon: '✚', minimumYear: 1942, prerequisites: [], era: 'wartime', historicalBasis: '전시 페니실린 발효·대량생산 사업', outcomeTags: ['health', 'industry'] },
+  ...longHorizonResearchProjects,
 ];
 
 export const initialProduction: ProductionLine[] = [

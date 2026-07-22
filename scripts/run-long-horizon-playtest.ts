@@ -123,17 +123,70 @@ ${outlierRows}
 `;
 }
 
-function writeArtifacts(run: LongHorizonPlaytestRun, outputDirectory: string) {
+function createImprovementMarkdown(run: LongHorizonPlaytestRun) {
+  const { aggregate } = run;
+  const findingRows = run.findings.map((finding) => (
+    `| ${finding.priority} | ${finding.title} | ${finding.evidence} |`
+  )).join('\n');
+  return `# IRON DOMINION 1942–2020 장기 플레이테스트 개선 검증
+
+## 결과
+
+기존 300회 플레이테스트에서 확인한 일곱 병목을 실제 게임 엔진에 반영한 뒤, 같은 1942–2020 조건과 동일한 6개 행동 성향으로 300회를 다시 실행했습니다. 아래 값은 화면 모형이 아니라 경제·보건·전투·연구·인사·쿠데타·선거·세계사 엔진의 주간 상태 전이를 합산한 결과입니다.
+
+| 지표 | 개선 전 | 개선 후 |
+| --- | ---: | ---: |
+| 전후 참모 동결 | 75.6년 | ${aggregate.averageStaffFrozenYears.toFixed(1)}년 |
+| 전후 후보 누락 세션 | 100.0% | ${aggregate.missedPostwarCandidateSessionRate.toFixed(1)}% |
+| 최종 완료 연구 | 6개 | 평균 ${aggregate.averageFinalResearchCompleted.toFixed(1)}개 |
+| 연구 활성 주차 | 초기 연구 종료 후 사실상 0% | ${aggregate.researchActiveWeekRate.toFixed(1)}% |
+| 마지막 세계 위기 | 평균 1993.2년 | 평균 ${aggregate.averageLastFlashpointYear ?? '-'}년 |
+| 후반 세계사 공백 | 평균 26.8년 | 평균 ${aggregate.averageFlashpointDroughtYears.toFixed(1)}년 |
+| 최대 조기 발생 | 중앙값 33년 | 중앙값 ${aggregate.medianMaximumFlashpointAccelerationYears}년 |
+| 1940년대 국가 사건 체험률 | 69.0% | ${aggregate.averageHistoricalCouncilCoverage.toFixed(1)}% |
+| 초인플레이션 세션 | 기존 장기 고착 | ${aggregate.hyperinflationSessionRate.toFixed(1)}% |
+| 정치력 1,000 초과 세션 | 기존 장기 고착 | ${aggregate.excessivePoliticalPowerSessionRate.toFixed(1)}% |
+| 외부 압력 0 고착 세션 | 기존 장기 고착 | ${aggregate.zeroEnemyPressureSessionRate.toFixed(1)}% |
+| 긴급 알림 주차 | 77.9% | ${aggregate.urgentWeekRate.toFixed(1)}% |
+| 고유 결말 | 94개 | ${aggregate.uniqueEndings}개 |
+| 최빈 결말 비중 | 16.7% | ${aggregate.mostCommonEndingShare.toFixed(1)}% |
+
+## 반영한 엔진 개선
+
+- 연구: 1945–2020의 제트·원자력·반도체·우주·인터넷·바이오·AI·감염병 대비를 연도와 선행 연구로 연결하고, 옛 저장 파일에도 새 연구가 자동 병합됩니다.
+- 인사: 전후에도 참모의 피로·충성·성장·계약이 주간 진행되며, 분기 후보 시장과 4년 조직 개편을 통해 후대 인물이 유입됩니다.
+- 세계사: 고정 분기 폭주를 제거하고 17주 간격, 역사 연도, 인과 조건, 동일 범주 반복 방지, 최대 6년 조기 발생 한계를 함께 적용했습니다.
+- 국가 운영: 물가 목표 회귀, 경기 순환, 부채 상환 한도, 정치력 소프트캡, 외부 압력 균형점을 도입해 장기 극단값 고착을 막았습니다.
+- 정치 위기: 불만·조직력의 회복 경로와 쿠데타 재발 대기 기간을 추가해 위기가 영구 고착되지 않게 했습니다.
+- 알림: 발생→확인→조치 중→검증→해결 상태와 재발 대기 기간을 적용하고, 아직 시작할 수 없는 미래 연구 알림을 제거했습니다.
+- 결말: 기존 4,096개 조합형 결말에 정부·경제·사회·기술·국제질서 에필로그와 결과를 만든 상위 10개 선택을 추가했습니다.
+
+## 자동 판정
+
+| 우선순위 | 판정 | 근거 |
+| --- | --- | --- |
+${findingRows}
+
+## 범위와 재현
+
+- 세션 ${aggregate.sessionCount}개, 총 ${formatNumber(aggregate.totalWeeks)}주, 국가 ${aggregate.nationCoverage}개, 역할 ${aggregate.roleCoverage}개, 직급 ${aggregate.tierCoverage}단계, 행동 성향 ${aggregate.profileCoverage}종을 포함합니다.
+- 전체 원자료는 \`docs/long-horizon-playtest-300-improved-data.json\`, 집계는 \`docs/long-horizon-playtest-300-improved-summary.json\`입니다.
+- 동일 테스트는 \`scripts/run-long-horizon-playtest.ts\`의 worker/merge 모드로 다시 실행할 수 있습니다.
+- 이 검증은 장기 시스템 흐름을 다룹니다. 지도 글자 겹침, 클릭 거리, 모바일 가독성 같은 시각 UX는 별도의 브라우저 회귀 검증 대상입니다.
+`;
+}
+
+function writeArtifacts(run: LongHorizonPlaytestRun, outputDirectory: string, artifactPrefix = 'long-horizon-playtest-300') {
   const output = resolve(outputDirectory);
   mkdirSync(output, { recursive: true });
-  writeFileSync(resolve(output, 'long-horizon-playtest-300-data.json'), `${JSON.stringify(run, null, 2)}\n`, 'utf8');
-  writeFileSync(resolve(output, 'long-horizon-playtest-300-summary.json'), `${JSON.stringify({
+  writeFileSync(resolve(output, `${artifactPrefix}-data.json`), `${JSON.stringify(run, null, 2)}\n`, 'utf8');
+  writeFileSync(resolve(output, `${artifactPrefix}-summary.json`), `${JSON.stringify({
     generatedAt: run.generatedAt,
     methodology: run.methodology,
     aggregate: run.aggregate,
     findings: run.findings,
   }, null, 2)}\n`, 'utf8');
-  writeFileSync(resolve(output, 'long-horizon-playtest-300.md'), createMarkdown(run), 'utf8');
+  writeFileSync(resolve(output, `${artifactPrefix}.md`), artifactPrefix.endsWith('-improved') ? createImprovementMarkdown(run) : createMarkdown(run), 'utf8');
 }
 
 const args = process.argv.slice(2);
@@ -147,11 +200,11 @@ if (args[0] === '--worker') {
     if ((id - start + 1) % 5 === 0 || id + 1 === end) process.stdout.write(`worker ${start}-${end}: ${id - start + 1}/${end - start}\n`);
   }
   writeFileSync(output, JSON.stringify(sessions), 'utf8');
-} else if (args[0] === '--merge') {
+} else if (args[0] === '--merge' || args[0] === '--merge-improved') {
   const outputDirectory = args[1] ?? 'docs';
   const sessions = args.slice(2).flatMap((path) => JSON.parse(readFileSync(resolve(path), 'utf8')) as LongHorizonSessionResult[]).sort((left, right) => left.id - right.id);
   const run = aggregateLongHorizonSessions(sessions, LONG_HORIZON_WEEKS);
-  writeArtifacts(run, outputDirectory);
+  writeArtifacts(run, outputDirectory, args[0] === '--merge-improved' ? 'long-horizon-playtest-300-improved' : 'long-horizon-playtest-300');
   process.stdout.write(`merged ${sessions.length} sessions into ${resolve(outputDirectory)}\n`);
 } else {
   const run = runLongHorizonPlaytestMatrix(300, LONG_HORIZON_WEEKS);

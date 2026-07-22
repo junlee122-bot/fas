@@ -121,7 +121,7 @@ import { NationFlag } from './NationFlag';
 import { getHistoricalFlag } from './historicalFlags';
 import { applyDiplomaticAgendaReward, calculateAgendaReadiness, getDiplomaticAgenda, getDiplomaticAgendaOutcome } from './diplomacy';
 import { CouncilEventModal } from './CouncilEventModal';
-import { councilEvents, getEligibleCouncilEvents, strategicPolicies } from './choices';
+import { councilEvents, selectNextCouncilEvent, strategicPolicies } from './choices';
 import { forecastBattle, resolveBattle } from './combat';
 import type { BattleForecast } from './combat';
 import { BattleReportModal } from './BattleReportModal';
@@ -187,7 +187,9 @@ import {
   getHistoricalHorizon,
   getWorldFlashpointDecisionId,
   selectNextWorldFlashpoint,
+  WORLD_FLASHPOINT_INTERVAL_WEEKS,
 } from './worldFlashpoints';
+import { advanceResearchProjects, getNewlyAvailableResearch, getResearchAvailability, normalizeResearchProjects } from './researchProgression';
 import type { ResolvedHistoricalEnding } from './historicalEndings';
 import { createEmergentIntelligenceCandidates } from './intelligenceHistory';
 import type { ResolvedIntelligenceOrganization } from './intelligenceHistory';
@@ -560,6 +562,7 @@ export function App() {
   const staffAuthority = useMemo(() => getStaffAuthorityProfile(careerRole), [careerRole]);
   const currentRoleTitle = getCareerInstitutionalTitle(careerRole, campaignPhase, playerNation.status);
   const displayedCareerRole = useMemo(() => ({ ...careerRole, title: currentRoleTitle }), [careerRole, currentRoleTitle]);
+  const campaignYear = 1942 + Math.floor(game.week / 52);
   const playerFaction = playerNation.alignment;
   const enemyFaction: Exclude<Faction, 'neutral'> = playerFaction === 'allies' ? 'axis' : 'allies';
   const careerCommanders = useMemo(() => createCareerCommanders(playerNation, careerRole), [careerRole, playerNation]);
@@ -742,7 +745,8 @@ export function App() {
     economyInflation: economy.inflation,
     economyDebt: economy.debt,
     formatMoney: formatGameMoney,
-  }), [commanderDevelopment, divisions, economy.debt, economy.inflation, economyForecast.operatingRevenue, economyForecast.totalExpenses, formatGameMoney, game.factories, orders, production, publicHealthView, research, selectedPolicies]);
+    currentYear: campaignYear,
+  }), [campaignYear, commanderDevelopment, divisions, economy.debt, economy.inflation, economyForecast.operatingRevenue, economyForecast.totalExpenses, formatGameMoney, game.factories, orders, production, publicHealthView, research, selectedPolicies]);
   const nationUXActions = useMemo<UXAction[]>(() => {
     const actions: UXAction[] = [];
     const latestReport = nationManagement.reports[0];
@@ -756,19 +760,19 @@ export function App() {
       id: 'nation-inflation', priority: 'urgent', title: `물가가 ${economy.inflation.toFixed(1)}%까지 상승했습니다`, detail: '공공지출·산업 공급·가격 통제의 조합을 재검토해야 합니다.',
       reason: `물가 ${economy.inflation.toFixed(1)}% · 안정 관리 기준 10% 초과`, ifIgnored: '생활수준·실질임금·정부 신뢰가 함께 낮아질 수 있습니다.', resolution: '예산·산업 정책 조정 · 다음 주 국정 결산에 반영',
       instruction: '물가를 올리는 지출과 공급 부족을 확인하고 산업·복지·가격 정책을 함께 재배분하십시오.',
-      label: '재정 조정', tab: 'governance',
+      label: '재정 조정', tab: 'governance', signalValue: economy.inflation,
     });
     if (nationManagement.unrest >= 55) actions.push({
       id: 'nation-unrest', priority: 'urgent', title: `사회 불안 ${Math.round(nationManagement.unrest)}`, detail: '복지·주택·고용 예산과 정통성의 부족이 국내 질서를 압박합니다.',
       reason: `사회 불안 ${Math.round(nationManagement.unrest)} · 위기 기준 55 초과`, ifIgnored: '파업·폭동·쿠데타 세력의 조직화 가능성이 커집니다.', resolution: '예산·제도 조정 · 다음 주 불안도와 권력집단 반응 확인',
       instruction: '불만이 큰 인구집단을 확인한 뒤 복지·주택·고용 예산과 정통성 제도를 우선 조정하십시오.',
-      label: '예산 재배분', tab: 'governance',
+      label: '예산 재배분', tab: 'governance', signalValue: nationManagement.unrest,
     });
     if (nationManagement.mandateScore < 50) actions.push({
       id: 'nation-mandate', priority: 'recommended', title: `국민 위임 ${nationManagement.mandateScore}`, detail: `다음 평가까지 ${Math.max(0, nationManagement.nextElectionWeek - game.week)}주 남았습니다. 생활 지표와 정부 신뢰를 회복하십시오.`,
       reason: `국민 위임 ${nationManagement.mandateScore} · 안정 기준 50 미만`, ifIgnored: '선거·당대회·정권 평가에서 정책 권한이 축소될 수 있습니다.', resolution: '생활·신뢰 정책 조정 · 매주 위임 점수에 누적 반영',
       instruction: '평가일까지 남은 기간을 확인하고 생활수준과 정부 신뢰를 동시에 높일 예산·제도를 선택하십시오.',
-      label: '국정 지표 보기', tab: 'governance',
+      label: '국정 지표 보기', tab: 'governance', signalValue: 100 - nationManagement.mandateScore,
     });
     if (nationManagement.electoral.activeCampaign) {
       const election = nationManagement.electoral.activeCampaign;
@@ -783,7 +787,20 @@ export function App() {
       id: 'nation-health', priority: 'urgent', title: `${publicHealth.activeOutbreak.codeName} 보건 위기`, detail: '유행 대응 비용과 인명 피해가 복지·재정·국민 위임에 영향을 줍니다.',
       reason: `활성 유행 · ${publicHealth.activeOutbreak.codeName}`, ifIgnored: '인명 피해와 의료비가 재정·생산성·국민 위임을 동시에 압박합니다.', resolution: '보건 태세 변경 즉시 · 다음 주 국정·보건 결산에서 확인',
       instruction: '태세별 감염·사망·병상 전망과 비용을 비교해 국가 운영이 감당할 대응책을 확정하십시오.',
-      label: '보건 위기 지휘', tab: 'health',
+      label: '보건 위기 지휘', tab: 'health', signalValue: Math.max(publicHealth.activeOutbreak.hospitalLoad, publicHealth.activeOutbreak.rEffective * 50),
+    });
+    const activeResearchCount = research.filter((project) => project.active && !project.complete).length;
+    const availableResearchCount = research.filter((project) => !project.active && !project.complete && getResearchAvailability(project, research, campaignYear).available).length;
+    if (activeResearchCount < 2 && availableResearchCount > 0) actions.push({
+      id: 'nation-research-slot', priority: activeResearchCount === 0 ? 'urgent' : 'recommended', title: `국가 연구 슬롯 ${2 - activeResearchCount}개 대기`, detail: `${campaignYear}년 현재 시작 가능한 후속 연구 ${availableResearchCount}개가 있습니다.`,
+      reason: `활성 연구 ${activeResearchCount}/2 · 시대·선행조건 충족 과제 ${availableResearchCount}개`, ifIgnored: '교육·과학 예산이 연구 성과로 전환되지 않아 다음 기술 세대 진입이 늦어집니다.', resolution: '과제 배정 즉시 · 다음 주 국정 결산에서 진척 확인',
+      instruction: '연구 위원회에서 현재 시대의 선행기술과 국가 전략을 비교해 빈 슬롯을 채우십시오.', label: '연구 위원회', tab: 'research', signalValue: 2 - activeResearchCount,
+    });
+    const expiringStaff = staff.filter((member) => getStaffContractWeeks(member) <= 13).length;
+    if (expiringStaff > 0) actions.push({
+      id: 'nation-staff-renewal', priority: expiringStaff >= 2 ? 'urgent' : 'recommended', title: `참모 임기·계약 ${expiringStaff}건 결재 대기`, detail: '전후 직제의 임기 갱신, 승계 후보 또는 외부 영입을 결정해야 합니다.',
+      reason: `13주 안에 계약 만료 또는 임기 종료 ${expiringStaff}명`, ifIgnored: '위임이 해제되고 담당 부처의 성장·조사·정책 집행 보너스가 사라집니다.', resolution: '갱신·교체 즉시 · 다음 주 조직 결산에서 권한 확인',
+      instruction: '조직 운영의 참모 스쿼드와 후보 시장을 나란히 비교해 갱신 또는 승계를 확정하십시오.', label: '조직 개편', tab: 'organization', signalValue: expiringStaff,
     });
     if (actions.length === 0) actions.push({
       id: 'nation-stable', priority: 'info', title: '국정 운영이 안정적입니다', detail: '장기 산업·교육·외교 목표를 향해 다음 주를 진행할 수 있습니다.',
@@ -792,7 +809,7 @@ export function App() {
       label: '국정 현황', tab: 'governance',
     });
     return actions;
-  }, [economy.inflation, game.week, nationManagement, publicHealth.activeOutbreak]);
+  }, [campaignYear, economy.inflation, game.week, nationManagement, publicHealth.activeOutbreak, research, staff]);
   const baseUXActions = campaignPhase === 'nation' ? nationUXActions : warUXActions;
   const rawUXActions = useMemo<UXAction[]>(() => {
     const coupAction: UXAction | null = coupRisk.tier === 'stable' ? null : {
@@ -1208,7 +1225,7 @@ export function App() {
   }, []);
 
   const scheduleWorldFlashpoint = useCallback((week: number) => {
-    if (week % 13 !== 0 || pendingWorldFlashpointId || pendingCouncilEventId || pendingCoupIncident) return false;
+    if (week % WORLD_FLASHPOINT_INTERVAL_WEEKS !== 0 || pendingWorldFlashpointId || pendingCouncilEventId || pendingCoupIncident) return false;
     const selection = selectNextWorldFlashpoint(worldline.timeline, week, completedDecisions);
     if (!selection) return false;
     setPendingWorldFlashpointId(selection.entry.event.id);
@@ -1317,7 +1334,9 @@ export function App() {
 
   const advanceNationWeek = useCallback(() => {
     const nextWeek = game.week + 1;
-    const monetaryResult = advanceMonetarySystem(economy.monetarySystem, playerNation.id, 1942 + Math.floor(nextWeek / 52));
+    const currentYear = 1942 + Math.floor(nextWeek / 52);
+    const previousYear = 1942 + Math.floor(Math.max(0, nextWeek - 1) / 52);
+    const monetaryResult = advanceMonetarySystem(economy.monetarySystem, playerNation.id, currentYear);
     const publicHealthResult = advancePublicHealthWeek(publicHealth, publicHealthContext);
     const completedResearch = research.filter((project) => project.complete).length;
     const publicHealthPressure = publicHealth.activeOutbreak
@@ -1334,6 +1353,7 @@ export function App() {
     });
     const researchGain = 6 + Math.floor(result.state.education / 18) + scienceAdvisorBonus;
     const breakthroughs = research.filter((project) => project.active && !project.complete && project.progress + researchGain >= project.duration);
+    const newlyAvailableResearch = getNewlyAvailableResearch(research, previousYear, currentYear);
 
     setNationManagement(result.state);
     setGame((current) => applyGameDelta(applyGameDelta(current, result.gameDelta), publicHealthResult.gameDelta));
@@ -1350,11 +1370,37 @@ export function App() {
       notify(`${monetaryResult.transition.year}년 통화개혁: ${nextCurrency?.name ?? monetaryResult.transition.toCurrencyId}`);
     }
     setPublicHealth(publicHealthResult.state);
-    setResearch((current) => current.map((project) => {
-      if (!project.active || project.complete) return project;
-      const progress = Math.min(project.duration, project.progress + researchGain);
-      return { ...project, progress, complete: progress >= project.duration, active: progress < project.duration };
-    }));
+    setResearch((current) => advanceResearchProjects(current, researchGain, currentYear));
+    setStaff((current) => advanceStaffRosterWeek(current, developmentFocusId));
+    if (nextWeek % 208 === 0) addEvent('임기 중간 조직개편 — 참모 스쿼드 재평가', '부처별 성과·계약·후보 뎁스를 비교하는 4년 주기 조직개편 창이 열렸습니다. 만료 계약은 자동 연장되지 않으며 사용자의 인사권 범위에서 갱신·승계·영입해야 합니다.', 'neutral', nextWeek);
+    const historicalHorizon = getHistoricalHorizon(nextWeek, completedDecisions);
+    const marketReviewWeek = nextWeek % 13 === 0;
+    const intelligenceCandidates = marketReviewWeek ? createEmergentIntelligenceCandidates(playerNation.id, currentYear, worldline.timeline) : [];
+    const laterEraCandidates = marketReviewWeek ? createLaterEraCandidates(playerNation.id, currentYear, historicalHorizon) : [];
+    const knownCandidatePeople = new Set(staffCandidates.map((candidate) => candidate.personId));
+    const newIntelligenceCandidates = intelligenceCandidates.filter((candidate) => !knownCandidatePeople.has(candidate.personId)).slice(0, 2);
+    const newLaterEraCandidates = laterEraCandidates.filter((candidate) => !knownCandidatePeople.has(candidate.personId)).slice(0, 4);
+    const rivalVictories = staffCandidates.filter((candidate) => candidate.status !== 'signed' && candidate.status !== 'lost' && weeklyRivalInterest(candidate) >= 100);
+    setStaffCandidates((current) => {
+      const existingPeople = new Set(current.map((candidate) => candidate.personId));
+      const expanded = [
+        ...current,
+        ...newIntelligenceCandidates.filter((candidate) => !existingPeople.has(candidate.personId)),
+        ...newLaterEraCandidates.filter((candidate) => !existingPeople.has(candidate.personId)),
+      ];
+      return expanded.map((candidate) => {
+        if (candidate.status === 'signed' || candidate.status === 'lost') return candidate;
+        const rivalInterest = weeklyRivalInterest(candidate);
+        return {
+          ...candidate,
+          rivalInterest,
+          status: rivalInterest >= 100 ? 'lost' : candidate.status,
+          knowledge: candidate.status === 'scouting'
+            ? Math.min(100, candidate.knowledge + 18 + (delegatedDepartments.has('personnel') ? 5 : 0))
+            : candidate.knowledge,
+        };
+      });
+    });
     setRelations((current) => current.map((relation) => ({
       ...relation,
       value: Math.max(0, Math.min(100, relation.value + (result.state.budget.diplomacy >= 20 ? 0.35 : result.state.budget.diplomacy <= 5 ? -0.2 : 0.08))),
@@ -1363,6 +1409,7 @@ export function App() {
       ...current,
       experience: current.experience + 5,
       reputation: Math.max(0, Math.min(100, current.reputation + (result.report.mandateScore >= 55 ? 0.4 : result.report.mandateScore < 40 ? -0.5 : 0.1))),
+      councilTrust: Math.max(0, Math.min(100, current.councilTrust + (result.report.mandateScore >= 60 && result.state.legitimacy >= 60 ? 0.2 : result.report.mandateScore < 35 ? -0.25 : 0))),
       legacy: Math.max(0, current.legacy + (result.report.nationalScore >= 60 ? 1 : 0)),
     }));
 
@@ -1381,6 +1428,15 @@ export function App() {
         nextActions: ['연구 개발에서 다음 민간·전략 기술을 활성화하십시오.'],
       },
     ));
+    newlyAvailableResearch.forEach((project) => addEvent(
+      `새 연구 세대 개방 — ${project.name}`,
+      `${currentYear}년 기술·제도 조건이 도달했습니다. ${project.historicalBasis ?? project.description} 선행 연구를 갖추면 연구 슬롯에 배정할 수 있습니다.`,
+      'neutral',
+      nextWeek,
+    ));
+    newIntelligenceCandidates.forEach((candidate) => addEvent('비밀 인재 등장 — ' + candidate.name, `${candidate.historicalOffice} 경력의 인물이 ${candidate.affiliation} 계보와 함께 인재 시장에 등장했습니다.`, 'neutral', nextWeek));
+    newLaterEraCandidates.forEach((candidate) => addEvent('새로운 세대 등장 — ' + candidate.name, `${candidate.birthYear}년생 실존 인물 · ${candidate.historicalOffice}. ${currentYear}년의 세대교체로 후보 시장에 합류했습니다.`, 'neutral', nextWeek));
+    rivalVictories.forEach((candidate) => addEvent('경쟁 기관 영입 — ' + candidate.name, candidate.affiliation + '의 영향력 경쟁에서 밀렸습니다. 이 인물은 더 이상 영입할 수 없습니다.', 'bad', nextWeek));
     publicHealthResult.events.forEach((event) => addEvent(event.title, event.detail, event.tone, event.week));
     result.report.events.forEach((event) => addEvent(event.title, event.detail, event.tone, nextWeek, {
       domain: 'management',
@@ -1440,8 +1496,16 @@ export function App() {
       },
     );
     const openedCoup = scheduleCoupCheck(nextWeek);
-    if (!openedCoup) scheduleWorldFlashpoint(nextWeek);
-  }, [addEvent, careerRole, economy, formatGameMoney, game, nationManagement, nationWeekProjection, notify, playerNation.id, publicHealth, publicHealthContext, relationAverage, research, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisorBonus]);
+    const openedWorldFlashpoint = !openedCoup && scheduleWorldFlashpoint(nextWeek);
+    if (!openedCoup && !openedWorldFlashpoint && nextWeek % 52 === 26 && !pendingCouncilEventId) {
+      const councilEvent = selectNextCouncilEvent(playerNation.id, careerRole.branch, currentYear, resolvedCouncilChoices);
+      if (councilEvent) {
+        setPendingCouncilEventId(councilEvent.id);
+        setSpeed(0);
+        addEvent('국정 의제 소집 — ' + councilEvent.category, councilEvent.title, councilEvent.historicalYear ? 'neutral' : 'bad', nextWeek);
+      }
+    }
+  }, [addEvent, careerRole, completedDecisions, delegatedDepartments, developmentFocusId, economy, formatGameMoney, game, nationManagement, nationWeekProjection, notify, pendingCouncilEventId, playerNation.id, publicHealth, publicHealthContext, relationAverage, research, resolvedCouncilChoices, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisorBonus, staffCandidates, worldline.timeline]);
 
   const advanceWeek = useCallback(() => {
     if (pendingWorldFlashpointId || pendingCouncilEventId || pendingCoupIncident) return;
@@ -1590,13 +1654,12 @@ export function App() {
       };
     }));
 
+    const currentYear = 1942 + Math.floor(nextWeek / 52);
+    const previousYear = 1942 + Math.floor(Math.max(0, nextWeek - 1) / 52);
     const researchGain = (doctrine === 'methodical' ? 13 : 11) + 2 + scienceAdvisorBonus + (scienceAdvisor?.discipline === 'science' ? 1 : 0);
     const breakthroughs = research.filter((project) => project.active && !project.complete && project.progress + researchGain >= project.duration);
-    setResearch((current) => current.map((project) => {
-      if (!project.active || project.complete) return project;
-      const progress = Math.min(project.duration, project.progress + researchGain);
-      return { ...project, progress, complete: progress >= project.duration, active: progress < project.duration };
-    }));
+    const newlyAvailableResearch = getNewlyAvailableResearch(research, previousYear, currentYear);
+    setResearch((current) => advanceResearchProjects(current, researchGain, currentYear));
 
     breakthroughs.forEach((project) => {
       addEvent('연구 완료 — ' + project.name, project.description + ' 효과가 전군에 적용되었습니다.', 'good', nextWeek);
@@ -1607,6 +1670,7 @@ export function App() {
       if (project.id === 'landing') setGame((current) => ({ ...current, navalPower: Math.min(100, current.navalPower + 14), commandPoints: Math.min(100, current.commandPoints + 12) }));
       if (project.id === 'penicillin') setGame((current) => ({ ...current, manpower: current.manpower + 120, warSupport: Math.min(100, current.warSupport + 3) }));
     });
+    newlyAvailableResearch.forEach((project) => addEvent('새 연구 세대 개방 — ' + project.name, `${currentYear}년 기술·제도 조건이 도달했습니다. ${project.historicalBasis ?? project.description}`, 'neutral', nextWeek));
 
     const activeEquipmentProject = getEquipmentNode(equipmentDevelopment.activeProjectId ?? '');
     const equipmentResearchGain = 8
@@ -1796,11 +1860,11 @@ export function App() {
       addEvent(`전후질서 사전준비 — ${commitment.variant.title}`, commitment.variant.consequence, commitment.event.category === 'proxy-war' ? 'bad' : 'neutral', nextWeek);
     }
     setStaff((current) => advanceStaffRosterWeek(current, developmentFocusId));
-    const currentYear = 1942 + Math.floor(nextWeek / 52);
     const historicalHorizon = getHistoricalHorizon(nextWeek, completedDecisions);
-    const intelligenceCandidates = createEmergentIntelligenceCandidates(playerNation.id, currentYear, worldline.timeline);
-    const newIntelligenceCandidates = intelligenceCandidates.filter((candidate) => !staffCandidates.some((existing) => existing.personId === candidate.personId));
-    const laterEraCandidates = createLaterEraCandidates(playerNation.id, currentYear, historicalHorizon);
+    const marketReviewWeek = nextWeek % 13 === 0;
+    const intelligenceCandidates = marketReviewWeek ? createEmergentIntelligenceCandidates(playerNation.id, currentYear, worldline.timeline) : [];
+    const newIntelligenceCandidates = intelligenceCandidates.filter((candidate) => !staffCandidates.some((existing) => existing.personId === candidate.personId)).slice(0, 2);
+    const laterEraCandidates = marketReviewWeek ? createLaterEraCandidates(playerNation.id, currentYear, historicalHorizon) : [];
     const newLaterEraCandidates = laterEraCandidates
       .filter((candidate) => !staffCandidates.some((existing) => existing.personId === candidate.personId))
       .slice(0, 4);
@@ -1809,7 +1873,7 @@ export function App() {
       const existingPeople = new Set(current.map((candidate) => candidate.personId));
       const expanded = [
         ...current,
-        ...intelligenceCandidates.filter((candidate) => !existingPeople.has(candidate.personId)),
+        ...newIntelligenceCandidates.filter((candidate) => !existingPeople.has(candidate.personId)),
         ...newLaterEraCandidates.filter((candidate) => !existingPeople.has(candidate.personId)),
       ];
       return expanded.map((candidate) => {
@@ -1835,15 +1899,13 @@ export function App() {
     rivalVictories.forEach((candidate) => addEvent('경쟁 기관 영입 — ' + candidate.name, candidate.affiliation + '의 영향력 경쟁에서 밀렸습니다. 이 인물은 더 이상 영입할 수 없습니다.', 'bad', nextWeek));
     const openedCoup = scheduleCoupCheck(nextWeek);
     const openedWorldFlashpoint = !openedCoup && scheduleWorldFlashpoint(nextWeek);
-    if (!openedCoup && !openedWorldFlashpoint && nextWeek % 4 === 0 && !pendingCouncilEventId) {
-      const eligibleEvents = getEligibleCouncilEvents(playerNation.id, careerRole.branch, 1942 + Math.floor(nextWeek / 52));
-      const isUnresolved = (event: (typeof councilEvents)[number]) => !resolvedCouncilChoices.some((record) => record.startsWith(event.id + ':'));
-      const unresolvedEvent = eligibleEvents.find((event) => event.nationIds?.includes(playerNation.id) && isUnresolved(event))
-        ?? eligibleEvents.find(isUnresolved);
-      const councilEvent = unresolvedEvent ?? eligibleEvents[(Math.floor(nextWeek / 4) - 1) % eligibleEvents.length];
-      setPendingCouncilEventId(councilEvent.id);
-      setSpeed(0);
-      addEvent('긴급 의제 소집 — ' + councilEvent.category, councilEvent.title, 'bad', nextWeek);
+    if (!openedCoup && !openedWorldFlashpoint && nextWeek % 52 === 26 && !pendingCouncilEventId) {
+      const councilEvent = selectNextCouncilEvent(playerNation.id, careerRole.branch, currentYear, resolvedCouncilChoices);
+      if (councilEvent) {
+        setPendingCouncilEventId(councilEvent.id);
+        setSpeed(0);
+        addEvent('전략 의제 소집 — ' + councilEvent.category, councilEvent.title, councilEvent.historicalYear ? 'neutral' : 'bad', nextWeek);
+      }
     }
     const actualProduction = {
       tanks: Math.round(productionGains.tanks * policyProductionMultiplier * focusMultiplier('sherman')),
@@ -2384,7 +2446,7 @@ export function App() {
       setGame(restoredGame);
       setPublicHealth(restoredPublicHealth);
       const restoredEconomy = normalizeEconomyState(data.economy, restoredNation.id, 1942 + Math.floor(restoredGame.week / 52));
-      const restoredResearch: ResearchProject[] = data.research ?? initialResearch;
+      const restoredResearch = normalizeResearchProjects(data.research, initialResearch);
       const restoredPhase: CampaignPhase = data.campaignPhase === 'nation' ? 'nation' : 'war';
       const nationFallback = createNationManagementState(restoredNation.id, restoredGame, restoredEconomy, restoredResearch.filter((project) => project.complete).length, 'negotiated');
       const restoredNationManagement = normalizeNationManagementState(data.nationManagement, nationFallback);
@@ -2848,6 +2910,11 @@ export function App() {
     const activeCount = research.filter((project) => project.active).length;
     const project = research.find((item) => item.id === id);
     if (!project || project.complete) return;
+    const availability = getResearchAvailability(project, research, campaignYear);
+    if (!project.active && !availability.available) {
+      notify(availability.reason);
+      return;
+    }
     if (!project.active && activeCount >= 2) {
       notify('연구 슬롯 2개가 모두 사용 중입니다.');
       return;
@@ -4710,7 +4777,7 @@ export function App() {
             {activeTab === 'industry' && <IndustryPanel production={production} stockpile={stockpile} factories={game.factories} activeTheater={activeTheater} onAdjust={adjustFactories} />}
             {activeTab === 'research' && (
               <div className="research-page">
-                <ResearchPanel nationId={playerNation.id} research={research} weeklyGain={(doctrine === 'methodical' ? 13 : 11) + 2 + scienceAdvisorBonus + (scienceAdvisor?.discipline === 'science' ? 1 : 0)} onToggle={toggleResearch} />
+                <ResearchPanel nationId={playerNation.id} research={research} currentYear={campaignYear} weeklyGain={(doctrine === 'methodical' ? 13 : 11) + 2 + scienceAdvisorBonus + (scienceAdvisor?.discipline === 'science' ? 1 : 0)} onToggle={toggleResearch} />
                 <Suspense fallback={<DeferredSurface label="통합 장비 개발국 준비 중" />}>
                 <EquipmentLab
                   nationId={playerNation.id}
@@ -5610,24 +5677,32 @@ const scientificLiaisons: Record<NationId, { initials: string; name: string; off
   philippines: { initials: 'FD', name: '페 델 문도', office: '소아과 의사·전시 의료 활동가', bonus: '의료·인력 회복 연구망 · 진행 +2/주' },
 };
 
-function ResearchPanel({ nationId, research, weeklyGain, onToggle }: { nationId: NationId; research: ResearchProject[]; weeklyGain: number; onToggle: (id: string) => void }) {
+function ResearchPanel({ nationId, research, currentYear, weeklyGain, onToggle }: { nationId: NationId; research: ResearchProject[]; currentYear: number; weeklyGain: number; onToggle: (id: string) => void }) {
   const activeCount = research.filter((project) => project.active).length;
   const liaison = scientificLiaisons[nationId];
+  const available = research.filter((item) => !item.complete && getResearchAvailability(item, research, currentYear).available);
+  const future = research.filter((item) => !item.complete && !getResearchAvailability(item, research, currentYear).available)
+    .sort((left, right) => (left.minimumYear ?? 1942) - (right.minimumYear ?? 1942));
+  const completed = research.filter((item) => item.complete).slice(-4);
+  const visibleResearch = [...available, ...future.slice(0, 6), ...completed]
+    .filter((item, index, items) => items.findIndex((candidate) => candidate.id === item.id) === index);
   return (
     <div className="research-layout">
       <section className="deck-section research-board">
-        <div className="deck-section-heading"><div><span className="eyebrow">RESEARCH & DEVELOPMENT</span><h3>연구 위원회</h3></div><em>{activeCount}/2 연구 슬롯</em></div>
+        <div className="deck-section-heading"><div><span className="eyebrow">RESEARCH & DEVELOPMENT · {currentYear}</span><h3>세대형 연구 위원회</h3></div><em>{activeCount}/2 슬롯 · 완료 {research.filter((item) => item.complete).length}/{research.length}</em></div>
         <div className="research-grid">
-          {research.map((project) => {
+          {visibleResearch.map((project) => {
             const percent = project.progress / project.duration * 100;
+            const availability = getResearchAvailability(project, research, currentYear);
+            const locked = !project.complete && !availability.available;
             return (
-              <button className={'research-card ' + (project.active ? 'active' : '') + (project.complete ? ' complete' : '')} key={project.id} onClick={() => onToggle(project.id)} disabled={project.complete} aria-pressed={project.active} title={project.complete ? '완료된 연구는 전군에 적용 중입니다.' : project.active ? '선택하면 연구를 일시 중지합니다.' : activeCount >= 2 ? '연구 슬롯 2개가 모두 사용 중입니다.' : '이 과제를 연구 슬롯에 배정합니다.'}>
-                <i>{project.complete ? <Check size={19} /> : project.icon}</i>
-                <span className="branch">{project.branch}</span>
+              <button className={'research-card ' + (project.active ? 'active' : '') + (project.complete ? ' complete' : '') + (locked ? ' locked' : '')} key={project.id} onClick={() => onToggle(project.id)} disabled={project.complete || locked} aria-pressed={project.active} title={project.complete ? '완료된 연구는 국가 체계에 적용 중입니다.' : locked ? availability.reason : project.active ? '선택하면 연구를 일시 중지합니다.' : activeCount >= 2 ? '연구 슬롯 2개가 모두 사용 중입니다.' : '이 과제를 연구 슬롯에 배정합니다.'}>
+                <i>{project.complete ? <Check size={19} /> : locked ? <LockKeyhole size={18} /> : project.icon}</i>
+                <span className="branch">{project.branch} · {project.minimumYear ?? 1942}</span>
                 <h4>{project.name}</h4>
                 <p>{project.description}</p>
                 <ProgressBar value={percent} tone={project.complete ? 'green' : project.active ? 'gold' : 'allied'} thin />
-                <div className="research-footer"><span>{project.complete ? '연구 완료' : project.active ? Math.round(percent) + '% 진행 중' : '대기 중'}</span><em>{project.complete ? '적용됨' : project.active ? Math.ceil((project.duration - project.progress) / weeklyGain) + '주' : '선택'}</em></div>
+                <div className="research-footer"><span>{project.complete ? '연구 완료' : locked ? availability.reason : project.active ? Math.round(percent) + '% 진행 중' : '연구 가능'}</span><em>{project.complete ? '적용됨' : locked ? project.era : project.active ? Math.ceil((project.duration - project.progress) / weeklyGain) + '주' : '선택'}</em></div>
               </button>
             );
           })}
@@ -5836,6 +5911,14 @@ function CampaignOutcomeModal({ outcome, game, territories, nation, playerFactio
           <strong>{ending.orderName} · {ending.settlementName} · {ending.horizonName}</strong>
           <p>{ending.summary}</p>
         </div>
+        <div className="outcome-epilogue-grid" aria-label="대체역사 다축 에필로그">
+          {ending.epilogueChapters.map((chapter) => <article key={chapter.id}><span>{chapter.label}</span><strong>{chapter.title}</strong><p>{chapter.detail}</p></article>)}
+        </div>
+        {ending.decisiveChoices.length > 0 && <div className="outcome-decisive-choices">
+          <span className="eyebrow">YOUR DECISIVE CHOICES</span>
+          <h3>이 세계를 만든 결정</h3>
+          {ending.decisiveChoices.slice(0, 5).map((choice) => <article key={`${choice.year}-${choice.eventTitle}`}><time>{choice.year}</time><div><strong>{choice.eventTitle} — {choice.choiceTitle}</strong><p>{choice.consequence}</p></div><em>{choice.axisImpact}</em></article>)}
+        </div>}
         <div className="outcome-stats">
           <div><span>최종 전황</span><strong>{game.victoryScore}</strong></div>
           <div><span>통제 지역</span><strong>{controlledTerritories}/{territories.length}</strong></div>

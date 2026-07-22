@@ -2,6 +2,7 @@ import type { GameState, Stockpile } from './types';
 import type { GeneratedWorldEvent, WorldHistoryCategory, WorldHistoryVariant } from './worldHistory';
 
 export const WORLD_FLASHPOINT_PREFIX = 'world-flashpoint:';
+export const WORLD_FLASHPOINT_INTERVAL_WEEKS = 17;
 
 export interface WorldFlashpointSelection {
   entry: GeneratedWorldEvent;
@@ -42,9 +43,23 @@ function resolvedFlashpointCount(completedDecisions: string[]) {
   return completedDecisions.filter((decision) => decision.startsWith(WORLD_FLASHPOINT_PREFIX)).length;
 }
 
+function resolvedFlashpointRecords(completedDecisions: string[]) {
+  return completedDecisions.flatMap((decision) => {
+    if (!decision.startsWith(WORLD_FLASHPOINT_PREFIX)) return [];
+    const [eventId, , rawWeek] = decision.slice(WORLD_FLASHPOINT_PREFIX.length).split(':');
+    const week = Number(rawWeek);
+    return eventId && Number.isFinite(week) ? [{ eventId, week }] : [];
+  }).sort((left, right) => right.week - left.week);
+}
+
 export function getHistoricalHorizon(week: number, completedDecisions: string[]) {
   const campaignYear = getCampaignYear(week);
-  return campaignYear + Math.min(50, resolvedFlashpointCount(completedDecisions) * 2);
+  const resolvedCount = resolvedFlashpointCount(completedDecisions);
+  // Institutional learning can bring a later development forward, but no longer turns every
+  // quarterly choice into two whole years of acceleration. The logarithmic ceiling keeps the
+  // late-century atlas alive without erasing alternate-history momentum.
+  const accelerationYears = Math.min(6, Math.max(0, Math.floor(Math.log2(resolvedCount + 1)) - 2));
+  return campaignYear + accelerationYears;
 }
 
 export function createWorldFlashpointSelection(
@@ -71,11 +86,11 @@ export function selectNextWorldFlashpoint(
   week: number,
   completedDecisions: string[],
 ): WorldFlashpointSelection | null {
-  if (week < 13) return null;
+  if (week < WORLD_FLASHPOINT_INTERVAL_WEEKS) return null;
   const campaignYear = getCampaignYear(week);
   const resolvedCount = resolvedFlashpointCount(completedDecisions);
   const historicalHorizon = getHistoricalHorizon(week, completedDecisions);
-  const next = timeline
+  const eligible = timeline
     .filter((entry) => !isWorldFlashpointResolved(entry.event.id, completedDecisions))
     .filter((entry) => entry.event.historicalYear <= historicalHorizon)
     .sort((left, right) => {
@@ -84,7 +99,12 @@ export function selectNextWorldFlashpoint(
       return leftHistoricallyDue - rightHistoricallyDue
         || left.event.historicalYear - right.event.historicalYear
         || left.event.id.localeCompare(right.event.id);
-    })[0];
+    });
+  const lastResolved = resolvedFlashpointRecords(completedDecisions)[0];
+  const lastCategory = lastResolved ? timeline.find((entry) => entry.event.id === lastResolved.eventId)?.event.category : undefined;
+  const historicallyDue = eligible.filter((entry) => entry.event.historicalYear <= campaignYear);
+  const selectionPool = historicallyDue.length > 0 ? historicallyDue : eligible;
+  const next = selectionPool.find((entry) => entry.event.category !== lastCategory) ?? selectionPool[0];
   return next ? createWorldFlashpointSelection(next, week, completedDecisions) : null;
 }
 
@@ -93,7 +113,7 @@ export function forecastNextWorldFlashpoint(
   currentWeek: number,
   completedDecisions: string[],
 ): WorldFlashpointForecast | null {
-  let decisionWeek = Math.max(13, Math.ceil((Math.max(0, currentWeek) + 1) / 13) * 13);
+  let decisionWeek = Math.max(WORLD_FLASHPOINT_INTERVAL_WEEKS, Math.ceil((Math.max(0, currentWeek) + 1) / WORLD_FLASHPOINT_INTERVAL_WEEKS) * WORLD_FLASHPOINT_INTERVAL_WEEKS);
   // The atlas currently reaches 2022. Four hundred quarterly windows cover a full century,
   // while keeping this forecast deterministic and cheap enough to derive during rendering.
   for (let window = 0; window < 400; window += 1) {
@@ -105,7 +125,7 @@ export function forecastNextWorldFlashpoint(
         weeksUntil: Math.max(0, decisionWeek - currentWeek),
       };
     }
-    decisionWeek += 13;
+    decisionWeek += WORLD_FLASHPOINT_INTERVAL_WEEKS;
   }
   return null;
 }

@@ -93,6 +93,21 @@ export function getEligibleCouncilEvents(nationId: NationId, roleBranch: CareerB
     });
 }
 
+export function selectNextCouncilEvent(
+  nationId: NationId,
+  roleBranch: CareerBranch,
+  campaignYear: number,
+  resolvedChoices: readonly string[],
+) {
+  const eligible = getEligibleCouncilEvents(nationId, roleBranch, campaignYear);
+  const unresolved = (event: (typeof councilEvents)[number]) => !resolvedChoices.some((record) => record.startsWith(`${event.id}:`));
+  return eligible.find((event) => event.nationIds?.includes(nationId) && Boolean(event.historicalYear) && unresolved(event))
+    ?? eligible.find((event) => event.nationIds?.includes(nationId) && unresolved(event))
+    ?? eligible.find((event) => Boolean(event.historicalYear) && unresolved(event))
+    ?? eligible.find(unresolved)
+    ?? null;
+}
+
 export const policyDomains = [
   { id: 'economy' as const, title: '전시 경제', subtitle: '생산과 민생' },
   { id: 'doctrine' as const, title: '군사 교리', subtitle: '전투 흐름' },

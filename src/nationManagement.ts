@@ -92,7 +92,7 @@ export interface NationManagementState {
 
 export interface NationManagementContext {
   week: number;
-  game: Pick<GameState, 'factories' | 'stability' | 'warSupport' | 'treasury' | 'politicalPower'>;
+  game: Pick<GameState, 'factories' | 'stability' | 'warSupport' | 'treasury' | 'politicalPower' | 'enemyPressure'>;
   economy: Pick<EconomyState, 'debt' | 'inflation' | 'publicConfidence'>;
   relationAverage: number;
   completedResearch: number;
@@ -321,18 +321,45 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
   );
   const fiscalExpenditure = round(
     state.spendingLevel * 0.78
-    + context.economy.debt * 0.0012
+    + Math.min(fiscalRevenue * 0.45, context.economy.debt * 0.0008)
     + context.publicHealthPressure * 0.08
     + Math.max(0, state.unrest - 55) * 0.08
     + dynasticEffects.weeklyCost,
   );
   const fiscalBalance = round(fiscalRevenue - fiscalExpenditure);
-  const debtChange = round(fiscalBalance < 0 ? Math.abs(fiscalBalance) * 0.72 : -Math.min(context.economy.debt * 0.002, fiscalBalance * 0.22));
-  const inflationChange = round(
+  const debtChange = round(fiscalBalance < 0
+    ? Math.min(20, Math.abs(fiscalBalance) * 0.5)
+    : -Math.min(context.economy.debt * 0.003, fiscalBalance * 0.35));
+  const campaignYear = 1942 + Math.floor(context.week / 52);
+  const inflationTarget = campaignYear < 1955 ? 6 : campaignYear < 1985 ? 4.5 : 3;
+  const businessCycle = Math.sin((context.week / (52 * 7)) * Math.PI * 2);
+  const policyInflationChange = round(
     state.spendingLevel * 0.0028
-    + Math.max(0, fiscalBalance < 0 ? Math.abs(fiscalBalance) * 0.008 : -0.08)
+    + Math.max(-0.08, fiscalBalance < 0 ? Math.min(0.65, Math.abs(fiscalBalance) * 0.008) : -0.08)
     - industry * 0.005
     - Math.max(0, state.taxBurden - 45) * 0.006,
+    2,
+  );
+  const inflationChange = round(
+    policyInflationChange
+    - (context.economy.inflation - inflationTarget) * 0.08
+    + businessCycle * 0.035,
+    2,
+  );
+  const externalPressureTarget = clamp(
+    22
+    + businessCycle * 9
+    + (100 - context.relationAverage) * 0.16
+    + (100 - context.game.stability) * 0.08
+    + Math.max(0, 15 - state.budget.security) * 0.6,
+    12,
+    68,
+  );
+  const enemyPressureChange = round((externalPressureTarget - context.game.enemyPressure) * 0.08, 2);
+  const politicalPowerChange = round(
+    1
+    - Math.max(0, context.game.politicalPower - 160) / 240
+    - Math.max(0, state.unrest - 60) * 0.012,
     2,
   );
 
@@ -390,6 +417,14 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
   };
   next.nationalScore = calculateNationScore(next);
   next.mandateScore = calculateMandateScore(next, projectedEconomy);
+  const stabilityTarget = clamp(30 + next.legitimacy * 0.35 + next.mandateScore * 0.25 - next.unrest * 0.3, 25, 85);
+  const stabilityChange = round(
+    (next.legitimacy - state.legitimacy) * 0.18
+      - Math.max(0, next.unrest - 65) * 0.01
+      + electoralResult.stabilityDelta
+      + (stabilityTarget - context.game.stability) * 0.025,
+    2,
+  );
   const event = selectNationEvent(next, context);
   const dynasticEvent = selectDynasticEvent(next, context);
   if (electoralResult.playerWonElection) next.electionWins += 1;
@@ -410,8 +445,11 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     mandateScore: next.mandateScore,
     causes: [
       `세입 = 산업기반 ${context.game.factories}개 · 조세부담 ${state.taxBurden}/100 · 안정도 ${context.game.stability}/100 · 무역수지 ${state.tradeBalance.toFixed(1)}`,
-      `지출 = 공공지출 ${state.spendingLevel}/100 · 부채이자 £${(context.economy.debt * 0.0012).toFixed(1)}M · 보건·사회불안 비용`,
+      `지출 = 공공지출 ${state.spendingLevel}/100 · 부채상환 £${Math.min(fiscalRevenue * 0.45, context.economy.debt * 0.0008).toFixed(1)}M · 보건·사회불안 비용`,
       `정책효율 = ${nationStrategies.find((candidate) => candidate.id === state.strategyId)?.name ?? state.strategyId} × 부처별 예산배분`,
+      `거시균형 = ${campaignYear}년 물가 목표 ${inflationTarget.toFixed(1)}% · 7년 경기순환 ${businessCycle >= 0 ? '확장' : '조정'} 국면`,
+      `대외압력 = 외교관계·국가안정·치안예산을 반영한 균형점 ${externalPressureTarget.toFixed(1)}/100`,
+      `국가안정 = 정당성·국민위임·사회불안을 반영한 장기 균형점 ${stabilityTarget.toFixed(1)}/100`,
       ...(getGovernmentForm(state.dynasty.formId).monarchy ? [`왕실재정 = ${dynasticEffects.note} · 궁정 결속 ${Math.round(state.dynasty.courtUnity)} · 계승 안정 ${Math.round(state.dynasty.successionSecurity)}`] : []),
       ...(state.electoral.activeCampaign ? [`선거일정 = ${getElectionTypeName(state.electoral.activeCampaign.type)} · ${getCampaignStageName(state.electoral.activeCampaign.stage)} · 투표일까지 ${Math.max(0, state.electoral.activeCampaign.electionWeek - context.week)}주`] : []),
     ],
@@ -419,6 +457,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
       `국가 성과 ${state.nationalScore} → ${next.nationalScore}`,
       `국민 위임 ${state.mandateScore} → ${next.mandateScore}`,
       `재정 ${fiscalBalance >= 0 ? '+' : ''}£${fiscalBalance.toFixed(1)}M · 부채 ${debtChange >= 0 ? '+' : ''}£${debtChange.toFixed(1)}M · 물가 ${inflationChange >= 0 ? '+' : ''}${inflationChange.toFixed(2)}%p`,
+      `정치 역량 ${politicalPowerChange >= 0 ? '+' : ''}${politicalPowerChange.toFixed(2)} · 대외 압력 ${enemyPressureChange >= 0 ? '+' : ''}${enemyPressureChange.toFixed(2)}`,
       ...(getGovernmentForm(state.dynasty.formId).monarchy ? [`왕실 상태: 왕권 ${Math.round(next.dynasty.crownAuthority)} · 궁정 결속 ${Math.round(next.dynasty.courtUnity)} · 찬탈 위험 보정 +${dynasticEffects.coupRisk.toFixed(1)}`] : []),
     ],
     events,
@@ -430,9 +469,9 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     gameDelta: {
       week: 1,
       treasury: fiscalBalance,
-      stability: round((next.legitimacy - state.legitimacy) * 0.18 - Math.max(0, next.unrest - 65) * 0.01 + electoralResult.stabilityDelta, 2),
-      politicalPower: 1 + electoralResult.politicalPowerDelta,
-      enemyPressure: -1.4,
+      stability: stabilityChange,
+      politicalPower: politicalPowerChange + electoralResult.politicalPowerDelta,
+      enemyPressure: enemyPressureChange,
       commandPoints: 1,
     },
     economyDelta: {

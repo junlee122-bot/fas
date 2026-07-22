@@ -8,6 +8,7 @@ import {
   resolveHistoricalEnding,
 } from './historicalEndings';
 import type { GeneratedWorldEvent, WorldMetric } from './worldHistory';
+import { worldHistoryEvents } from './worldHistory';
 
 const metrics = (values: Partial<Record<WorldMetric, number>>): Record<WorldMetric, number> => ({
   deterrence: 50,
@@ -105,5 +106,47 @@ describe('historically grounded campaign endings', () => {
       seed: 8151945,
     };
     expect(resolveHistoricalEnding(input)).toEqual(resolveHistoricalEnding(input));
+  });
+
+  it('explains the ending through five epilogue dimensions and ranked player choices', () => {
+    const event = worldHistoryEvents.find((candidate) => candidate.id === 'monetary-order')!;
+    const ending = resolveHistoricalEnding({
+      nationId: 'korea',
+      metrics: metrics({ prosperity: 76, multipolarity: 64 }),
+      timeline: [{
+        event,
+        variant: event.variants[1],
+        year: event.historicalYear,
+        actor: 'player',
+        isPlayerChoice: true,
+        causalFactors: ['campaign decision'],
+      }],
+      trajectory: undefined,
+      game: campaign,
+      seed: 1944,
+    });
+
+    expect(ending.epilogueChapters.map((chapter) => chapter.id)).toEqual([
+      'government', 'economy', 'society', 'technology', 'world-order',
+    ]);
+    expect(ending.decisiveChoices).toHaveLength(1);
+    expect(ending.decisiveChoices[0]).toMatchObject({
+      year: event.historicalYear,
+      eventTitle: event.title,
+      choiceTitle: event.variants[1].title,
+    });
+  });
+
+  it('keeps near-equivalent plausible futures diverse across campaign seeds', () => {
+    const resolvedIds = new Set(Array.from({ length: 120 }, (_, seed) => resolveHistoricalEnding({
+      nationId: 'korea',
+      metrics: metrics({ rights: 68, prosperity: 64, multipolarity: 61, instability: 38 }),
+      timeline: [],
+      trajectory: undefined,
+      game: campaign,
+      seed,
+    }).id));
+
+    expect(resolvedIds.size).toBeGreaterThan(20);
   });
 });

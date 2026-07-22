@@ -398,6 +398,11 @@ export interface ResearchProject {
   active: boolean;
   complete: boolean;
   icon: string;
+  minimumYear?: number;
+  prerequisites?: string[];
+  era?: 'wartime' | 'reconstruction' | 'cold-war' | 'space-age' | 'information-age' | 'connected-world';
+  historicalBasis?: string;
+  outcomeTags?: string[];
 }
 
 export interface ProductionLine {

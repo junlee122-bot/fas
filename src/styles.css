@@ -30,6 +30,66 @@
   --font-data: 'IBM Plex Mono', 'Pretendard Variable', Consolas, monospace;
 }
 
+.outcome-epilogue-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.outcome-epilogue-grid article,
+.outcome-decisive-choices article {
+  border: 1px solid rgba(194, 171, 112, .2);
+  background: rgba(10, 18, 17, .72);
+  padding: 10px 12px;
+}
+
+.outcome-epilogue-grid span,
+.outcome-decisive-choices time {
+  color: var(--gold, #c2ab70);
+  font-size: .68rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.outcome-epilogue-grid strong,
+.outcome-decisive-choices strong {
+  display: block;
+  margin-top: 4px;
+}
+
+.outcome-epilogue-grid p,
+.outcome-decisive-choices p {
+  margin: 5px 0 0;
+  font-size: .76rem;
+  line-height: 1.5;
+}
+
+.outcome-decisive-choices {
+  max-height: 220px;
+  overflow: auto;
+  margin: 12px 0;
+}
+
+.outcome-decisive-choices article {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  margin-top: 6px;
+}
+
+.outcome-decisive-choices em {
+  color: #91b7ae;
+  font-size: .7rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .outcome-decisive-choices article { grid-template-columns: 40px minmax(0, 1fr); }
+  .outcome-decisive-choices em { grid-column: 2; white-space: normal; }
+}
+
 /* Tactical map command center: keep the map readable before exposing depth. */
 .war-room.map-mode.map-intel-open { grid-template-columns: minmax(640px, 1fr) 330px; }
 .war-room.map-mode.map-intel-closed { grid-template-columns: minmax(0, 1fr); }

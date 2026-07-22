@@ -486,7 +486,7 @@ export function createStaffManagementOverview(
 }
 
 export function advanceStaffMemberWeek(member: StaffMember, developmentFocus: boolean): StaffMember {
-  const nextWorkload = clamp(member.workload + (member.delegated ? 3 : -2), 8, 100);
+  const nextWorkload = clamp(member.workload + (member.delegated ? (member.workload >= 82 ? -7 : 1.5) : -3), 8, 100);
   const contractWeeksRemaining = Math.max(0, getStaffContractWeeks(member) - 1);
   const workloadMorale = nextWorkload >= 88 ? -4 : nextWorkload >= 78 ? -2 : nextWorkload <= 45 ? 1 : 0;
   const contractMorale = contractWeeksRemaining === 0 ? -5 : contractWeeksRemaining <= 13 ? -2 : 0;
@@ -499,7 +499,10 @@ export function advanceStaffMemberWeek(member: StaffMember, developmentFocus: bo
   return {
     ...member,
     workload: nextWorkload,
-    loyalty: clamp(member.loyalty - (finalMorale < 35 ? 2 : member.delegated && member.workload >= 85 ? 1 : 0) - (promise.state === 'broken' ? 1 : 0), 20, 100),
+    loyalty: clamp(member.loyalty
+      - (finalMorale < 35 ? 2 : member.delegated && member.workload >= 88 ? 1 : 0)
+      - (promise.state === 'broken' ? 1 : 0)
+      + (finalMorale >= 68 && nextSatisfaction >= 65 && promise.state !== 'broken' ? 0.35 : 0), 20, 100),
     development: clamp(member.development + (member.delegated ? 6 : 3) + (developmentFocus ? 7 : 0) - (member.workload >= 85 ? 2 : 0)),
     morale: finalMorale,
     roleSatisfaction: nextSatisfaction,

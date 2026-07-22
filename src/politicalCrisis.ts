@@ -310,10 +310,10 @@ export function assessCoupRisk(state: PoliticalCrisisState, context: PoliticalCr
     { id: 'election', label: activeElection ? '선거 불복·정치 양극화' : '선거제도 신뢰', contribution: context.phase === 'nation' ? Math.max(0, 52 - context.nation.electoral.electoralIntegrity) * 0.18 + Math.max(0, (activeElection?.polarization ?? 0) - 55) * 0.14 : 0, detail: activeElection ? `절차 신뢰 ${activeElection.integrity.toFixed(1)} · 양극화 ${activeElection.polarization.toFixed(1)} · ${activeElection.stage}` : `선거 신뢰 ${context.nation.electoral.electoralIntegrity.toFixed(1)} · 진행 중 선거 없음` },
     { id: 'intelligence', label: '방첩 억제력', contribution: -Math.max(0, context.game.intelNetwork - 45) * 0.11, detail: `정보망 ${Math.round(context.game.intelNetwork)}가 사전 적발 가능성을 높입니다.` },
   ].map((trigger) => ({ ...trigger, contribution: round(trigger.contribution) }));
-  const raw = triggers.reduce((total, trigger) => total + trigger.contribution, 8 + Math.min(9, state.weeksInDanger * 0.8));
+  const raw = triggers.reduce((total, trigger) => total + trigger.contribution, 8 + Math.min(4, state.weeksInDanger * 0.35));
   const score = Math.round(clamp(raw));
   const tier = riskTier(score);
-  const weeklyChance = tier === 'stable' || tier === 'watch' ? 0 : round(Math.min(46, 2 + (score - 50) * 0.82 + state.weeksInDanger * 0.65));
+  const weeklyChance = tier === 'stable' || tier === 'watch' ? 0 : round(Math.min(12, 0.6 + (score - 50) * 0.2 + Math.min(24, state.weeksInDanger) * 0.12));
   return {
     score,
     tier,
@@ -334,11 +334,13 @@ function updateFactionStanding(definition: PoliticalFactionDefinition, standing:
       : definition.kind === 'security' ? Math.max(0, 55 - context.game.intelNetwork) / 35
         : definition.kind === 'labor' || definition.kind === 'resistance' ? Math.max(0, context.nation.unrest - 32) / 32
           : Math.max(0, 50 - context.nation.legitimacy) / 40;
-  const relief = context.game.stability >= 68 ? 0.55 : 0;
+  const relief = (context.game.stability >= 68 ? 0.55 : 0)
+    + (context.phase === 'nation' && context.nation.legitimacy >= 60 ? 0.4 : 0)
+    + (context.phase === 'nation' && context.nation.mandateScore >= 55 ? 0.3 : 0);
   return {
     support: round(clamp(standing.support + (nationalStress > 1.2 ? 0.15 : -0.05))),
     grievance: round(clamp(standing.grievance + nationalStress * 0.72 + specificStress * 0.55 - relief)),
-    organization: round(clamp(standing.organization + (standing.grievance >= 55 ? 0.3 : -0.05))),
+    organization: round(clamp(standing.organization + (standing.grievance >= 55 ? 0.22 : standing.grievance <= 35 ? -0.18 : -0.05))),
   };
 }
 
@@ -347,17 +349,24 @@ export function advancePoliticalCrisisWeek(state: PoliticalCrisisState, context:
   const activeElection = context.nation.electoral.activeCampaign;
   const factionStandings = Object.fromEntries(profile.factions.map((definition) => [definition.id, updateFactionStanding(definition, state.factionStandings[definition.id], context)]));
   const averageGrievance = Object.values(factionStandings).reduce((total, item) => total + item.grievance, 0) / profile.factions.length;
-  const relationShift = context.game.stability >= 65 && context.councilTrust >= 60 ? 0.28 : -(Math.max(0, averageGrievance - 35) / 32 + Math.max(0, 50 - context.councilTrust) / 45);
+  const institutionalRecovery = context.game.stability >= 65 && context.nation.legitimacy >= 58 ? 0.22 : 0;
+  const relationShift = institutionalRecovery > 0
+    ? institutionalRecovery
+    : -(Math.max(0, averageGrievance - 35) / 42 + Math.max(0, 45 - context.councilTrust) / 60);
   const relations = Object.fromEntries(Object.entries(state.relations).map(([key, value]) => [key, round(clamp(value + relationShift))]));
   let nextState: PoliticalCrisisState = { ...state, factionStandings, relations };
   let assessment = assessCoupRisk(nextState, context);
   nextState = {
     ...nextState,
-    weeksInDanger: assessment.tier === 'dangerous' || assessment.tier === 'critical' ? state.weeksInDanger + 1 : Math.max(0, state.weeksInDanger - 1),
+    weeksInDanger: assessment.tier === 'dangerous' || assessment.tier === 'critical' ? state.weeksInDanger + 1 : Math.max(0, state.weeksInDanger - 2),
     lastRiskTier: assessment.tier,
   };
   assessment = assessCoupRisk(nextState, context);
-  const cooldownReady = state.lastCoupWeek === null || context.week - state.lastCoupWeek >= 12;
+  // A coup is a generational political rupture, not a quarterly nuisance modal. Wartime can
+  // still produce rapid instability, while a postwar state receives at least two years to
+  // absorb the last attempt and make prevention choices meaningful.
+  const cooldownWeeks = context.phase === 'nation' ? 416 : 104;
+  const cooldownReady = state.lastCoupWeek === null || context.week - state.lastCoupWeek >= cooldownWeeks;
   const roll = deterministicPercent(`${state.nationId}:${context.week}:${state.attempts}:${assessment.leadingFaction.id}`);
   const shouldTrigger = context.week >= 6 && cooldownReady && assessment.weeklyChance > 0 && roll < assessment.weeklyChance;
   const notices: string[] = [];
@@ -473,7 +482,17 @@ export function resolveCoupAttempt(state: PoliticalCrisisState, incident: CoupIn
       : { ...standing, support: clamp(standing.support - 6), grievance: clamp(standing.grievance + 8), organization: clamp(standing.organization - 7) }];
   }));
   return {
-    state: { ...state, successful: state.successful + 1, generation: state.generation + 1, governmentName: successor, weeksInDanger: 0, lastRiskTier: 'watch', lastOutcome: `${successor} 수립`, factionStandings: resetStandings },
+    state: {
+      ...state,
+      successful: state.successful + 1,
+      generation: state.generation + 1,
+      governmentName: successor,
+      weeksInDanger: 0,
+      lastRiskTier: 'watch',
+      lastOutcome: `${successor} 수립`,
+      factionStandings: resetStandings,
+      relations: Object.fromEntries(Object.entries(state.relations).map(([key, value]) => [key, Math.max(42, value)])),
+    },
     outcome,
     title: '쿠데타 성공 — 정권 교체',
     detail: `${leader.name}이 핵심 국가기관을 장악해 ${successor}을(를) 세웠습니다. 캠페인은 끝나지 않으며, 사용자는 새 권력구조 속에서 보직과 영향력을 다시 확보해야 합니다.`,
