@@ -2343,6 +2343,84 @@ button:focus-visible,
 .front-register button.good > em { color: #79b291; }
 .front-register button.inactive { opacity: .62; }
 
+/* Front command registry: live merit, historical figures and battle legacy. */
+.front-operations-board {
+  border: 1px solid rgba(210, 181, 119, .22);
+  border-radius: 6px;
+  overflow: hidden;
+  background: linear-gradient(145deg, rgba(20, 29, 26, .94), rgba(11, 17, 15, .92));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .18);
+}
+.front-board-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 10px 7px; border-bottom: 1px solid rgba(255, 255, 255, .07); background: rgba(255, 255, 255, .025); }
+.front-board-heading > div { display: flex; flex-direction: column; gap: 2px; }
+.front-board-heading span { color: #9f895b; font: 700 6px 'IBM Plex Mono', monospace; letter-spacing: .14em; }
+.front-board-heading strong { color: #e0ddd3; font-size: 10px; }
+.front-board-heading > em { color: #d4b66f; font: 700 8px 'IBM Plex Mono', monospace; font-style: normal; white-space: nowrap; }
+.front-board-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; padding: 7px; border-bottom: 1px solid rgba(255, 255, 255, .055); }
+.front-board-toolbar > label { min-width: 0; display: flex; align-items: center; gap: 5px; height: 28px; padding: 0 7px; border: 1px solid rgba(255, 255, 255, .09); background: rgba(5, 9, 8, .5); color: #7f8b85; }
+.front-board-toolbar input { min-width: 0; width: 100%; border: 0; outline: 0; color: #d2d7d3; background: transparent; font: 500 8px 'Noto Sans KR', sans-serif; }
+.front-board-toolbar > div { display: flex; }
+.front-board-toolbar button { min-width: 34px; border: 1px solid rgba(255, 255, 255, .08); border-left: 0; color: #79867f; background: rgba(255, 255, 255, .018); font-size: 7px; cursor: pointer; }
+.front-board-toolbar button:first-child { border-left: 1px solid rgba(255, 255, 255, .08); }
+.front-board-toolbar button.active { color: #e2c77f; border-color: rgba(210, 181, 119, .3); background: rgba(210, 181, 119, .1); }
+.front-board-list { max-height: 300px; overflow-y: auto; scrollbar-width: thin; }
+.front-board-list > button { display: grid; grid-template-columns: 24px minmax(0, 1fr) 45px; align-items: center; gap: 7px; width: 100%; padding: 7px 8px; border: 0; border-bottom: 1px solid rgba(255, 255, 255, .05); text-align: left; background: transparent; cursor: pointer; }
+.front-board-list > button:hover, .front-board-list > button:focus-visible { outline: 0; background: rgba(210, 181, 119, .075); }
+.front-board-list > button > i { width: 22px; height: 22px; display: grid; place-items: center; border: 1px solid rgba(198, 168, 107, .18); border-radius: 4px; color: #c2a566; background: rgba(198, 168, 107, .07); }
+.front-board-list > button > span { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.front-board-list strong, .front-board-list small, .front-board-list b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.front-board-list strong { color: #d8dcd8; font-size: 8px; }
+.front-board-list small { color: #79867f; font-size: 7px; }
+.front-board-list b { display: flex; align-items: center; gap: 3px; color: #bba66f; font-size: 6px; font-weight: 600; }
+.front-board-list > button > em { color: #c5ad75; font: 700 7px/1.5 'IBM Plex Mono', monospace; font-style: normal; text-align: right; }
+.front-board-list > button.danger > i, .front-board-list > button.danger > em { color: #db806e; }
+.front-board-list > button.good > i, .front-board-list > button.good > em { color: #7fbd97; }
+.front-board-list > button.inactive { opacity: .62; }
+.front-board-empty { min-height: 80px; display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; color: #7d8983; font-size: 8px; }
+.front-board-detail { max-height: min(520px, calc(100vh - 275px)); overflow-y: auto; scrollbar-width: thin; }
+.front-board-detail > header { display: grid; grid-template-columns: 28px minmax(0, 1fr) 34px; align-items: center; gap: 7px; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, .06); background: linear-gradient(90deg, rgba(198, 168, 107, .06), transparent); }
+.front-board-detail > header > button { width: 26px; height: 26px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.09); color: #87938d; background: rgba(255,255,255,.018); cursor: pointer; }
+.front-board-detail > header > div { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.front-board-detail > header span { color: #b49a62; font: 600 6px 'IBM Plex Mono', monospace; }
+.front-board-detail > header strong, .front-board-detail > header small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.front-board-detail > header strong { color: #e1dfd7; font-size: 10px; }
+.front-board-detail > header small { color: #7f8b85; font-size: 7px; }
+.front-board-detail > header > em { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid rgba(198,168,107,.22); border-radius: 50%; color: #e2c477; font: 700 9px 'IBM Plex Mono', monospace; font-style: normal; }
+.front-board-metrics { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid rgba(255,255,255,.06); }
+.front-board-metrics > div { min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 7px; border-right: 1px solid rgba(255,255,255,.05); }
+.front-board-metrics > div:last-child { border-right: 0; }
+.front-board-metrics span { color: #6f7d76; font-size: 6px; }
+.front-board-metrics strong { color: #d9d5c8; font: 700 10px 'Oswald', sans-serif; }
+.front-standouts, .front-historical-figures, .front-honors-log { border-bottom: 1px solid rgba(255,255,255,.06); }
+.front-standouts > header, .front-historical-figures > header, .front-honors-log > header { display: flex; align-items: center; gap: 5px; padding: 7px 8px 5px; color: #b99f63; }
+.front-standouts > header span, .front-historical-figures > header span, .front-honors-log > header span { color: #cfd3cf; font-size: 7px; font-weight: 700; }
+.front-standouts > header em { margin-left: auto; color: #6f7b75; font-size: 6px; font-style: normal; }
+.front-standouts > article { display: grid; grid-template-columns: 20px minmax(0, 1fr) 48px auto; align-items: center; gap: 6px; padding: 6px 8px; background: rgba(255,255,255,.012); border-top: 1px solid rgba(255,255,255,.035); }
+.front-standouts > article > i { width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; color: #d6ba73; background: rgba(198,168,107,.12); font: 700 7px 'IBM Plex Mono', monospace; font-style: normal; }
+.front-standouts article > div, .front-standouts article > span { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.front-standouts article strong { color: #d9ddd9; font-size: 8px; }
+.front-standouts article small { overflow: hidden; color: #748079; font-size: 6px; text-overflow: ellipsis; white-space: nowrap; }
+.front-standouts article > span { text-align: right; }
+.front-standouts article > span b { color: #e0c57e; font: 700 9px 'IBM Plex Mono', monospace; }
+.front-standouts article > em { display: flex; align-items: center; gap: 2px; color: #d1b36e; font: 700 7px 'IBM Plex Mono', monospace; font-style: normal; }
+.front-standouts > p, .front-honors-log > p { display: flex; align-items: center; gap: 5px; margin: 0; padding: 9px; color: #77847d; font-size: 7px; }
+.front-historical-figures article { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 7px; padding: 6px 8px; border-top: 1px solid rgba(255,255,255,.035); }
+.front-historical-figures article > i { width: 22px; height: 22px; display: grid; place-items: center; border: 1px solid rgba(109,143,163,.2); border-radius: 4px; color: #8ab2c5; background: rgba(109,143,163,.07); font-style: normal; font-size: 8px; }
+.front-historical-figures article > i.axis { color: #d08472; border-color: rgba(169,95,81,.22); background: rgba(169,95,81,.07); }
+.front-historical-figures article > i.resistance { color: #d4b96f; border-color: rgba(198,168,107,.22); background: rgba(198,168,107,.07); }
+.front-historical-figures article > div { min-width: 0; display: grid; grid-template-columns: auto 1fr; gap: 1px 5px; }
+.front-historical-figures strong { color: #d7dbd7; font-size: 8px; }
+.front-historical-figures span { overflow: hidden; color: #9daba3; font-size: 6px; text-overflow: ellipsis; white-space: nowrap; }
+.front-historical-figures small { grid-column: 1 / -1; color: #6e7a74; font-size: 6px; line-height: 1.45; }
+.front-honors-log > button { display: grid; grid-template-columns: 22px minmax(0, 1fr) 14px; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; border: 0; border-top: 1px solid rgba(255,255,255,.035); text-align: left; color: #819087; background: transparent; cursor: pointer; }
+.front-honors-log > button:hover, .front-honors-log > button:focus-visible { outline: 0; background: rgba(198,168,107,.06); }
+.front-honors-log > button > i { width: 20px; height: 20px; display: grid; place-items: center; color: #d1b46e; }
+.front-honors-log > button > span { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.front-honors-log strong, .front-honors-log small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.front-honors-log strong { color: #d5d9d5; font-size: 7px; }
+.front-honors-log small { color: #75817a; font-size: 6px; }
+.front-board-detail > a { display: flex; align-items: center; justify-content: center; gap: 3px; padding: 7px; color: #a9915b; font-size: 7px; text-decoration: none; background: rgba(198,168,107,.025); }
+
 .game-shell.reduced-motion *,
 .game-shell.reduced-motion *::before,
 .game-shell.reduced-motion *::after {
@@ -5073,7 +5151,7 @@ button:focus-visible,
 
 /* Four-phase operational combat report */
 .battle-report-backdrop { background: radial-gradient(circle at 50% 25%, rgba(77,103,99,.13), transparent 45%), rgba(4,7,6,.91); }
-.battle-report-modal { width: min(1050px, 94vw); overflow: hidden; border: 1px solid rgba(169,95,81,.38); background: #141b18; box-shadow: 0 38px 120px rgba(0,0,0,.82); animation: briefing-in 420ms cubic-bezier(.2,.8,.2,1) both; }
+.battle-report-modal { width: min(1050px, 94vw); max-height: 94vh; overflow-x: hidden; overflow-y: auto; border: 1px solid rgba(169,95,81,.38); background: #141b18; box-shadow: 0 38px 120px rgba(0,0,0,.82); animation: briefing-in 420ms cubic-bezier(.2,.8,.2,1) both; }
 .battle-report-modal.victory { border-color: rgba(110,157,127,.42); }
 .battle-report-modal > header { min-height: 86px; display: grid; grid-template-columns: 50px 1fr 32px; align-items: center; gap: 13px; padding: 14px 18px; border-bottom: 1px solid var(--line-bright); background: linear-gradient(105deg, rgba(169,95,81,.08), transparent 58%); }
 .battle-report-modal.victory > header { background: linear-gradient(105deg, rgba(110,157,127,.09), transparent 58%); }
@@ -5113,11 +5191,63 @@ button:focus-visible,
 .battle-development-awards > div > span { display: flex; flex-direction: column; gap: 2px; font-size: 5px; color: var(--faint); }
 .battle-development-awards > div strong { font: 600 9px 'Oswald', sans-serif; color: #d2c18e; }
 .battle-development-awards > p { margin: 0; padding: 0 14px; font-size: 6px; line-height: 1.55; color: var(--faint); }
+.battle-recognition { border-top: 1px solid rgba(198,168,107,.24); background: linear-gradient(105deg, rgba(198,168,107,.075), rgba(255,255,255,.01) 52%, transparent); }
+.battle-recognition > header { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,.07); color: #d4b66e; }
+.battle-recognition > header > div { display: flex; flex-direction: column; gap: 2px; }
+.battle-recognition > header span { color: #a98e56; font: 700 6px 'IBM Plex Mono', monospace; letter-spacing: .13em; }
+.battle-recognition > header strong { color: #e1ded4; font-size: 10px; }
+.battle-recognition > header small { color: #7d8983; font-size: 6px; }
+.battle-recognition > header em { padding: 4px 7px; border: 1px solid rgba(198,168,107,.28); color: #d9bd75; background: rgba(198,168,107,.07); font: 700 7px 'IBM Plex Mono', monospace; font-style: normal; }
+.battle-recognition-record { display: grid; grid-template-columns: .8fr 1.2fr; }
+.battle-recognition-record > div { display: flex; flex-direction: column; gap: 3px; padding: 10px 16px; border-right: 1px solid rgba(255,255,255,.06); }
+.battle-recognition-record > div:last-child { border-right: 0; }
+.battle-recognition-record span { color: #77847d; font-size: 6px; }
+.battle-recognition-record strong { color: #ddc886; font: 600 12px 'Oswald', 'Noto Sans KR', sans-serif; }
+.battle-recognition-record small { color: #8a9690; font-size: 7px; line-height: 1.5; }
+.battle-recognition-form { display: grid; grid-template-columns: 1fr 1.35fr 140px; gap: 10px; padding: 11px 16px; }
+.battle-recognition-form label { display: flex; flex-direction: column; gap: 4px; }
+.battle-recognition-form label > span, .battle-recognition-form legend { color: #aeb8b2; font-size: 7px; font-weight: 700; }
+.battle-recognition-form input, .battle-recognition-form textarea { width: 100%; box-sizing: border-box; border: 1px solid rgba(255,255,255,.11); outline: 0; color: #e0e3df; background: rgba(5,9,8,.62); font: 500 8px/1.5 'Noto Sans KR', sans-serif; }
+.battle-recognition-form input { height: 31px; padding: 0 8px; }
+.battle-recognition-form textarea { min-height: 52px; padding: 7px 8px; resize: vertical; }
+.battle-recognition-form input:focus, .battle-recognition-form textarea:focus { border-color: rgba(198,168,107,.45); box-shadow: 0 0 0 2px rgba(198,168,107,.06); }
+.battle-name-field small { color: #6f7c75; font-size: 6px; line-height: 1.45; }
+.battle-recognition-form fieldset { min-width: 0; grid-row: span 2; margin: 0; padding: 0; border: 0; }
+.battle-recognition-form legend { width: 100%; margin-bottom: 4px; }
+.battle-recognition-form legend small { margin-left: 5px; color: #6f7b75; font-weight: 400; }
+.battle-recognition-form fieldset > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.battle-recognition-form fieldset button { min-height: 38px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; padding: 5px 7px; border: 1px solid rgba(255,255,255,.08); text-align: left; color: #99a59e; background: rgba(255,255,255,.018); cursor: pointer; }
+.battle-recognition-form fieldset button:hover, .battle-recognition-form fieldset button:focus-visible, .battle-recognition-form fieldset button.selected { outline: 0; border-color: rgba(198,168,107,.36); color: #e0c477; background: rgba(198,168,107,.08); }
+.battle-recognition-form fieldset button span { color: inherit; font-size: 7px; font-weight: 700; }
+.battle-recognition-form fieldset button small { color: #707d76; font-size: 5px; line-height: 1.35; }
+.battle-citation-field { grid-column: 1; }
+.recognition-confirm { grid-column: 3; grid-row: 1 / span 2; min-height: 72px; align-self: stretch; border: 1px solid rgba(198,168,107,.4); color: #111714; background: linear-gradient(180deg, #d3ba79, #a98c50); font-size: 8px; font-weight: 800; cursor: pointer; }
+.recognition-confirm:hover, .recognition-confirm:focus-visible { outline: 2px solid rgba(226,199,127,.25); filter: brightness(1.08); }
 .battle-report-modal > footer { min-height: 72px; display: grid; grid-template-columns: repeat(4, 1fr) 140px; align-items: center; border-top: 1px solid var(--line-bright); background: #111714; }
 .battle-report-modal > footer > div { min-height: 45px; display: flex; align-items: center; gap: 8px; padding: 0 13px; color: var(--gold); border-right: 1px solid var(--line); }
 .battle-report-modal > footer span { display: flex; flex-direction: column; gap: 2px; font-size: 5px; color: var(--faint); }
 .battle-report-modal > footer strong { font: 600 11px 'Oswald', sans-serif; color: #d0d5d1; }
 .battle-report-modal > footer > button { height: 36px; margin: 0 12px; border: 1px solid rgba(198,168,107,.4); font-size: 7px; color: #141914; background: linear-gradient(180deg, #d0b573, #a7894e); cursor: pointer; }
+
+@media (max-width: 760px) {
+  .battle-report-modal { width: 96vw; max-height: 92vh; }
+  .battle-report-modal > header { grid-template-columns: 38px minmax(0, 1fr) 30px; padding: 10px; }
+  .battle-result-mark { width: 36px; height: 36px; }
+  .battle-report-summary { grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 8px 10px; }
+  .battle-report-summary > p { grid-column: 1 / -1; }
+  .battle-phase-flow { grid-template-columns: repeat(2, 1fr); }
+  .battle-phase { min-height: 170px; }
+  .battle-development-awards { grid-template-columns: repeat(2, 1fr); }
+  .battle-development-awards > p { grid-column: 1 / -1; padding: 8px 12px; border-top: 1px solid var(--line); }
+  .battle-recognition > header { grid-template-columns: 28px minmax(0, 1fr); padding: 9px 10px; }
+  .battle-recognition > header > em { grid-column: 2; justify-self: start; }
+  .battle-recognition-form { grid-template-columns: 1fr; padding: 10px; }
+  .battle-recognition-form fieldset, .battle-citation-field, .recognition-confirm { grid-column: 1; grid-row: auto; }
+  .battle-recognition-form fieldset > div { grid-template-columns: 1fr; }
+  .recognition-confirm { min-height: 40px; }
+  .battle-report-modal > footer { grid-template-columns: repeat(2, 1fr); }
+  .battle-report-modal > footer > button { grid-column: 1 / -1; margin: 8px 10px; }
+}
 
 /* Player guidance and accessibility */
 .ux-backdrop { position: fixed; z-index: 110; inset: 0; display: flex; background: rgba(4,7,6,.78); backdrop-filter: blur(5px); animation: fade-in 180ms ease both; }

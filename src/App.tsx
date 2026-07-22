@@ -126,6 +126,7 @@ import { forecastBattle, resolveBattle } from './combat';
 import type { BattleForecast } from './combat';
 import { BattleReportModal } from './BattleReportModal';
 import { BattleDoctrinePanel } from './BattleDoctrinePanel';
+import { FrontOperationsBoard } from './FrontOperationsBoard';
 import { OffensivePlanningModal } from './OffensivePlanningModal';
 import { CommanderDevelopmentPanel } from './CommanderDevelopmentPanel';
 import { ActionCenter } from './ActionCenter';
@@ -170,6 +171,7 @@ import {
 } from './equipment';
 import { clampMapCamera, DEFAULT_MAP_CAMERA, deriveFrontLabelAnchors, deriveFrontSummaries, deriveMapConnections, deriveMapMarkerPresentation, deriveSameFrameMapConnections, deriveValidTargetIds, deriveVisibleMapLabelIds, getTerrainGlyphKind, MAX_MAP_ZOOM } from './mapPresentation';
 import type { FrontSummary, MapCamera, MapLabelMode } from './mapPresentation';
+import { recognizeBattle } from './frontLegacy';
 import { getHistoricalMapPlacement, getHistoricalMapPoint, historicalMapFrames, historicalMapSources } from './historicalMaps';
 import { getDefaultMapRegion, getMapRegion, getMapRegionForTerritory, getMapRegionsForTheater, getTerritoriesForMapRegion } from './mapRegions';
 import { strategicFronts } from './strategicMapData';
@@ -522,6 +524,7 @@ export function App() {
   });
   const [mapFocusMode, setMapFocusMode] = useState(false);
   const [mapSelectionOpen, setMapSelectionOpen] = useState(true);
+  const [selectedFrontDetailId, setSelectedFrontDetailId] = useState<string | null>(null);
   const [setupNationId, setSetupNationId] = useState<NationId>(DEFAULT_NATION_ID);
   const [setupRoleId, setSetupRoleId] = useState(DEFAULT_ROLE_ID);
   const [career, setCareer] = useState<CareerState>(() => createCareerState(DEFAULT_NATION_ID, DEFAULT_ROLE_ID));
@@ -937,7 +940,7 @@ export function App() {
     activeResearch: research.filter((project) => project.active && !project.complete).length,
   }), [events, game.week, hasUnreadWorldWeekly, lastReviewedJournalWeek, orders.length, research, uxActions]);
   const savePayload = useMemo<CampaignSavePayload>(() => ({
-    version: 22,
+    version: 23,
     game,
     territories,
     divisions,
@@ -1576,6 +1579,9 @@ export function App() {
           const battleHonor = getBattleHonor(resolvedBattle);
           const battleReport: BattleReport = {
             ...resolvedBattle,
+            commanderId: commander.id,
+            targetValue: target.value,
+            frontId: target.frontId,
             commanderXpGained: developmentResult.xpGained,
             battleHonor,
           };
@@ -1593,7 +1599,7 @@ export function App() {
               ? current.map((record) => record.commanderId === commander.id ? developmentResult.record : record)
               : [...current, developmentResult.record];
           });
-          setBattleReports((current) => [battleReport, ...current].slice(0, 24));
+          setBattleReports((current) => [battleReport, ...current].slice(0, 120));
           setPendingBattleReportId(battleReport.id);
           setSpeed(0);
           if (developmentResult.leveledUp) {
@@ -2378,6 +2384,7 @@ export function App() {
     setActiveTheater(nation.defaultTheater);
     setActiveMapRegionId(openingMapRegion.id);
     setMapCamera(clampMapCamera(openingMapRegion.camera));
+    setSelectedFrontDetailId(null);
     setSelectedTerritoryId(commandTerritoryId);
     setSelectedDivisionId(newDivisions[0].id);
     setObjectiveProgress(22);
@@ -2526,6 +2533,7 @@ export function App() {
       setPendingBattleReportId(data.pendingBattleReportId ?? null);
       setPendingOffensivePlan(null);
       setPlanningMode(false);
+      setSelectedFrontDetailId(null);
       setCommanderDevelopment(restoredDevelopment);
       setAchievementUnlocks(normalizeAchievementUnlocks(data.achievementUnlocks));
       const restoredWorldWeeklyIssues = normalizeWorldWeeklyIssues(data.worldWeeklyIssues);
@@ -2641,6 +2649,7 @@ export function App() {
     setSelectedDivisionId(defaultDivisions[0].id);
     setMapLayer('political');
     setMapCamera(DEFAULT_MAP_CAMERA);
+    setSelectedFrontDetailId(null);
     setCampaignOutcome(null);
     setObjectiveProgress(28);
     setTorchAuthorized(false);
@@ -3096,6 +3105,20 @@ export function App() {
     notify(selectedCommander.name + '의 피로도가 회복되었습니다.');
   };
 
+  const recognizeBattleAchievement = (reportId: string, input: { battleName?: string; decorationId?: string; citation?: string }) => {
+    const report = battleReports.find((candidate) => candidate.id === reportId);
+    if (!report) return;
+    const recognized = recognizeBattle(report, {
+      ...input,
+      nationId: playerNation.id,
+      year: 1942 + Math.floor(report.week / 52),
+    });
+    setBattleReports((current) => current.map((candidate) => candidate.id === reportId ? recognized : candidate));
+    const recognition = [recognized.battleName, recognized.decoration?.name].filter(Boolean).join(' · ');
+    addEvent(`전공 기록 승인 — ${recognized.commanderName}`, `${recognition || recognized.targetName}을(를) 전선 공식 기록에 등재했습니다.${recognized.decoration ? ` 공적 사유: ${recognized.decoration.citation}` : ''}`, 'good', game.week);
+    notify(`${recognized.commanderName}의 전공 기록을 승인했습니다${recognized.decoration ? ` · ${recognized.decoration.name}` : ''}.`);
+  };
+
   const changeSetupNation = (nationId: NationId) => {
     const defaultRole = careerRoles.find((role) => role.nationId === nationId && role.tier === 2);
     setSetupNationId(nationId);
@@ -3150,6 +3173,7 @@ export function App() {
       ?? visibleTerritories.find((territory) => territory.controller === playerFaction && (territory.labelTier ?? 3) === 1)
       ?? visibleTerritories[0];
     setActiveMapRegionId(region.id);
+    setSelectedFrontDetailId(null);
     setMapCamera(clampMapCamera(region.camera));
     if (focus) setSelectedTerritoryId(focus.id);
     setMapSelectionOpen(Boolean(focus));
@@ -3192,6 +3216,7 @@ export function App() {
     const defaultRegion = getDefaultMapRegion(theater);
     setActiveTheater(theater);
     setActiveMapRegionId(defaultRegion.id);
+    setSelectedFrontDetailId(null);
     setActiveTab('map');
     setMapCamera(clampMapCamera(defaultRegion.camera));
     const divisionInTheater = divisions.find((division) => {
@@ -4454,18 +4479,19 @@ export function App() {
             <a href={historicalMapSources[activeTheater].sourceUrl} target="_blank" rel="noreferrer">소장처 원문 보기 <ChevronRight size={12} /></a>
           </section>
 
-          <section className="front-register" aria-label="현재 전구 전선 목록">
-            <header><span>{activeMapRegion.shortName} 전선 상황판</span><em>{regionalFrontSummaries.filter((front) => front.activeContacts > 0).length}/{regionalFrontSummaries.length} 교전</em></header>
-            <div>
-              {regionalFrontSummaries.slice(0, 12).map((front) => (
-                <button type="button" key={front.id} title={`${front.name}을 지도 중앙에 표시`} onClick={() => focusMapFront(front.id)} className={`${front.status === '위기' ? 'danger' : front.status === '우세' ? 'good' : ''}${front.activeContacts === 0 ? ' inactive' : ''}`}>
-                  <i><Swords size={12} /></i>
-                  <span><strong>{front.name}</strong><small>{front.commandArea}</small></span>
-                  <em>{front.activeContacts > 0 ? `${front.activeContacts} 접촉 · ${front.status}` : '비접촉 · 감시'}</em>
-                </button>
-              ))}
-            </div>
-          </section>
+          <FrontOperationsBoard
+            fronts={regionalFrontSummaries}
+            selectedFrontId={regionalFrontSummaries.some((front) => front.id === selectedFrontDetailId) ? selectedFrontDetailId : null}
+            battleReports={battleReports}
+            commanders={effectiveCommanders}
+            divisions={effectiveDivisions}
+            onSelectFront={(frontId) => {
+              setSelectedFrontDetailId(frontId);
+              focusMapFront(frontId);
+            }}
+            onCloseDetail={() => setSelectedFrontDetailId(null)}
+            onOpenReport={setPendingBattleReportId}
+          />
 
           <section className={'command-assistant-card ' + (uxActions[0]?.priority ?? 'clear')}>
             <header><Lightbulb size={15} /><span>다음 권장 행동</span><em>{uxActions.length > 0 ? `${uxActions.length}건 대기` : '정상'}</em></header>
@@ -4928,7 +4954,13 @@ export function App() {
         <CouncilEventModal event={pendingCouncilEvent} onChoose={resolveCouncilChoice} />
       )}
       {pendingBattleReport && !pendingWorldFlashpoint && !pendingCoupIncident && !showPoliticalCrisis && !pendingCouncilEvent && !showBriefing && !campaignOutcome && (
-        <BattleReportModal report={pendingBattleReport} onClose={() => setPendingBattleReportId(null)} />
+        <BattleReportModal
+          key={pendingBattleReport.id}
+          report={pendingBattleReport}
+          nationId={playerNation.id}
+          onRecognize={recognizeBattleAchievement}
+          onClose={() => setPendingBattleReportId(null)}
+        />
       )}
       {showJournal && <WarJournal events={events} onClose={() => setShowJournal(false)} />}
       {showStatusOverview && !showBriefing && !campaignOutcome && !pendingWorldFlashpoint && !pendingCoupIncident && !showPoliticalCrisis && !pendingCouncilEvent && !pendingBattleReport && (

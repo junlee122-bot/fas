@@ -36,7 +36,7 @@ export function BattleDoctrinePanel({ stance, reports, onStanceChange, onOpenRep
           ) : reports.slice(0, 3).map((report) => (
             <button key={report.id} onClick={() => onOpenReport(report.id)}>
               <i className={report.victory ? 'victory' : 'defeat'}>{report.victory ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}</i>
-              <span><strong>{report.targetName} · {report.victory ? '승리' : '공세 중단'}</strong><small>제 {report.week}주 · {report.divisionName} · 우세 {report.margin >= 0 ? '+' : ''}{report.margin}</small></span>
+              <span><strong>{report.battleName ?? report.targetName} · {report.victory ? '승리' : '공세 중단'}</strong><small>제 {report.week}주 · {report.divisionName} · 우세 {report.margin >= 0 ? '+' : ''}{report.margin}</small></span>
               <ChevronRight size={15} />
             </button>
           ))}

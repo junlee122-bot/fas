@@ -16,6 +16,7 @@ export type PersonnelDiscipline = 'military' | 'science' | 'engineering' | 'medi
 export type PolicyDomain = 'economy' | 'doctrine' | 'society' | 'diplomacy';
 export type BattleStance = 'cautious' | 'balanced' | 'aggressive';
 export type BattlePhaseTone = 'advantage' | 'contested' | 'setback';
+export type BattleRecognitionTier = 'citation' | 'distinguished' | 'supreme';
 export type CommanderSkillId = 'operational-planner' | 'breakthrough-specialist' | 'defense-in-depth' | 'master-logistician';
 export type EquipmentCategory = 'infantry' | 'artillery' | 'armor' | 'aircraft' | 'naval' | 'logistics' | 'systems' | 'strategic';
 export type EquipmentEra = 'historical' | 'late-war' | 'cold-war' | 'modern' | 'speculative';
@@ -272,8 +273,11 @@ export interface BattleReport {
   divisionId: string;
   divisionName: string;
   commanderName: string;
+  commanderId?: string;
   targetId: string;
   targetName: string;
+  targetValue?: number;
+  frontId?: string;
   terrain: string;
   stance: BattleStance;
   victory: boolean;
@@ -285,7 +289,17 @@ export interface BattleReport {
   supplySpent: number;
   commanderXpGained?: number;
   battleHonor?: string;
+  battleName?: string;
+  decoration?: BattleDecoration;
   summary: string;
+}
+
+export interface BattleDecoration {
+  id: string;
+  name: string;
+  tier: BattleRecognitionTier;
+  citation: string;
+  awardedWeek: number;
 }
 
 export interface CommanderDevelopment {

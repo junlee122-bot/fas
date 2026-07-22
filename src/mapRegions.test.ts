@@ -4,9 +4,9 @@ import { getDefaultMapRegion, getMapRegionForTerritory, getMapRegionsForTheater,
 
 describe('regional strategic maps', () => {
   it('provides an overview and multiple detailed maps for both theaters', () => {
-    expect(strategicMapRegions).toHaveLength(14);
-    expect(getMapRegionsForTheater('europe')).toHaveLength(7);
-    expect(getMapRegionsForTheater('asia')).toHaveLength(7);
+    expect(strategicMapRegions).toHaveLength(22);
+    expect(getMapRegionsForTheater('europe')).toHaveLength(11);
+    expect(getMapRegionsForTheater('asia')).toHaveLength(11);
     expect(getDefaultMapRegion('europe').id).toBe('europe-overview');
     expect(getDefaultMapRegion('asia').id).toBe('asia-overview');
   });
@@ -23,8 +23,8 @@ describe('regional strategic maps', () => {
     expect(indiaBurmaIds.has('japan_home')).toBe(false);
   });
 
-  it('opens both the Chongqing command seat and Joseon homeland in the China–Korea regional map', () => {
-    expect(getMapRegionForTerritory(territories, 'china_interior', 'asia').id).toBe('china-korea');
-    expect(getMapRegionForTerritory(territories, 'korea', 'asia').id).toBe('china-korea');
+  it('opens Chongqing and Joseon in their new close operational maps', () => {
+    expect(getMapRegionForTerritory(territories, 'china_interior', 'asia').id).toBe('china-heartland');
+    expect(getMapRegionForTerritory(territories, 'korea', 'asia').id).toBe('manchuria-korea-detail');
   });
 });
