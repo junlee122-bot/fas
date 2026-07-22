@@ -17,6 +17,7 @@ export type PolicyDomain = 'economy' | 'doctrine' | 'society' | 'diplomacy';
 export type BattleStance = 'cautious' | 'balanced' | 'aggressive';
 export type BattlePhaseTone = 'advantage' | 'contested' | 'setback';
 export type BattleRecognitionTier = 'citation' | 'distinguished' | 'supreme';
+export type BattleType = 'maneuver' | 'siege' | 'amphibious' | 'mountain' | 'urban' | 'attrition';
 export type CommanderSkillId = 'operational-planner' | 'breakthrough-specialist' | 'defense-in-depth' | 'master-logistician';
 export type EquipmentCategory = 'infantry' | 'artillery' | 'armor' | 'aircraft' | 'naval' | 'logistics' | 'systems' | 'strategic';
 export type EquipmentEra = 'historical' | 'late-war' | 'cold-war' | 'modern' | 'speculative';
@@ -291,6 +292,11 @@ export interface BattleReport {
   battleHonor?: string;
   battleName?: string;
   decoration?: BattleDecoration;
+  battleType?: BattleType;
+  operationWeek?: number;
+  operationProgress?: number;
+  operationRequired?: number;
+  operationOutcome?: 'ongoing' | 'victory' | 'defeat';
   summary: string;
 }
 
@@ -505,6 +511,12 @@ export interface Order {
   targetId: string;
   startedWeek: number;
   stance?: BattleStance;
+  battleType?: BattleType;
+  operationProgress?: number;
+  operationRequired?: number;
+  elapsedWeeks?: number;
+  maxWeeks?: number;
+  cumulativeMargin?: number;
 }
 
 export interface GameState {

@@ -1,6 +1,7 @@
 import { Award, CheckCircle2, Eye, Package, ShieldAlert, Star, Swords, Target, TrendingUp, X } from 'lucide-react';
 import { useState } from 'react';
 import { assessBattleRecognition, getDecorationOptions } from './frontLegacy';
+import { battleTypeProfiles } from './operations';
 import type { BattlePhase, BattleReport, NationId } from './types';
 
 interface BattleReportModalProps {
@@ -30,24 +31,29 @@ export function BattleReportModal({ report, nationId, onRecognize, onClose }: Ba
   const [battleName, setBattleName] = useState(report.battleName ?? recognition.suggestedBattleName);
   const [decorationId, setDecorationId] = useState(report.decoration?.id ?? '');
   const [citation, setCitation] = useState(report.decoration?.citation ?? '');
+  const operationOngoing = report.operationOutcome === 'ongoing';
+  const operationVictory = report.operationOutcome === 'victory' || (report.operationOutcome === undefined && report.victory);
+  const operationProfile = report.battleType ? battleTypeProfiles[report.battleType] : null;
+  const operationProgress = report.operationRequired ? Math.round(Math.min(100, (report.operationProgress ?? 0) / report.operationRequired * 100)) : 0;
   return (
     <div className="modal-backdrop battle-report-backdrop" role="dialog" aria-modal="true" aria-labelledby="battle-report-title">
-      <section className={'battle-report-modal ' + (report.victory ? 'victory' : 'defeat')}>
+      <section className={'battle-report-modal ' + (operationOngoing ? 'ongoing' : operationVictory ? 'victory' : 'defeat')}>
         <header>
-          <div className="battle-result-mark">{report.victory ? <CheckCircle2 size={28} /> : <ShieldAlert size={28} />}</div>
+          <div className="battle-result-mark">{operationOngoing ? <TrendingUp size={28} /> : operationVictory ? <CheckCircle2 size={28} /> : <ShieldAlert size={28} />}</div>
           <div>
-            <span>AFTER ACTION REPORT · 제 {report.week}주</span>
-            <h2 id="battle-report-title">{report.battleName ?? report.targetName} {report.victory ? '전투 승리' : '공세 중단'}</h2>
+            <span>AFTER ACTION REPORT · 제 {report.week}주{report.operationWeek ? ` · 작전 ${report.operationWeek}주차` : ''}</span>
+            <h2 id="battle-report-title">{report.battleName ?? report.targetName} {operationOngoing ? '교전 진행 중' : operationVictory ? '작전 승리' : '공세 중단'}</h2>
             <small>{report.divisionName} · {report.commanderName} · {stanceLabels[report.stance]}</small>
           </div>
           <button onClick={onClose} aria-label="전투 보고서 닫기"><X size={17} /></button>
         </header>
 
         <div className="battle-report-summary">
-          <div><span>작전 결과</span><strong>{report.victory ? '목표 지역 확보' : '출발선 재편'}</strong></div>
+          <div><span>작전 상태</span><strong>{operationOngoing ? '전선 유지·다음 주 계속' : operationVictory ? '목표 지역 확보' : '출발선 재편'}</strong></div>
           <div><span>종합 우세</span><strong className={report.margin >= 0 ? 'positive' : 'negative'}>{report.margin >= 0 ? '+' : ''}{report.margin}</strong></div>
-          <div><span>지형</span><strong>{report.terrain}</strong></div>
+          <div><span>전투 성격</span><strong>{operationProfile?.label ?? report.terrain}</strong></div>
           <p>{report.summary}</p>
+          {operationOngoing && <div className="operation-report-progress"><span><strong>누적 진척 {operationProgress}%</strong><small>{report.operationProgress}/{report.operationRequired} · 목표 통제는 아직 변하지 않음</small></span><i><b style={{ width: `${operationProgress}%` }} /></i></div>}
         </div>
 
         <div className="battle-phase-flow">

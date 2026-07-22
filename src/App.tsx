@@ -124,6 +124,7 @@ import { CouncilEventModal } from './CouncilEventModal';
 import { councilEvents, selectNextCouncilEvent, strategicPolicies } from './choices';
 import { forecastBattle, resolveBattle } from './combat';
 import type { BattleForecast } from './combat';
+import { advanceOperationWeek, battleTypeProfiles, createOperationOrder, getOperationProgress, normalizeOperationOrder } from './operations';
 import { BattleReportModal } from './BattleReportModal';
 import { BattleDoctrinePanel } from './BattleDoctrinePanel';
 import { FrontOperationsBoard } from './FrontOperationsBoard';
@@ -694,11 +695,14 @@ export function App() {
     const target = territories.find((item) => item.id === order.targetId);
     if (!division || !origin || !target) return [];
     const stance = order.stance ?? 'balanced';
+    const profile = battleTypeProfiles[order.battleType ?? 'attrition'];
     return [{
       order,
       division,
       origin,
       target,
+      profile,
+      progress: getOperationProgress(order),
       stanceLabel: stance === 'aggressive' ? '총공세' : stance === 'cautious' ? '신중 공세' : '균형 공세',
     }];
   }), [effectiveDivisions, orders, territories]);
@@ -940,7 +944,7 @@ export function App() {
     activeResearch: research.filter((project) => project.active && !project.complete).length,
   }), [events, game.week, hasUnreadWorldWeekly, lastReviewedJournalWeek, orders.length, research, uxActions]);
   const savePayload = useMemo<CampaignSavePayload>(() => ({
-    version: 23,
+    version: 24,
     game,
     territories,
     divisions,
@@ -1100,7 +1104,7 @@ export function App() {
         id: 'war-operations',
         label: '작전 판정',
         value: orders.length ? `${orders.length}건 예약` : '명령 없음',
-        detail: orders.length ? `다음 판정: ${projectionOrderTarget ?? '목표 지역'} · ${battleStance === 'aggressive' ? '강공' : battleStance === 'cautious' ? '신중' : '균형'} 태세` : '작전 결과 없이 행정 주간으로 진행됩니다.',
+        detail: orders.length ? `다음 교전: ${projectionOrderTarget ?? '목표 지역'} · ${orders[0].battleType ? battleTypeProfiles[orders[0].battleType].shortLabel : '작전 분류 예정'} · 진척 ${getOperationProgress(orders[0])}%` : '작전 결과 없이 행정 주간으로 진행됩니다.',
         tone: orders.length ? 'good' : 'warning',
         icon: 'army',
       },
@@ -1534,9 +1538,11 @@ export function App() {
       const division = effectiveDivisions.find((item) => item.id === currentOrder.divisionId);
       const target = territories.find((item) => item.id === currentOrder.targetId);
       const commander = effectiveCommanders.find((item) => item.id === division?.commanderId);
+      let shouldRemoveCurrentOrder = !division || !target || !commander;
       if (division && target && commander) {
         const orderStance = currentOrder.stance ?? battleStance;
         if (target.controller === playerFaction) {
+          shouldRemoveCurrentOrder = true;
           weeklyOrderComparison = {
             label: '작전 명령',
             expected: `${target.name} 우군 집결`,
@@ -1554,6 +1560,7 @@ export function App() {
           addEvent('우군 집결 — ' + target.name, division.name + '이(가) 확보된 교두보에 합류했습니다.', 'neutral', nextWeek);
           notify(division.name + '이(가) ' + target.name + '에 합류했습니다.');
         } else {
+          const operationOrder = normalizeOperationOrder(currentOrder, territories.find((item) => item.id === currentOrder.fromId) ?? target, target, division);
           const doctrineBonus = doctrine === 'maneuver' && division.type === 'armor' ? 14 : doctrine === 'methodical' ? 7 : 4;
           const priorityBonus = division.id === priorityDivisionId ? 5 : 0;
           const battleInput = {
@@ -1569,14 +1576,17 @@ export function App() {
             priorityBonus,
           };
           const preBattleForecast = forecastBattle(battleInput);
-          const resolvedBattle = resolveBattle({
+          const resolvedEngagement = resolveBattle({
             ...battleInput,
             randomRolls: [Math.random(), Math.random(), Math.random(), Math.random()],
           });
+          const operationResolution = advanceOperationWeek(operationOrder, resolvedEngagement, division);
+          shouldRemoveCurrentOrder = operationResolution.outcome !== 'ongoing';
+          const resolvedBattle = operationResolution.report;
           const existingDevelopment = getCommanderRecord(commanderDevelopment, commander);
           const recoveredDevelopment = { ...existingDevelopment, fatigue: Math.max(0, existingDevelopment.fatigue - 3) };
           const developmentResult = recordBattleExperience(recoveredDevelopment, resolvedBattle, orderStance);
-          const battleHonor = getBattleHonor(resolvedBattle);
+          const battleHonor = operationResolution.outcome === 'victory' ? getBattleHonor(resolvedBattle) : undefined;
           const battleReport: BattleReport = {
             ...resolvedBattle,
             commanderId: commander.id,
@@ -1589,9 +1599,11 @@ export function App() {
           weeklyOrderComparison = {
             label: `${target.name} 공세`,
             expected: `승산 ${preBattleForecast.successChance}% · 병력 손실 ${preBattleForecast.strengthLoss[0]}~${preBattleForecast.strengthLoss[1]}`,
-            actual: `${battleReport.victory ? '승리' : '패배'} · 병력 -${battleReport.attackerStrengthLoss} · 작전 마진 ${battleReport.margin >= 0 ? '+' : ''}${battleReport.margin}`,
+            actual: operationResolution.outcome === 'ongoing'
+              ? `${operationResolution.profile.shortLabel} ${operationResolution.order.elapsedWeeks}주차 · 진척 ${operationResolution.progressPercent}% · 병력 -${battleReport.attackerStrengthLoss}`
+              : `${operationResolution.outcome === 'victory' ? '작전 승리' : '작전 철수'} · 병력 -${battleReport.attackerStrengthLoss} · 누적 진척 ${operationResolution.progressPercent}%`,
             status: battleReport.victory === expectedVictory ? 'matched' : battleReport.victory ? 'better' : 'worse',
-            explanation: `정보 신뢰도 ${preBattleForecast.confidence === 'high' ? '높음' : preBattleForecast.confidence === 'medium' ? '보통' : '낮음'} 전망과 정찰·전개·교전·추격 4단계 확률 판정을 비교했습니다.`,
+            explanation: `첫 주 승산은 주간 교전의 우세 확률입니다. ${operationResolution.profile.label}은 진척도와 최소 지속 기간을 모두 충족해야 영토 확보로 종결됩니다.`,
           };
           setCommanderDevelopment((current) => {
             const exists = current.some((record) => record.commanderId === commander.id);
@@ -1605,7 +1617,26 @@ export function App() {
           if (developmentResult.leveledUp) {
             addEvent('지휘관 성장 — ' + commander.name, '실전 경험으로 새로운 복무 레벨에 도달했습니다. 육군 화면에서 특기 하나를 선택할 수 있습니다.', 'good', nextWeek);
           }
-          if (battleReport.victory) {
+          if (operationResolution.outcome === 'ongoing') {
+            setOrders((current) => current.map((order, index) => index === 0 ? operationResolution.order : order));
+            setTerritories((current) => current.map((item) => item.id === target.id ? { ...item, supply: Math.max(20, item.supply - Math.max(1, Math.round(battleReport.defenderStrengthLoss / 3))) } : item));
+            setDivisions((current) => current.map((item) => item.id === division.id ? {
+              ...item,
+              status: 'combat',
+              strength: Math.max(30, item.strength - battleReport.attackerStrengthLoss),
+              organization: Math.max(22, item.organization - battleReport.organizationLoss),
+              supply: Math.max(15, item.supply - battleReport.supplySpent),
+              experience: Math.min(100, item.experience + (battleReport.victory ? 3 : 2)),
+            } : item));
+            setGame((current) => ({ ...current, manpower: Math.max(0, current.manpower - battleReport.attackerStrengthLoss * 3), warSupport: Math.max(35, Math.min(100, current.warSupport + (battleReport.victory ? 1 : -1))) }));
+            addEvent(
+              `작전 진행 — ${target.name} ${operationResolution.order.elapsedWeeks}주차`,
+              `${operationResolution.profile.label} 진척 ${operationResolution.progressPercent}% (${operationResolution.progressGained >= 0 ? '+' : ''}${operationResolution.progressGained}). 영토 통제는 아직 변하지 않았습니다.`,
+              battleReport.victory ? 'good' : 'neutral',
+              nextWeek,
+            );
+            notify(`${target.name} ${operationResolution.profile.shortLabel} ${operationResolution.progressPercent}% · 다음 주 계속`);
+          } else if (operationResolution.outcome === 'victory') {
             setTerritories((current) => current.map((item) => item.id === target.id ? { ...item, controller: playerFaction, ownerId: playerNation.id, supply: Math.max(35, item.supply - 12) } : item));
             setDivisions((current) => current.map((item) => item.id === division.id ? {
               ...item,
@@ -1620,7 +1651,7 @@ export function App() {
             setGame((current) => ({ ...current, manpower: Math.max(0, current.manpower - battleReport.attackerStrengthLoss * 3), victoryScore: Math.min(100, current.victoryScore + target.value), warSupport: Math.min(100, current.warSupport + 2) }));
             setObjectiveProgress((current) => Math.min(100, current + target.value * 3));
             addEvent('전선 돌파 — ' + target.name, battleReport.summary, 'good', nextWeek);
-            notify(target.name + ' 확보! 전선이 전진했습니다.');
+            notify(`${target.name} 확보! ${operationResolution.order.elapsedWeeks}주간의 ${operationResolution.profile.shortLabel}이 종결됐습니다.`);
           } else {
             setTerritories((current) => current.map((item) => item.id === target.id ? { ...item, supply: Math.max(20, item.supply - Math.round(battleReport.defenderStrengthLoss / 2)) } : item));
             setDivisions((current) => current.map((item) => item.id === division.id ? {
@@ -1632,12 +1663,12 @@ export function App() {
               experience: Math.min(100, item.experience + 2),
             } : item));
             setGame((current) => ({ ...current, manpower: Math.max(0, current.manpower - battleReport.attackerStrengthLoss * 3), warSupport: Math.max(35, current.warSupport - 2) }));
-            addEvent('공세 좌절 — ' + target.name, battleReport.summary, 'bad', nextWeek);
-            notify('공세가 좌절되었습니다. 사단을 재정비하십시오.');
+            addEvent(`작전 중단 — ${target.name}`, `${operationResolution.order.elapsedWeeks}주간의 ${operationResolution.profile.label} 끝에 공세를 중단했습니다. ${battleReport.summary}`, 'bad', nextWeek);
+            notify(`${operationResolution.profile.shortLabel}이 ${operationResolution.order.elapsedWeeks}주차에 중단됐습니다. 사단을 재정비하십시오.`);
           }
         }
       }
-      setOrders((current) => current.slice(1));
+      if (shouldRemoveCurrentOrder) setOrders((current) => current.slice(1));
     }
 
     setDivisions((current) => current.map((division) => {
@@ -2855,13 +2886,15 @@ export function App() {
     const stance = pendingOffensivePlan.stance;
     const forecast = offensiveForecasts?.[stance];
     const stanceLabel = stance === 'cautious' ? '신중한 공세' : stance === 'aggressive' ? '총공세' : '균형 공세';
-    setOrders((current) => [...current, {
+    const operationOrder = createOperationOrder({
       divisionId: division.id,
       fromId: origin.id,
       targetId: target.id,
       startedWeek: game.week,
       stance,
-    }]);
+    }, origin, target, division);
+    const operationProfile = battleTypeProfiles[operationOrder.battleType ?? 'attrition'];
+    setOrders((current) => [...current, operationOrder]);
     setDivisions((current) => current.map((item) => item.id === division.id ? { ...item, status: 'moving' } : item));
     setGame((current) => ({ ...current, commandPoints: current.commandPoints - 5 }));
     setBattleStance(stance);
@@ -2871,11 +2904,11 @@ export function App() {
     completeOnboardingMilestone('military-action');
     addEvent(
       '공세 계획 승인 — ' + target.name,
-      `${division.name}에 ${stanceLabel}를 명령했습니다.${forecast ? ` 참모부 예상 승산은 ${forecast.successChance}%입니다.` : ''}`,
+      `${division.name}에 ${stanceLabel}를 명령했습니다. ${operationProfile.label}으로 분류되어 약 ${operationProfile.minimumWeeks}~${operationProfile.maximumWeeks}주가 예상됩니다.${forecast ? ` 첫 주 교전 우세 확률은 ${forecast.successChance}%입니다.` : ''}`,
       'neutral',
       game.week,
     );
-    notify(`${division.name} → ${target.name} 공세 승인 · ${stanceLabel}`);
+    notify(`${division.name} → ${target.name} ${operationProfile.shortLabel} 승인 · 예상 ${operationProfile.minimumWeeks}~${operationProfile.maximumWeeks}주`);
   };
 
   const authorizeTorch = () => {
@@ -2892,7 +2925,10 @@ export function App() {
     }
     setOrders((current) => [
       ...current,
-      ...operationDivisions.map((division) => ({ divisionId: division.id, fromId: division.territoryId, targetId: operationTarget.id, startedWeek: game.week, stance: battleStance })),
+      ...operationDivisions.map((division) => {
+        const origin = territories.find((territory) => territory.id === division.territoryId) ?? operationTarget;
+        return createOperationOrder({ divisionId: division.id, fromId: division.territoryId, targetId: operationTarget.id, startedWeek: game.week, stance: battleStance }, origin, operationTarget, division);
+      }),
     ]);
     setDivisions((current) => current.map((division) => operationDivisions.some((item) => item.id === division.id) ? { ...division, status: 'moving' } : division));
     setGame((current) => ({ ...current, politicalPower: current.politicalPower - 20, commandPoints: current.commandPoints - 10 }));
@@ -4438,11 +4474,11 @@ export function App() {
                 <b>지도 선택과 무관하게 유지</b>
               </header>
               <div className="active-operation-list">
-                {activeOrderPresentations.slice(0, 3).map(({ order, division, origin, target, stanceLabel }) => (
+                {activeOrderPresentations.slice(0, 3).map(({ order, division, origin, target, profile, progress, stanceLabel }) => (
                   <button type="button" key={`${order.divisionId}-${order.targetId}-${order.startedWeek}`} onClick={() => focusOperationalOrder(order)}>
                     <Target size={15} />
-                    <span><strong>{target.name} · {stanceLabel}</strong><small>{division.name} · {origin.name} 출발 · 다음 주 결산</small></span>
-                    <em>위치 보기 <ChevronRight size={13} /></em>
+                    <span><strong>{target.name} · {profile.shortLabel} {progress}%</strong><small>{division.name} · {stanceLabel} · {order.elapsedWeeks ?? 0}/{order.maxWeeks ?? profile.maximumWeeks}주</small><i><b style={{ width: `${progress}%` }} /></i></span>
+                    <em>{origin.name} 출발 <ChevronRight size={13} /></em>
                   </button>
                 ))}
               </div>
@@ -5530,9 +5566,11 @@ function CommandPanel({ game, territories, divisions, orders, battleStance, torc
           const target = territories.find((item) => item.id === order.targetId);
           const effectiveStance = order.stance ?? battleStance;
           const stanceLabel = effectiveStance === 'cautious' ? '신중' : effectiveStance === 'aggressive' ? '총력' : '균형';
+          const operationProfile = battleTypeProfiles[order.battleType ?? 'attrition'];
+          const operationProgress = getOperationProgress(order);
           return (
             <div className="queued-order" key={order.divisionId + '-' + order.targetId + '-' + order.startedWeek}>
-              <i>{index + 1}</i><div><strong>{division?.name}</strong><span>목표: {target?.name} · {stanceLabel} 공세</span></div><em>다음 주</em>
+              <i>{index + 1}</i><div><strong>{division?.name}</strong><span>목표: {target?.name} · {operationProfile.shortLabel} · {stanceLabel}</span><small><b style={{ width: `${operationProgress}%` }} /> 진척 {operationProgress}% · {order.elapsedWeeks ?? 0}/{order.maxWeeks ?? operationProfile.maximumWeeks}주</small></div><em>{index === 0 ? '교전 중' : '대기'}</em>
             </div>
           );
         })}

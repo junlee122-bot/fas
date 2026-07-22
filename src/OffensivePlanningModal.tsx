@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { AlertTriangle, ArrowRight, CheckCircle2, Eye, Package, Shield, Swords, Target, X } from 'lucide-react';
 import type { BattleForecast } from './combat';
+import { battleTypeProfiles, inferBattleType } from './operations';
 import type { BattleStance, Commander, Division, Territory } from './types';
 
 interface OffensivePlanningModalProps {
@@ -41,6 +42,8 @@ export function OffensivePlanningModal({
 }: OffensivePlanningModalProps) {
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const forecast = forecasts[stance];
+  const battleType = inferBattleType(origin, target, division);
+  const operationProfile = battleTypeProfiles[battleType];
   const attackerShare = Math.max(8, Math.min(92, forecast.attackerPower / (forecast.attackerPower + forecast.defenderPower) * 100));
 
   useEffect(() => {
@@ -102,7 +105,7 @@ export function OffensivePlanningModal({
 
             <div className="forecast-hero">
               <div className={'forecast-chance ' + forecast.risk}>
-                <span>목표 확보 추정</span>
+                <span>첫 주 교전 우세</span>
                 <strong>{forecast.successChance}<small>%</small></strong>
                 <em>{forecast.successRange[0]}~{forecast.successRange[1]}% 범위</em>
               </div>
@@ -121,6 +124,7 @@ export function OffensivePlanningModal({
             </div>
 
             <dl className="forecast-factors">
+              <div className="operation-duration-forecast"><dt>작전 성격·기간</dt><dd><strong>{operationProfile.label}</strong> · 최소 {operationProfile.minimumWeeks}주, 최대 {operationProfile.maximumWeeks}주<small>{operationProfile.description}</small></dd></div>
               <div><dt>부대 준비도</dt><dd>전력 {division.strength} · 조직 {division.organization} · 보급 {division.supply}</dd></div>
               <div><dt>지휘관 역량</dt><dd>공격 {commander.attack} · 지휘 {commander.command} · 군수 {commander.logistics}</dd></div>
               <div><dt>목표 방어 조건</dt><dd>{target.terrain} 지형 · 전략 가치 {target.value} · 적 압력 반영</dd></div>
@@ -129,7 +133,7 @@ export function OffensivePlanningModal({
         </div>
 
         <footer>
-          <p id="offensive-planning-note"><AlertTriangle size={15} /><span>예측은 현재 정보와 준비도를 기준으로 합니다. 승인한 명령은 지도 이동이나 다른 지역 선택으로 취소되지 않으며, 다음 주 결산까지 전황 지도의 ‘승인된 공세’에서 추적됩니다.</span></p>
+          <p id="offensive-planning-note"><AlertTriangle size={15} /><span>승산은 첫 주 교전 예측입니다. 작전은 {operationProfile.minimumWeeks}~{operationProfile.maximumWeeks}주 동안 이어질 수 있으며, 누적 진척과 최소 기간을 모두 충족해야 목표를 확보합니다. 지도 이동이나 다른 지역 선택으로 승인 명령이 취소되지 않습니다.</span></p>
           <div>
             <button className="planning-cancel" onClick={onCancel}>목표 다시 선택</button>
             <button className="planning-confirm" onClick={onConfirm} disabled={commandPoints < 5}><CheckCircle2 size={16} /> 이 계획 승인 <span>지휘 점수 5</span></button>

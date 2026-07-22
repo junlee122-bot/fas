@@ -35,8 +35,8 @@ export function BattleDoctrinePanel({ stance, reports, onStanceChange, onOpenRep
             <p><AlertTriangle size={16} /> 아직 완료된 전투가 없습니다. 공세 후 정찰부터 추격까지 단계별 보고서가 생성됩니다.</p>
           ) : reports.slice(0, 3).map((report) => (
             <button key={report.id} onClick={() => onOpenReport(report.id)}>
-              <i className={report.victory ? 'victory' : 'defeat'}>{report.victory ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}</i>
-              <span><strong>{report.battleName ?? report.targetName} · {report.victory ? '승리' : '공세 중단'}</strong><small>제 {report.week}주 · {report.divisionName} · 우세 {report.margin >= 0 ? '+' : ''}{report.margin}</small></span>
+              <i className={report.operationOutcome === 'ongoing' ? 'ongoing' : report.operationOutcome === 'victory' || report.operationOutcome === undefined && report.victory ? 'victory' : 'defeat'}>{report.operationOutcome === 'ongoing' ? <Target size={15} /> : report.operationOutcome === 'victory' || report.operationOutcome === undefined && report.victory ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}</i>
+              <span><strong>{report.battleName ?? report.targetName} · {report.operationOutcome === 'ongoing' ? `작전 ${report.operationWeek}주차` : report.operationOutcome === 'victory' || report.operationOutcome === undefined && report.victory ? '승리' : '공세 중단'}</strong><small>제 {report.week}주 · {report.divisionName} · {report.operationOutcome === 'ongoing' && report.operationRequired ? `진척 ${Math.round((report.operationProgress ?? 0) / report.operationRequired * 100)}%` : `우세 ${report.margin >= 0 ? '+' : ''}${report.margin}`}</small></span>
               <ChevronRight size={15} />
             </button>
           ))}

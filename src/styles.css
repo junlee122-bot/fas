@@ -90,6 +90,27 @@
   .outcome-decisive-choices em { grid-column: 2; white-space: normal; }
 }
 
+/* Multi-week operational campaign feedback */
+.operation-duration-forecast dd { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.operation-duration-forecast dd strong { color: var(--gold-bright); }
+.operation-duration-forecast dd small { flex-basis: 100%; color: var(--text-muted); line-height: 1.45; }
+.battle-report-modal.ongoing .battle-result-mark { color: #79b7ce; border-color: rgba(121, 183, 206, .45); background: rgba(34, 91, 112, .2); }
+.operation-report-progress { grid-column: 1 / -1; display: grid !important; grid-template-columns: minmax(170px, .65fr) minmax(180px, 1.35fr); gap: 14px; align-items: center; padding: 11px 13px !important; border: 1px solid rgba(115, 171, 194, .28); background: rgba(30, 75, 92, .17); }
+.operation-report-progress > span { display: flex; flex-direction: column; gap: 3px; }
+.operation-report-progress > span strong { color: #a8d5e5; }
+.operation-report-progress > span small { color: var(--text-muted); }
+.operation-report-progress > i { display: block; height: 7px; overflow: hidden; border-radius: 20px; background: rgba(255, 255, 255, .08); }
+.operation-report-progress > i b { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #397b94, #8bc5d9); box-shadow: 0 0 12px rgba(105, 187, 216, .28); }
+.active-operation-list button > span > i { display: block; height: 4px; margin-top: 7px; overflow: hidden; border-radius: 10px; background: rgba(255, 255, 255, .08); }
+.active-operation-list button > span > i b { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--gold-dim), var(--gold-bright)); }
+.queued-order > div > small { position: relative; display: block; margin-top: 5px; padding-top: 6px; color: var(--text-muted); overflow: hidden; }
+.queued-order > div > small b { position: absolute; top: 0; left: 0; height: 3px; min-width: 2px; border-radius: 4px; background: linear-gradient(90deg, #5b8292, #d0ad5e); }
+.battle-history-block button > i.ongoing { color: #8bc5d9; border-color: rgba(121, 183, 206, .32); background: rgba(42, 96, 116, .18); }
+
+@media (max-width: 720px) {
+  .operation-report-progress { grid-template-columns: 1fr; }
+}
+
 /* Tactical map command center: keep the map readable before exposing depth. */
 .war-room.map-mode.map-intel-open { grid-template-columns: minmax(640px, 1fr) 330px; }
 .war-room.map-mode.map-intel-closed { grid-template-columns: minmax(0, 1fr); }

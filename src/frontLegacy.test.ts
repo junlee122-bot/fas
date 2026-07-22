@@ -60,6 +60,12 @@ describe('front legacy and recognition', () => {
     expect(recognized.decoration).toMatchObject({ name: '수훈장', tier: 'supreme' });
   });
 
+  it('waits until a multi-week operation is actually won before opening honors review', () => {
+    const ongoing = assessBattleRecognition({ ...report, operationOutcome: 'ongoing', operationWeek: 2, operationProgress: 72, operationRequired: 140 });
+    expect(ongoing.eligible).toBe(false);
+    expect(ongoing.reasons).toContain('작전이 아직 진행 중입니다.');
+  });
+
   it('ranks actual campaign performers above merely deployed commanders', () => {
     const commanders: Commander[] = [
       { id: 'commander-1', name: '시험 지휘관', rank: '중장', initials: 'TC', color: '#000', command: 70, attack: 70, defense: 70, logistics: 70, trait: '시험', specialty: '시험', fatigue: 0, loyalty: 80 },

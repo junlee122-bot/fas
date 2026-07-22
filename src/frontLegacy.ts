@@ -121,6 +121,18 @@ export const historicalFrontFigures: Record<string, HistoricalFrontFigure[]> = {
   'eastern-mandates': [f('레이먼드 스프루언스', '미 제5함대 사령관', '콰잘레인·에니웨톡 상륙을 지휘', 'allied'), f('고가 미네이치', '일본 연합함대 사령장관', '중부태평양 방어계획을 통괄', 'axis')],
   'gilbert-islands': [f('줄리언 스미스', '미 제2해병사단장', '타라와 상륙작전을 지휘', 'allied'), f('시바자키 게이지', '베티오 수비대 사령관', '타라와 요새 방어를 지휘', 'axis')],
   'aleutian-chain': [f('토머스 킨케이드', '미 북태평양군 지휘관', '애투·키스카 탈환을 지휘', 'allied'), f('야마사키 야스요', '애투 수비대 사령관', '애투 최종방어를 지휘', 'axis')],
+  'normandy-bocage': [f('버나드 몽고메리', '제21집단군 사령관', '노르망디 상륙군의 지상작전을 통합', 'allied'), f('에르빈 롬멜', 'B집단군 사령관', '노르망디 해안과 보카주 방어를 지휘', 'axis')],
+  'rhone-provence': [f('알렉산더 패치', '미 제7군 사령관', '남프랑스 상륙과 론 계곡 진격을 지휘', 'allied'), f('장 드 라트르 드 타시니', '프랑스 B군 사령관', '툴롱·마르세유 해방과 북진을 지휘', 'allied')],
+  'norway-narvik': [f('카를 구스타브 플레이셔', '노르웨이 제6사단장', '나르비크 산악전을 지휘', 'allied'), f('에두아르트 디틀', '독일 산악군 지휘관', '나르비크 교두보와 북방 전선을 지휘', 'axis')],
+  'minsk-berezina': [f('콘스탄틴 로코솝스키', '제1벨라루스 전선군 사령관', '바그라티온 작전 남부 돌파를 지휘', 'allied'), f('에른스트 부슈', '중부집단군 사령관', '벨라루스 전선의 독일군을 지휘', 'axis')],
+  'crimea-sevastopol': [f('이반 페트로프', '연해군 사령관', '세바스토폴 방어를 지휘', 'allied'), f('에리히 폰 만슈타인', '독일 제11군 사령관', '크림과 세바스토폴 공방전을 지휘', 'axis')],
+  'aegean-greece': [f('버나드 프라이버그', '뉴질랜드 제2사단장', '크레타 연합군 방어를 지휘', 'allied'), f('쿠르트 슈투덴트', '독일 제11항공군단장', '크레타 공수작전을 지휘', 'axis')],
+  'chindwin-burma': [f('윌리엄 슬림', '영 제14군 사령관', '친드윈 방어와 만달레이·메이크틸라 공세를 지휘', 'allied'), f('기무라 헤이타로', '일본 버마방면군 사령관', '만달레이와 이라와디 방어를 지휘', 'axis')],
+  'singapore-johor': [f('아서 퍼시벌', '말라야 사령관', '조호르와 싱가포르 방어를 지휘', 'allied'), f('야마시타 도모유키', '일본 제25군 사령관', '조호르 돌파와 싱가포르 공략을 지휘', 'axis')],
+  'lower-yangtze': [f('구주퉁', '중국 제3전구 사령장관', '장쑤·저장과 하양쯔 방면 작전을 지휘', 'allied'), f('마쓰이 이와네', '중지나방면군 사령관', '상하이·난징 축선 공세를 지휘', 'axis')],
+  'korea-liberation': [f('지청천', '한국광복군 총사령관', '국내진공과 연합작전 준비를 지휘', 'resistance'), f('이범석', '한국광복군 참모장', '훈련·편제와 한반도 침투계획을 추진', 'resistance')],
+  'ryukyu-okinawa': [f('사이먼 버크너 주니어', '미 제10군 사령관', '오키나와 지상작전을 지휘', 'allied'), f('우시지마 미쓰루', '일본 제32군 사령관', '오키나와 종심방어를 지휘', 'axis')],
+  'philippine-resistance': [f('웬델 퍼티그', '민다나오 게릴라 지도자', '게릴라 행정·정보망을 지휘', 'resistance'), f('마카리오 페랄타', '파나이 게릴라 지휘관', '비사야 저항군과 정보망을 조직', 'resistance')],
 };
 
 const decorationProfiles: Record<NationId, DecorationOption[]> = {
@@ -198,6 +210,15 @@ function compactBattlePlace(targetName: string): string {
 }
 
 export function assessBattleRecognition(report: BattleReport): BattleRecognitionAssessment {
+  if (report.operationOutcome === 'ongoing' || report.operationOutcome === 'defeat') {
+    return {
+      score: 0,
+      eligible: false,
+      maximumTier: null,
+      suggestedBattleName: `${compactBattlePlace(report.targetName)} 전투`,
+      reasons: [report.operationOutcome === 'ongoing' ? '작전이 아직 진행 중입니다.' : '철수로 종결된 작전은 승전 명명·훈장 심사 대상이 아닙니다.'],
+    };
+  }
   const targetValue = report.targetValue ?? 5;
   const economyOfForce = Math.max(0, report.defenderStrengthLoss - report.attackerStrengthLoss);
   const score = Math.max(0, Math.min(100, Math.round(
