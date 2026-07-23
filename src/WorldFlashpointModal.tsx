@@ -21,7 +21,7 @@ export function WorldFlashpointModal({ selection, campaignPhase, onChoose }: Wor
           <div>
             <span>GLOBAL FLASHPOINT · {worldHistoryCategoryLabels[event.category]}</span>
             <h2 id="world-flashpoint-title">{event.title}</h2>
-            <small>{worldHistoryEraLabels[event.era]} · 현재 행위자 {entry.actor}</small>
+            <small>{worldHistoryEraLabels[event.era]}{event.scenarioType === 'historical-pattern' ? ' · 역사 패턴 기반 가능세계' : ''} · 현재 행위자 {entry.actor}</small>
           </div>
           <em><AlertTriangle size={14} /> 시간 정지 · 결정 필요</em>
         </header>
@@ -43,7 +43,7 @@ export function WorldFlashpointModal({ selection, campaignPhase, onChoose }: Wor
 
         <div className="world-flashpoint-basis">
           <Anchor size={18} />
-          <span><small>역사적 기준점</small><strong>{event.historicalBasis}</strong></span>
+          <span><small>{event.scenarioType === 'historical-pattern' ? '역사적 패턴과 제도적 기준선' : '역사적 기준점'}</small><strong>{event.historicalBasis}</strong></span>
           <a href={event.sourceUrl} target="_blank" rel="noreferrer">{event.sourceLabel}<ExternalLink size={12} /></a>
         </div>
 

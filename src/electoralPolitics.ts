@@ -6,6 +6,19 @@ export type ElectionType = 'presidential' | 'parliamentary' | 'referendum' | 'lo
 export type ElectionCampaignStage = 'nomination' | 'campaign' | 'debate' | 'voting' | 'runoff' | 'certification';
 export type ElectionCampaignActionId = 'mass-rally' | 'radio-address' | 'policy-manifesto' | 'public-debate' | 'fundraising-drive' | 'coalition-pact' | 'local-endorsement' | 'integrity-commission';
 export type ReferendumTopicId = 'presidential-constitution' | 'parliamentary-charter' | 'federal-autonomy' | 'universal-suffrage' | 'national-development-plan' | 'peace-settlement';
+export type ElectionMediaEraId = 'print-radio' | 'broadcast-party' | 'television-polling' | 'platform-data' | 'synthetic-trust';
+
+export interface ElectionEraProfile {
+  id: ElectionMediaEraId;
+  name: string;
+  period: string;
+  dominantChannel: string;
+  trustRisk: string;
+  description: string;
+  momentumMultiplier: number;
+  turnoutMultiplier: number;
+  integrityMultiplier: number;
+}
 
 export interface ElectoralCandidate {
   id: string;
@@ -212,6 +225,56 @@ export const electionCampaignActions: ElectionCampaignActionDefinition[] = [
   { id: 'integrity-commission', name: '독립 선거관리·감시단', description: '명부·개표·언론 접근·정치자금을 감시할 독립기구와 참관단을 지원합니다.', politicalCost: 5, treasuryCost: 36, minimumTier: 3, branch: 'any', effect: '선거 신뢰 +9 · 조작·불복 위험 감소' },
 ];
 
+const electionEraProfiles: ElectionEraProfile[] = [
+  { id: 'print-radio', name: '신문·라디오 동원정치', period: '1942–1949', dominantChannel: '정당지·라디오·대중집회', trustRisk: '배급·전시검열과 지역 조직의 편향', description: '정당 조직과 물리적 집회가 투표율을 만들고 라디오 연설이 전국 의제를 통합합니다.', momentumMultiplier: 1.02, turnoutMultiplier: 1.18, integrityMultiplier: 0.9 },
+  { id: 'broadcast-party', name: '정당조직·방송 선거', period: '1950–1979', dominantChannel: '노동조합·지역지부·텔레비전', trustRisk: '국영방송 접근과 정치자금의 불균형', description: '대중정당의 지역 조직과 방송 시간이 후보의 전국적 신뢰를 좌우합니다.', momentumMultiplier: 1.08, turnoutMultiplier: 1.08, integrityMultiplier: 1 },
+  { id: 'television-polling', name: '텔레비전·여론조사 시대', period: '1980–2004', dominantChannel: '생방송 토론·정치광고·전화조사', trustRisk: '막대한 광고비와 짧은 이미지 경쟁', description: '토론 준비와 미디어 대응이 큰 폭의 기세 변화를 만들지만 실수의 역풍도 커집니다.', momentumMultiplier: 1.16, turnoutMultiplier: 0.96, integrityMultiplier: 1.04 },
+  { id: 'platform-data', name: '플랫폼·데이터 선거', period: '2005–2029', dominantChannel: '검색·소셜 플랫폼·현장 데이터', trustRisk: '불투명 표적광고·해킹·허위정보', description: '지역 조직과 데이터 표적화가 결합되고 선거관리·정보공간 방어가 핵심 쟁점이 됩니다.', momentumMultiplier: 1.2, turnoutMultiplier: 1.03, integrityMultiplier: 1.22 },
+  { id: 'synthetic-trust', name: '합성매체·신뢰 인증 시대', period: '2030–2060', dominantChannel: '출처인증 생중계·시민숙의·AI 검증', trustRisk: '합성인물·자동여론·인증체계 장악', description: '도달률보다 발화자의 진위와 알고리즘 감사를 증명하는 능력이 선거 승복을 결정합니다.', momentumMultiplier: 1.08, turnoutMultiplier: 1.06, integrityMultiplier: 1.38 },
+];
+
+const eraActionNames: Record<ElectionMediaEraId, Partial<Record<ElectionCampaignActionId, [string, string]>>> = {
+  'print-radio': {
+    'radio-address': ['전국 라디오 노변연설', '전쟁·배급·재건의 방향을 전파 수신권 전체에 직접 설명합니다.'],
+    'integrity-commission': ['개표 참관·명부 조사단', '지역별 명부와 투표함, 언론 접근을 교차 감시합니다.'],
+  },
+  'broadcast-party': {
+    'mass-rally': ['노동·지역조직 순회유세', '대중정당 지부와 노동·농민조직을 순회해 현장 동원력을 확장합니다.'],
+    'radio-address': ['전국 방송 정견연설', '라디오와 텔레비전의 법정 방송시간으로 부동층을 설득합니다.'],
+  },
+  'television-polling': {
+    'radio-address': ['프라임타임 TV 연설', '전국 생방송과 후속 뉴스 보도로 후보의 중심 메시지를 각인합니다.'],
+    'public-debate': ['전국 생방송 후보토론', '카메라 앞의 정책 검증과 즉각 여론조사로 승패가 크게 움직입니다.'],
+    'fundraising-drive': ['미디어 광고 모금전', '방송광고 비용을 충당하되 대형 후원자 의존과 공시 부담을 감수합니다.'],
+  },
+  'platform-data': {
+    'radio-address': ['전 플랫폼 동시 생중계', '검색·영상·소셜 채널에 같은 메시지를 배포하고 반응을 실시간 추적합니다.'],
+    'mass-rally': ['현장·디지털 결합 유세', '목표 지역 집회와 자원봉사자 데이터 동원을 하나의 작전으로 묶습니다.'],
+    'integrity-commission': ['플랫폼·선거망 방어위원회', '정치광고 출처, 해킹, 허위정보와 개표망을 독립적으로 감사합니다.'],
+  },
+  'synthetic-trust': {
+    'radio-address': ['출처인증 전 지구 생중계', '후보의 실제 발화와 정책 근거를 암호학적 출처 표지와 함께 공개합니다.'],
+    'public-debate': ['인간 후보·AI 검증 숙의', '후보 토론을 시민 패널과 독립 모델 감사가 실시간 검증합니다.'],
+    'integrity-commission': ['합성신원·알고리즘 감사단', '합성인물, 자동여론, 추천 알고리즘과 개표 인증의 독립 감사권을 보장합니다.'],
+  },
+};
+
+export function getElectionEraProfile(week: number): ElectionEraProfile {
+  const year = 1942 + Math.floor(Math.max(0, week) / 52);
+  return year < 1950 ? electionEraProfiles[0] : year < 1980 ? electionEraProfiles[1] : year < 2005 ? electionEraProfiles[2] : year < 2030 ? electionEraProfiles[3] : electionEraProfiles[4];
+}
+
+export function getElectionActionPresentation(action: ElectionCampaignActionDefinition, week: number) {
+  const era = getElectionEraProfile(week);
+  const override = eraActionNames[era.id][action.id];
+  return {
+    ...action,
+    name: override?.[0] ?? action.name,
+    description: override?.[1] ?? action.description,
+    era,
+  };
+}
+
 export const referendumDefinitions: ReferendumDefinition[] = [
   { id: 'presidential-constitution', name: '대통령제 개헌', question: '국민 직선 대통령에게 행정부 구성권을 부여할 것인가?', description: '통합된 행정부를 만들지만 의회와 대통령의 이중 정통성 충돌 가능성이 생깁니다.', politicalCost: 24, treasuryCost: 70, minimumLegitimacy: 45 },
   { id: 'parliamentary-charter', name: '의회책임제 헌장', question: '정부가 의회 다수의 신임에 따라 구성·해산되도록 할 것인가?', description: '연정과 불신임 투표를 제도화하고 행정부 권력을 의회 다수에 연결합니다.', politicalCost: 22, treasuryCost: 60, minimumLegitimacy: 42 },
@@ -378,6 +441,8 @@ export function applyElectionCampaignAction(state: ElectoralPoliticsState, actio
   if ((actionId === 'mass-rally' || actionId === 'local-endorsement') && !regionId) return null;
   const repeated = campaign.actions.filter((record) => record.actionId === actionId).length;
   const efficiency = Math.max(0.42, 1 - repeated * 0.18);
+  const presentation = getElectionActionPresentation(action, context.week);
+  const era = presentation.era;
   const player = state.candidates.find((candidate) => candidate.id === campaign.playerCandidateId) ?? state.candidates[0];
   let momentumDelta = 0;
   let integrityDelta = 0;
@@ -394,14 +459,16 @@ export function applyElectionCampaignAction(state: ElectoralPoliticsState, actio
   else if (actionId === 'coalition-pact') { momentumDelta = 5; polarizationDelta = -3; }
   else if (actionId === 'local-endorsement') { momentumDelta = 1.4; turnoutDelta = 0.8; }
   else { integrityDelta = 9; legitimacyDelta = 1; unrestDelta = -1; }
-  momentumDelta = round(momentumDelta * efficiency, 1);
-  const regionalDelta = round((actionId === 'local-endorsement' ? 6 : actionId === 'mass-rally' ? 5 : 0) * efficiency, 1);
+  momentumDelta = round(momentumDelta * efficiency * era.momentumMultiplier, 1);
+  turnoutDelta = round(turnoutDelta * era.turnoutMultiplier, 1);
+  integrityDelta = round(integrityDelta * era.integrityMultiplier, 1);
+  const regionalDelta = round((actionId === 'local-endorsement' ? 6 : actionId === 'mass-rally' ? 5 : 0) * efficiency * era.turnoutMultiplier, 1);
   const record: ElectionCampaignActionRecord = {
     id: `${campaign.id}:${context.week}:${actionId}:${campaign.actions.length}`,
     actionId,
     week: context.week,
     regionId,
-    detail: `${action.name}: ${action.effect}${repeated ? ` · 반복 효율 ${Math.round(efficiency * 100)}%` : ''}`,
+    detail: `${presentation.name} · ${era.name}: ${action.effect}${repeated ? ` · 반복 효율 ${Math.round(efficiency * 100)}%` : ''}`,
     momentumDelta,
     integrityDelta,
     turnoutDelta,
@@ -422,7 +489,7 @@ export function applyElectionCampaignAction(state: ElectoralPoliticsState, actio
     treasuryDelta: actionId === 'fundraising-drive' ? 0 : -action.treasuryCost,
     legitimacyDelta,
     unrestDelta,
-    title: `선거운동 — ${action.name}`,
+    title: `선거운동 — ${presentation.name}`,
     detail: `${record.detail}. 후보 기세 ${momentumDelta >= 0 ? '+' : ''}${momentumDelta}, 선거 신뢰 ${integrityDelta >= 0 ? '+' : ''}${integrityDelta}, 예상 투표율 ${nextCampaign.turnoutProjection.toFixed(1)}%.`,
   };
 }

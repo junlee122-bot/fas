@@ -4,6 +4,9 @@ import {
   advanceElectoralPoliticsWeek,
   applyElectionCampaignAction,
   createElectoralPoliticsState,
+  electionCampaignActions,
+  getElectionActionPresentation,
+  getElectionEraProfile,
   launchReferendum,
   normalizeElectoralPoliticsState,
   type ElectoralContext,
@@ -82,5 +85,20 @@ describe('electoral politics engine', () => {
     expect(restored.nationId).toBe('italy');
     expect(restored.activeCampaign?.startedWeek).toBe(44);
     expect(restored.nextLocalWeek).toBe(70);
+  });
+
+  it('changes campaign language and effect multipliers across media eras', () => {
+    const radioAction = getElectionActionPresentation(
+      electionCampaignActions.find((action) => action.id === 'radio-address')!,
+      0,
+    );
+    const platformAction = getElectionActionPresentation(
+      electionCampaignActions.find((action) => action.id === 'radio-address')!,
+      (2008 - 1942) * 52,
+    );
+    expect(radioAction.name).toContain('라디오');
+    expect(platformAction.name).toContain('플랫폼');
+    expect(getElectionEraProfile((2040 - 1942) * 52).id).toBe('synthetic-trust');
+    expect(getElectionEraProfile((1990 - 1942) * 52).momentumMultiplier).not.toBe(getElectionEraProfile(0).momentumMultiplier);
   });
 });

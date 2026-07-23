@@ -420,7 +420,7 @@ export interface ResearchProject {
   icon: string;
   minimumYear?: number;
   prerequisites?: string[];
-  era?: 'wartime' | 'reconstruction' | 'cold-war' | 'space-age' | 'information-age' | 'connected-world';
+  era?: 'wartime' | 'reconstruction' | 'cold-war' | 'space-age' | 'information-age' | 'connected-world' | 'planetary-age' | 'synthetic-age';
   historicalBasis?: string;
   outcomeTags?: string[];
 }

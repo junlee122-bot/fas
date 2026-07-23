@@ -27,4 +27,13 @@ describe('long-horizon research progression', () => {
     expect(restored.find((item) => item.id === 'radar')?.progress).toBe(77);
     expect(restored.some((item) => item.id === 'pandemic-readiness')).toBe(true);
   });
+
+  it('keeps a prerequisite-linked research horizon through the 2050s', () => {
+    const futureProjects = initialResearch.filter((item) => (item.minimumYear ?? 1942) >= 2022);
+    expect(futureProjects.length).toBeGreaterThanOrEqual(20);
+    expect(Math.max(...futureProjects.map((item) => item.minimumYear ?? 0))).toBeGreaterThanOrEqual(2058);
+    expect(futureProjects.every((item) => (item.prerequisites?.length ?? 0) > 0)).toBe(true);
+    expect(futureProjects.some((item) => item.era === 'planetary-age')).toBe(true);
+    expect(futureProjects.some((item) => item.era === 'synthetic-age')).toBe(true);
+  });
 });

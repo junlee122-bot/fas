@@ -3,6 +3,7 @@ import { extendedWorldHistoryEvents } from './extendedWorldHistory';
 import { expandedAlternateHistoryEvents } from './expandedAlternateHistory';
 import { intelligenceWorldHistoryEvents } from './intelligenceWorldHistory';
 import { historicalAgencyEvents } from './historicalAgencyEvents';
+import { futureWorldHistoryEvents } from './futureWorldHistory';
 import { resolveIntelligenceHistory } from './intelligenceHistory';
 import type { ResolvedIntelligenceOrganization } from './intelligenceHistory';
 import { getEndingAlternatives, historicalEndings, resolveHistoricalEnding } from './historicalEndings';
@@ -12,7 +13,7 @@ import { getHistoricalExpert } from './historicalExperts';
 import { getLaterEraFigure } from './laterEraFigures';
 
 export type WorldHistoryCategory = 'nuclear' | 'world-order' | 'economy' | 'decolonization' | 'proxy-war' | 'space' | 'society' | 'technology' | 'environment' | 'public-health' | 'intelligence';
-export type WorldHistoryEra = 'war-end' | 'reconstruction' | 'early-rivalry' | 'high-rivalry' | 'detente' | 'transformation' | 'post-cold-war' | 'connected-world';
+export type WorldHistoryEra = 'war-end' | 'reconstruction' | 'early-rivalry' | 'high-rivalry' | 'detente' | 'transformation' | 'post-cold-war' | 'connected-world' | 'planetary-transition' | 'synthetic-century';
 export type WorldMetric = 'deterrence' | 'multipolarity' | 'decolonization' | 'rights' | 'prosperity' | 'instability';
 
 export interface WorldHistoryVariant {
@@ -34,6 +35,8 @@ export interface WorldHistoryEvent {
   sourceUrl: string;
   historicalActorIds?: string[];
   historicalFigureQids?: string[];
+  scenarioType?: 'historical' | 'historical-pattern';
+  triggerTags?: string[];
   variants: [WorldHistoryVariant, WorldHistoryVariant, WorldHistoryVariant];
 }
 
@@ -53,6 +56,8 @@ export interface GeneratedWorldEvent {
 
 export interface GeneratedWorldline {
   code: string;
+  outcomeId: string;
+  legacySignature: string;
   title: string;
   summary: string;
   primaryBloc: string;
@@ -79,6 +84,9 @@ export interface WorldHistoryInput {
   game: Pick<GameState, 'victoryScore' | 'stability' | 'warSupport' | 'factories' | 'intelNetwork' | 'enemyPressure' | 'airPower' | 'navalPower'>;
   state: WorldHistoryState;
   trajectory?: EmergentHistoryProfile;
+  careerSignature?: string;
+  recentDecisionSignature?: string;
+  nationalPlanSignature?: string;
 }
 
 export interface WorldHistoryChoicePreview {
@@ -329,6 +337,7 @@ export const worldHistoryEvents: WorldHistoryEvent[] = [
   ...expandedAlternateHistoryEvents,
   ...intelligenceWorldHistoryEvents,
   ...historicalAgencyEvents,
+  ...futureWorldHistoryEvents,
 ];
 
 export const worldHistoryCategoryLabels: Record<WorldHistoryCategory, string> = {
@@ -354,6 +363,8 @@ export const worldHistoryEraLabels: Record<WorldHistoryEra, string> = {
   transformation: '체제 변형 · 1979–1991+',
   'post-cold-war': '탈냉전과 세계화 · 1992–2007',
   'connected-world': '연결세계와 다극화 · 2008–현재',
+  'planetary-transition': '행성 전환기 · 2025–2039 가능세계',
+  'synthetic-century': '합성·우주시대 · 2040–2060 가능세계',
 };
 
 export const worldMetricLabels: Record<WorldMetric, string> = {
@@ -549,7 +560,13 @@ export function generateWorldline(input: WorldHistoryInput): GeneratedWorldline 
   const atomicControl = timeline.find((entry) => entry.event.id === 'atomic-control')?.variant;
   const axisStyle = metrics.multipolarity >= 70 ? '다극 장기경쟁' : metrics.deterrence >= 68 ? '원자 억지 냉전' : '재건질서 경쟁';
   const title = getWorldTitle(metrics, blocs.primaryBloc, blocs.rivalBloc);
-  const codeHash = hash(`${input.state.seed}:${timeline.map((entry) => entry.variant.id).join('|')}:${input.nation.id}:${input.trajectory?.signature ?? 'initial'}`);
+  const legacySignature = [
+    input.trajectory?.signature ?? 'initial',
+    input.careerSignature ?? 'career-unrecorded',
+    input.recentDecisionSignature ?? 'decisions-unrecorded',
+    input.nationalPlanSignature ?? 'plans-unrecorded',
+  ].join('::');
+  const codeHash = hash(`${input.state.seed}:${timeline.map((entry) => entry.variant.id).join('|')}:${input.nation.id}:${legacySignature}`);
   const formula = `3^${worldHistoryEvents.length}`;
   const possibilityCount = formatLargeNumber(3n ** BigInt(worldHistoryEvents.length));
   const highestMetric = (Object.entries(metrics) as [WorldMetric, number][]).sort((a, b) => b[1] - a[1])[0][0];
@@ -567,9 +584,12 @@ export function generateWorldline(input: WorldHistoryInput): GeneratedWorldline 
     seed: input.state.seed,
   });
   const intelligenceHistory = resolveIntelligenceHistory(timeline);
+  const outcomeHash = hash(`${ending.id}:${input.nation.id}:${legacySignature}:${timeline.slice(-12).map((entry) => entry.variant.id).join('|')}`);
 
   return {
     code: `EARTH-${String(codeHash % 100000).padStart(5, '0')}`,
+    outcomeId: `${ending.id}:${input.nation.id}:${String(outcomeHash).padStart(10, '0')}`,
+    legacySignature,
     title,
     summary: `${input.nation.shortName}에서 실제로 집행한 정책·작전·외교·연구가 누적된 세계입니다. 현재 경쟁의 두 주축은 ${blocs.primaryBloc}와 ${blocs.rivalBloc}이며, 다음 선택에 따라 다시 달라질 수 있습니다.`,
     primaryBloc: blocs.primaryBloc,

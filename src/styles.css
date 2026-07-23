@@ -1142,6 +1142,8 @@
 .election-campaign-hero > div:first-child > span { color: #7196aa; font-size: 8px; letter-spacing: .08em; }
 .election-campaign-hero h4 { margin: 4px 0; color: #d5dcd8; font-size: 16px; }
 .election-campaign-hero p { max-width: 680px; margin: 0; color: #7d8c85; line-height: 1.55; }
+.election-campaign-hero p.election-era-note { margin-top: 8px; padding: 7px 9px; border-left: 2px solid rgba(185, 151, 76, .45); background: rgba(164, 131, 56, .035); color: #89978f; font-size: 8px; }
+.election-era-note b { margin-right: 4px; color: #b4a16d; }
 .election-campaign-metrics { display: grid; grid-template-columns: repeat(2, minmax(94px, 1fr)); gap: 5px; }
 .election-campaign-metrics span { display: grid; place-content: center; min-height: 50px; padding: 6px 9px; border: 1px solid rgba(255, 255, 255, .05); background: rgba(0, 0, 0, .15); text-align: center; }
 .election-campaign-metrics small { color: #71817c; font-size: 8px; }
@@ -1318,6 +1320,39 @@
 .nation-policy-event > strong { display: block; margin: 3px 0 8px; color: #d3dad5; }
 .nation-policy-event p { margin: 4px 0; line-height: 1.55; color: #7c8982; }
 .nation-policy-event p b { color: #a5b1aa; }
+.continuity-command-board { overflow: hidden; }
+.period-advance-strip { display: flex; align-items: center; gap: 7px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: rgba(181, 151, 83, .025); }
+.period-advance-strip > div { min-width: 260px; flex: 1; display: flex; align-items: center; gap: 10px; }
+.period-advance-strip svg { flex: 0 0 auto; color: #a68d58; }
+.period-advance-strip span { display: grid; gap: 2px; }
+.period-advance-strip strong { color: #cbd3ce; font-size: 10px; }
+.period-advance-strip small { color: #74827a; font-size: 8px; }
+.period-advance-strip > button { min-height: 34px; padding: 0 13px; border: 1px solid rgba(174, 145, 78, .25); background: rgba(168, 136, 65, .06); color: #b9a46f; cursor: pointer; }
+.period-advance-strip > button:disabled { opacity: .4; cursor: not-allowed; }
+.period-advance-strip > button.cancel-period-advance { display: inline-flex; align-items: center; gap: 6px; border-color: rgba(170, 90, 73, .34); color: #bd8277; }
+.continuity-board-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 14px; }
+.continuity-board-grid > section { min-width: 0; display: grid; align-content: start; gap: 9px; padding: 11px; border: 1px solid rgba(255, 255, 255, .055); background: rgba(0, 0, 0, .1); }
+.continuity-board-heading { display: flex; align-items: center; gap: 9px; }
+.continuity-board-heading svg { color: #769483; }
+.continuity-board-heading span { display: grid; gap: 2px; }
+.continuity-board-heading small { color: #8e794c; font-size: 8px; }
+.continuity-board-heading strong { color: #d2d9d4; font-size: 11px; }
+.continuity-active-card { display: grid; gap: 6px; padding: 12px; border: 1px solid rgba(107, 151, 123, .28); background: rgba(71, 112, 85, .055); }
+.continuity-active-card > span, .continuity-option-list article > span { color: #8f7b4f; font: 600 8px var(--font-data); text-transform: uppercase; }
+.continuity-active-card > strong, .continuity-option-list article > strong { color: #d0d7d2; }
+.continuity-active-card p, .continuity-option-list article p, .continuity-empty-state { margin: 0; color: #7e8b84; font-size: 9px; line-height: 1.5; }
+.continuity-active-card > small, .continuity-option-list article > small { color: #74827a; font-size: 8px; line-height: 1.45; }
+.continuity-option-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.continuity-option-list article { min-width: 0; display: grid; align-content: start; gap: 5px; padding: 10px; border: 1px solid rgba(255, 255, 255, .055); background: rgba(255, 255, 255, .012); }
+.continuity-option-list article > button { align-self: end; min-height: 30px; margin-top: 3px; border: 1px solid rgba(118, 152, 129, .3); background: rgba(76, 116, 89, .07); color: #9db3a4; cursor: pointer; }
+.continuity-option-list article > button:disabled { opacity: .38; cursor: not-allowed; }
+.continuity-empty-state { grid-column: 1 / -1; padding: 12px; border: 1px dashed rgba(255, 255, 255, .08); }
+.late-era-pressure-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; padding: 0 14px 14px; }
+.late-era-pressure-grid article { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 5px 8px; padding: 9px 10px; border: 1px solid rgba(255, 255, 255, .05); background: rgba(255, 255, 255, .012); }
+.late-era-pressure-grid article.warning { border-color: rgba(169, 95, 81, .34); }
+.late-era-pressure-grid span { color: #839087; font-size: 9px; }
+.late-era-pressure-grid strong { color: #cbd3ce; font: 700 13px var(--font-data); }
+.late-era-pressure-grid .nation-metric-bar { grid-column: 1 / -1; }
 .outcome-actions { flex-wrap: wrap; }
 .outcome-actions button.continue-nation { min-width: 230px; }
 
@@ -1335,6 +1370,8 @@
 
 @media (max-width: 1050px) {
   .nation-transition-grid, .nation-government-grid { grid-template-columns: 1fr; }
+  .continuity-board-grid { grid-template-columns: 1fr; }
+  .late-era-pressure-grid { grid-template-columns: repeat(3, 1fr); }
   .ministry-budget-grid { grid-template-columns: repeat(2,1fr); }
   .national-strategy-grid { grid-template-columns: repeat(2,1fr); }
   .government-form-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1356,6 +1393,9 @@
   .nation-kpi-grid, .fiscal-summary { grid-template-columns: repeat(2,1fr); }
   .transition-pillar { grid-template-columns: 120px 1fr 30px; }
   .nation-hero-scores { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .period-advance-strip { flex-wrap: wrap; }
+  .period-advance-strip > div { flex-basis: 100%; }
+  .continuity-option-list, .late-era-pressure-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-height: 820px) {

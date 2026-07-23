@@ -3,6 +3,8 @@ import { BadgeDollarSign, BarChart3, Building2, CalendarDays, CheckCircle2, Land
 import {
   canUseElectionAction,
   electionCampaignActions,
+  getElectionActionPresentation,
+  getElectionEraProfile,
   getCampaignStageName,
   getElectionTypeName,
   getExecutiveModelName,
@@ -48,12 +50,13 @@ export function ElectionSituationRoom({ state, nation, game, economy, role, form
   const totalSeats = state.regions.reduce((sum, region) => sum + region.seats, 0);
   const weeksToNational = Math.max(0, Math.min(state.nextPresidentialWeek, state.nextParliamentaryWeek) - game.week);
   const weeksToLocal = Math.max(0, state.nextLocalWeek - game.week);
+  const electionEra = getElectionEraProfile(game.week);
 
   return (
     <section className="nation-surface election-situation-room">
       <header>
         <div><span>선거·국민투표 상황실</span><h3>누가, 어디에서, 어떤 위임을 얻는가</h3></div>
-        <small>{getExecutiveModelName(state.executiveModelId)} · {getVotingSystemName(state.votingSystemId)}</small>
+        <small>{getExecutiveModelName(state.executiveModelId)} · {getVotingSystemName(state.votingSystemId)}<br />{electionEra.name}</small>
       </header>
 
       <div className="election-system-strip">
@@ -70,6 +73,7 @@ export function ElectionSituationRoom({ state, nation, game, economy, role, form
               <span>{getElectionTypeName(campaign.type)} · {campaign.round === 2 ? '결선' : '본선'} · 제{campaign.electionWeek + 1}주 투표</span>
               <h4>{getCampaignStageName(campaign.stage)}</h4>
               <p>남은 {Math.max(0, campaign.electionWeek - game.week)}주 동안 지역 판세·후보 기세·투표율·선거 신뢰가 최종 득표, 선거인단, 의석과 시장 당선을 결정합니다.</p>
+              <p className="election-era-note"><b>{electionEra.period} · {electionEra.dominantChannel}</b> {electionEra.description} 위험: {electionEra.trustRisk}.</p>
             </div>
             <div className="election-campaign-metrics">
               <span><small>예상 투표율</small><strong>{campaign.turnoutProjection.toFixed(1)}%</strong></span>
@@ -114,6 +118,7 @@ export function ElectionSituationRoom({ state, nation, game, economy, role, form
             </div>
             <div className="election-action-grid">
               {electionCampaignActions.map((action) => {
+                const presentation = getElectionActionPresentation(action, game.week);
                 const Icon = actionIcons[action.id];
                 const allowed = canUseElectionAction(role, action);
                 const needsRegion = action.id === 'mass-rally' || action.id === 'local-endorsement';
@@ -122,9 +127,9 @@ export function ElectionSituationRoom({ state, nation, game, economy, role, form
                 return (
                   <button key={action.id} disabled={!allowed || !affordable || (needsRegion && !targetRegion)} onClick={() => onCampaignAction(action.id, needsRegion ? targetRegion?.id ?? null : null)}>
                     <Icon />
-                    <span><strong>{action.name}</strong><small>{action.description}</small></span>
+                    <span><strong>{presentation.name}</strong><small>{presentation.description}</small></span>
                     <em>정치 {action.politicalCost} · {action.treasuryCost ? formatMoney(action.treasuryCost) : '국고 0'}{repetitions ? ` · ${repetitions}회 시행` : ''}</em>
-                    <b>{allowed ? action.effect : `${role.title} 권한 밖`}</b>
+                    <b>{allowed ? `${action.effect} · ${electionEra.name}` : `${role.title} 권한 밖`}</b>
                   </button>
                 );
               })}

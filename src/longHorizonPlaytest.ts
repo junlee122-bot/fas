@@ -50,6 +50,13 @@ import {
 } from './publicHealth';
 import { advanceStaffRosterWeek, getStaffMorale } from './staffManagement';
 import { advanceResearchProjects, fillOpenResearchSlots, getResearchAvailability } from './researchProgression';
+import {
+  getAvailableStrategicOperations,
+  launchNationalPlan,
+  launchStrategicOperation,
+  type NationalPlanId,
+  type NationalPlanMetrics,
+} from './strategicContinuity';
 import type {
   CareerRole,
   GameState,
@@ -88,6 +95,7 @@ export interface LongHorizonEraMetric {
   decisions: number;
   interruptions: number;
   battles: number;
+  strategicOperations: number;
   flashpoints: number;
   elections: number;
   coupAttempts: number;
@@ -123,6 +131,7 @@ export interface LongHorizonSessionResult {
   repeatedActionRuns: Record<string, number>;
   battleCount: number;
   battleVictories: number;
+  strategicOperationCount: number;
   councilDecisionCount: number;
   uniqueCouncilEvents: number;
   historicalCouncilEventsSeen: number;
@@ -155,6 +164,7 @@ export interface LongHorizonSessionResult {
   nationalScoreCeilingWeeks: number;
   researchCompleteWeek: number | null;
   researchIdleWeeks: number;
+  researchLongestIdleRun: number;
   staffWeeksAdvanced: number;
   staffFrozenWeeks: number;
   expiredStaffAtTransition: number;
@@ -374,6 +384,7 @@ function createEraMetric(year: number): LongHorizonEraMetric {
     decisions: 0,
     interruptions: 0,
     battles: 0,
+    strategicOperations: 0,
     flashpoints: 0,
     elections: 0,
     coupAttempts: 0,
@@ -724,6 +735,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
   let interruptionCount = 0;
   let battleCount = 0;
   let battleVictories = 0;
+  let strategicOperationCount = 0;
   let councilDecisionCount = 0;
   let worldFlashpointCount = 0;
   let acceleratedFlashpointCount = 0;
@@ -750,6 +762,8 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
   let nationalScoreCeilingWeeks = 0;
   let researchCompleteWeek: number | null = null;
   let researchIdleWeeks = 0;
+  let currentResearchIdleRun = 0;
+  let researchLongestIdleRun = 0;
   let staffWeeksAdvanced = 0;
   let expiredStaffAtTransition = 0;
   let laterEraCandidatesAtTransition = 0;
@@ -758,6 +772,11 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
   let previousElectionResultId: string | null = null;
 
   const recordActions = (actions: Array<{ id: string; priority: UXActionPriority }>, week: number) => {
+    actions.forEach((action) => {
+      if ((currentActionRun[action.id] ?? 0) >= 4 && (actionVerificationUntil.get(action.id) ?? -1) < week) {
+        actionVerificationUntil.set(action.id, week + 13);
+      }
+    });
     const displayedActions = actions.map((action) => actionVerificationUntil.get(action.id)! >= week
       ? { ...action, priority: 'info' as const }
       : action);
@@ -765,7 +784,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     if (displayedActions.some((action) => action.priority === 'urgent')) urgentPromptWeeks += 1;
     if (displayedActions.some((action) => action.priority === 'recommended')) recommendedPromptWeeks += 1;
     if (displayedActions.every((action) => action.priority === 'info')) quietWeeks += 1;
-    const activeIds = new Set(actions.map((action) => action.id));
+    const activeIds = new Set(displayedActions.filter((action) => action.priority !== 'info').map((action) => action.id));
     const knownIds = new Set([...Object.keys(currentActionRun), ...activeIds]);
     knownIds.forEach((actionId) => {
       currentActionRun[actionId] = activeIds.has(actionId) ? (currentActionRun[actionId] ?? 0) + 1 : 0;
@@ -882,6 +901,36 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     nationState = { ...nationState, strategyId: config.nationStrategy };
     if (profile === 'state-builder') nationState = rebalanceNationBudget(rebalanceNationBudget(nationState, 'education', 5), 'industry', 5);
     if (profile === 'guided' || profile === 'completionist') nationState = rebalanceNationBudget(nationState, 'welfare', 5);
+    const planId: NationalPlanId | null = profile === 'military'
+      ? 'secure-transition'
+      : profile === 'state-builder'
+        ? 'knowledge-economy'
+        : profile === 'guided'
+          ? 'social-capability'
+          : profile === 'completionist'
+            ? 'climate-resilience'
+            : profile === 'opportunist'
+              ? 'open-prosperity'
+              : null;
+    if (planId) {
+      const plan = launchNationalPlan(nationState.nationalPlanning, planId, week, {
+        nationalScore: nationState.nationalScore,
+        mandateScore: nationState.mandateScore,
+        legitimacy: nationState.legitimacy,
+        welfare: nationState.welfare,
+        education: nationState.education,
+        civilianIndustry: nationState.civilianIndustry,
+        institutionalCapacity: nationState.institutionalCapacity,
+        inequality: nationState.inequality,
+        unrest: nationState.unrest,
+        relativeCompetitiveness: nationState.relativeCompetitiveness,
+        demographicPressure: nationState.demographicPressure,
+        ecologicalPressure: nationState.ecologicalPressure,
+        hegemonyCost: nationState.hegemonyCost,
+        relationAverage: average(relations.map((relation) => relation.value)),
+      });
+      if (plan) nationState = { ...nationState, nationalPlanning: plan };
+    }
     expiredStaffAtTransition = staff.filter((member) => (member.contractWeeksRemaining ?? 0) <= 0).length;
     laterEraCandidatesAtTransition = discoveredLaterEraIds.size;
   };
@@ -900,6 +949,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
       decisionInteractions,
       interruptionCount,
       battleCount,
+      strategicOperationCount,
       worldFlashpointCount,
       electionCount,
       coupAttempts,
@@ -1131,6 +1181,66 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
         endingDecisionWeeks.add(nextWeek);
         markActionHandled('nation-research-slot', nextWeek, 4);
       }
+      if (profile !== 'rushed' && !nationState.strategicContinuity.active && nextWeek % 13 === 0) {
+        const availableOperations = getAvailableStrategicOperations(nationState.strategicContinuity, role, getCampaignYear(nextWeek));
+        const operation = availableOperations[Math.floor(stableRoll(`${id}:${nextWeek}:strategic-operation`) * Math.max(1, availableOperations.length))];
+        if (operation) {
+          const launch = launchStrategicOperation(nationState.strategicContinuity, operation.id, {
+            week: nextWeek,
+            role,
+            politicalPower: game.politicalPower,
+            treasury: game.treasury,
+            commandPoints: game.commandPoints,
+            stability: game.stability,
+            legitimacy: nationState.legitimacy,
+            institutionalCapacity: nationState.institutionalCapacity,
+            securityBudget: nationState.budget.security,
+            diplomacyBudget: nationState.budget.diplomacy,
+            intelNetwork: game.intelNetwork,
+            enemyPressure: game.enemyPressure,
+          });
+          if (launch) {
+            nationState = { ...nationState, strategicContinuity: launch.state };
+            game = applyGameDelta(game, launch.gameDelta);
+            strategicOperationCount += 1;
+            decisionInteractions += 1;
+            endingDecisionWeeks.add(nextWeek);
+          }
+        }
+      }
+      if (profile !== 'rushed' && !nationState.nationalPlanning.active && nextWeek % 52 === 0) {
+        const planId: NationalPlanId = nationState.ecologicalPressure >= 48
+          ? 'climate-resilience'
+          : nationState.demographicPressure >= 48
+            ? 'social-capability'
+            : nationState.hegemonyCost >= 42
+              ? 'plural-state'
+              : nationState.relativeCompetitiveness < 58
+                ? 'knowledge-economy'
+                : 'open-prosperity';
+        const metrics: NationalPlanMetrics = {
+          nationalScore: nationState.nationalScore,
+          mandateScore: nationState.mandateScore,
+          legitimacy: nationState.legitimacy,
+          welfare: nationState.welfare,
+          education: nationState.education,
+          civilianIndustry: nationState.civilianIndustry,
+          institutionalCapacity: nationState.institutionalCapacity,
+          inequality: nationState.inequality,
+          unrest: nationState.unrest,
+          relativeCompetitiveness: nationState.relativeCompetitiveness,
+          demographicPressure: nationState.demographicPressure,
+          ecologicalPressure: nationState.ecologicalPressure,
+          hegemonyCost: nationState.hegemonyCost,
+          relationAverage: average(relations.map((relation) => relation.value)),
+        };
+        const planning = launchNationalPlan(nationState.nationalPlanning, planId, nextWeek, metrics);
+        if (planning) {
+          nationState = { ...nationState, nationalPlanning: planning };
+          decisionInteractions += 1;
+          endingDecisionWeeks.add(nextWeek);
+        }
+      }
 
       const healthResult = advancePublicHealthWeek(publicHealth, {
         week: nextWeek,
@@ -1205,7 +1315,13 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     const completedResearch = research.filter((project) => project.complete).length;
     if (researchCompleteWeek === null && completedResearch === research.length) researchCompleteWeek = nextWeek;
     const researchActive = research.some((project) => project.active && !project.complete);
-    if (!researchActive) researchIdleWeeks += 1;
+    if (!researchActive) {
+      researchIdleWeeks += 1;
+      currentResearchIdleRun += 1;
+      researchLongestIdleRun = Math.max(researchLongestIdleRun, currentResearchIdleRun);
+    } else {
+      currentResearchIdleRun = 0;
+    }
     eraMetric.weeks += 1;
     eraMetric.actionPrompts += actionPrompts - eraBefore.actionPrompts;
     eraMetric.urgentWeeks += urgentPromptWeeks - eraBefore.urgentPromptWeeks;
@@ -1213,6 +1329,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     eraMetric.decisions += decisionInteractions - eraBefore.decisionInteractions;
     eraMetric.interruptions += interruptionCount - eraBefore.interruptionCount;
     eraMetric.battles += battleCount - eraBefore.battleCount;
+    eraMetric.strategicOperations += strategicOperationCount - eraBefore.strategicOperationCount;
     eraMetric.flashpoints += worldFlashpointCount - eraBefore.worldFlashpointCount;
     eraMetric.elections += electionCount - eraBefore.electionCount;
     eraMetric.coupAttempts += coupAttempts - eraBefore.coupAttempts;
@@ -1237,7 +1354,19 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     nationStrategyId: nationState.strategyId,
     nationBudget: nationState.budget,
   });
-  const finalWorldline = generateWorldline({ nation, game, state: worldHistoryState, trajectory: finalTrajectory });
+  const finalWorldline = generateWorldline({
+    nation,
+    game,
+    state: worldHistoryState,
+    trajectory: finalTrajectory,
+    careerSignature: `${role.id}:${role.branch}:tier-${role.tier}:${profile}`,
+    recentDecisionSignature: [...endingDecisionWeeks].slice(-48).join('|'),
+    nationalPlanSignature: [
+      nationState.nationalPlanning.active?.id ?? 'no-active-plan',
+      ...nationState.nationalPlanning.history.map((record) => `${record.planId}:${record.outcome}`),
+      ...nationState.strategicContinuity.history.map((record) => `${record.operationId}:${record.outcome}`),
+    ].join('|'),
+  });
   const endingYear = LONG_HORIZON_START_YEAR + weeksPlayed / 52;
   const laterEraCandidatesAt2020List = createLaterEraCandidates(nation.id, Math.floor(endingYear), getHistoricalHorizon(weeksPlayed, completedDecisions));
   const laterEraCandidatesAt2020 = laterEraCandidatesAt2020List.length;
@@ -1268,6 +1397,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     repeatedActionRuns: longestActionRun,
     battleCount,
     battleVictories,
+    strategicOperationCount,
     councilDecisionCount,
     uniqueCouncilEvents: seenCouncilIds.size,
     historicalCouncilEventsSeen: seenHistoricalCouncilIds.size,
@@ -1300,6 +1430,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     nationalScoreCeilingWeeks,
     researchCompleteWeek,
     researchIdleWeeks,
+    researchLongestIdleRun,
     staffWeeksAdvanced,
     staffFrozenWeeks: Math.max(0, weeksPlayed - staffWeeksAdvanced),
     expiredStaffAtTransition,
@@ -1318,7 +1449,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     finalUnrest: round(nationState.unrest),
     finalResearchCompleted: research.filter((project) => project.complete).length,
     finalWorldlineCode: finalWorldline.code,
-    finalEndingId: finalWorldline.ending.id,
+    finalEndingId: finalWorldline.outcomeId,
     finalDominantForce: finalTrajectory.dominantForce,
     worldChoiceSignature: worldHistoryEvents.map((event) => worldHistoryState.choices[event.id] ?? '-').join('|'),
     eraMetrics: [...eraMetrics.values()].sort((left, right) => left.startYear - right.startYear),
@@ -1377,7 +1508,7 @@ export function aggregateLongHorizonSessions(sessions: LongHorizonSessionResult[
     interruptionCount: sessions.reduce((sum, session) => sum + session.interruptionCount, 0),
     interruptionsPerYear: round(sessions.reduce((sum, session) => sum + session.interruptionCount, 0) / Math.max(1, totalWeeks / 52), 1),
     medianResearchCompleteYear: researchCompletionYears.length ? percentile(researchCompletionYears, 0.5) : null,
-    medianResearchDroughtYears: percentile(sessions.map((session) => session.researchIdleWeeks / 52), 0.5),
+    medianResearchDroughtYears: percentile(sessions.map((session) => (session.researchLongestIdleRun ?? session.researchIdleWeeks) / 52), 0.5),
     researchActiveWeekRate: round((1 - sessions.reduce((sum, session) => sum + session.researchIdleWeeks, 0) / Math.max(1, totalWeeks)) * 100),
     averageFinalResearchCompleted: round(average(sessions.map((session) => session.finalResearchCompleted)), 1),
     averageHistoricalCouncilCoverage: round(average(sessions.map((session) => session.historicalCouncilEventsAvailable > 0 ? session.historicalCouncilEventsSeen / session.historicalCouncilEventsAvailable * 100 : 100))),

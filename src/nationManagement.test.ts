@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createEconomyState } from './economy';
 import {
   advanceNationManagementWeek,
+  calculateNationScore,
   calculateTransitionReadiness,
   createNationManagementState,
   normalizeNationManagementState,
@@ -121,5 +122,27 @@ describe('war-to-state nation management', () => {
     expect(restored.strategyId).toBe('developmental-state');
     expect(restored.taxBurden).toBe(63);
     expect(malformed).toBe(fallback);
+  });
+
+  it('prevents perfect domestic metrics from erasing late-era structural costs', () => {
+    const economy = createEconomyState('britain');
+    const base = createNationManagementState('britain', game, economy, 8, 'victory');
+    const excellent = {
+      ...base,
+      legitimacy: 100,
+      welfare: 100,
+      infrastructure: 100,
+      education: 100,
+      housing: 100,
+      employment: 100,
+      inequality: 0,
+      institutionalCapacity: 100,
+      civilianIndustry: 100,
+      unrest: 0,
+    };
+    const healthyCompetition = calculateNationScore({ ...excellent, relativeCompetitiveness: 82, institutionalAge: 8, demographicPressure: 8, ecologicalPressure: 8, hegemonyCost: 4 });
+    const lateHegemony = calculateNationScore({ ...excellent, relativeCompetitiveness: 58, institutionalAge: 55, demographicPressure: 52, ecologicalPressure: 61, hegemonyCost: 48 });
+    expect(healthyCompetition).toBeLessThan(99);
+    expect(lateHegemony).toBeLessThan(healthyCompetition);
   });
 });

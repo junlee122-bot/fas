@@ -29,7 +29,7 @@ describe('map presentation model', () => {
     const summaries = deriveFrontSummaries(europe, strategicFronts.filter((front) => front.theater === 'europe'), 'allies');
     const westernDesert = summaries.find((front) => front.id === 'western-desert');
 
-    expect(strategicFronts).toHaveLength(66);
+    expect(strategicFronts).toHaveLength(78);
     expect(summaries.length).toBeGreaterThanOrEqual(30);
     expect(westernDesert?.territoryIds).toEqual(expect.arrayContaining(['tobruk', 'tripoli', 'el_agheila']));
     expect(westernDesert?.activeContacts).toBeGreaterThan(0);

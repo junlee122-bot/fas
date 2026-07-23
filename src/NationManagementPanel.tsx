@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import {
   ArrowRight,
+  Activity,
   Building2,
+  CalendarClock,
   Castle,
   CheckCircle2,
   ChevronRight,
@@ -17,6 +19,8 @@ import {
   Scale,
   ScrollText,
   ShieldCheck,
+  Target,
+  TimerReset,
   TrendingDown,
   TrendingUp,
   Users,
@@ -40,6 +44,12 @@ import { ElectionSituationRoom } from './ElectionSituationRoom';
 import type { ElectionCampaignActionId, ReferendumTopicId } from './electoralPolitics';
 import { NationalSimulationOverview } from './NationalSimulationOverview';
 import type { NationalSimulationSnapshot } from './nationalSimulation';
+import {
+  getAvailableStrategicOperations,
+  nationalPlanDefinitions,
+  strategicOperationDefinitions,
+  type NationalPlanId,
+} from './strategicContinuity';
 import {
   nationBudgetDefinitions,
   nationStrategies,
@@ -89,6 +99,11 @@ interface NationManagementPanelProps {
   onSuccessionLawChange: (lawId: SuccessionLawId) => void;
   onElectionCampaignAction: (actionId: ElectionCampaignActionId, regionId: string | null) => void;
   onLaunchReferendum: (topicId: ReferendumTopicId) => void;
+  onLaunchStrategicOperation: (operationId: string) => void;
+  onLaunchNationalPlan: (planId: NationalPlanId) => void;
+  onAdvancePeriod: (weeks: 4 | 13) => void;
+  periodAdvanceRemaining: number;
+  onCancelPeriodAdvance: () => void;
   onNavigate: (tab: GameTab) => void;
   onNextWeek: () => void;
 }
@@ -137,6 +152,11 @@ export function NationManagementPanel({
   onSuccessionLawChange,
   onElectionCampaignAction,
   onLaunchReferendum,
+  onLaunchStrategicOperation,
+  onLaunchNationalPlan,
+  onAdvancePeriod,
+  periodAdvanceRemaining,
+  onCancelPeriodAdvance,
   onNavigate,
   onNextWeek,
 }: NationManagementPanelProps) {
@@ -169,6 +189,10 @@ export function NationManagementPanel({
   const selectedDomain = availableDomains.find((territory) => territory.id === selectedDomainId) ?? availableDomains[0] ?? null;
   const marriageCandidates = getMarriageCandidates(relations).filter((candidate) => !state.dynasty.marriages.some((marriage) => marriage.partnerNationId === candidate.nationId));
   const selectedMarriage = marriageCandidates.find((candidate) => candidate.nationId === selectedMarriageNationId) ?? marriageCandidates[0] ?? null;
+  const currentYear = 1942 + Math.floor(game.week / 52);
+  const availableStrategicOperations = getAvailableStrategicOperations(state.strategicContinuity, role, currentYear);
+  const activeStrategicDefinition = strategicOperationDefinitions.find((definition) => definition.id === state.strategicContinuity.active?.id) ?? null;
+  const activePlanDefinition = nationalPlanDefinitions.find((definition) => definition.id === state.nationalPlanning.active?.id) ?? null;
 
   if (phase === 'war') {
     const pillarRows = [
@@ -274,6 +298,94 @@ export function NationManagementPanel({
       </section>
 
       <NationalSimulationOverview snapshot={nationalSimulation} phase="nation" onNavigate={onNavigate} />
+
+      <section className="nation-surface continuity-command-board">
+        <header>
+          <div><span>장기 지휘 주기</span><h3>한 주의 결재를 1·4·13주 국가전략으로 연결</h3></div>
+          <small>{currentYear}년 · {role.title} 권한 · {role.branch === 'military' ? '군사' : role.branch === 'intelligence' ? '정보' : '정치'} 계통</small>
+        </header>
+
+        <div className="period-advance-strip">
+          <div>
+            <CalendarClock />
+            <span><strong>기간 진행</strong><small>위기·선거·중간평가가 발생하면 자동으로 멈춥니다.</small></span>
+          </div>
+          <button onClick={onNextWeek} disabled={periodAdvanceRemaining > 0}>1주</button>
+          <button onClick={() => onAdvancePeriod(4)} disabled={periodAdvanceRemaining > 0}>4주</button>
+          <button onClick={() => onAdvancePeriod(13)} disabled={periodAdvanceRemaining > 0}>13주</button>
+          {periodAdvanceRemaining > 0 && <button className="cancel-period-advance" onClick={onCancelPeriodAdvance}><TimerReset size={16} /> 중지 · {periodAdvanceRemaining}주 남음</button>}
+        </div>
+
+        <div className="continuity-board-grid">
+          <section>
+            <div className="continuity-board-heading"><Target /><span><small>평시 전략작전</small><strong>전쟁 뒤에도 이어지는 군사·정보 경력</strong></span></div>
+            {activeStrategicDefinition && state.strategicContinuity.active ? (
+              <article className="continuity-active-card">
+                <span>{activeStrategicDefinition.domain} · {activeStrategicDefinition.durationWeeks}주 임무</span>
+                <strong>{activeStrategicDefinition.name}</strong>
+                <p>{activeStrategicDefinition.description}</p>
+                <MetricBar value={(state.strategicContinuity.active.progressWeeks / activeStrategicDefinition.durationWeeks) * 100} />
+                <small>{state.strategicContinuity.active.progressWeeks}/{activeStrategicDefinition.durationWeeks}주 · 지도 이동이나 화면 전환으로 취소되지 않습니다.</small>
+              </article>
+            ) : (
+              <div className="continuity-option-list">
+                {availableStrategicOperations.slice(0, 4).map((operation) => {
+                  const affordable = game.politicalPower >= operation.politicalCost && game.treasury >= operation.treasuryCost && game.commandPoints >= operation.commandCost;
+                  return (
+                    <article key={operation.id}>
+                      <span>{operation.domain} · 위험 {operation.risk}</span>
+                      <strong>{operation.name}</strong>
+                      <p>{operation.description}</p>
+                      <small>정치력 {operation.politicalCost} · {formatMoney(operation.treasuryCost)} · 지휘 {operation.commandCost} · {operation.durationWeeks}주</small>
+                      <button disabled={!affordable} onClick={() => onLaunchStrategicOperation(operation.id)}>{affordable ? '작전 승인' : '자원 부족'}</button>
+                    </article>
+                  );
+                })}
+                {availableStrategicOperations.length === 0 && <p className="continuity-empty-state">현재 시대와 직무 권한에 맞는 신규 전략작전이 없습니다. 시대가 바뀌거나 최근 작전의 재편 기간이 끝나면 새 임무가 열립니다.</p>}
+              </div>
+            )}
+          </section>
+
+          <section>
+            <div className="continuity-board-heading"><Activity /><span><small>1·5·10년 국가계획</small><strong>임기보다 긴 약속을 중간평가로 검증</strong></span></div>
+            {activePlanDefinition && state.nationalPlanning.active ? (
+              <article className="continuity-active-card">
+                <span>{activePlanDefinition.horizonYears}개년 · {activePlanDefinition.doctrine}</span>
+                <strong>{activePlanDefinition.name}</strong>
+                <p>{activePlanDefinition.targets.join(' · ')}</p>
+                <MetricBar value={state.nationalPlanning.active.progress} danger={state.nationalPlanning.active.progress < 45} />
+                <small>진척 {state.nationalPlanning.active.progress.toFixed(0)}% · 다음 검증 {Math.max(0, state.nationalPlanning.active.reviewWeek - game.week)}주 · 종료 {Math.max(0, state.nationalPlanning.active.deadlineWeek - game.week)}주</small>
+              </article>
+            ) : (
+              <div className="continuity-option-list plan-options">
+                {nationalPlanDefinitions.map((plan) => (
+                  <article key={plan.id}>
+                    <span>{plan.horizonYears}개년 · {plan.doctrine}</span>
+                    <strong>{plan.name}</strong>
+                    <p>{plan.description}</p>
+                    <small>{plan.targets.join(' · ')}</small>
+                    <button onClick={() => onLaunchNationalPlan(plan.id)}>계획 채택</button>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+
+        <div className="late-era-pressure-grid" aria-label="후기 시대 구조 압력">
+          {[
+            ['상대 경쟁력', state.relativeCompetitiveness, false],
+            ['제도 노후', state.institutionalAge, true],
+            ['인구 압력', state.demographicPressure, true],
+            ['생태 압력', state.ecologicalPressure, true],
+            ['패권 비용', state.hegemonyCost, true],
+          ].map(([label, value, danger]) => (
+            <article key={String(label)} className={Boolean(danger) && Number(value) >= 55 ? 'warning' : ''}>
+              <span>{String(label)}</span><strong>{Math.round(Number(value))}</strong><MetricBar value={Number(value)} danger={Boolean(danger)} />
+            </article>
+          ))}
+        </div>
+      </section>
 
       <ElectionSituationRoom
         state={state.electoral}

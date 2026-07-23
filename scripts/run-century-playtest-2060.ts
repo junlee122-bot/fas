@@ -18,18 +18,18 @@ function createMarkdown(run: CenturyPlaytestRun) {
   const eraRows = aggregate.eraTimeline.map((era) => {
     const fullEraWeeks = aggregate.sessionCount * (era.endYear - era.startYear + 1) * 52;
     const eraLabel = era.weeks < fullEraWeeks / 2 ? `${era.startYear}년 진입 (회당 ${era.weeks / aggregate.sessionCount}주)` : era.era;
-    return `| ${eraLabel} | ${era.promptsPerWeek.toFixed(2)} | ${percent(era.urgentWeekRate)} | ${era.decisionsPerYear.toFixed(1)} | ${era.interruptionsPerYear.toFixed(1)} | ${era.battlesPerYear.toFixed(1)} | ${era.flashpointsPerDecade.toFixed(1)} | ${percent(era.researchActiveWeekRate)} | ${percent(era.nationalScoreCeilingWeekRate)} |`;
+    return `| ${eraLabel} | ${era.promptsPerWeek.toFixed(2)} | ${percent(era.urgentWeekRate)} | ${era.decisionsPerYear.toFixed(1)} | ${era.interruptionsPerYear.toFixed(1)} | ${era.battlesPerYear.toFixed(1)} | ${era.strategicOperationsPerYear.toFixed(1)} | ${era.flashpointsPerDecade.toFixed(1)} | ${percent(era.researchActiveWeekRate)} | ${percent(era.nationalScoreCeilingWeekRate)} |`;
   }).join('\n');
   const profileRows = Object.entries(aggregate.byProfile).map(([profile, value]) => `| ${profile} | ${value.sessions} | ${percent(value.urgentWeekRate)} | ${percent(value.quietWeekRate)} | ${value.decisionsPerYear.toFixed(1)} | ${value.averageFinalNationalScore.toFixed(1)} | ${value.averageFinalInflation.toFixed(1)}% | ${value.averageFinalUnrest.toFixed(1)} | ${value.uniqueEndings} |`).join('\n');
   const findingSections = run.findings.map((finding) => `### ${finding.priority} · ${finding.title}\n\n- 관측 근거: ${finding.evidence}\n- 재미 저하: ${finding.funImpact}\n- 개선 방향: ${finding.recommendation}`).join('\n\n');
   const repeatedRows = aggregate.topRepeatedActions.map((action) => `| \`${action.id}\` | ${action.sessions} | ${formatNumber(action.longestRunWeeksTotal)}주 | ${action.averageLongestRunWeeks.toFixed(1)}주 |`).join('\n');
   const outlierRows = aggregate.outliers.slice(0, 12).map((session) => `| #${session.id} | ${session.nationId} | ${session.roleId} | ${session.profile} | ${session.frictionScore.toFixed(1)} | ${session.reasons.join(' · ') || '복합 마찰'} |`).join('\n');
 
-  return `# IRON DOMINION 1942–2060 장기 엔진 플레이테스트 700회
+  return `# IRON DOMINION 1942–2060 장기 엔진 플레이테스트 ${aggregate.sessionCount}회
 
 ## 결론
 
-실제 게임의 경제·보건·연구·전투·국가운영·선거·쿠데타·참모·세계사 함수를 연결해 ${formatNumber(aggregate.totalWeeks)}주의 상태 전이를 계산했습니다. 700개 캠페인은 모두 2060년까지 완주했지만, 장기 재미는 **2020년 이후 콘텐츠 공백**, **군사·정보 직무의 국가운영 모드 수렴**, **주간 단위 반복**, **후기 국가 지표 포화**에서 크게 약해졌습니다.
+실제 게임의 경제·보건·연구·전투·국가운영·선거·쿠데타·참모·세계사 함수를 연결해 ${formatNumber(aggregate.totalWeeks)}주의 상태 전이를 계산했습니다. ${aggregate.sessionCount}개 캠페인의 2060년 완주 결과로 콘텐츠 공백, 직무별 전략작전, 주간 결정 밀도와 후기 구조 압력을 다시 검증했습니다.
 
 가장 중요한 결론은 “엔진이 2060년까지 멈추지 않는다”와 “2060년까지 플레이할 이유가 있다”가 다르다는 점입니다. 후기 시대에도 계산은 계속되지만 새로운 연구·세계사·작전 목표가 충분히 공급되지 않으면 시간 진행 자체가 주 행동이 됩니다.
 
@@ -51,6 +51,7 @@ function createMarkdown(run: CenturyPlaytestRun) {
 | --- | ---: | --- |
 | 전쟁 단계 | 평균 ${aggregate.averageWarYears.toFixed(1)}년 · 전체의 ${percent(aggregate.warPhaseShare)} | 118년 중 극히 짧아 군사 직무 정체성이 사라짐 |
 | 국가운영 단계 | 평균 ${aggregate.averageNationYears.toFixed(1)}년 | 대부분의 장기 플레이가 같은 평시 루프로 수렴 |
+| 평시 전략작전 | 세션당 평균 ${aggregate.averageStrategicOperations.toFixed(1)}회 | 군사·정보 직무가 국가운영 중에도 수행하는 다주 임무 |
 | 결정 주차 | 전체의 ${percent(aggregate.decisionWeeksRate)} | 나머지 주차는 직접 선택 없이 상태 진행 |
 | 실질 결정 | 연 ${aggregate.decisionsPerYear.toFixed(1)}회 | 시대별 목표가 없으면 다음 주 반복으로 체감 |
 | 행동 프롬프트 | 주당 ${aggregate.promptsPerWeek.toFixed(2)}건 · 결정 대비 1:${aggregate.promptToDecisionRatio.toFixed(2)} | 안내가 선택보다 많아질 위험 |
@@ -62,12 +63,12 @@ function createMarkdown(run: CenturyPlaytestRun) {
 | 선거 | 세션당 ${aggregate.averageElections.toFixed(1)}회 · 선거당 행동 ${aggregate.averageElectionActionsPerElection.toFixed(1)}회 | 118년간 같은 선거 행동 반복 가능성 |
 | 쿠데타 | ${percent(aggregate.coupSessionRate)} 세션 · 평균 ${aggregate.averageCoupAttempts.toFixed(1)}회 | 정치 위기 빈도와 회복성 |
 | 감염병 | 세션당 ${aggregate.averageOutbreaks.toFixed(1)}회 · 평균 간격 ${aggregate.averageYearsBetweenOutbreaks?.toFixed(1) ?? '-'}년 | 장기 보건 사건의 희소성 |
-| 결말 | 고유 ${aggregate.uniqueEndings}개 · 충돌률 ${percent(aggregate.endingCollisionRate)} | 서로 다른 700개 세계의 결과 중복 |
+| 결말 | 고유 ${aggregate.uniqueEndings}개 · 충돌률 ${percent(aggregate.endingCollisionRate)} | 서로 다른 ${aggregate.sessionCount}개 세계의 결과 중복 |
 
 ## 시대별 재미 밀도
 
-| 시대 | 주당 프롬프트 | 긴급 주 | 연간 결정 | 연간 중단 | 연간 전투 | 10년당 세계위기 | 연구 활성 | 국가점수 상한 |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 시대 | 주당 프롬프트 | 긴급 주 | 연간 결정 | 연간 중단 | 연간 전투 | 연간 평시작전 | 10년당 세계위기 | 연구 활성 | 국가점수 상한 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 ${eraRows}
 
 시대별 표는 전체 평균이 감추는 콘텐츠 절벽을 찾기 위한 것입니다. 전투·연구·세계사 사건이 동시에 낮아지는 구간은 새로운 목표 없이 시간만 진행될 가능성이 높습니다. 2060년 행은 완전한 연도 통계가 아니라 각 캠페인이 목표 연도에 진입했는지 확인하는 1주 경계 표본이므로 시대 간 직접 비교에서는 제외합니다.
@@ -109,7 +110,7 @@ ${outlierRows}
 
 ## 해석상의 제한
 
-- 700회는 사람 700명이 화면을 클릭한 결과가 아니라, 여섯 행동 성향을 순환시킨 결정론적 엔진 플레이입니다.
+- ${aggregate.sessionCount}회는 사람 ${aggregate.sessionCount}명이 화면을 클릭한 결과가 아니라, 여섯 행동 성향을 순환시킨 결정론적 엔진 플레이입니다.
 - 실제 게임의 상태 전이 함수를 사용했지만 화면 배치, 클릭 거리, 글자 겹침은 별도 브라우저 UX 테스트 대상입니다.
 - 자동 플레이어는 새로운 기능을 스스로 발견하지 못합니다. 따라서 낮은 사용률은 콘텐츠 부재와 자동 플레이 정책 미지원 가능성을 함께 검토해야 합니다.
 - 시대별 지표는 해당 시대의 모든 세션·주차를 합산한 값입니다.
@@ -118,7 +119,7 @@ ${outlierRows}
 
 - 상세 보고서: \`docs/${prefix}.md\`
 - 집계 데이터: \`docs/${prefix}-summary.json\`
-- 700회 전체 원자료: \`docs/${prefix}-data.json\`
+- ${aggregate.sessionCount}회 전체 원자료: \`docs/${prefix}-data.json\`
 - 실행기: \`scripts/run-century-playtest-2060.ts\`
 - 계측·분석기: \`src/centuryPlaytest.ts\`
 `;
@@ -156,6 +157,20 @@ if (args[0] === '--worker') {
     if ((id - start + 1) % 10 === 0 || id + 1 === end) process.stdout.write(`worker ${start}-${end}: ${id - start + 1}/${end - start}\n`);
   }
   writeFileSync(output, JSON.stringify(sessions), 'utf8');
+} else if (args[0] === '--reanalyze') {
+  const dataPath = resolve(args[1]);
+  const outputDirectory = args[2] ?? 'docs';
+  const sessions = JSON.parse(readFileSync(dataPath, 'utf8')) as LongHorizonSessionResult[];
+  const run = aggregateCenturySessions(sessions, CENTURY_PLAYTEST_WEEKS);
+  writeArtifacts(run, outputDirectory);
+  process.stdout.write(`reanalyzed ${sessions.length} sessions into ${resolve(outputDirectory)}\n`);
+} else if (args[0] === '--ids') {
+  const ids = (args[1] ?? '').split(',').map(Number).filter((id) => Number.isInteger(id) && id >= 0);
+  const outputDirectory = args[2] ?? 'docs';
+  if (ids.length === 0) throw new Error('provide at least one comma-separated session id');
+  const sessions = ids.map((id) => runLongHorizonSession(id, CENTURY_PLAYTEST_WEEKS));
+  writeArtifacts(aggregateCenturySessions(sessions, CENTURY_PLAYTEST_WEEKS), outputDirectory);
+  process.stdout.write(`completed targeted sessions ${ids.join(',')}\n`);
 } else if (args[0] === '--merge') {
   const outputDirectory = args[1] ?? 'docs';
   const sessions = args.slice(2).flatMap((path) => JSON.parse(readFileSync(resolve(path), 'utf8')) as LongHorizonSessionResult[]).sort((left, right) => left.id - right.id);

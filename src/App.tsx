@@ -236,6 +236,14 @@ import type { DynasticActionResult, GovernmentFormId, NobleRankId, SuccessionLaw
 import { applyElectionCampaignAction, launchReferendum } from './electoralPolitics';
 import type { ElectionCampaignActionId, ElectoralActionResult, ElectoralContext, ReferendumTopicId } from './electoralPolitics';
 import {
+  launchNationalPlan,
+  launchStrategicOperation,
+  nationalPlanDefinitions,
+  strategicOperationDefinitions,
+  type NationalPlanId,
+  type NationalPlanMetrics,
+} from './strategicContinuity';
+import {
   calculateStaffSuitability,
   getCareerInstitutionalTitle,
   getStaffAuthorityProfile,
@@ -496,6 +504,7 @@ export function App() {
   const [economy, setEconomy] = useState(() => createEconomyState(DEFAULT_NATION_ID));
   const [campaignPhase, setCampaignPhase] = useState<CampaignPhase>('war');
   const [nationManagement, setNationManagement] = useState(() => defaultNationManagementState);
+  const [periodAdvanceRemaining, setPeriodAdvanceRemaining] = useState(0);
   const [politicalCrisis, setPoliticalCrisis] = useState(() => createPoliticalCrisisState(DEFAULT_NATION_ID));
   const [pendingCoupIncident, setPendingCoupIncident] = useState<CoupIncident | null>(null);
   const [showPoliticalCrisis, setShowPoliticalCrisis] = useState(false);
@@ -922,7 +931,14 @@ export function App() {
     game,
     state: worldHistoryState,
     trajectory: historyTrajectory,
-  }), [game, historyTrajectory, playerNation, worldHistoryState]);
+    careerSignature: `${career.roleId}:${career.replacedPersonId}:${career.alternatePathId ?? 'historical-office'}`,
+    recentDecisionSignature: completedDecisions.slice(-24).join('|') || 'no-confirmed-decisions',
+    nationalPlanSignature: [
+      nationManagement.nationalPlanning.active?.id ?? 'no-active-plan',
+      ...nationManagement.nationalPlanning.history.slice(0, 8).map((record) => `${record.planId}:${record.outcome}`),
+      ...nationManagement.strategicContinuity.history.slice(0, 8).map((record) => `${record.operationId}:${record.outcome}`),
+    ].join('|'),
+  }), [career.alternatePathId, career.replacedPersonId, career.roleId, completedDecisions, game, historyTrajectory, nationManagement.nationalPlanning, nationManagement.strategicContinuity.history, playerNation, worldHistoryState]);
   const pendingWorldFlashpointEntry = pendingWorldFlashpointId
     ? worldline.timeline.find((entry) => entry.event.id === pendingWorldFlashpointId)
     : undefined;
@@ -1455,6 +1471,9 @@ export function App() {
       nextActions: ['국가 운영 화면에서 다음 주 예산과 발전 노선을 재검토하십시오.'],
       certainty: 'confirmed',
     }));
+    if (result.report.events.length > 0 || breakthroughs.length > 0 || newlyAvailableResearch.length > 0 || publicHealthResult.events.length > 0) {
+      setPeriodAdvanceRemaining(0);
+    }
     const expectedNationResult = nationWeekProjection ?? result;
     addEvent(
       `국가 운영 결산 — 제 ${nextWeek + 1}주`,
@@ -1504,6 +1523,7 @@ export function App() {
     );
     const openedCoup = scheduleCoupCheck(nextWeek);
     const openedWorldFlashpoint = !openedCoup && scheduleWorldFlashpoint(nextWeek);
+    if (openedCoup || openedWorldFlashpoint) setPeriodAdvanceRemaining(0);
     if (!openedCoup && !openedWorldFlashpoint && nextWeek % 52 === 26 && !pendingCouncilEventId) {
       const councilEvent = selectNextCouncilEvent(playerNation.id, careerRole.branch, currentYear, resolvedCouncilChoices);
       if (councilEvent) {
@@ -2030,6 +2050,35 @@ export function App() {
   }, [advanceWeek, pendingCoupIncident, pendingWorldFlashpointId, showBriefing, showTutorial, showWorldHistory, showWorldWeekly, speed]);
 
   useEffect(() => {
+    if (periodAdvanceRemaining <= 0 || campaignPhase !== 'nation') return;
+    const interrupted = Boolean(
+      pendingWorldFlashpointId
+      || pendingCoupIncident
+      || pendingCouncilEventId
+      || pendingAchievementId
+      || showBriefing
+      || showWorldHistory
+      || showWorldWeekly
+      || showTutorial
+      || showPoliticalCrisis
+      || showJournal
+      || showSettings
+      || showActionCenter
+      || showStatusOverview
+      || showSaveCenter
+    );
+    if (interrupted) {
+      setPeriodAdvanceRemaining(0);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      advanceWeek();
+      setPeriodAdvanceRemaining((current) => Math.max(0, current - 1));
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [advanceWeek, campaignPhase, pendingAchievementId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, periodAdvanceRemaining, showActionCenter, showBriefing, showJournal, showPoliticalCrisis, showSaveCenter, showSettings, showStatusOverview, showTutorial, showWorldHistory, showWorldWeekly]);
+
+  useEffect(() => {
     if (showBriefing) return;
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(savePayload));
@@ -2068,6 +2117,7 @@ export function App() {
     );
     setCampaignPhase('nation');
     setNationManagement(nextState);
+    setPeriodAdvanceRemaining(0);
     setCampaignOutcome(null);
     setSpeed(0);
     setOrders([]);
@@ -2138,6 +2188,87 @@ export function App() {
   const changeNationStrategy = (strategyId: NationStrategyId) => {
     setNationManagement((current) => ({ ...current, strategyId }));
     notify(`${nationStrategies.find((strategy) => strategy.id === strategyId)?.name ?? '국가 발전 노선'}을 내각의 장기 노선으로 채택했습니다.`);
+  };
+
+  const launchPeacetimeStrategicOperation = (operationId: string) => {
+    const result = launchStrategicOperation(nationManagement.strategicContinuity, operationId, {
+      week: game.week,
+      role: careerRole,
+      politicalPower: game.politicalPower,
+      treasury: game.treasury,
+      commandPoints: game.commandPoints,
+      stability: game.stability,
+      legitimacy: nationManagement.legitimacy,
+      institutionalCapacity: nationManagement.institutionalCapacity,
+      securityBudget: nationManagement.budget.security,
+      diplomacyBudget: nationManagement.budget.diplomacy,
+      intelNetwork: game.intelNetwork,
+      enemyPressure: game.enemyPressure,
+    });
+    if (!result) {
+      notify('현재 직무 권한·시대·정치력·국고·지휘 자원 또는 진행 중인 작전을 확인하십시오.');
+      return;
+    }
+    const definition = strategicOperationDefinitions.find((candidate) => candidate.id === operationId);
+    setNationManagement((current) => ({ ...current, strategicContinuity: result.state }));
+    setGame((current) => applyGameDelta(current, result.gameDelta));
+    setPeriodAdvanceRemaining(0);
+    if (result.event) addEvent(result.event.title, result.event.detail, result.event.tone, game.week, {
+      domain: careerRole.branch === 'military' ? 'operations' : careerRole.branch === 'intelligence' ? 'management' : 'diplomacy',
+      decision: `${definition?.name ?? operationId}을(를) ${definition?.durationWeeks ?? 0}주 전략임무로 승인했습니다.`,
+      trigger: result.event.cause,
+      factors: [`현재 직무 ${careerRole.title}`, `안보 예산 ${nationManagement.budget.security}%`, `외교 예산 ${nationManagement.budget.diplomacy}%`, `정보망 ${Math.round(game.intelNetwork)}`],
+      effects: [{ label: '초기 비용', value: `정치력 ${result.gameDelta.politicalPower ?? 0} · 국고 ${formatGameMoney(result.gameDelta.treasury ?? 0, { signed: true })} · 지휘 ${result.gameDelta.commandPoints ?? 0}`, tone: 'negative' }],
+      ongoing: ['지도·조직·경제 화면으로 이동해도 작전은 취소되지 않으며 매주 진행됩니다.', '중간검토와 최종 결과가 기간 진행을 자동 정지시킵니다.'],
+      nextActions: ['4주 또는 13주 기간 진행을 사용해 작전을 운용하거나 매주 정책을 세밀하게 조정하십시오.'],
+      certainty: 'confirmed',
+    });
+    notify(`${definition?.name ?? '전략작전'}을 승인했습니다. 화면을 이동해도 임무가 유지됩니다.`);
+  };
+
+  const launchLongTermNationalPlan = (planId: NationalPlanId) => {
+    const metrics: NationalPlanMetrics = {
+      nationalScore: nationManagement.nationalScore,
+      mandateScore: nationManagement.mandateScore,
+      legitimacy: nationManagement.legitimacy,
+      welfare: nationManagement.welfare,
+      education: nationManagement.education,
+      civilianIndustry: nationManagement.civilianIndustry,
+      institutionalCapacity: nationManagement.institutionalCapacity,
+      inequality: nationManagement.inequality,
+      unrest: nationManagement.unrest,
+      relativeCompetitiveness: nationManagement.relativeCompetitiveness,
+      demographicPressure: nationManagement.demographicPressure,
+      ecologicalPressure: nationManagement.ecologicalPressure,
+      hegemonyCost: nationManagement.hegemonyCost,
+      relationAverage,
+    };
+    const nextPlanning = launchNationalPlan(nationManagement.nationalPlanning, planId, game.week, metrics);
+    const definition = nationalPlanDefinitions.find((candidate) => candidate.id === planId);
+    if (!nextPlanning || !definition) {
+      notify('이미 진행 중인 국가계획을 먼저 완수하거나 종료 시점까지 운영하십시오.');
+      return;
+    }
+    setNationManagement((current) => ({ ...current, nationalPlanning: nextPlanning }));
+    setPeriodAdvanceRemaining(0);
+    addEvent(`국가계획 채택 — ${definition.name}`, definition.description, 'neutral', game.week, {
+      domain: 'management',
+      decision: `${definition.horizonYears}개년 ${definition.name}을 국가의 장기 기준선으로 채택했습니다.`,
+      trigger: `${game.week + 1}주 국가성과 ${nationManagement.nationalScore} · 국민 위임 ${nationManagement.mandateScore}에서 출발합니다.`,
+      factors: definition.targets,
+      effects: [{ label: '중간평가', value: definition.horizonYears === 1 ? '6개월·1년' : '매년·중간지점·종료시점', tone: 'neutral' }],
+      ongoing: [`실패 위험: ${definition.risk}`, '예산과 정책을 바꾸면 진척률도 매주 다시 계산됩니다.'],
+      nextActions: ['장기 지휘 주기의 진척률과 후기 구조 압력을 함께 확인하십시오.'],
+      certainty: 'confirmed',
+    });
+    notify(`${definition.name}을 채택했습니다. 중간평가에서 실제 지표로 검증됩니다.`);
+  };
+
+  const startPeriodAdvance = (weeks: 4 | 13) => {
+    if (campaignPhase !== 'nation') return;
+    setSpeed(0);
+    setPeriodAdvanceRemaining(weeks);
+    notify(`${weeks}주 국정 진행을 시작합니다. 중요 결재·위기·중간평가에서 자동 정지합니다.`);
   };
 
   const applyDynasticActionResult = useCallback((result: DynasticActionResult) => {
@@ -2374,6 +2505,7 @@ export function App() {
     setPublicHealth(newPublicHealth);
     setEconomy(newEconomy);
     setCampaignPhase('war');
+    setPeriodAdvanceRemaining(0);
     setNationManagement(createNationManagementState(nation.id, newGame, newEconomy, initialResearch.filter((project) => project.complete).length, 'negotiated'));
     setPoliticalCrisis(createPoliticalCrisisState(nation.id));
     setPendingCoupIncident(null);
@@ -2505,6 +2637,7 @@ export function App() {
       const restoredWorldline = generateWorldline({ nation: restoredNation, game: restoredGame, state: restoredWorldHistoryState, trajectory: restoredTrajectory });
       setEconomy(restoredEconomy);
       setCampaignPhase(restoredPhase);
+      setPeriodAdvanceRemaining(0);
       setNationManagement(restoredNationManagement);
       setPoliticalCrisis(normalizePoliticalCrisisState(data.politicalCrisis, restoredNation.id));
       setPendingCoupIncident(data.pendingCoupIncident && data.pendingCoupIncident.nationId === restoredNation.id ? data.pendingCoupIncident : null);
@@ -2638,6 +2771,7 @@ export function App() {
     setPublicHealth(createPublicHealthState(createPublicHealthSeed(DEFAULT_NATION_ID, DEFAULT_ROLE_ID)));
     setEconomy(createEconomyState(DEFAULT_NATION_ID));
     setCampaignPhase('war');
+    setPeriodAdvanceRemaining(0);
     setNationManagement(defaultNationManagementState);
     setPoliticalCrisis(createPoliticalCrisisState(DEFAULT_NATION_ID));
     setPendingCoupIncident(null);
@@ -4741,6 +4875,11 @@ export function App() {
                   onSuccessionLawChange={changeSuccessionLaw}
                   onElectionCampaignAction={runElectionCampaignAction}
                   onLaunchReferendum={proposeReferendum}
+                  onLaunchStrategicOperation={launchPeacetimeStrategicOperation}
+                  onLaunchNationalPlan={launchLongTermNationalPlan}
+                  onAdvancePeriod={startPeriodAdvance}
+                  periodAdvanceRemaining={periodAdvanceRemaining}
+                  onCancelPeriodAdvance={() => setPeriodAdvanceRemaining(0)}
                   onNavigate={setActiveTab}
                   onNextWeek={advanceWeek}
                 />

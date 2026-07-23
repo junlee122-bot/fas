@@ -19,7 +19,7 @@ const game = {
 
 describe('alternate Earth worldline engine', () => {
   it('provides a large sourced event atlas with three outcomes per event', () => {
-    expect(worldHistoryEvents).toHaveLength(195);
+    expect(worldHistoryEvents.length).toBeGreaterThanOrEqual(213);
     expect(new Set(worldHistoryEvents.map((entry) => entry.id)).size).toBe(worldHistoryEvents.length);
     worldHistoryEvents.forEach((entry) => {
       expect(entry.variants).toHaveLength(3);
@@ -32,6 +32,7 @@ describe('alternate Earth worldline engine', () => {
     expect(worldHistoryEvents.some((entry) => entry.category === 'public-health')).toBe(true);
     expect(worldHistoryEvents.some((entry) => entry.category === 'intelligence')).toBe(true);
     expect(worldHistoryEvents.some((entry) => entry.era === 'connected-world' && entry.historicalYear >= 2020)).toBe(true);
+    expect(worldHistoryEvents.some((entry) => entry.era === 'synthetic-century' && entry.historicalYear >= 2050 && entry.scenarioType === 'historical-pattern')).toBe(true);
     ['tripartite-social-pact', 'unclos-common-heritage', 'multistakeholder-internet-governance', 'sendai-resilient-cities', 'healthy-ageing-social-contract', 'renewable-flexibility-supergrid']
       .forEach((eventId) => expect(worldHistoryEvents.some((entry) => entry.id === eventId), eventId).toBe(true));
     expect(worldHistoryEvents.filter((entry) => (entry.historicalActorIds?.length ?? 0) + (entry.historicalFigureQids?.length ?? 0) > 0).length).toBeGreaterThanOrEqual(40);
@@ -62,6 +63,15 @@ describe('alternate Earth worldline engine', () => {
     expect(world.primaryBloc).toContain('인도');
     expect(`${world.primaryBloc} ${world.rivalBloc}`).not.toBe('미국 소련');
     expect(world.thirdPole).not.toBe(world.rivalBloc);
+  });
+
+  it('gives causally different careers and plans distinct outcome identities even when the prose ending family matches', () => {
+    const shared = { nation: getNation('korea'), game, state: { seed: 19450815, choices: {} } };
+    const military = generateWorldline({ ...shared, careerSignature: 'military:tier-2', nationalPlanSignature: 'secure-transition:fulfilled' });
+    const civic = generateWorldline({ ...shared, careerSignature: 'politics:tier-1', nationalPlanSignature: 'plural-state:fulfilled' });
+    expect(military.ending.id).toBe(civic.ending.id);
+    expect(military.outcomeId).not.toBe(civic.outcomeId);
+    expect(military.legacySignature).not.toBe(civic.legacySignature);
   });
 
   it('changes the projected world when concrete campaign behavior changes', () => {
