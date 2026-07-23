@@ -77,6 +77,29 @@ export const LONG_HORIZON_WEEKS = (LONG_HORIZON_END_YEAR - LONG_HORIZON_START_YE
 
 export type LongHorizonProfile = 'guided' | 'rushed' | 'military' | 'state-builder' | 'completionist' | 'opportunist';
 
+export interface LongHorizonEraMetric {
+  era: string;
+  startYear: number;
+  endYear: number;
+  weeks: number;
+  actionPrompts: number;
+  urgentWeeks: number;
+  quietWeeks: number;
+  decisions: number;
+  interruptions: number;
+  battles: number;
+  flashpoints: number;
+  elections: number;
+  coupAttempts: number;
+  outbreaks: number;
+  researchActiveWeeks: number;
+  inflationWarningWeeks: number;
+  nationalScoreCeilingWeeks: number;
+  inflationTotal: number;
+  nationalScoreTotal: number;
+  enemyPressureTotal: number;
+}
+
 export interface LongHorizonSessionResult {
   id: number;
   nationId: string;
@@ -153,6 +176,7 @@ export interface LongHorizonSessionResult {
   finalEndingId: string;
   finalDominantForce: string;
   worldChoiceSignature: string;
+  eraMetrics: LongHorizonEraMetric[];
 }
 
 export interface LongHorizonFinding {
@@ -331,6 +355,36 @@ function percentile(values: number[], fraction: number) {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((left, right) => left - right);
   return sorted[Math.min(sorted.length - 1, Math.max(0, Math.round((sorted.length - 1) * fraction)))];
+}
+
+function getEraRange(year: number) {
+  if (year < 1950) return { era: '1942–1949', startYear: 1942, endYear: 1949 };
+  const startYear = Math.floor(year / 10) * 10;
+  return { era: `${startYear}–${startYear + 9}`, startYear, endYear: startYear + 9 };
+}
+
+function createEraMetric(year: number): LongHorizonEraMetric {
+  const range = getEraRange(year);
+  return {
+    ...range,
+    weeks: 0,
+    actionPrompts: 0,
+    urgentWeeks: 0,
+    quietWeeks: 0,
+    decisions: 0,
+    interruptions: 0,
+    battles: 0,
+    flashpoints: 0,
+    elections: 0,
+    coupAttempts: 0,
+    outbreaks: 0,
+    researchActiveWeeks: 0,
+    inflationWarningWeeks: 0,
+    nationalScoreCeilingWeeks: 0,
+    inflationTotal: 0,
+    nationalScoreTotal: 0,
+    enemyPressureTotal: 0,
+  };
 }
 
 function stableRoll(key: string) {
@@ -661,6 +715,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
   const longestActionRun: Record<string, number> = {};
   const actionVerificationUntil = new Map<string, number>();
   const endingDecisionWeeks = new Set<number>();
+  const eraMetrics = new Map<string, LongHorizonEraMetric>();
   let actionPrompts = 0;
   let urgentPromptWeeks = 0;
   let recommendedPromptWeeks = 0;
@@ -834,6 +889,22 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
   for (let index = 0; index < weeksPlayed; index += 1) {
     const nextWeek = index + 1;
     game.week = index;
+    const eraYear = getCampaignYear(nextWeek);
+    const eraRange = getEraRange(eraYear);
+    const eraMetric = eraMetrics.get(eraRange.era) ?? createEraMetric(eraYear);
+    eraMetrics.set(eraRange.era, eraMetric);
+    const eraBefore = {
+      actionPrompts,
+      urgentPromptWeeks,
+      quietWeeks,
+      decisionInteractions,
+      interruptionCount,
+      battleCount,
+      worldFlashpointCount,
+      electionCount,
+      coupAttempts,
+      outbreakCount,
+    };
     const currentAverageSupply = averageSupply(divisions);
     const outbreakBefore = publicHealth.activeOutbreak?.id ?? null;
 
@@ -1133,7 +1204,25 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     if (nextWeek >= config.transitionWeek && nationState.nationalScore >= 99) nationalScoreCeilingWeeks += 1;
     const completedResearch = research.filter((project) => project.complete).length;
     if (researchCompleteWeek === null && completedResearch === research.length) researchCompleteWeek = nextWeek;
-    if (research.filter((project) => project.active && !project.complete).length === 0) researchIdleWeeks += 1;
+    const researchActive = research.some((project) => project.active && !project.complete);
+    if (!researchActive) researchIdleWeeks += 1;
+    eraMetric.weeks += 1;
+    eraMetric.actionPrompts += actionPrompts - eraBefore.actionPrompts;
+    eraMetric.urgentWeeks += urgentPromptWeeks - eraBefore.urgentPromptWeeks;
+    eraMetric.quietWeeks += quietWeeks - eraBefore.quietWeeks;
+    eraMetric.decisions += decisionInteractions - eraBefore.decisionInteractions;
+    eraMetric.interruptions += interruptionCount - eraBefore.interruptionCount;
+    eraMetric.battles += battleCount - eraBefore.battleCount;
+    eraMetric.flashpoints += worldFlashpointCount - eraBefore.worldFlashpointCount;
+    eraMetric.elections += electionCount - eraBefore.electionCount;
+    eraMetric.coupAttempts += coupAttempts - eraBefore.coupAttempts;
+    eraMetric.outbreaks += outbreakCount - eraBefore.outbreakCount;
+    if (researchActive) eraMetric.researchActiveWeeks += 1;
+    if (economy.inflation >= 10) eraMetric.inflationWarningWeeks += 1;
+    if (nextWeek >= config.transitionWeek && nationState.nationalScore >= 99) eraMetric.nationalScoreCeilingWeeks += 1;
+    eraMetric.inflationTotal += economy.inflation;
+    eraMetric.nationalScoreTotal += nationState.nationalScore;
+    eraMetric.enemyPressureTotal += game.enemyPressure;
   }
 
   const finalTrajectory = deriveEmergentHistory({
@@ -1232,6 +1321,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     finalEndingId: finalWorldline.ending.id,
     finalDominantForce: finalTrajectory.dominantForce,
     worldChoiceSignature: worldHistoryEvents.map((event) => worldHistoryState.choices[event.id] ?? '-').join('|'),
+    eraMetrics: [...eraMetrics.values()].sort((left, right) => left.startYear - right.startYear),
   };
 }
 
