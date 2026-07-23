@@ -86,6 +86,8 @@ interface OrganizationPanelProps {
   role: CareerRole;
   campaignPhase: CampaignPhase;
   careerReputation: number;
+  careerOfferCount: number;
+  careerStatusLabel: string;
   staff: StaffMember[];
   candidates: StaffCandidate[];
   divisions: Division[];
@@ -112,6 +114,7 @@ interface OrganizationPanelProps {
   onApproachCandidate: (candidateId: string) => void;
   onRecruitCandidate: (candidateId: string, offer: RecruitmentOffer) => void;
   onRenewStaff: (staffId: string) => void;
+  onOpenCareerMarket: () => void;
 }
 
 const departmentLabels: Record<StaffDepartment, string> = {
@@ -234,6 +237,8 @@ export function OrganizationPanel({
   role,
   campaignPhase,
   careerReputation,
+  careerOfferCount,
+  careerStatusLabel,
   staff,
   candidates,
   divisions,
@@ -260,6 +265,7 @@ export function OrganizationPanel({
   onApproachCandidate,
   onRecruitCandidate,
   onRenewStaff,
+  onOpenCareerMarket,
 }: OrganizationPanelProps) {
   const [talentQuery, setTalentQuery] = useState('');
   const [disciplineFilter, setDisciplineFilter] = useState<PersonnelDiscipline | 'all'>('all');
@@ -369,6 +375,7 @@ export function OrganizationPanel({
       <nav className="organization-workspace-switch" aria-label="조직 운영 작업공간">
         <button type="button" className={workspace === 'squad' ? 'active' : ''} aria-pressed={workspace === 'squad'} onClick={() => setWorkspace('squad')}><UsersRound size={18} /><span><strong>참모 스쿼드</strong><small>보직·위임·계약·조직 분위기</small></span><em>{staff.length}</em></button>
         <button type="button" className={workspace === 'market' ? 'active' : ''} aria-pressed={workspace === 'market'} onClick={() => setWorkspace('market')}><Search size={18} /><span><strong>후보 시장</strong><small>탐색·조사·접촉·협상·영입</small></span><em>{shortlistCount + scoutingCount || candidates.length}</em></button>
+        <button type="button" className={careerOfferCount > 0 ? 'career-offer-arrived' : ''} onClick={onOpenCareerMarket}><BriefcaseBusiness size={18} /><span><strong>내 국제 경력</strong><small>{careerStatusLabel} · 외국 제안·구직·망명·이중공작</small></span><em>{careerOfferCount}</em></button>
         <p>{workspace === 'squad' ? '현재 참모진을 FM의 선수단처럼 배치하고 책임·관계·성장을 관리합니다.' : '외부 실존 인물을 검색하고 조사 보고서에서 영입 가능성과 위험을 비교합니다.'}</p>
       </nav>
       <section className="management-card staff-card">

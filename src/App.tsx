@@ -263,8 +263,24 @@ import {
 import type { CoupIncident, CoupPreventionId, CoupResponseId, PoliticalCrisisContext } from './politicalCrisis';
 import { PoliticalCrisisModal } from './PoliticalCrisisModal';
 import { deriveNationalSimulation } from './nationalSimulation';
+import {
+  careerAffiliationLabels,
+  createCareerMarketState,
+  evaluateForeignCareerOffers,
+  initiateCareerApproach,
+  markCareerDismissed,
+  normalizeCareerMarketState,
+  respondToCareerOffer,
+} from './careerMarket';
+import type {
+  CareerApproachKind,
+  CareerMarketContext,
+  CareerOfferResponse,
+  ForeignCareerOffer,
+} from './careerMarket';
 
 const loadOrganizationPanel = () => import('./OrganizationPanel');
+const loadCareerMarketCenter = () => import('./CareerMarketCenter');
 const loadEquipmentLab = () => import('./EquipmentLab');
 const loadFieldManual = () => import('./FieldManual');
 const loadTutorialOverlay = () => import('./TutorialOverlay');
@@ -284,6 +300,7 @@ const PublicHealthCenter = lazy(() => loadPublicHealthCenter().then((module) => 
 const EconomicMinistry = lazy(() => loadEconomicMinistry().then((module) => ({ default: module.EconomicMinistry })));
 const WorldWeekly = lazy(() => loadWorldWeekly().then((module) => ({ default: module.WorldWeekly })));
 const NationManagementPanel = lazy(() => loadNationManagementPanel().then((module) => ({ default: module.NationManagementPanel })));
+const CareerMarketCenter = lazy(() => loadCareerMarketCenter().then((module) => ({ default: module.CareerMarketCenter })));
 
 function preloadGameTab(tab: GameTab) {
   if (tab === 'organization') void loadOrganizationPanel();
@@ -538,6 +555,9 @@ export function App() {
   const [setupNationId, setSetupNationId] = useState<NationId>(DEFAULT_NATION_ID);
   const [setupRoleId, setSetupRoleId] = useState(DEFAULT_ROLE_ID);
   const [career, setCareer] = useState<CareerState>(() => createCareerState(DEFAULT_NATION_ID, DEFAULT_ROLE_ID));
+  const [careerMarket, setCareerMarket] = useState(() => createCareerMarketState());
+  const [showCareerMarket, setShowCareerMarket] = useState(false);
+  const [pendingCareerOfferId, setPendingCareerOfferId] = useState<string | null>(null);
   const [activeTheater, setActiveTheater] = useState<TheaterId>('europe');
   const [activeMapRegionId, setActiveMapRegionId] = useState('europe-overview');
   const [staff, setStaff] = useState<StaffMember[]>(() => createStaffRoster(DEFAULT_NATION_ID, DEFAULT_ROLE_ID));
@@ -576,6 +596,15 @@ export function App() {
   const currentRoleTitle = getCareerInstitutionalTitle(careerRole, campaignPhase, playerNation.status);
   const displayedCareerRole = useMemo(() => ({ ...careerRole, title: currentRoleTitle }), [careerRole, currentRoleTitle]);
   const campaignYear = 1942 + Math.floor(game.week / 52);
+  const careerMarketContext = useMemo<CareerMarketContext>(() => ({
+    week: game.week,
+    career,
+    role: careerRole,
+    game,
+    campaignPhase,
+    relationByNation: Object.fromEntries(relations.map((relation) => [relation.id, relation.value])) as Partial<Record<NationId, number>>,
+  }), [campaignPhase, career, careerRole, game, relations]);
+  const pendingCareerOfferCount = careerMarket.offers.filter((offer) => ['pending', 'exploring', 'negotiating'].includes(offer.status)).length;
   const playerFaction = playerNation.alignment;
   const enemyFaction: Exclude<Faction, 'neutral'> = playerFaction === 'allies' ? 'axis' : 'allies';
   const careerCommanders = useMemo(() => createCareerCommanders(playerNation, careerRole), [careerRole, playerNation]);
@@ -931,14 +960,20 @@ export function App() {
     game,
     state: worldHistoryState,
     trajectory: historyTrajectory,
-    careerSignature: `${career.roleId}:${career.replacedPersonId}:${career.alternatePathId ?? 'historical-office'}`,
+    careerSignature: [
+      career.roleId,
+      career.replacedPersonId,
+      career.alternatePathId ?? 'historical-office',
+      careerMarket.affiliationStatus,
+      ...careerMarket.history.slice(0, 12).map((record) => `${record.nationId}:${record.outcome}`),
+    ].join(':'),
     recentDecisionSignature: completedDecisions.slice(-24).join('|') || 'no-confirmed-decisions',
     nationalPlanSignature: [
       nationManagement.nationalPlanning.active?.id ?? 'no-active-plan',
       ...nationManagement.nationalPlanning.history.slice(0, 8).map((record) => `${record.planId}:${record.outcome}`),
       ...nationManagement.strategicContinuity.history.slice(0, 8).map((record) => `${record.operationId}:${record.outcome}`),
     ].join('|'),
-  }), [career.alternatePathId, career.replacedPersonId, career.roleId, completedDecisions, game, historyTrajectory, nationManagement.nationalPlanning, nationManagement.strategicContinuity.history, playerNation, worldHistoryState]);
+  }), [career.alternatePathId, career.replacedPersonId, career.roleId, careerMarket.affiliationStatus, careerMarket.history, completedDecisions, game, historyTrajectory, nationManagement.nationalPlanning, nationManagement.strategicContinuity.history, playerNation, worldHistoryState]);
   const pendingWorldFlashpointEntry = pendingWorldFlashpointId
     ? worldline.timeline.find((entry) => entry.event.id === pendingWorldFlashpointId)
     : undefined;
@@ -960,7 +995,7 @@ export function App() {
     activeResearch: research.filter((project) => project.active && !project.complete).length,
   }), [events, game.week, hasUnreadWorldWeekly, lastReviewedJournalWeek, orders.length, research, uxActions]);
   const savePayload = useMemo<CampaignSavePayload>(() => ({
-    version: 24,
+    version: 25,
     game,
     territories,
     divisions,
@@ -978,6 +1013,8 @@ export function App() {
     completedDecisions,
     doctrine,
     career,
+    careerMarket,
+    pendingCareerOfferId,
     activeTheater,
     selectedTerritoryId,
     selectedDivisionId,
@@ -1009,7 +1046,7 @@ export function App() {
     nationManagement,
     politicalCrisis,
     pendingCoupIncident,
-  }), [achievementUnlocks, activeTheater, battleReports, battleStance, campaignOutcome, campaignPhase, career, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, economy, equipmentDevelopment, events, game, lastReadWorldWeeklyId, lastReviewedJournalWeek, nationManagement, objectiveProgress, onboardingMilestones, operations, orders, pendingBattleReportId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, politicalCrisis, priorityDivisionId, procurementFocusId, production, publicHealth, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized, uxActionLifecycle, visitedOnboardingTabs, worldHistoryState, worldWeeklyIssues]);
+  }), [achievementUnlocks, activeTheater, battleReports, battleStance, campaignOutcome, campaignPhase, career, careerMarket, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, economy, equipmentDevelopment, events, game, lastReadWorldWeeklyId, lastReviewedJournalWeek, nationManagement, objectiveProgress, onboardingMilestones, operations, orders, pendingBattleReportId, pendingCareerOfferId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, politicalCrisis, priorityDivisionId, procurementFocusId, production, publicHealth, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized, uxActionLifecycle, visitedOnboardingTabs, worldHistoryState, worldWeeklyIssues]);
   const campaignDate = getCampaignDate(game.week);
   const isKoreaWarCampaign = playerNation.id === 'korea' && campaignPhase === 'war';
   const statusResources: StatusResource[] = [
@@ -1246,6 +1283,62 @@ export function App() {
   const addEvent = useCallback((title: string, detail: string, tone: WarEvent['tone'], week: number, trace?: Partial<WarEventTrace>) => {
     setEvents((current) => [{ id: Date.now() + Math.random(), week, title, detail, tone, trace: createWarEventTrace(title, detail, tone, trace) }, ...current].slice(0, 120));
   }, []);
+
+  useEffect(() => {
+    if (showBriefing || showTutorial || campaignOutcome || pendingWorldFlashpointId || pendingCoupIncident || pendingCouncilEventId || pendingAchievementId) return;
+    const result = evaluateForeignCareerOffers(careerMarket, careerMarketContext);
+    if (result.state !== careerMarket) setCareerMarket(result.state);
+    const firstOffer = result.newOffers[0];
+    if (!firstOffer) return;
+    setPendingCareerOfferId(firstOffer.id);
+    setShowCareerMarket(true);
+    setPeriodAdvanceRemaining(0);
+    setSpeed(0);
+    addEvent(
+      `외국의 직접 제안 — ${firstOffer.title}`,
+      `${firstOffer.sender}이(가) ${firstOffer.coverChannel}을 통해 먼저 접근했습니다. ${firstOffer.deadlineWeek + 1}주차까지 탐색·협상·수락·거절·상부 보고·역포섭 중 하나를 결정할 수 있습니다.`,
+      firstOffer.exposureRisk >= 65 ? 'bad' : 'neutral',
+      game.week,
+      {
+        domain: 'diplomacy',
+        decision: '아직 답변하지 않음 — 국제 경력·비밀 접촉실에서 제안을 검토해야 합니다.',
+        trigger: `평판 ${Math.round(career.reputation)}, 지도부 신임 ${Math.round(career.councilTrust)}, ${careerRole.title}의 접근권을 외국 기관이 평가했습니다.`,
+        factors: [`제안 유형: ${firstOffer.kind}`, `접근 동기: ${firstOffer.motive}`, `발각 위험 ${Math.round(firstOffer.exposureRisk)}`, `신뢰도 ${Math.round(firstOffer.credibility)}`],
+        effects: [{ label: '진행 상태', value: '시간 정지 · 제안 도착', tone: 'neutral' }],
+        ongoing: ['거절하지 않는 한 제안은 답변 기한까지 받은편지함에 남습니다.', '현직 중 외부 접촉은 지도부 신임과 방첩 노출 위험에 영향을 줍니다.'],
+        nextActions: ['국제 경력·비밀 접촉실에서 상대의 요구, 보직, 보호, 대가와 위험을 비교하십시오.'],
+        certainty: 'developing',
+      },
+    );
+    notify(`${firstOffer.title}이 도착했습니다. 상대가 먼저 보낸 제안입니다.`);
+  }, [addEvent, campaignOutcome, career.councilTrust, career.reputation, careerMarket, careerMarketContext, careerRole.title, game.week, notify, pendingAchievementId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, showBriefing, showTutorial]);
+
+  useEffect(() => {
+    if (campaignOutcome !== 'defeat' || careerMarket.affiliationStatus === 'dismissed') return;
+    const result = markCareerDismissed(careerMarket, careerMarketContext);
+    setCareerMarket(result.state);
+    const firstOffer = result.newOffers[0] ?? null;
+    setPendingCareerOfferId(firstOffer?.id ?? null);
+    setShowCareerMarket(true);
+    setPeriodAdvanceRemaining(0);
+    setSpeed(0);
+    addEvent(
+      '해임 뒤 국제 경력 시장 개방',
+      `현재 보직은 잃었지만 평판 ${Math.round(career.reputation)}, 경력, 인맥과 비밀 접근 기록은 유지됩니다. ${result.newOffers.length}개 기관이 망명·새 보직·비밀 고문 또는 정보 거래 가능성을 타진했습니다.`,
+      'neutral',
+      game.week,
+      {
+        domain: 'management',
+        decision: '해임 이후에도 같은 세계선에서 국제 경력을 계속할 수 있습니다.',
+        trigger: `${careerRole.title} 해임과 전쟁 수행 실패가 외국 정부·정보기관의 인재 평가를 촉발했습니다.`,
+        factors: [`새 제안 ${result.newOffers.length}건`, `보유 평판 ${Math.round(career.reputation)}`, `보유 정보망 ${Math.round(game.intelNetwork)}`],
+        effects: [{ label: '경력 상태', value: '현직 → 해임 · 국제 구직 가능', tone: 'neutral' }],
+        ongoing: ['새 국가의 공식 보직을 수락하면 세계의 기존 사건·전황·선택 기록을 유지한 채 소속만 바뀝니다.'],
+        nextActions: ['국제 경력·비밀 접촉실에서 제안을 비교하거나 원하는 국가에 직접 자신을 어필하십시오.'],
+        certainty: 'confirmed',
+      },
+    );
+  }, [addEvent, campaignOutcome, career.reputation, careerMarket, careerMarketContext, careerRole.title, game.intelNetwork, game.week]);
 
   const scheduleWorldFlashpoint = useCallback((week: number) => {
     if (week % WORLD_FLASHPOINT_INTERVAL_WEEKS !== 0 || pendingWorldFlashpointId || pendingCouncilEventId || pendingCoupIncident) return false;
@@ -2043,11 +2136,11 @@ export function App() {
   }, [activeTheater, addEvent, advanceNationWeek, battleStance, campaignPhase, career.experience, career.nationId, careerRole.tier, commanderDevelopment, completedDecisions, delegatedDepartments, developmentFocusId, divisions, doctrine, economy, economyAdvisorBonus, economyForecast.netTreasuryChange, effectiveCommanders, effectiveDivisions, enemyFaction, equipmentDevelopment, formatGameMoney, game, historyTrajectory.dominantForce, notify, orders, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, playerFaction, playerNation.id, playerNation.shortName, policyAttackBonus, policyDefenseBonus, policyProductionMultiplier, policySupplyRecovery, priorityDivisionId, procurementFocusId, production, projectionActiveResearch.length, projectionFuelDelta, projectionProductionTotal, projectionResearchGain, publicHealth, publicHealthContext, research, resolvedCouncilChoices, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisor, scienceAdvisorBonus, staffCandidates, staffWeeklyCost, supplyPolicy, territories, worldline]);
 
   useEffect(() => {
-    if (speed === 0 || pendingWorldFlashpointId || pendingCoupIncident || showBriefing || showWorldHistory || showWorldWeekly || showTutorial) return;
+    if (speed === 0 || pendingWorldFlashpointId || pendingCoupIncident || showBriefing || showCareerMarket || showWorldHistory || showWorldWeekly || showTutorial) return;
     const delay = speed === 1 ? 4200 : speed === 2 ? 2600 : 1500;
     const timer = window.setInterval(advanceWeek, delay);
     return () => window.clearInterval(timer);
-  }, [advanceWeek, pendingCoupIncident, pendingWorldFlashpointId, showBriefing, showTutorial, showWorldHistory, showWorldWeekly, speed]);
+  }, [advanceWeek, pendingCoupIncident, pendingWorldFlashpointId, showBriefing, showCareerMarket, showTutorial, showWorldHistory, showWorldWeekly, speed]);
 
   useEffect(() => {
     if (periodAdvanceRemaining <= 0 || campaignPhase !== 'nation') return;
@@ -2057,6 +2150,7 @@ export function App() {
       || pendingCouncilEventId
       || pendingAchievementId
       || showBriefing
+      || showCareerMarket
       || showWorldHistory
       || showWorldWeekly
       || showTutorial
@@ -2076,7 +2170,7 @@ export function App() {
       setPeriodAdvanceRemaining((current) => Math.max(0, current - 1));
     }, 120);
     return () => window.clearTimeout(timer);
-  }, [advanceWeek, campaignPhase, pendingAchievementId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, periodAdvanceRemaining, showActionCenter, showBriefing, showJournal, showPoliticalCrisis, showSaveCenter, showSettings, showStatusOverview, showTutorial, showWorldHistory, showWorldWeekly]);
+  }, [advanceWeek, campaignPhase, pendingAchievementId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, periodAdvanceRemaining, showActionCenter, showBriefing, showCareerMarket, showJournal, showPoliticalCrisis, showSaveCenter, showSettings, showStatusOverview, showTutorial, showWorldHistory, showWorldWeekly]);
 
   useEffect(() => {
     if (showBriefing) return;
@@ -2439,6 +2533,183 @@ export function App() {
     applyElectoralActionResult(result);
   };
 
+  const continueCareerInForeignService = (
+    offer: ForeignCareerOffer,
+    transfer: NonNullable<ReturnType<typeof respondToCareerOffer>>['transfer'],
+    gameDelta: Partial<Record<keyof GameState, number>>,
+    careerDelta: { reputation: number; councilTrust: number; legacy: number },
+  ) => {
+    if (!transfer) return;
+    const nextNation = getNation(transfer.nationId);
+    const nextRole = getRole(transfer.roleId, transfer.nationId);
+    const nextDivisions = createCampaignDivisions(nextNation);
+    const nextGame = applyGameDelta({ ...game, ...nextNation.modifiers, week: game.week }, gameDelta);
+    const nextEconomy = createEconomyState(nextNation.id);
+    const nextRelations = createDiplomaticRelations(nextNation.id);
+    const nextOperations = createCovertOperations(nextNation.defaultTheater, nextNation.id);
+    const nextPublicHealth = createPublicHealthState(createPublicHealthSeed(nextNation.id, nextRole.id));
+    const nextCandidates = [
+      ...createStaffCandidates(nextNation.id, nextRole.id),
+      ...createEmergentIntelligenceCandidates(nextNation.id, campaignYear, worldline.timeline),
+      ...createLaterEraCandidates(nextNation.id, campaignYear, getHistoricalHorizon(game.week, completedDecisions)).slice(0, 12),
+    ];
+    const commandTerritoryId = getNationCommandTerritoryId(nextNation);
+    const nextMapRegion = nextNation.operationalHeadquarters
+      ? getMapRegionForTerritory(territories, commandTerritoryId, nextNation.defaultTheater)
+      : getDefaultMapRegion(nextNation.defaultTheater);
+
+    setCareer((current) => ({
+      ...current,
+      nationId: nextNation.id,
+      roleId: nextRole.id,
+      reputation: Math.max(0, Math.min(100, current.reputation + careerDelta.reputation)),
+      councilTrust: Math.max(0, Math.min(100, 52 + careerDelta.councilTrust)),
+      experience: Math.max(12, Math.round(current.experience * 0.55)),
+      legacy: Math.max(0, current.legacy + careerDelta.legacy),
+      alternatePathId: null,
+      replacedPersonId: nextRole.historicalHolderId,
+    }));
+    setGame(nextGame);
+    setEconomy(nextEconomy);
+    setPublicHealth(nextPublicHealth);
+    setNationManagement(createNationManagementState(nextNation.id, nextGame, nextEconomy, research.filter((project) => project.complete).length, 'negotiated'));
+    setPoliticalCrisis(createPoliticalCrisisState(nextNation.id));
+    setPendingCoupIncident(null);
+    setShowPoliticalCrisis(false);
+    setDivisions(nextDivisions);
+    setProduction(createCampaignProduction(nextNation));
+    setEquipmentDevelopment(createEquipmentDevelopment(nextNation.id));
+    setStaff(createStaffRoster(nextNation.id, nextRole.id));
+    setStaffCandidates(nextCandidates);
+    setRelations(nextRelations);
+    setOperations(nextOperations);
+    setOrders([]);
+    setPendingOffensivePlan(null);
+    setPendingBattleReportId(null);
+    setPendingCouncilEventId(null);
+    setPendingWorldFlashpointId(null);
+    setPlanningMode(false);
+    setCommanderDevelopment(createCommanderDevelopment(createCareerCommanders(nextNation, nextRole)));
+    setPriorityDivisionId(nextDivisions[0]?.id ?? '');
+    setSelectedDivisionId(nextDivisions[0]?.id);
+    setSelectedTerritoryId(commandTerritoryId);
+    setActiveTheater(nextNation.defaultTheater);
+    setActiveMapRegionId(nextMapRegion.id);
+    setMapCamera(clampMapCamera(nextMapRegion.camera));
+    setSelectedFrontDetailId(null);
+    setCampaignOutcome(null);
+    setPeriodAdvanceRemaining(0);
+    setSpeed(0);
+    setSetupNationId(nextNation.id);
+    setSetupRoleId(nextRole.id);
+    setShowCareerMarket(false);
+    setPendingCareerOfferId(null);
+    setActiveTab(campaignPhase === 'nation' ? 'governance' : 'command');
+    addEvent(
+      `국제 경력 이동 — ${nextNation.shortName} ${nextRole.title}`,
+      `${offer.title}을 수락했습니다. 이전 국가에서 쌓은 평판·경력·세계선·완료 연구·선택 기록은 유지되며, 지휘부·참모·부대·재정·외교망은 새 소속에 맞게 인계됐습니다.`,
+      'neutral',
+      game.week,
+      {
+        domain: 'diplomacy',
+        decision: `${nextNation.shortName}의 ${nextRole.title} 보직을 수락해 같은 세계선에서 경력을 계속했습니다.`,
+        trigger: `${offer.sender}이(가) 보낸 ${offer.title}의 조건을 최종 수락했습니다.`,
+        factors: [`이전 소속: ${playerNation.shortName}`, `새 소속: ${nextNation.shortName}`, `새 보직: ${nextRole.title}`, `경력 신분: ${transfer.status}`],
+        effects: [
+          { label: '소속 국가', value: `${playerNation.shortName} → ${nextNation.shortName}`, tone: 'neutral' },
+          { label: '계약금', value: formatGameMoney(offer.terms.signingBonus), tone: 'positive' },
+          { label: '세계선', value: '기존 사건·선택·연구 기록 유지', tone: 'positive' },
+        ],
+        ongoing: ['전향·망명 기록은 이후 외교 제안, 방첩 위험, 결말과 역사적 평가에 계속 반영됩니다.', '새 소속의 전황·국정 자원과 조직을 인수했지만 개인 경력과 대체역사 인과관계는 초기화되지 않습니다.'],
+        nextActions: [campaignPhase === 'nation' ? '국가 운영 화면에서 새 정부의 예산·정통성·국가계획을 검토하십시오.' : '지휘 본부에서 새 부대·전선·참모와 첫 주 우선순위를 확인하십시오.'],
+        certainty: 'confirmed',
+      },
+    );
+    notify(`${nextNation.shortName} · ${nextRole.title}(으)로 국제 경력을 계속합니다.`);
+  };
+
+  const respondToForeignCareerOffer = (offerId: string, response: CareerOfferResponse) => {
+    const result = respondToCareerOffer(careerMarket, offerId, response, careerMarketContext);
+    if (!result) {
+      notify('이 대응은 현재 보직·정보력 또는 제안 상태에서 실행할 수 없습니다.');
+      return;
+    }
+    setCareerMarket(result.state);
+    if (response === 'defer') {
+      setShowCareerMarket(false);
+      setPendingCareerOfferId(null);
+      notify(result.detail);
+      return;
+    }
+    if (result.transfer) {
+      continueCareerInForeignService(result.offer, result.transfer, result.gameDelta, result.careerDelta);
+      return;
+    }
+    setGame((current) => applyGameDelta(current, result.gameDelta));
+    setCareer((current) => ({
+      ...current,
+      reputation: Math.max(0, Math.min(100, current.reputation + result.careerDelta.reputation)),
+      councilTrust: Math.max(0, Math.min(100, current.councilTrust + result.careerDelta.councilTrust)),
+      legacy: Math.max(0, current.legacy + result.careerDelta.legacy),
+    }));
+    addEvent(
+      result.title,
+      result.detail,
+      result.tone,
+      game.week,
+      {
+        domain: 'operations',
+        decision: `${result.offer.title}에 대해 ${response} 대응을 선택했습니다.`,
+        trigger: `${result.offer.sender}의 외국 제안이 사용자에게 직접 도착했습니다.`,
+        factors: [`발각 위험 ${Math.round(result.offer.exposureRisk)}`, `제안 신뢰도 ${Math.round(result.offer.credibility)}`, `경력 신분 ${result.state.affiliationStatus}`],
+        effects: Object.entries(result.gameDelta).map(([key, value]) => ({ label: key, value: `${Number(value) >= 0 ? '+' : ''}${value}`, tone: Number(value) >= 0 ? 'positive' : 'negative' })),
+        ongoing: response === 'accept'
+          ? ['비밀 협조와 이중 소속은 매주 노출 위험과 외국 신뢰를 변화시키며 이후 추가 요구를 발생시킵니다.']
+          : response === 'report' || response === 'turn'
+            ? ['상대 기관은 연락망이 노출됐다고 의심하며 다음 접근 방식과 제안 조건을 바꿉니다.']
+            : ['거절 기록은 해당 국가의 외국 신뢰와 다음 제안 가능성에 남습니다.'],
+        nextActions: ['국제 경력·비밀 접촉실의 경력 기록에서 결과와 남은 제안을 확인하십시오.'],
+        certainty: 'confirmed',
+      },
+    );
+    const nextPending = result.state.offers.find((offer) => offer.id !== offerId && ['pending', 'exploring', 'negotiating'].includes(offer.status));
+    setPendingCareerOfferId(nextPending?.id ?? null);
+    notify(result.detail);
+  };
+
+  const approachForeignCareerMarket = (nationId: NationId, kind: CareerApproachKind) => {
+    const result = initiateCareerApproach(careerMarket, nationId, kind, careerMarketContext);
+    setCareerMarket(result.state);
+    setCareer((current) => ({
+      ...current,
+      councilTrust: Math.max(0, Math.min(100, current.councilTrust + result.careerTrustDelta)),
+    }));
+    setGame((current) => applyGameDelta(current, result.gameDelta));
+    if (result.offer) {
+      setPendingCareerOfferId(result.offer.id);
+      setShowCareerMarket(true);
+      setPeriodAdvanceRemaining(0);
+      setSpeed(0);
+    }
+    addEvent(
+      result.title,
+      result.detail,
+      result.success ? 'neutral' : 'bad',
+      game.week,
+      {
+        domain: 'diplomacy',
+        decision: `${getNation(nationId).shortName}에 사용자가 먼저 ${kind} 접근을 보냈습니다.`,
+        trigger: `현재 경력 신분 ${careerMarket.affiliationStatus}, 평판 ${Math.round(career.reputation)}, 지도부 신임 ${Math.round(career.councilTrust)}.`,
+        factors: [`목표 국가: ${getNation(nationId).shortName}`, `접근 방식: ${kind}`, `현재 노출 위험 ${Math.round(result.state.exposure)}`],
+        effects: [{ label: '접촉 결과', value: result.success ? '회신·제안 도착' : '응답 없음', tone: result.success ? 'positive' : 'negative' }],
+        ongoing: ['재직 중 외부 접근은 현재 지도부 신임과 방첩 노출 기록에 남습니다.'],
+        nextActions: [result.offer ? '도착한 회신의 보직·대가·보호·요구를 비교하십시오.' : '2주 뒤 다른 방식이나 국가로 다시 접근할 수 있습니다.'],
+        certainty: 'confirmed',
+      },
+    );
+    notify(result.detail);
+  };
+
   const startCampaign = () => {
     const nation = getNation(setupNationId);
     const role = getRole(setupRoleId, setupNationId);
@@ -2540,6 +2811,9 @@ export function App() {
     setRelations(newRelations);
     setOperations(newOperations);
     setCareer(newCareer);
+    setCareerMarket(createCareerMarketState());
+    setShowCareerMarket(false);
+    setPendingCareerOfferId(null);
     const commandTerritoryId = getNationCommandTerritoryId(nation);
     const openingMapRegion = nation.operationalHeadquarters
       ? getMapRegionForTerritory(newTerritories, commandTerritoryId, nation.defaultTheater)
@@ -2728,6 +3002,14 @@ export function App() {
       setWorldHistoryState(restoredWorldHistoryState);
       setPendingAchievementId(null);
       setCareer(restoredCareer);
+      const restoredCareerMarket = normalizeCareerMarketState(data.careerMarket);
+      const restoredPendingCareerOfferId = typeof data.pendingCareerOfferId === 'string'
+        && restoredCareerMarket.offers.some((offer) => offer.id === data.pendingCareerOfferId && ['pending', 'exploring', 'negotiating'].includes(offer.status))
+        ? data.pendingCareerOfferId
+        : null;
+      setCareerMarket(restoredCareerMarket);
+      setPendingCareerOfferId(restoredPendingCareerOfferId);
+      setShowCareerMarket(false);
       setSetupNationId(restoredCareer.nationId);
       setSetupRoleId(restoredCareer.roleId);
       const restoredTheater = data.activeTheater ?? restoredNation.defaultTheater;
@@ -2808,6 +3090,9 @@ export function App() {
     setSetupNationId(DEFAULT_NATION_ID);
     setSetupRoleId(DEFAULT_ROLE_ID);
     setCareer(createCareerState(DEFAULT_NATION_ID, DEFAULT_ROLE_ID));
+    setCareerMarket(createCareerMarketState());
+    setShowCareerMarket(false);
+    setPendingCareerOfferId(null);
     setActiveTheater('europe');
     setActiveMapRegionId('europe-overview');
     setSelectedTerritoryId(getNationCommandTerritoryId(defaultNation));
@@ -4123,6 +4408,8 @@ export function App() {
         setShowAchievementGallery(false);
         setShowWorldHistory(false);
         setShowWorldWeekly(false);
+        setShowCareerMarket(false);
+        setPendingCareerOfferId(null);
         if (!pendingCoupIncident) setShowPoliticalCrisis(false);
         setPendingAchievementId(null);
         setShowJournal(false);
@@ -4137,7 +4424,7 @@ export function App() {
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName.toLowerCase();
       if (target?.isContentEditable || tag === 'input' || tag === 'select' || tag === 'textarea') return;
-      if (showBriefing || campaignOutcome || pendingWorldFlashpointId || pendingCoupIncident || pendingCouncilEventId || pendingBattleReportId || pendingOffensivePlan || pendingAchievementId || showJournal || showSettings || showActionCenter || showStatusOverview || showResetConfirmation || showCommandPalette || showFieldManual || showSaveCenter || showAchievementGallery || showWorldHistory || showWorldWeekly || showTutorial || showPoliticalCrisis || event.repeat) return;
+      if (showBriefing || campaignOutcome || pendingWorldFlashpointId || pendingCoupIncident || pendingCouncilEventId || pendingBattleReportId || pendingOffensivePlan || pendingAchievementId || showJournal || showSettings || showActionCenter || showStatusOverview || showResetConfirmation || showCommandPalette || showFieldManual || showSaveCenter || showAchievementGallery || showWorldHistory || showWorldWeekly || showCareerMarket || showTutorial || showPoliticalCrisis || event.repeat) return;
       if (activeTab === 'map' && (event.key === '+' || event.key === '=')) {
         event.preventDefault();
         zoomMap(0.2);
@@ -4183,7 +4470,7 @@ export function App() {
     };
     window.addEventListener('keydown', handleShortcut);
     return () => window.removeEventListener('keydown', handleShortcut);
-  }, [activeTab, advanceWeek, campaignOutcome, continueWeeklyFlow, pendingAchievementId, pendingBattleReportId, pendingCouncilEventId, pendingCoupIncident, pendingOffensivePlan, pendingWorldFlashpointId, resetMapCamera, showActionCenter, showAchievementGallery, showBriefing, showCommandPalette, showFieldManual, showJournal, showPoliticalCrisis, showResetConfirmation, showSaveCenter, showSettings, showStatusOverview, showTutorial, showWorldHistory, showWorldWeekly, toggleMapFocusMode, zoomMap]);
+  }, [activeTab, advanceWeek, campaignOutcome, continueWeeklyFlow, pendingAchievementId, pendingBattleReportId, pendingCouncilEventId, pendingCoupIncident, pendingOffensivePlan, pendingWorldFlashpointId, resetMapCamera, showActionCenter, showAchievementGallery, showBriefing, showCareerMarket, showCommandPalette, showFieldManual, showJournal, showPoliticalCrisis, showResetConfirmation, showSaveCenter, showSettings, showStatusOverview, showTutorial, showWorldHistory, showWorldWeekly, toggleMapFocusMode, zoomMap]);
 
   const changePublicHealthPolicy = (policyId: PublicHealthPolicyId) => {
     setPublicHealth((current) => ({ ...current, policyId }));
@@ -4893,6 +5180,8 @@ export function App() {
                 role={displayedCareerRole}
                 campaignPhase={campaignPhase}
                 careerReputation={career.reputation}
+                careerOfferCount={pendingCareerOfferCount}
+                careerStatusLabel={careerAffiliationLabels[careerMarket.affiliationStatus]}
                 staff={staff}
                 candidates={staffCandidates}
                 divisions={divisions}
@@ -4919,6 +5208,12 @@ export function App() {
                 onApproachCandidate={approachCandidate}
                 onRecruitCandidate={recruitCandidate}
                 onRenewStaff={renewStaffContract}
+                onOpenCareerMarket={() => {
+                  setPendingCareerOfferId(careerMarket.offers.find((offer) => ['pending', 'exploring', 'negotiating'].includes(offer.status))?.id ?? null);
+                  setShowCareerMarket(true);
+                  setPeriodAdvanceRemaining(0);
+                  setSpeed(0);
+                }}
               />
               </Suspense>
             )}
@@ -5105,8 +5400,31 @@ export function App() {
           onJournal={openWarJournal}
           onWorldHistory={openWorldHistory}
           onContinueNation={() => transitionToNationManagement('victory')}
+          onCareerMarket={() => {
+            setPendingCareerOfferId(careerMarket.offers.find((offer) => ['pending', 'exploring', 'negotiating'].includes(offer.status))?.id ?? null);
+            setShowCareerMarket(true);
+          }}
           onRestart={resetCampaign}
         />
+      )}
+      {showCareerMarket && !showBriefing && (
+        <Suspense fallback={<DeferredSurface label="국제 경력·비밀 접촉실 준비 중" overlay />}>
+          <CareerMarketCenter
+            state={careerMarket}
+            currentNationId={playerNation.id}
+            role={displayedCareerRole}
+            week={game.week}
+            formatMoney={formatGameMoney}
+            canTurnApproach={careerRole.branch === 'intelligence' || game.intelNetwork >= 68}
+            initialOfferId={pendingCareerOfferId}
+            onRespond={respondToForeignCareerOffer}
+            onApproach={approachForeignCareerMarket}
+            onClose={() => {
+              setShowCareerMarket(false);
+              setPendingCareerOfferId(null);
+            }}
+          />
+        </Suspense>
       )}
       {(pendingCoupIncident || showPoliticalCrisis) && !showBriefing && (
         <PoliticalCrisisModal
@@ -6093,7 +6411,7 @@ function IntelligencePanel({ game, operations, setOperations, setGame, notify, a
   );
 }
 
-function CampaignOutcomeModal({ outcome, game, territories, nation, playerFaction, ending, endingCount, onJournal, onWorldHistory, onContinueNation, onRestart }: {
+function CampaignOutcomeModal({ outcome, game, territories, nation, playerFaction, ending, endingCount, onJournal, onWorldHistory, onContinueNation, onCareerMarket, onRestart }: {
   outcome: Exclude<CampaignOutcome, null>;
   game: GameState;
   territories: Territory[];
@@ -6104,6 +6422,7 @@ function CampaignOutcomeModal({ outcome, game, territories, nation, playerFactio
   onJournal: () => void;
   onWorldHistory: () => void;
   onContinueNation: () => void;
+  onCareerMarket: () => void;
   onRestart: () => void;
 }) {
   const controlledTerritories = territories.filter((territory) => territory.controller === playerFaction).length;
@@ -6114,7 +6433,7 @@ function CampaignOutcomeModal({ outcome, game, territories, nation, playerFactio
         <div className="outcome-seal">{isVictory ? <Star size={34} /> : <ShieldAlert size={34} />}</div>
         <span className="eyebrow">{nation.code} NATIONAL COMMAND · FINAL COMMUNIQUÉ</span>
         <h1 id="campaign-outcome-title">{isVictory ? ending.title : `당신이 떠난 뒤 · ${ending.title}`}</h1>
-        <p>{isVictory ? '원래 역사에는 없던 세력 균형이 탄생했습니다. 이제 당신이 선택한 국가 진로가 전후 세계의 규칙이 됩니다.' : '전쟁 수행 능력과 지도부 신임이 임계점 아래로 떨어졌습니다. 다음 커리어에서는 다른 보직과 국가 진로를 선택할 수 있습니다.'}</p>
+        <p>{isVictory ? '원래 역사에는 없던 세력 균형이 탄생했습니다. 이제 당신이 선택한 국가 진로가 전후 세계의 규칙이 됩니다.' : '전쟁 수행 능력과 지도부 신임이 임계점 아래로 떨어져 해임됐습니다. 그러나 같은 세계선에서 다른 국가의 보직·망명정부·정보기관으로 경력을 이어갈 수 있습니다.'}</p>
         <div className="outcome-ending">
           <span>{endingCount}개 사료 기반 결말 중 도달 · 적합도 {ending.fitScore}</span>
           <strong>{ending.orderName} · {ending.settlementName} · {ending.horizonName}</strong>
@@ -6138,7 +6457,8 @@ function CampaignOutcomeModal({ outcome, game, territories, nation, playerFactio
           <button onClick={onJournal}><BookOpen size={15} /> 진행 결과 분석</button>
           <button onClick={onWorldHistory}><Landmark size={15} /> 전후 세계선 설계</button>
           {isVictory && <button className="primary continue-nation" onClick={onContinueNation}><Landmark size={15} /> 이 세계선에서 국가 운영 계속</button>}
-          <button className={isVictory ? '' : 'primary'} onClick={onRestart}><RotateCcw size={15} /> 새 캠페인</button>
+          {!isVictory && <button className="primary continue-nation" onClick={onCareerMarket}><BriefcaseBusiness size={15} /> 국제 경력 시장에서 계속</button>}
+          <button onClick={onRestart}><RotateCcw size={15} /> 새 캠페인</button>
         </div>
       </section>
     </div>
