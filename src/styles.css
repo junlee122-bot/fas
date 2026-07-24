@@ -9012,6 +9012,10 @@ button:focus-visible,
 .clandestine-identity strong, .clandestine-identity small { display: block; }
 .clandestine-identity strong { margin: 2px 0; color: #e6d5a4; font-size: .9rem; }
 .clandestine-identity small { color: var(--text-muted); font-size: .66rem; line-height: 1.45; }
+.clandestine-identity > em {
+  display: inline-flex; margin-top: 5px; padding: 3px 6px; color: #c6a75b; font-size: .54rem; font-style: normal;
+  border: 1px solid rgba(198, 167, 91, .22); background: rgba(198, 167, 91, .06);
+}
 .clandestine-allegiance { display: flex; gap: 9px; align-items: center; justify-content: center; }
 .clandestine-allegiance .nation-flag { width: 28px; }
 .clandestine-allegiance > span { min-width: 66px; }
@@ -9114,6 +9118,19 @@ button:focus-visible,
 .clandestine-incident-actions strong, .clandestine-incident-actions small { display: block; }
 .clandestine-incident-actions strong { font-size: .64rem; }
 .clandestine-incident-actions small { margin-top: 3px; color: #b89591; font-size: .54rem; line-height: 1.35; }
+.clandestine-incident-actions button > em {
+  display: block; margin-top: 6px; color: #ddb1a9; font-size: .52rem; font-style: normal; line-height: 1.35;
+}
+.clandestine-action-forecast {
+  display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; font-style: normal;
+}
+.clandestine-action-forecast b {
+  padding: 2px 4px; color: #d6c389; font-size: .49rem; font-weight: 650;
+  border: 1px solid rgba(192, 164, 91, .2); background: rgba(192, 164, 91, .07);
+}
+.clandestine-incident-actions .clandestine-action-forecast b {
+  color: #dcaaa3; border-color: rgba(202, 111, 101, .22); background: rgba(173, 76, 67, .09);
+}
 .clandestine-mission-workspace { min-height: 0; display: grid; grid-template-columns: 275px minmax(0, 1fr); }
 .clandestine-mission-list { min-height: 0; overflow-y: auto; padding: 10px; border-right: 1px solid rgba(150, 168, 159, .14); background: rgba(0, 0, 0, .16); }
 .clandestine-mission-list > button {
@@ -9157,6 +9174,7 @@ button:focus-visible,
 .clandestine-response-grid strong, .clandestine-response-grid small { display: block; }
 .clandestine-response-grid strong { font-size: .63rem; }
 .clandestine-response-grid small { margin-top: 3px; color: var(--text-muted); font-size: .54rem; line-height: 1.35; }
+.clandestine-response-grid .clandestine-action-forecast { grid-column: auto; height: auto; overflow: visible; background: transparent; }
 .clandestine-in-progress, .clandestine-result {
   display: flex; gap: 9px; align-items: center; padding: 11px; color: #d4c088;
   border: 1px solid rgba(202, 164, 76, .24); background: rgba(202, 164, 76, .07);
@@ -9181,6 +9199,22 @@ button:focus-visible,
 .clandestine-record article p { margin: 0; color: var(--text-muted); font-size: .6rem; line-height: 1.42; }
 .clandestine-record article.tone-bad > i { color: #cf786e; border-color: rgba(183, 77, 68, .28); }
 .clandestine-record article.tone-good > i { color: #80b99d; border-color: rgba(91, 153, 121, .28); }
+.clandestine-chapter-ledger {
+  margin: 12px 0; padding: 12px; border: 1px solid rgba(191, 157, 78, .2);
+  background: linear-gradient(135deg, rgba(190, 151, 66, .06), rgba(7, 16, 14, .78));
+}
+.clandestine-chapter-ledger > header { display: flex; gap: 8px; align-items: center; margin-bottom: 9px; color: #c8a552; }
+.clandestine-chapter-ledger > header span { display: block; color: #a88c4a; font-size: .54rem; letter-spacing: .08em; }
+.clandestine-chapter-ledger > header h3 { margin: 2px 0 0; font-size: .76rem; }
+.clandestine-chapter-ledger > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 7px; }
+.clandestine-chapter-ledger article {
+  display: block; padding: 9px; border: 1px solid rgba(150, 168, 159, .12); background: rgba(0, 0, 0, .14);
+}
+.clandestine-chapter-ledger article.active { border-color: rgba(199, 162, 76, .42); box-shadow: inset 3px 0 #c7a24c; }
+.clandestine-chapter-ledger article time { display: block; padding: 0; color: #a88c4a; font-size: .52rem; }
+.clandestine-chapter-ledger article strong { margin: 3px 0; color: #ddcb94; font-size: .64rem; }
+.clandestine-chapter-ledger article p { min-height: 34px; color: var(--text-muted); font-size: .54rem; line-height: 1.4; }
+.clandestine-chapter-ledger article span { display: block; margin-top: 6px; color: #b9a46a; font-size: .51rem; }
 .clandestine-locked {
   min-height: 0; display: grid; place-content: center; justify-items: center; gap: 8px; overflow-y: auto; padding: 32px; text-align: center;
 }

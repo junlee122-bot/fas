@@ -26,6 +26,8 @@ import {
 import { nations } from './campaign';
 import {
   clandestineIncidentResponseLabels,
+  getClandestineIncidentForecast,
+  getClandestineMissionForecast,
   clandestinePostureLabels,
   clandestineResponseLabels,
   clandestineStatusLabels,
@@ -44,6 +46,7 @@ interface ClandestineCareerCenterProps {
   state: ClandestineCareerState | null;
   role: CareerRole;
   week: number;
+  intelNetwork: number;
   exposure: number;
   formatMoney: (value: number, options?: { signed?: boolean; exact?: boolean }) => string;
   initialMissionId?: string | null;
@@ -117,6 +120,7 @@ export function ClandestineCareerCenter({
   state,
   role,
   week,
+  intelNetwork,
   exposure,
   formatMoney,
   initialMissionId,
@@ -134,10 +138,14 @@ export function ClandestineCareerCenter({
   );
 
   useEffect(() => {
+    if (state?.incident) {
+      setView('desk');
+      return;
+    }
     if (!initialMissionId) return;
     setSelectedMissionId(initialMissionId);
     setView('missions');
-  }, [initialMissionId]);
+  }, [initialMissionId, state?.incident?.id]);
 
   if (!state) return <LockedClandestineDesk />;
 
@@ -156,6 +164,7 @@ export function ClandestineCareerCenter({
           <span className="eyebrow">TWO MASTERS · COMPARTMENTED CAREER</span>
           <strong>{state.coverName}</strong>
           <small>{role.title}의 공개 권한을 유지한 채 {handlerNation.shortName} 연락선과 연결됨</small>
+          <em>{state.careerChapters[0]?.eraLabel ?? '비밀 경력 첫 장'} · 장기 경력 장부</em>
         </div>
         <div className="clandestine-allegiance">
           <NationFlag nationId={homeNation.id} decorative />
@@ -196,12 +205,21 @@ export function ClandestineCareerCenter({
               </header>
               <ul>{state.incident.stakes.map((stake) => <li key={stake}><AlertTriangle size={13} /> {stake}</li>)}</ul>
               <div className="clandestine-incident-actions">
-                {(Object.keys(clandestineIncidentResponseLabels) as ClandestineIncidentResponse[]).map((response) => (
-                  <button key={response} onClick={() => onIncidentResponse(response)}>
-                    <strong>{clandestineIncidentResponseLabels[response].title}</strong>
-                    <small>{clandestineIncidentResponseLabels[response].detail}</small>
-                  </button>
-                ))}
+                {(Object.keys(clandestineIncidentResponseLabels) as ClandestineIncidentResponse[]).map((response) => {
+                  const forecast = getClandestineIncidentForecast(state, response);
+                  return (
+                    <button key={response} onClick={() => onIncidentResponse(response)}>
+                      <strong>{clandestineIncidentResponseLabels[response].title}</strong>
+                      <small>{clandestineIncidentResponseLabels[response].detail}</small>
+                      <span className="clandestine-action-forecast">
+                        <b>노출 {forecast.exposureDelta >= 0 ? '+' : ''}{forecast.exposureDelta}</b>
+                        <b>본국 {forecast.homeTrustDelta >= 0 ? '+' : ''}{forecast.homeTrustDelta}</b>
+                        <b>{forecast.cooldownWeeks}주 안정화</b>
+                      </span>
+                      <em>{forecast.outcome}</em>
+                    </button>
+                  );
+                })}
               </div>
             </section>
           )}
@@ -215,10 +233,16 @@ export function ClandestineCareerCenter({
                 <div><dt>누적 비밀자금</dt><dd>{formatMoney(state.totalEarnings)}</dd></div>
                 <div><dt>탈출 준비</dt><dd>{Math.round(state.extractionReadiness)}%</dd></div>
                 <div><dt>완료 임무</dt><dd>{state.completedMissions}건</dd></div>
+                <div><dt>실패·거부</dt><dd>{state.failedMissions}건</dd></div>
+                <div><dt>경력 장</dt><dd>{state.careerChapters.length}개</dd></div>
               </dl>
               <div className="clandestine-handler-note">
                 <Clock3 size={14} />
-                <span>다음 요구 예상<strong>제 {Math.max(week + 1, state.nextMissionWeek + 1)}주 전후</strong></span>
+                {week < state.incidentCooldownUntilWeek ? (
+                  <span>방첩 안정화 기간<strong>{state.incidentCooldownUntilWeek - week}주 뒤 사건 재평가</strong></span>
+                ) : (
+                  <span>다음 요구 예상<strong>제 {Math.max(week + 1, state.nextMissionWeek + 1)}주 전후</strong></span>
+                )}
               </div>
             </section>
 
@@ -277,7 +301,7 @@ export function ClandestineCareerCenter({
               <>
                 <header>
                   <div className="clandestine-file-icon"><BookOpenCheck size={22} /></div>
-                  <div><span>{domainLabels[selectedMission.domain]} · EYES ONLY · {selectedMission.codename}</span><h2>{selectedMission.title}</h2><p>{selectedMission.historicalPattern}</p></div>
+                  <div><span>{selectedMission.eraLabel} · {domainLabels[selectedMission.domain]} · EYES ONLY · {selectedMission.codename}</span><h2>{selectedMission.title}</h2><p>{selectedMission.historicalPattern}</p></div>
                   <em>{selectedMission.status === 'offered' ? `제 ${selectedMission.deadlineWeek + 1}주 마감` : selectedMission.status === 'in-progress' ? `제 ${(selectedMission.resolutionWeek ?? week) + 1}주 검증` : selectedMission.resultTitle ?? '기록 종료'}</em>
                 </header>
 
@@ -303,10 +327,20 @@ export function ClandestineCareerCenter({
                     {(Object.keys(clandestineResponseLabels) as ClandestineMissionResponse[]).map((response) => {
                       const Icon = responseIcons[response];
                       const disabled = response === 'controlled-double' && state.homeTrust < 25;
+                      const forecast = getClandestineMissionForecast(state, selectedMission, response, { intelNetwork, exposure });
                       return (
                         <button key={response} onClick={() => onMissionResponse(selectedMission.id, response)} disabled={disabled}>
                           <Icon size={17} />
-                          <span><strong>{clandestineResponseLabels[response].title}</strong><small>{disabled ? '본국 신뢰 25 이상 필요' : clandestineResponseLabels[response].detail}</small></span>
+                          <span>
+                            <strong>{clandestineResponseLabels[response].title}</strong>
+                            <small>{disabled ? '본국 신뢰 25 이상 필요' : clandestineResponseLabels[response].detail}</small>
+                            <i className="clandestine-action-forecast">
+                              <b>{forecast.successChance === null ? '즉시 종료' : `성공 ${Math.round(forecast.successChance)}%`}</b>
+                              <b>노출 {forecast.exposureDelta >= 0 ? '+' : ''}{forecast.exposureDelta}</b>
+                              <b>본국 {forecast.homeTrustDelta >= 0 ? '+' : ''}{forecast.homeTrustDelta}</b>
+                              <b>{forecast.riskLabel}</b>
+                            </i>
+                          </span>
                         </button>
                       );
                     })}
@@ -333,6 +367,19 @@ export function ClandestineCareerCenter({
             <div><span className="eyebrow">COMPARTMENTED RECORD</span><h3>핸들러·본국 방첩·결과 기록</h3></div>
             <div><span>진짜 정보</span><strong>{state.genuineLeaks}</strong><span>기만 성공</span><strong>{state.deceptionReports}</strong></div>
           </header>
+          <section className="clandestine-chapter-ledger" aria-label="시대별 비밀 경력 장부">
+            <header><History size={17} /><div><span>LONG CAREER LEDGER</span><h3>시대별 비밀 경력</h3></div></header>
+            <div>
+              {state.careerChapters.map((chapter, index) => (
+                <article className={index === 0 ? 'active' : ''} key={chapter.id}>
+                  <time>{1942 + Math.floor(chapter.startedWeek / 52)}년{chapter.endedWeek === null ? '–현재' : `–${1942 + Math.floor(chapter.endedWeek / 52)}년`}</time>
+                  <strong>{chapter.eraLabel}</strong>
+                  <p>{chapter.summary}</p>
+                  <span>성공 {chapter.missionsResolved} · 실패·거부 {chapter.missionsFailed} · 방첩 위기 {chapter.incidents}</span>
+                </article>
+              ))}
+            </div>
+          </section>
           {state.messages.map((message) => (
             <article className={`tone-${message.tone}`} key={message.id}>
               <i>{message.sender === 'handler' ? <Radio size={15} /> : message.sender === 'home-counterintelligence' ? <Landmark size={15} /> : <Gauge size={15} />}</i>

@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "lint": "tsc -b --pretty false",
     "test": "vitest run",
+    "playtest:clandestine": "node scripts/run-clandestine-career-playtest-2060.mjs",
     "data:historical-roster": "node scripts/build-wikidata-roster.mjs",
     "data:later-era-roster": "node scripts/build-later-era-roster.mjs"
   },

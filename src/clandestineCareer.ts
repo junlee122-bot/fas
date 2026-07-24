@@ -9,6 +9,14 @@ export type ClandestineStatus =
   | 'exfiltration'
   | 'closed';
 
+export type ClandestineEraId =
+  | 'world-war'
+  | 'early-cold-war'
+  | 'late-cold-war'
+  | 'globalization'
+  | 'network-age'
+  | 'future-order';
+
 export type ClandestinePosture =
   | 'protect-cover'
   | 'earn-handler-trust'
@@ -55,6 +63,8 @@ export interface ClandestineMission {
   id: string;
   title: string;
   codename: string;
+  eraId: ClandestineEraId;
+  eraLabel: string;
   domain: ClandestineMissionDomain;
   status: ClandestineMissionStatus;
   receivedWeek: number;
@@ -93,6 +103,18 @@ export interface ClandestineIncident {
   stakes: string[];
 }
 
+export interface ClandestineCareerChapter {
+  id: string;
+  eraId: ClandestineEraId;
+  eraLabel: string;
+  startedWeek: number;
+  endedWeek: number | null;
+  missionsResolved: number;
+  missionsFailed: number;
+  incidents: number;
+  summary: string;
+}
+
 export interface ClandestineCareerState {
   homeNationId: NationId;
   handlerNationId: NationId;
@@ -113,9 +135,15 @@ export interface ClandestineCareerState {
   operationalFunds: number;
   totalEarnings: number;
   completedMissions: number;
+  failedMissions: number;
   genuineLeaks: number;
   deceptionReports: number;
   controlledByHome: boolean;
+  currentEraId: ClandestineEraId;
+  lastMissionResolvedWeek: number;
+  lastIncidentWeek: number;
+  incidentCooldownUntilWeek: number;
+  careerChapters: ClandestineCareerChapter[];
   missions: ClandestineMission[];
   messages: ClandestineMessage[];
   incident: ClandestineIncident | null;
@@ -177,6 +205,25 @@ export interface ClandestineWeekResult {
   needsAttention: boolean;
 }
 
+export interface ClandestineMissionForecast {
+  successChance: number | null;
+  durationWeeks: number;
+  exposureDelta: number;
+  handlerTrustDelta: number;
+  homeTrustDelta: number;
+  stressDelta: number;
+  riskLabel: '낮음' | '보통' | '높음' | '극심';
+}
+
+export interface ClandestineIncidentForecast {
+  exposureDelta: number;
+  handlerTrustDelta: number;
+  homeTrustDelta: number;
+  stressDelta: number;
+  cooldownWeeks: number;
+  outcome: string;
+}
+
 export const clandestineStatusLabels: Record<ClandestineStatus, string> = {
   probation: '검증 단계',
   active: '비밀 협조 중',
@@ -186,6 +233,65 @@ export const clandestineStatusLabels: Record<ClandestineStatus, string> = {
   exfiltration: '탈출 준비',
   closed: '연락 종료',
 };
+
+export const clandestineEraLabels: Record<ClandestineEraId, string> = {
+  'world-war': '제2차 세계대전·전후',
+  'early-cold-war': '초기 냉전·탈식민',
+  'late-cold-war': '데탕트·후기 냉전',
+  globalization: '탈냉전·세계화',
+  'network-age': '네트워크 경쟁',
+  'future-order': '미래 질서',
+};
+
+const clandestineEras: Array<{
+  id: ClandestineEraId;
+  label: string;
+  startYear: number;
+  endYear: number;
+  summary: string;
+}> = [
+  { id: 'world-war', label: clandestineEraLabels['world-war'], startYear: 1942, endYear: 1949, summary: '전선 기만, 점령지 연락망, 전후 권력 이전이 핵심이 되는 장입니다.' },
+  { id: 'early-cold-war', label: clandestineEraLabels['early-cold-war'], startYear: 1950, endYear: 1969, summary: '핵 억지, 동맹 재편, 탈식민과 신생국 건설이 비밀 경력을 재정의합니다.' },
+  { id: 'late-cold-war', label: clandestineEraLabels['late-cold-war'], startYear: 1970, endYear: 1989, summary: '데탕트와 대리전, 에너지 충격, 체제 내부 균열이 동시에 작동합니다.' },
+  { id: 'globalization', label: clandestineEraLabels.globalization, startYear: 1990, endYear: 2009, summary: '금융·기술·다국적 개입과 확산 방지가 전통적 진영 구도를 대신합니다.' },
+  { id: 'network-age', label: clandestineEraLabels['network-age'], startYear: 2010, endYear: 2029, summary: '네트워크 여론, 감염병, 공급망과 데이터 통치가 국가 안보와 결합합니다.' },
+  { id: 'future-order', label: clandestineEraLabels['future-order'], startYear: 2030, endYear: 2060, summary: '기후·궤도·자율체계·신흥 질서를 둘러싼 접근권과 책임이 핵심이 됩니다.' },
+];
+
+export function getClandestineEraForWeek(week: number) {
+  const year = 1942 + Math.floor(Math.max(0, week) / 52);
+  return clandestineEras.find((era) => year >= era.startYear && year <= era.endYear) ?? clandestineEras[clandestineEras.length - 1];
+}
+
+function createCareerChapter(week: number): ClandestineCareerChapter {
+  const era = getClandestineEraForWeek(week);
+  return {
+    id: `clandestine-chapter-${era.id}-${week}`,
+    eraId: era.id,
+    eraLabel: era.label,
+    startedWeek: week,
+    endedWeek: null,
+    missionsResolved: 0,
+    missionsFailed: 0,
+    incidents: 0,
+    summary: era.summary,
+  };
+}
+
+function updateCurrentChapter(
+  chapters: ClandestineCareerChapter[],
+  changes: Partial<Pick<ClandestineCareerChapter, 'missionsResolved' | 'missionsFailed' | 'incidents'>>,
+) {
+  if (chapters.length === 0) return chapters;
+  return chapters.map((chapter, index) => index === 0
+    ? {
+        ...chapter,
+        missionsResolved: chapter.missionsResolved + (changes.missionsResolved ?? 0),
+        missionsFailed: chapter.missionsFailed + (changes.missionsFailed ?? 0),
+        incidents: chapter.incidents + (changes.incidents ?? 0),
+      }
+    : chapter);
+}
 
 export const clandestinePostureLabels: Record<ClandestinePosture, { title: string; detail: string }> = {
   'protect-cover': { title: '신분 보전 우선', detail: '요구를 늦추고 접근 범위를 줄여 장기 생존을 우선합니다.' },
@@ -233,6 +339,8 @@ const missionTemplates: Array<{
   handlerRationale: string;
   historicalPattern: string;
   branch?: CareerBranch;
+  fromYear?: number;
+  toYear?: number;
   danger: number;
   value: number;
   difficulty: number;
@@ -316,6 +424,240 @@ const missionTemplates: Array<{
     value: 92,
     difficulty: 82,
   },
+  {
+    domain: 'technology',
+    title: '전략 연구 우선순위 확인',
+    codename: '원자 지평선',
+    objective: '전시 과학조직이 장거리 타격·원자 연구·방공 가운데 어디에 자원을 집중하는지 평가합니다.',
+    handlerRationale: '완성 설계가 아니라 정책 우선순위와 조직의 확신을 확인하려 합니다.',
+    historicalPattern: '전시 전략 연구와 맨해튼 계획을 둘러싼 과학·정책 정보 경쟁',
+    fromYear: 1942,
+    toYear: 1949,
+    danger: 84,
+    value: 92,
+    difficulty: 76,
+  },
+  {
+    domain: 'logistics',
+    title: '점령지·해방구 행정 전환 평가',
+    codename: '조용한 항구',
+    objective: '전선 이동 뒤 항만·철도·구호 행정이 어느 정치세력에 넘어갈지 전망합니다.',
+    handlerRationale: '전투보다 전후 통치와 보급권을 선점하려는 요구입니다.',
+    historicalPattern: '해방·점령 행정과 전후 구호·수송망을 둘러싼 연합국 내부 경쟁',
+    fromYear: 1942,
+    toYear: 1949,
+    danger: 66,
+    value: 78,
+    difficulty: 58,
+  },
+  {
+    domain: 'politics',
+    title: '전후 정통성 승계 보고',
+    codename: '새 인장',
+    objective: '종전 또는 독립 뒤 어떤 정부·정당·저항조직이 행정권을 이어받을지 평가합니다.',
+    handlerRationale: '상대는 미래 정부와의 접촉 우선순위를 정하려 합니다.',
+    historicalPattern: '전후 정부 수립, 망명정부 귀환과 식민지 독립운동의 정통성 경쟁',
+    fromYear: 1942,
+    toYear: 1949,
+    danger: 72,
+    value: 85,
+    difficulty: 64,
+  },
+  {
+    domain: 'technology',
+    title: '핵 억지 태세의 신뢰도 검증',
+    codename: '갈라진 원자',
+    objective: '보유량이 아니라 지도부가 핵전력과 재래식 전력의 역할을 어떻게 구분하는지 평가합니다.',
+    handlerRationale: '위기에서 실제로 작동할 의사결정 구조와 동맹의 신뢰를 측정하려 합니다.',
+    historicalPattern: '초기 냉전의 핵 억지, 군비경쟁과 동맹 내 핵정책 논쟁',
+    fromYear: 1950,
+    toYear: 1969,
+    danger: 88,
+    value: 94,
+    difficulty: 82,
+  },
+  {
+    domain: 'politics',
+    title: '탈식민 권력 이전 평가',
+    codename: '새 깃발',
+    objective: '독립 협상·민족운동·구 식민 행정 가운데 실제 행정력을 장악할 세력을 평가합니다.',
+    handlerRationale: '새 국가에서 장기 협력 상대와 불안정 요인을 동시에 찾으려 합니다.',
+    historicalPattern: '아시아·아프리카 탈식민, 독립전쟁과 신생국 제도 형성',
+    fromYear: 1950,
+    toYear: 1969,
+    danger: 70,
+    value: 86,
+    difficulty: 68,
+  },
+  {
+    domain: 'military',
+    title: '동맹 방위 공약의 실제 한계 평가',
+    codename: '철의 초승달',
+    objective: '공개 조약과 실제 파병·기지·지휘권 제공 의사 사이의 차이를 평가합니다.',
+    handlerRationale: '동맹의 문구보다 위기 때 누가 어떤 부담을 감수하는지 알고 싶어 합니다.',
+    historicalPattern: '냉전기 집단방위조약, 해외기지와 진영 내 주도권 경쟁',
+    fromYear: 1950,
+    toYear: 1969,
+    danger: 76,
+    value: 88,
+    difficulty: 72,
+  },
+  {
+    domain: 'diplomacy',
+    title: '위기관리 연락선의 신뢰도 평가',
+    codename: '붉은 전화',
+    objective: '공식·비공식 위기관리 채널 가운데 실제 지도부 결정을 바꿀 수 있는 경로를 평가합니다.',
+    handlerRationale: '오판을 줄이는 동시에 협상에서 상대의 시간 압박을 계산하려 합니다.',
+    historicalPattern: '데탕트, 정상외교와 핵위기 이후 위기관리 제도의 확장',
+    fromYear: 1970,
+    toYear: 1989,
+    danger: 68,
+    value: 84,
+    difficulty: 66,
+  },
+  {
+    domain: 'logistics',
+    title: '에너지 충격 대응 우선순위 요구',
+    codename: '검은 조류',
+    objective: '수입선·비축·산업 배분 가운데 정부가 먼저 보호할 축을 평가합니다.',
+    handlerRationale: '에너지 가격과 해상로 변화가 외교·군사 선택에 미칠 영향을 계산하려 합니다.',
+    historicalPattern: '1970년대 석유 충격과 에너지 안보·해상 수송 경쟁',
+    fromYear: 1970,
+    toYear: 1989,
+    danger: 62,
+    value: 80,
+    difficulty: 60,
+  },
+  {
+    domain: 'personnel',
+    title: '대리전 연합의 내부 균열 평가',
+    codename: '제3의 회의실',
+    objective: '현지 정부·군부·시민세력·외부 후원자 사이에서 실제로 결정을 통제하는 집단을 평가합니다.',
+    handlerRationale: '공개 지휘체계보다 지원 중단이나 정권교체에 흔들릴 연결고리를 찾으려 합니다.',
+    historicalPattern: '냉전 후기 대리전, 군사원조와 국내 정치세력의 복합 관계',
+    fromYear: 1970,
+    toYear: 1989,
+    danger: 78,
+    value: 86,
+    difficulty: 72,
+  },
+  {
+    domain: 'politics',
+    title: '금융 제재의 실제 취약점 평가',
+    codename: '열린 장부',
+    objective: '기업·은행·정부 사이에서 제재와 자본 이동에 가장 민감한 정책 지점을 평가합니다.',
+    handlerRationale: '개별 거래가 아니라 국가가 감수할 수 있는 경제적 비용의 한계를 알고 싶어 합니다.',
+    historicalPattern: '탈냉전기 금융 세계화, 경제제재와 국가·기업 관계',
+    fromYear: 1990,
+    toYear: 2009,
+    danger: 64,
+    value: 82,
+    difficulty: 66,
+  },
+  {
+    domain: 'technology',
+    title: '첨단 제조 공급망 의존도 평가',
+    codename: '유리 주조소',
+    objective: '전자·통신·정밀제조에서 대체하기 어려운 산업 역량과 정책 우선순위를 평가합니다.',
+    handlerRationale: '설계도보다 장기 생산 능력과 국제 협력의 병목을 확인하려 합니다.',
+    historicalPattern: '반도체·통신·이중용도 기술 공급망과 산업정책 경쟁',
+    fromYear: 1990,
+    toYear: 2009,
+    danger: 70,
+    value: 90,
+    difficulty: 74,
+  },
+  {
+    domain: 'military',
+    title: '다국적 개입의 정치적 한계 평가',
+    codename: '푸른 투구',
+    objective: '평화유지·인도지원·지역개입에서 국내 정치와 동맹이 감수할 수 있는 비용을 평가합니다.',
+    handlerRationale: '작전계획보다 개입을 지속하거나 철수하게 만드는 정치 조건을 알고 싶어 합니다.',
+    historicalPattern: '탈냉전기 다국적 평화유지·지역개입과 국내 정치의 상호작용',
+    fromYear: 1990,
+    toYear: 2009,
+    danger: 60,
+    value: 78,
+    difficulty: 62,
+  },
+  {
+    domain: 'politics',
+    title: '네트워크 여론 위기 평가',
+    codename: '메아리 방',
+    objective: '정보 공개·언론 대응·플랫폼 정책 가운데 지도부가 가장 두려워하는 실패를 평가합니다.',
+    handlerRationale: '특정 조작법이 아니라 정책결정자가 어떤 사회적 반응에 민감한지 알고 싶어 합니다.',
+    historicalPattern: '네트워크 매체 확산, 허위정보 대응과 민주적 통치의 긴장',
+    fromYear: 2010,
+    toYear: 2029,
+    danger: 58,
+    value: 80,
+    difficulty: 64,
+  },
+  {
+    domain: 'diplomacy',
+    title: '국경간 보건 대응 공조 평가',
+    codename: '하얀 회랑',
+    objective: '감염병 경보·의료물자·입국정책에서 실제 협력을 막는 정치적 병목을 평가합니다.',
+    handlerRationale: '보건 자료보다 위기 때 국제 협약이 어디서 작동하지 않는지 확인하려 합니다.',
+    historicalPattern: 'SARS·COVID-19 이후 국제보건 감시와 국가별 위기대응 차이',
+    fromYear: 2010,
+    toYear: 2029,
+    danger: 52,
+    value: 76,
+    difficulty: 58,
+  },
+  {
+    domain: 'logistics',
+    title: '핵심 부품 공급 충격 평가',
+    codename: '규소 병목',
+    objective: '핵심 부품·물류·에너지 중 국가 기능을 먼저 멈추게 할 공급 압력을 평가합니다.',
+    handlerRationale: '개별 시설이 아니라 복구 순서와 산업정책의 선택을 알고 싶어 합니다.',
+    historicalPattern: '세계적 공급망 충격, 반도체 부족과 경제안보 정책',
+    fromYear: 2010,
+    toYear: 2029,
+    danger: 62,
+    value: 86,
+    difficulty: 68,
+  },
+  {
+    domain: 'technology',
+    title: '궤도 기반 체계의 정책 의존도 평가',
+    codename: '궤도 그림자',
+    objective: '통신·관측·항법 체계가 민간경제와 국가안보에서 맡는 역할과 대체 가능성을 평가합니다.',
+    handlerRationale: '구체 체계가 아니라 국가가 우주 인프라 상실을 어떻게 우선 복구할지 알고 싶어 합니다.',
+    historicalPattern: '현대 우주 인프라 의존을 연장한 2030년 이후의 개연적 국가안보 경쟁',
+    fromYear: 2030,
+    toYear: 2060,
+    danger: 70,
+    value: 90,
+    difficulty: 76,
+  },
+  {
+    domain: 'diplomacy',
+    title: '기후·수자원 협상 한계선 평가',
+    codename: '마른 강',
+    objective: '이주·식량·수자원 충격에서 정부가 국제 협력보다 국내 안정을 우선할 경계를 평가합니다.',
+    handlerRationale: '장기 위기가 동맹과 지역질서를 어떻게 재편할지 판단하려 합니다.',
+    historicalPattern: '기후안보·재난외교·자원분쟁의 현실 추세를 확장한 미래 시나리오',
+    fromYear: 2030,
+    toYear: 2060,
+    danger: 64,
+    value: 84,
+    difficulty: 68,
+  },
+  {
+    domain: 'military',
+    title: '자율체계 통제 원칙 평가',
+    codename: '무인 경계선',
+    objective: '자동화된 방위체계에 대한 인간 승인·책임·중단 원칙의 실제 우선순위를 평가합니다.',
+    handlerRationale: '기술 구조보다 위기 때 누가 책임지고 결정을 되돌릴 수 있는지 알고 싶어 합니다.',
+    historicalPattern: 'AI·자율체계 거버넌스 논의를 바탕으로 한 2030년 이후의 제도 경쟁',
+    fromYear: 2030,
+    toYear: 2060,
+    danger: 76,
+    value: 92,
+    difficulty: 80,
+  },
 ];
 
 function clamp(value: number, minimum = 0, maximum = 100) {
@@ -349,19 +691,31 @@ function pushMessage(
 }
 
 function createMission(state: ClandestineCareerState, role: CareerRole, week: number): ClandestineMission {
-  const eligible = missionTemplates.filter((template) => !template.branch || template.branch === role.branch);
+  const era = getClandestineEraForWeek(week);
+  const year = 1942 + Math.floor(Math.max(0, week) / 52);
+  const eligible = missionTemplates.filter((template) =>
+    (!template.branch || template.branch === role.branch)
+    && (template.fromYear === undefined || year >= template.fromYear)
+    && (template.toYear === undefined || year <= template.toYear),
+  );
   const template = choose(eligible, `${state.handlerNationId}:${role.id}:${week}:${state.completedMissions}`, 2);
   const trustModifier = Math.round((state.handlerTrust - 50) * 0.12);
   const accessModifier = Math.round((state.accessLevel - 50) * 0.08);
-  const deadline = week + Math.max(2, 4 - Math.floor(state.pressure / 35));
-  const danger = clamp(template.danger + trustModifier + Math.floor(state.completedMissions / 2) * 2);
+  const careerAttempts = state.completedMissions + state.failedMissions;
+  const seniorityPressure = Math.min(14, Math.log2(careerAttempts + 1) * 2.6);
+  const masteryBonus = Math.min(15, Math.log2(state.completedMissions + 1) * 2.9);
+  const recoveryBonus = Math.min(8, state.failedMissions * 0.12);
+  const deadline = week + Math.max(3, 5 - Math.floor(state.pressure / 40));
+  const danger = clamp(template.danger + trustModifier + Math.min(12, state.completedMissions / 12), 24, 94);
   const value = clamp(template.value + accessModifier);
-  const difficulty = clamp(template.difficulty + Math.floor(state.completedMissions / 3) * 3);
+  const difficulty = clamp(template.difficulty + seniorityPressure - masteryBonus - recoveryBonus, 26, 90);
   const reward = Math.round(8 + value * 0.34 + state.handlerTrust * 0.12);
   return {
     id: `clandestine-mission-${week}-${template.domain}-${hashText(`${state.handlerAlias}:${template.codename}:${week}`).toString(36)}`,
     title: template.title,
     codename: template.codename,
+    eraId: era.id,
+    eraLabel: era.label,
     domain: template.domain,
     status: 'offered',
     receivedWeek: week,
@@ -378,6 +732,7 @@ function createMission(state: ClandestineCareerState, role: CareerRole, week: nu
     reward,
     historicalPattern: template.historicalPattern,
     previews: [
+      `${era.label} 장의 임무입니다. 시대가 바뀌면 요구 분야와 역사적 맥락도 교체됩니다.`,
       `핸들러 신뢰 ${Math.round(state.handlerTrust)}에 따라 이번 요구의 중요도는 ${value >= 75 ? '전략급' : value >= 55 ? '고위급' : '제한급'}입니다.`,
       `현재 접근권 ${Math.round(state.accessLevel)} · 요구 접근권 ${Math.round(clamp(difficulty - 8))}. 부족하면 결과의 신뢰도와 위장 강도가 낮아집니다.`,
       `요구대로 수행하면 본국 피해 ${Math.round(danger)} · 기본 위장 노출 ${Math.round(clamp(18 + difficulty * 0.38 - state.coverStrength * 0.14))}.`,
@@ -391,6 +746,7 @@ function incidentFor(
   context: ClandestineWeekContext,
 ): ClandestineIncident | null {
   if (state.incident || state.status === 'closed') return null;
+  if (context.week < state.incidentCooldownUntilWeek) return null;
   if (state.status === 'exfiltration') {
     if (state.extractionReadiness < 72) return null;
     return {
@@ -406,8 +762,9 @@ function incidentFor(
     + state.pressure * 0.22
     + state.stress * 0.18
     + (100 - state.coverStrength) * 0.28
-    + state.genuineLeaks * 4;
-  const due = combinedRisk >= 54 && hashText(`${context.week}:${state.handlerAlias}:${Math.round(combinedRisk)}`) % 100 < clamp(combinedRisk - 30, 12, 74);
+    + Math.min(18, state.genuineLeaks * 1.5);
+  const due = combinedRisk >= 72
+    && hashText(`${context.week}:${state.handlerAlias}:${Math.round(combinedRisk)}`) % 100 < clamp(combinedRisk - 64, 3, 24);
   if (!due) return null;
   const kindPool: ClandestineIncidentKind[] = context.exposure >= 82
     ? ['emergency-extraction', 'loyalty-review', 'internal-audit']
@@ -470,6 +827,7 @@ function missionGameDelta(
 
 export function createClandestineCareerState(input: ClandestineRecruitmentInput): ClandestineCareerState {
   const seed = `${input.homeNationId}:${input.handlerNationId}:${input.role.id}:${input.week}`;
+  const initialChapter = createCareerChapter(input.week);
   const initialState: ClandestineCareerState = {
     homeNationId: input.homeNationId,
     handlerNationId: input.handlerNationId,
@@ -490,9 +848,15 @@ export function createClandestineCareerState(input: ClandestineRecruitmentInput)
     operationalFunds: input.weeklyRetainer,
     totalEarnings: input.weeklyRetainer,
     completedMissions: 0,
+    failedMissions: 0,
     genuineLeaks: 0,
     deceptionReports: 0,
     controlledByHome: false,
+    currentEraId: initialChapter.eraId,
+    lastMissionResolvedWeek: input.week,
+    lastIncidentWeek: -52,
+    incidentCooldownUntilWeek: input.week + 4,
+    careerChapters: [initialChapter],
     missions: [],
     messages: [],
     incident: null,
@@ -518,6 +882,7 @@ export function normalizeClandestineCareerState(value: unknown): ClandestineCare
   if (!value || typeof value !== 'object') return null;
   const candidate = value as Partial<ClandestineCareerState>;
   if (!candidate.homeNationId || !candidate.handlerNationId || typeof candidate.recruitedWeek !== 'number') return null;
+  const fallbackChapter = createCareerChapter(candidate.recruitedWeek);
   return {
     homeNationId: candidate.homeNationId,
     handlerNationId: candidate.handlerNationId,
@@ -538,10 +903,27 @@ export function normalizeClandestineCareerState(value: unknown): ClandestineCare
     operationalFunds: Math.max(0, candidate.operationalFunds ?? 0),
     totalEarnings: Math.max(0, candidate.totalEarnings ?? 0),
     completedMissions: Math.max(0, candidate.completedMissions ?? 0),
+    failedMissions: Math.max(0, candidate.failedMissions ?? 0),
     genuineLeaks: Math.max(0, candidate.genuineLeaks ?? 0),
     deceptionReports: Math.max(0, candidate.deceptionReports ?? 0),
     controlledByHome: Boolean(candidate.controlledByHome),
-    missions: Array.isArray(candidate.missions) ? candidate.missions : [],
+    currentEraId: candidate.currentEraId ?? fallbackChapter.eraId,
+    lastMissionResolvedWeek: candidate.lastMissionResolvedWeek ?? candidate.recruitedWeek,
+    lastIncidentWeek: candidate.lastIncidentWeek ?? -52,
+    incidentCooldownUntilWeek: candidate.incidentCooldownUntilWeek ?? candidate.recruitedWeek,
+    careerChapters: Array.isArray(candidate.careerChapters) && candidate.careerChapters.length > 0
+      ? candidate.careerChapters
+      : [fallbackChapter],
+    missions: Array.isArray(candidate.missions)
+      ? candidate.missions.map((mission) => {
+          const missionEra = getClandestineEraForWeek(mission.receivedWeek);
+          return {
+            ...mission,
+            eraId: mission.eraId ?? missionEra.id,
+            eraLabel: mission.eraLabel ?? missionEra.label,
+          };
+        })
+      : [],
     messages: Array.isArray(candidate.messages) ? candidate.messages : [],
     incident: candidate.incident ?? null,
   };
@@ -589,8 +971,11 @@ export function respondToClandestineMission(
       handlerTrust: clamp(state.handlerTrust - 13),
       coverStrength: clamp(state.coverStrength + 2),
       pressure: clamp(state.pressure + 15),
-      stress: clamp(state.stress + 7),
-      nextMissionWeek: context.week + 2,
+      stress: clamp(state.stress + 4),
+      failedMissions: state.failedMissions + 1,
+      careerChapters: updateCurrentChapter(state.careerChapters, { missionsFailed: 1 }),
+      lastMissionResolvedWeek: context.week,
+      nextMissionWeek: context.week + 5,
     }, {
       week: context.week,
       sender: 'handler',
@@ -612,7 +997,7 @@ export function respondToClandestineMission(
   const controlled = response === 'controlled-double';
   const handlerTrustDelta = response === 'comply-full' ? 8 : response === 'comply-selective' ? 3 : controlled ? -1 : 0;
   const homeTrustDelta = response === 'comply-full' ? -8 : response === 'comply-selective' ? -3 : controlled ? 12 : 4;
-  const exposureDelta = response === 'comply-full' ? 9 : response === 'comply-selective' ? 5 : controlled ? 4 : 7;
+  const exposureDelta = response === 'comply-full' ? 6 : response === 'comply-selective' ? 3 : controlled ? 2 : 4;
   const activeMission: ClandestineMission = {
     ...mission,
     response,
@@ -628,7 +1013,7 @@ export function respondToClandestineMission(
     handlerTrust: clamp(state.handlerTrust + handlerTrustDelta),
     homeTrust: clamp(state.homeTrust + homeTrustDelta),
     pressure: clamp(state.pressure + (response === 'comply-full' ? -4 : 2)),
-    stress: clamp(state.stress + (controlled ? 8 : 5)),
+    stress: clamp(state.stress + (controlled ? 5 : 3)),
   }, {
     week: context.week,
     sender: controlled ? 'home-counterintelligence' : 'handler',
@@ -654,12 +1039,13 @@ export function respondToClandestineMission(
   };
 }
 
-function resolveMission(
+export function getClandestineMissionSuccessChance(
   state: ClandestineCareerState,
   mission: ClandestineMission,
-  context: ClandestineWeekContext,
-): ClandestineResolution {
-  const response = mission.response ?? 'comply-selective';
+  response: ClandestineMissionResponse,
+  context: Pick<ClandestineWeekContext, 'intelNetwork' | 'exposure'>,
+) {
+  if (response === 'refuse') return null;
   const postureBonus = state.posture === 'protect-cover' ? 8
     : state.posture === 'earn-handler-trust' ? 5
       : state.posture === 'controlled-deception' && (response === 'disinform' || response === 'controlled-double') ? 13
@@ -670,19 +1056,80 @@ function resolveMission(
     : response === 'comply-selective' ? 6
       : response === 'controlled-double' ? context.intelNetwork * 0.14
         : context.intelNetwork * 0.08;
-  const chance = clamp(
-    42
-      + accessGap * 0.38
-      + state.coverStrength * 0.2
-      + state.handlerTrust * 0.14
+  return clamp(
+    47
+      + accessGap * 0.4
+      + state.coverStrength * 0.22
+      + state.handlerTrust * 0.15
       + strategyBonus
       + postureBonus
-      - mission.difficulty * 0.34
-      - context.exposure * 0.12
-      - state.stress * 0.08,
-    8,
+      - mission.difficulty * 0.28
+      - context.exposure * 0.1
+      - state.stress * 0.06,
+    10,
     94,
   );
+}
+
+export function getClandestineMissionForecast(
+  state: ClandestineCareerState,
+  mission: ClandestineMission,
+  response: ClandestineMissionResponse,
+  context: Pick<ClandestineWeekContext, 'intelNetwork' | 'exposure'>,
+): ClandestineMissionForecast {
+  const durationWeeks = response === 'comply-full' ? 1 : response === 'refuse' ? 0 : 2;
+  const exposureDelta = response === 'comply-full' ? 6
+    : response === 'comply-selective' ? 3
+      : response === 'controlled-double' ? 2
+        : response === 'refuse' ? -2 : 4;
+  const handlerTrustDelta = response === 'comply-full' ? 8
+    : response === 'comply-selective' ? 3
+      : response === 'controlled-double' ? -1
+        : response === 'refuse' ? -13 : 0;
+  const homeTrustDelta = response === 'comply-full' ? -8
+    : response === 'comply-selective' ? -3
+      : response === 'controlled-double' ? 12
+        : response === 'refuse' ? 1 : 4;
+  const stressDelta = response === 'controlled-double' ? 5 : response === 'refuse' ? 4 : 3;
+  const projectedRisk = mission.coverRisk + context.exposure + stressDelta - state.coverStrength * 0.25;
+  return {
+    successChance: getClandestineMissionSuccessChance(state, mission, response, context),
+    durationWeeks,
+    exposureDelta,
+    handlerTrustDelta,
+    homeTrustDelta,
+    stressDelta,
+    riskLabel: projectedRisk >= 90 ? '극심' : projectedRisk >= 70 ? '높음' : projectedRisk >= 48 ? '보통' : '낮음',
+  };
+}
+
+export function getClandestineIncidentForecast(
+  state: ClandestineCareerState,
+  response: ClandestineIncidentResponse,
+): ClandestineIncidentForecast {
+  if (response === 'lay-low') {
+    return { exposureDelta: -18, handlerTrustDelta: -8, homeTrustDelta: 0, stressDelta: -18, cooldownWeeks: 39, outcome: '현 소속 유지 · 임무 일시 중지' };
+  }
+  if (response === 'cooperate-home') {
+    return { exposureDelta: -24, handlerTrustDelta: -5, homeTrustDelta: 18, stressDelta: -12, cooldownWeeks: 52, outcome: '통제 이중공작 전환 · 본국 보호관찰' };
+  }
+  if (response === 'misdirect-investigation') {
+    return { exposureDelta: -10, handlerTrustDelta: 0, homeTrustDelta: -8, stressDelta: 2, cooldownWeeks: 26, outcome: '현 신분 유지 · 정치력과 내부 신뢰 소모' };
+  }
+  if (response === 'request-extraction') {
+    const completesExtraction = state.status === 'exfiltration' && state.extractionReadiness >= 72;
+    return { exposureDelta: 8, handlerTrustDelta: 6, homeTrustDelta: -14, stressDelta: 8, cooldownWeeks: 13, outcome: completesExtraction ? '핸들러 국가로 경력 이전' : '탈출 준비 단계 진입' };
+  }
+  return { exposureDelta: -8, handlerTrustDelta: -24, homeTrustDelta: 0, stressDelta: -25, cooldownWeeks: 104, outcome: '비밀 연락 종료 · 현재 공개 경력은 계속' };
+}
+
+function resolveMission(
+  state: ClandestineCareerState,
+  mission: ClandestineMission,
+  context: ClandestineWeekContext,
+): ClandestineResolution {
+  const response = mission.response ?? 'comply-selective';
+  const chance = getClandestineMissionSuccessChance(state, mission, response, context) ?? 0;
   const roll = hashText(`${mission.id}:${context.week}:${response}:${state.posture}`) % 100;
   const success = roll < chance;
   const isDeception = response === 'disinform' || response === 'controlled-double';
@@ -712,25 +1159,30 @@ function resolveMission(
     ? response === 'comply-full' ? -6 : response === 'comply-selective' ? -2 : 3
     : -11;
   const exposureDelta = success
-    ? response === 'comply-full' ? 7 : response === 'comply-selective' ? 3 : 2
-    : 9;
+    ? response === 'comply-full' ? 4 : response === 'comply-selective' ? 2 : 1
+    : 6;
   const reward = success ? mission.reward : Math.round(mission.reward * 0.2);
   const nextState = pushMessage({
     ...state,
     status: success && state.status === 'probation' ? 'active' : state.status,
     missions: state.missions.map((entry) => entry.id === mission.id ? resolvedMission : entry),
-    handlerTrust: clamp(state.handlerTrust + handlerTrustDelta),
+    handlerTrust: clamp(state.handlerTrust + (success ? handlerTrustDelta : Math.max(-10, handlerTrustDelta))),
     homeTrust: clamp(state.homeTrust + homeTrustDelta),
     coverStrength: clamp(state.coverStrength + coverDelta),
-    pressure: clamp(state.pressure + (success ? -5 : 13)),
-    stress: clamp(state.stress + (success ? 3 : 10)),
+    pressure: clamp(state.pressure + (success ? -8 : 10)),
+    stress: clamp(state.stress + (success ? -6 : 6)),
     extractionReadiness: clamp(state.extractionReadiness + (state.posture === 'prepare-exit' ? 12 : success ? 3 : 1)),
     operationalFunds: state.operationalFunds + reward,
     totalEarnings: state.totalEarnings + reward,
     completedMissions: state.completedMissions + (success ? 1 : 0),
+    failedMissions: state.failedMissions + (success ? 0 : 1),
     genuineLeaks: state.genuineLeaks + (success && response === 'comply-full' ? 1 : 0),
     deceptionReports: state.deceptionReports + (success && isDeception ? 1 : 0),
-    nextMissionWeek: context.week + Math.max(2, 5 - Math.floor(state.handlerTrust / 35)),
+    lastMissionResolvedWeek: context.week,
+    careerChapters: updateCurrentChapter(state.careerChapters, success ? { missionsResolved: 1 } : { missionsFailed: 1 }),
+    nextMissionWeek: context.week
+      + Math.max(4, 8 - Math.floor(state.handlerTrust / 25))
+      + (state.stress >= 70 ? 4 : state.stress >= 45 ? 2 : 0),
   }, {
     week: context.week,
     sender: isDeception && state.controlledByHome ? 'home-counterintelligence' : 'handler',
@@ -773,21 +1225,26 @@ export function respondToClandestineIncident(
   let controlledByHome = state.controlledByHome;
   let posture = state.posture;
   let tone: ClandestineResolution['tone'] = 'neutral';
+  const cooldownWeeks = response === 'cooperate-home' ? 52
+    : response === 'lay-low' ? 39
+      : response === 'misdirect-investigation' ? 26
+        : response === 'request-extraction' ? 13
+          : 104;
   const completesExtraction = response === 'request-extraction'
     && state.status === 'exfiltration'
     && state.extractionReadiness >= 72;
 
   if (response === 'lay-low') {
-    exposureDelta = -12;
+    exposureDelta = -18;
     handlerTrust -= 8;
     coverStrength += 9;
     pressure += 7;
     gameDelta = { politicalPower: -2 };
   } else if (response === 'cooperate-home') {
-    exposureDelta = -18;
+    exposureDelta = -24;
     homeTrust += 18;
     handlerTrust -= 5;
-    coverStrength += 5;
+    coverStrength += 8;
     controlledByHome = true;
     posture = 'controlled-deception';
     nextStatus = 'controlled-double';
@@ -795,7 +1252,7 @@ export function respondToClandestineIncident(
     careerDelta = { reputation: -2, councilTrust: 12, legacy: 2 };
     tone = 'good';
   } else if (response === 'misdirect-investigation') {
-    exposureDelta = -5;
+    exposureDelta = -10;
     homeTrust -= 8;
     coverStrength += 2;
     pressure += 4;
@@ -829,8 +1286,15 @@ export function respondToClandestineIncident(
     homeTrust: clamp(homeTrust),
     coverStrength: clamp(coverStrength),
     pressure: clamp(pressure),
-    stress: clamp(state.stress + (response === 'lay-low' ? -6 : response === 'cut-ties' ? -10 : 5)),
+    stress: clamp(state.stress + (
+      response === 'lay-low' ? -18
+        : response === 'cooperate-home' ? -12
+          : response === 'cut-ties' ? -25
+            : response === 'misdirect-investigation' ? 2 : 8
+    )),
     extractionReadiness: clamp(extractionReadiness),
+    lastIncidentWeek: context.week,
+    incidentCooldownUntilWeek: context.week + cooldownWeeks,
     nextMissionWeek: context.week + (response === 'lay-low' ? 4 : response === 'cut-ties' ? 52 : 2),
   }, {
     week: context.week,
@@ -869,22 +1333,61 @@ export function advanceClandestineCareerWeek(
       needsAttention: false,
     };
   }
+  const era = getClandestineEraForWeek(context.week);
+  const eraChanged = era.id !== state.currentEraId;
+  const chapterState: ClandestineCareerState = eraChanged
+    ? {
+        ...state,
+        currentEraId: era.id,
+        pressure: clamp(state.pressure - 12),
+        stress: clamp(state.stress - 18),
+        coverStrength: clamp(state.coverStrength + 6),
+        incidentCooldownUntilWeek: Math.max(state.incidentCooldownUntilWeek, context.week + 8),
+        careerChapters: [
+          createCareerChapter(context.week),
+          ...state.careerChapters.map((chapter, index) => index === 0 && chapter.endedWeek === null
+            ? { ...chapter, endedWeek: context.week - 1 }
+            : chapter),
+        ].slice(0, 12),
+      }
+    : state;
+  const hasLiveMission = chapterState.missions.some((mission) => mission.status === 'in-progress');
+  const weeklyStressDelta = chapterState.incident ? 2.5
+    : hasLiveMission
+      ? chapterState.posture === 'protect-cover' ? -1
+        : chapterState.posture === 'controlled-deception' ? 0.2 : 0.8
+      : chapterState.posture === 'protect-cover' ? -2.4
+        : chapterState.posture === 'controlled-deception' ? -1.4
+          : chapterState.posture === 'prepare-exit' ? 0.6 : -0.8;
   let nextState: ClandestineCareerState = {
-    ...state,
+    ...chapterState,
     lastProcessedWeek: context.week,
-    accessLevel: clamp(state.accessLevel + (context.role.authority - state.accessLevel) * 0.2),
-    coverStrength: clamp(state.coverStrength + (state.posture === 'protect-cover' ? 1.5 : -0.2)),
-    pressure: clamp(state.pressure + (state.posture === 'earn-handler-trust' ? -1 : state.posture === 'prepare-exit' ? 2 : 0.4)),
-    stress: clamp(state.stress + (state.incident ? 4 : state.posture === 'protect-cover' ? -1 : 0.8)),
-    extractionReadiness: clamp(state.extractionReadiness + (state.posture === 'prepare-exit' ? 4 : 0.3)),
-    operationalFunds: state.operationalFunds + (state.status === 'exfiltration' ? 0 : Math.max(1, Math.round(3 + state.handlerTrust / 18))),
-    totalEarnings: state.totalEarnings + (state.status === 'exfiltration' ? 0 : Math.max(1, Math.round(3 + state.handlerTrust / 18))),
+    accessLevel: clamp(chapterState.accessLevel + (context.role.authority - chapterState.accessLevel) * 0.2),
+    coverStrength: clamp(chapterState.coverStrength + (chapterState.posture === 'protect-cover' ? 1.5 : hasLiveMission ? -0.2 : 0.4)),
+    pressure: clamp(chapterState.pressure + (
+      chapterState.posture === 'earn-handler-trust' ? -1
+        : chapterState.posture === 'prepare-exit' ? 1.2
+          : hasLiveMission ? 0.3 : -0.7
+    )),
+    stress: clamp(chapterState.stress + weeklyStressDelta),
+    extractionReadiness: clamp(chapterState.extractionReadiness + (chapterState.posture === 'prepare-exit' ? 4 : 0.3)),
+    operationalFunds: chapterState.operationalFunds + (chapterState.status === 'exfiltration' ? 0 : Math.max(1, Math.round(3 + chapterState.handlerTrust / 18))),
+    totalEarnings: chapterState.totalEarnings + (chapterState.status === 'exfiltration' ? 0 : Math.max(1, Math.round(3 + chapterState.handlerTrust / 18))),
   };
-  let exposureDelta = state.status === 'exfiltration' ? 1.5 : state.posture === 'protect-cover' ? -0.6 : 0.7;
+  let exposureDelta = chapterState.status === 'exfiltration' ? 1
+    : chapterState.posture === 'protect-cover' ? -1.2
+      : hasLiveMission ? 0.3 : -0.6;
   let gameDelta: Partial<Record<keyof GameState, number>> = {};
   let careerDelta = { reputation: 0, councilTrust: 0, legacy: 0 };
   const notices: ClandestineWeekResult['notices'] = [];
   let newMissionId: string | null = null;
+  if (eraChanged) {
+    notices.push({
+      title: `비밀 경력 새 장 — ${era.label}`,
+      detail: `${era.summary} 이전 시대의 신분·신뢰·기록은 유지되며, 임무 분야와 방첩 환경은 새 시대로 전환됩니다.`,
+      tone: 'neutral',
+    });
+  }
 
   const resolvingMissions = nextState.missions.filter((mission) =>
     mission.status === 'in-progress'
@@ -919,7 +1422,10 @@ export function advanceClandestineCareerWeek(
       handlerTrust: clamp(nextState.handlerTrust - expiredOffers.length * 10),
       pressure: clamp(nextState.pressure + expiredOffers.length * 12),
       stress: clamp(nextState.stress + expiredOffers.length * 5),
-      nextMissionWeek: context.week + 2,
+      failedMissions: nextState.failedMissions + expiredOffers.length,
+      lastMissionResolvedWeek: context.week,
+      careerChapters: updateCurrentChapter(nextState.careerChapters, { missionsFailed: expiredOffers.length }),
+      nextMissionWeek: context.week + 5,
     }, {
       week: context.week,
       sender: 'handler',
@@ -970,6 +1476,8 @@ export function advanceClandestineCareerWeek(
     nextState = pushMessage({
       ...nextState,
       incident,
+      lastIncidentWeek: context.week,
+      careerChapters: updateCurrentChapter(nextState.careerChapters, { incidents: 1 }),
       status: incident.kind === 'emergency-extraction'
         ? nextState.status === 'exfiltration' ? 'exfiltration' : 'compromised'
         : 'under-investigation',

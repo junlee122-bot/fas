@@ -1015,7 +1015,7 @@ export function App() {
     activeResearch: research.filter((project) => project.active && !project.complete).length,
   }), [events, game.week, hasUnreadWorldWeekly, lastReviewedJournalWeek, orders.length, research, uxActions]);
   const savePayload = useMemo<CampaignSavePayload>(() => ({
-    version: 26,
+    version: 27,
     game,
     territories,
     divisions,
@@ -2866,7 +2866,7 @@ export function App() {
           value: `${Number(value) >= 0 ? '+' : ''}${value}`,
           tone: Number(value) >= 0 ? 'positive' : 'negative',
         })),
-        ongoing: ['선택한 진위 방식과 양측의 반응은 취소되지 않으며 이후 임무 난도·보호 약속·조사 확률에 누적됩니다.'],
+        ongoing: ['선택 기록은 이후 숙련도·양측 신뢰·보호 약속·조사 확률에 남고, 시대가 바뀌면 별도 경력 장으로 보존됩니다.'],
         nextActions: [result.needsAttention ? '비밀 접촉실에서 후속 결정을 완료하십시오.' : '다음 주 진행 뒤 임무 결과와 양국 자원 변화를 확인하십시오.'],
         certainty: 'confirmed',
       },
@@ -2890,6 +2890,21 @@ export function App() {
       return;
     }
     applyClandestineResolution(result);
+    if (result.state.status === 'closed') {
+      setCareerMarket((current) => ({
+        ...current,
+        affiliationStatus: 'serving',
+        handlerNationId: null,
+        history: [{
+          id: `clandestine-contact-closed-${game.week}`,
+          week: game.week,
+          nationId: result.state.handlerNationId,
+          title: '비밀 연락선 종료',
+          outcome: 'rejected' as const,
+          detail: `외국 연락은 종료됐지만 ${careerRole.title}의 공개 경력과 같은 세계선은 계속됩니다. 이후 다른 국가의 새 제안이나 사용자의 직접 접근으로 새 비밀 경력을 시작할 수 있습니다.`,
+        }, ...current.history].slice(0, 80),
+      }));
+    }
     setPendingClandestineMissionId(null);
     setCareerMarketInitialView('clandestine');
   };
@@ -5731,6 +5746,7 @@ export function App() {
             currentNationId={playerNation.id}
             role={displayedCareerRole}
             week={game.week}
+            intelNetwork={game.intelNetwork}
             formatMoney={formatGameMoney}
             canTurnApproach={careerRole.branch === 'intelligence' || game.intelNetwork >= 68}
             initialOfferId={pendingCareerOfferId}

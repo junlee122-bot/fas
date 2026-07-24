@@ -45,6 +45,7 @@ interface CareerMarketCenterProps {
   currentNationId: NationId;
   role: CareerRole;
   week: number;
+  intelNetwork: number;
   formatMoney: (value: number, options?: { signed?: boolean; exact?: boolean }) => string;
   canTurnApproach: boolean;
   initialOfferId?: string | null;
@@ -100,6 +101,7 @@ export function CareerMarketCenter({
   currentNationId,
   role,
   week,
+  intelNetwork,
   formatMoney,
   canTurnApproach,
   initialOfferId,
@@ -318,6 +320,7 @@ export function CareerMarketCenter({
             state={state.clandestine}
             role={role}
             week={week}
+            intelNetwork={intelNetwork}
             exposure={state.exposure}
             formatMoney={formatMoney}
             initialMissionId={initialMissionId}

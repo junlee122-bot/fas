@@ -3,6 +3,8 @@ import { getRole } from './campaign';
 import {
   advanceClandestineCareerWeek,
   createClandestineCareerState,
+  getClandestineIncidentForecast,
+  getClandestineMissionForecast,
   respondToClandestineIncident,
   respondToClandestineMission,
   setClandestinePosture,
@@ -47,6 +49,8 @@ describe('long-form clandestine career', () => {
     expect(state.coverName.length).toBeGreaterThan(0);
     expect(state.missions).toHaveLength(1);
     expect(state.missions[0]?.status).toBe('offered');
+    expect(state.missions[0]?.eraId).toBe('world-war');
+    expect(state.careerChapters[0]?.eraId).toBe('world-war');
     expect(state.messages[0]?.sender).toBe('handler');
   });
 
@@ -101,8 +105,41 @@ describe('long-form clandestine career', () => {
     expect(cooperate?.state.status).toBe('controlled-double');
     expect(cooperate?.state.controlledByHome).toBe(true);
     expect(cooperate?.exposureDelta).toBeLessThan(0);
+    expect(cooperate?.state.incidentCooldownUntilWeek).toBe(60);
+    expect(cooperate?.state.stress).toBeLessThan(initial.stress);
     const cutTies = respondToClandestineIncident(initial, 'cut-ties', context(8, 72));
     expect(cutTies?.state.status).toBe('closed');
+  });
+
+  it('shows quantified mission and incident forecasts before committing', () => {
+    const initial = createState();
+    const mission = initial.missions[0]!;
+    const missionForecast = getClandestineMissionForecast(initial, mission, 'controlled-double', context(4, 42));
+    expect(missionForecast.successChance).toBeGreaterThan(10);
+    expect(missionForecast.exposureDelta).toBe(2);
+    expect(missionForecast.homeTrustDelta).toBe(12);
+    const incidentForecast = getClandestineIncidentForecast(initial, 'cooperate-home');
+    expect(incidentForecast.exposureDelta).toBe(-24);
+    expect(incidentForecast.cooldownWeeks).toBe(52);
+  });
+
+  it('opens a new career chapter and recovers pressure when the historical era changes', () => {
+    const initial = {
+      ...createState(),
+      status: 'active' as const,
+      lastProcessedWeek: 415,
+      nextMissionWeek: 500,
+      missions: [],
+      stress: 74,
+      pressure: 68,
+      incidentCooldownUntilWeek: 0,
+    };
+    const result = advanceClandestineCareerWeek(initial, context(416, 44));
+    expect(result.state.currentEraId).toBe('early-cold-war');
+    expect(result.state.careerChapters).toHaveLength(2);
+    expect(result.state.careerChapters[1]?.endedWeek).toBe(415);
+    expect(result.state.stress).toBeLessThan(initial.stress);
+    expect(result.notices.some((notice) => notice.title.includes('새 장'))).toBe(true);
   });
 
   it('does not advance a closed clandestine career', () => {
