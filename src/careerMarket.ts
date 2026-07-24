@@ -1,4 +1,9 @@
 import { careerRoles, nations } from './campaign';
+import {
+  createClandestineCareerState,
+  normalizeClandestineCareerState,
+} from './clandestineCareer';
+import type { ClandestineCareerState } from './clandestineCareer';
 import type {
   CareerBranch,
   CareerRole,
@@ -105,6 +110,7 @@ export interface CareerMarketState {
   handlerNationId: NationId | null;
   secretsDelivered: number;
   defections: number;
+  clandestine: ClandestineCareerState | null;
 }
 
 export interface CareerMarketContext {
@@ -347,6 +353,7 @@ export function createCareerMarketState(): CareerMarketState {
     handlerNationId: null,
     secretsDelivered: 0,
     defections: 0,
+    clandestine: null,
   };
 }
 
@@ -360,6 +367,7 @@ export function normalizeCareerMarketState(value: unknown): CareerMarketState {
     offers: Array.isArray(candidate.offers) ? candidate.offers : [],
     history: Array.isArray(candidate.history) ? candidate.history : [],
     foreignTrust: candidate.foreignTrust && typeof candidate.foreignTrust === 'object' ? candidate.foreignTrust : {},
+    clandestine: normalizeClandestineCareerState(candidate.clandestine),
   };
 }
 
@@ -398,7 +406,14 @@ export function expireCareerOffers(state: CareerMarketState, week: number): Care
     unemploymentWeeks: state.affiliationStatus === 'dismissed' || state.affiliationStatus === 'unattached'
       ? state.unemploymentWeeks + 1
       : 0,
-    exposure: Math.max(0, state.exposure - 0.2),
+    exposure: clamp(
+      state.exposure
+        + (state.affiliationStatus === 'double-agent'
+          ? 0.6 + state.secretsDelivered * 0.08
+          : -0.2),
+      0,
+      100,
+    ),
   };
 }
 
@@ -570,6 +585,17 @@ export function respondToCareerOffer(
     handlerNationId: isCovertAcceptance ? offer.sourceNationId : state.handlerNationId,
     secretsDelivered: state.secretsDelivered + (isCovertAcceptance ? 1 : 0),
     defections: state.defections + (isTransfer && offer.sourceNationId !== context.career.nationId ? 1 : 0),
+    clandestine: isCovertAcceptance
+      ? createClandestineCareerState({
+          homeNationId: context.career.nationId,
+          handlerNationId: offer.sourceNationId,
+          week: context.week,
+          role: context.role,
+          handlerTrust: offer.credibility,
+          coverStrength: offer.secrecy,
+          weeklyRetainer: offer.terms.weeklyRetainer,
+        })
+      : state.clandestine,
     foreignTrust: {
       ...state.foreignTrust,
       [offer.sourceNationId]: clamp((state.foreignTrust[offer.sourceNationId] ?? 35) + (
@@ -580,7 +606,7 @@ export function respondToCareerOffer(
   const targetNation = nations.find((nation) => nation.id === offer.sourceNationId) ?? nations[0];
   return {
     state: isTransfer
-      ? { ...nextState, affiliationStatus: offer.kind === 'asylum-and-post' ? 'exile' : offer.sourceNationId === context.career.nationId ? 'serving' : 'defector', handlerNationId: null }
+      ? { ...nextState, affiliationStatus: offer.kind === 'asylum-and-post' ? 'exile' : offer.sourceNationId === context.career.nationId ? 'serving' : 'defector', handlerNationId: null, clandestine: null }
       : nextState,
     offer: resolvedOffer,
     transfer: isTransfer ? {

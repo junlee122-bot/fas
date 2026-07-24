@@ -16,6 +16,7 @@ import {
   Crosshair,
   Eye,
   Factory,
+  Fingerprint,
   FlaskConical,
   Fuel,
   Handshake,
@@ -274,10 +275,23 @@ import {
 } from './careerMarket';
 import type {
   CareerApproachKind,
+  CareerMarketState,
   CareerMarketContext,
   CareerOfferResponse,
   ForeignCareerOffer,
 } from './careerMarket';
+import {
+  advanceClandestineCareerWeek,
+  respondToClandestineIncident,
+  respondToClandestineMission,
+  setClandestinePosture,
+} from './clandestineCareer';
+import type {
+  ClandestineIncidentResponse,
+  ClandestineMissionResponse,
+  ClandestinePosture,
+} from './clandestineCareer';
+import type { CareerMarketView } from './CareerMarketCenter';
 
 const loadOrganizationPanel = () => import('./OrganizationPanel');
 const loadCareerMarketCenter = () => import('./CareerMarketCenter');
@@ -558,6 +572,8 @@ export function App() {
   const [careerMarket, setCareerMarket] = useState(() => createCareerMarketState());
   const [showCareerMarket, setShowCareerMarket] = useState(false);
   const [pendingCareerOfferId, setPendingCareerOfferId] = useState<string | null>(null);
+  const [pendingClandestineMissionId, setPendingClandestineMissionId] = useState<string | null>(null);
+  const [careerMarketInitialView, setCareerMarketInitialView] = useState<CareerMarketView | undefined>(undefined);
   const [activeTheater, setActiveTheater] = useState<TheaterId>('europe');
   const [activeMapRegionId, setActiveMapRegionId] = useState('europe-overview');
   const [staff, setStaff] = useState<StaffMember[]>(() => createStaffRoster(DEFAULT_NATION_ID, DEFAULT_ROLE_ID));
@@ -604,7 +620,11 @@ export function App() {
     campaignPhase,
     relationByNation: Object.fromEntries(relations.map((relation) => [relation.id, relation.value])) as Partial<Record<NationId, number>>,
   }), [campaignPhase, career, careerRole, game, relations]);
-  const pendingCareerOfferCount = careerMarket.offers.filter((offer) => ['pending', 'exploring', 'negotiating'].includes(offer.status)).length;
+  const pendingClandestineCount = (careerMarket.clandestine?.missions.filter((mission) => mission.status === 'offered').length ?? 0)
+    + (careerMarket.clandestine?.incident ? 1 : 0);
+  const hasClandestineIncident = Boolean(careerMarket.clandestine?.incident);
+  const pendingCareerOfferCount = careerMarket.offers.filter((offer) => ['pending', 'exploring', 'negotiating'].includes(offer.status)).length
+    + pendingClandestineCount;
   const playerFaction = playerNation.alignment;
   const enemyFaction: Exclude<Faction, 'neutral'> = playerFaction === 'allies' ? 'axis' : 'allies';
   const careerCommanders = useMemo(() => createCareerCommanders(playerNation, careerRole), [careerRole, playerNation]);
@@ -995,7 +1015,7 @@ export function App() {
     activeResearch: research.filter((project) => project.active && !project.complete).length,
   }), [events, game.week, hasUnreadWorldWeekly, lastReviewedJournalWeek, orders.length, research, uxActions]);
   const savePayload = useMemo<CampaignSavePayload>(() => ({
-    version: 25,
+    version: 26,
     game,
     territories,
     divisions,
@@ -1015,6 +1035,7 @@ export function App() {
     career,
     careerMarket,
     pendingCareerOfferId,
+    pendingClandestineMissionId,
     activeTheater,
     selectedTerritoryId,
     selectedDivisionId,
@@ -1046,7 +1067,7 @@ export function App() {
     nationManagement,
     politicalCrisis,
     pendingCoupIncident,
-  }), [achievementUnlocks, activeTheater, battleReports, battleStance, campaignOutcome, campaignPhase, career, careerMarket, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, economy, equipmentDevelopment, events, game, lastReadWorldWeeklyId, lastReviewedJournalWeek, nationManagement, objectiveProgress, onboardingMilestones, operations, orders, pendingBattleReportId, pendingCareerOfferId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, politicalCrisis, priorityDivisionId, procurementFocusId, production, publicHealth, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized, uxActionLifecycle, visitedOnboardingTabs, worldHistoryState, worldWeeklyIssues]);
+  }), [achievementUnlocks, activeTheater, battleReports, battleStance, campaignOutcome, campaignPhase, career, careerMarket, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, economy, equipmentDevelopment, events, game, lastReadWorldWeeklyId, lastReviewedJournalWeek, nationManagement, objectiveProgress, onboardingMilestones, operations, orders, pendingBattleReportId, pendingCareerOfferId, pendingClandestineMissionId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, politicalCrisis, priorityDivisionId, procurementFocusId, production, publicHealth, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized, uxActionLifecycle, visitedOnboardingTabs, worldHistoryState, worldWeeklyIssues]);
   const campaignDate = getCampaignDate(game.week);
   const isKoreaWarCampaign = playerNation.id === 'korea' && campaignPhase === 'war';
   const statusResources: StatusResource[] = [
@@ -1286,11 +1307,87 @@ export function App() {
 
   useEffect(() => {
     if (showBriefing || showTutorial || campaignOutcome || pendingWorldFlashpointId || pendingCoupIncident || pendingCouncilEventId || pendingAchievementId) return;
-    const result = evaluateForeignCareerOffers(careerMarket, careerMarketContext);
-    if (result.state !== careerMarket) setCareerMarket(result.state);
-    const firstOffer = result.newOffers[0];
+    const offerResult = evaluateForeignCareerOffers(careerMarket, careerMarketContext);
+    const clandestineResult = offerResult.state.clandestine
+      ? advanceClandestineCareerWeek(offerResult.state.clandestine, {
+          week: game.week,
+          role: careerRole,
+          intelNetwork: game.intelNetwork,
+          stability: game.stability,
+          warSupport: game.warSupport,
+          campaignPhase,
+          exposure: offerResult.state.exposure,
+        })
+      : null;
+    const clandestineChanged = Boolean(
+      clandestineResult
+      && (
+        clandestineResult.state !== offerResult.state.clandestine
+        || clandestineResult.exposureDelta !== 0
+      ),
+    );
+    const nextCareerMarket = clandestineResult && clandestineChanged
+      ? {
+          ...offerResult.state,
+          clandestine: clandestineResult.state,
+          exposure: Math.max(0, Math.min(100, offerResult.state.exposure + clandestineResult.exposureDelta)),
+        }
+      : offerResult.state;
+    if (nextCareerMarket !== careerMarket) setCareerMarket(nextCareerMarket);
+
+    if (clandestineResult) {
+      if (Object.keys(clandestineResult.gameDelta).length > 0) {
+        setGame((current) => applyGameDelta(current, clandestineResult.gameDelta));
+      }
+      if (Object.values(clandestineResult.careerDelta).some((value) => value !== 0)) {
+        setCareer((current) => ({
+          ...current,
+          reputation: Math.max(0, Math.min(100, current.reputation + clandestineResult.careerDelta.reputation)),
+          councilTrust: Math.max(0, Math.min(100, current.councilTrust + clandestineResult.careerDelta.councilTrust)),
+          legacy: Math.max(0, current.legacy + clandestineResult.careerDelta.legacy),
+        }));
+      }
+      clandestineResult.notices.forEach((notice) => addEvent(
+        notice.title,
+        notice.detail,
+        notice.tone,
+        game.week,
+        {
+          domain: 'operations',
+          decision: '이중 소속의 장기 태세와 앞서 선택한 정보 진위 방식이 이번 주에 해결됐습니다.',
+          trigger: `비밀 소속 주간 처리 · 노출 ${Math.round(offerResult.state.exposure)} → ${Math.round(nextCareerMarket.exposure)}.`,
+          factors: [
+            `핸들러 신뢰 ${Math.round(clandestineResult.state.handlerTrust)}`,
+            `본국 신뢰 ${Math.round(clandestineResult.state.homeTrust)}`,
+            `위장 강도 ${Math.round(clandestineResult.state.coverStrength)}`,
+            `심리 압박 ${Math.round(clandestineResult.state.stress)}`,
+          ],
+          effects: Object.entries(clandestineResult.gameDelta).map(([key, value]) => ({
+            label: key,
+            value: `${Number(value) >= 0 ? '+' : ''}${value}`,
+            tone: Number(value) >= 0 ? 'positive' : 'negative',
+          })),
+          ongoing: ['비밀 신분의 양측 신뢰·위장·노출·스트레스는 다음 임무와 방첩 조사 확률에 이어집니다.'],
+          nextActions: [clandestineResult.needsAttention ? '국제 경력·비밀 접촉실에서 새 핸들러 요구 또는 방첩 위기에 대응하십시오.' : '비밀 기록에서 이번 주 결과와 다음 요구 예상 시점을 확인하십시오.'],
+          certainty: 'confirmed',
+        },
+      ));
+      if (clandestineResult.needsAttention) {
+        setPendingClandestineMissionId(clandestineResult.newMissionId);
+        setCareerMarketInitialView('clandestine');
+        setShowCareerMarket(true);
+        setPeriodAdvanceRemaining(0);
+        setSpeed(0);
+        notify(clandestineResult.incidentOpened ? '긴급 방첩 위기가 발생했습니다.' : '외국 핸들러의 새 요구가 도착했습니다.');
+        return;
+      }
+    }
+
+    const firstOffer = offerResult.newOffers[0];
     if (!firstOffer) return;
     setPendingCareerOfferId(firstOffer.id);
+    setPendingClandestineMissionId(null);
+    setCareerMarketInitialView('inbox');
     setShowCareerMarket(true);
     setPeriodAdvanceRemaining(0);
     setSpeed(0);
@@ -1311,7 +1408,7 @@ export function App() {
       },
     );
     notify(`${firstOffer.title}이 도착했습니다. 상대가 먼저 보낸 제안입니다.`);
-  }, [addEvent, campaignOutcome, career.councilTrust, career.reputation, careerMarket, careerMarketContext, careerRole.title, game.week, notify, pendingAchievementId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, showBriefing, showTutorial]);
+  }, [addEvent, campaignOutcome, campaignPhase, career.councilTrust, career.reputation, careerMarket, careerMarketContext, careerRole, game, notify, pendingAchievementId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, showBriefing, showTutorial]);
 
   useEffect(() => {
     if (campaignOutcome !== 'defeat' || careerMarket.affiliationStatus === 'dismissed') return;
@@ -1319,6 +1416,8 @@ export function App() {
     setCareerMarket(result.state);
     const firstOffer = result.newOffers[0] ?? null;
     setPendingCareerOfferId(firstOffer?.id ?? null);
+    setPendingClandestineMissionId(null);
+    setCareerMarketInitialView('inbox');
     setShowCareerMarket(true);
     setPeriodAdvanceRemaining(0);
     setSpeed(0);
@@ -1628,7 +1727,7 @@ export function App() {
   }, [addEvent, careerRole, completedDecisions, delegatedDepartments, developmentFocusId, economy, formatGameMoney, game, nationManagement, nationWeekProjection, notify, pendingCouncilEventId, playerNation.id, publicHealth, publicHealthContext, relationAverage, research, resolvedCouncilChoices, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisorBonus, staffCandidates, worldline.timeline]);
 
   const advanceWeek = useCallback(() => {
-    if (pendingWorldFlashpointId || pendingCouncilEventId || pendingCoupIncident) return;
+    if (pendingWorldFlashpointId || pendingCouncilEventId || pendingCoupIncident || hasClandestineIncident) return;
     setUXActionLifecycle((current) => markUXActionsForVerification(current, game.week));
     if (campaignPhase === 'nation') {
       advanceNationWeek();
@@ -2133,20 +2232,21 @@ export function App() {
       ],
       certainty: 'confirmed',
     });
-  }, [activeTheater, addEvent, advanceNationWeek, battleStance, campaignPhase, career.experience, career.nationId, careerRole.tier, commanderDevelopment, completedDecisions, delegatedDepartments, developmentFocusId, divisions, doctrine, economy, economyAdvisorBonus, economyForecast.netTreasuryChange, effectiveCommanders, effectiveDivisions, enemyFaction, equipmentDevelopment, formatGameMoney, game, historyTrajectory.dominantForce, notify, orders, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, playerFaction, playerNation.id, playerNation.shortName, policyAttackBonus, policyDefenseBonus, policyProductionMultiplier, policySupplyRecovery, priorityDivisionId, procurementFocusId, production, projectionActiveResearch.length, projectionFuelDelta, projectionProductionTotal, projectionResearchGain, publicHealth, publicHealthContext, research, resolvedCouncilChoices, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisor, scienceAdvisorBonus, staffCandidates, staffWeeklyCost, supplyPolicy, territories, worldline]);
+  }, [activeTheater, addEvent, advanceNationWeek, battleStance, campaignPhase, career.experience, career.nationId, careerRole.tier, commanderDevelopment, completedDecisions, delegatedDepartments, developmentFocusId, divisions, doctrine, economy, economyAdvisorBonus, economyForecast.netTreasuryChange, effectiveCommanders, effectiveDivisions, enemyFaction, equipmentDevelopment, formatGameMoney, game, hasClandestineIncident, historyTrajectory.dominantForce, notify, orders, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, playerFaction, playerNation.id, playerNation.shortName, policyAttackBonus, policyDefenseBonus, policyProductionMultiplier, policySupplyRecovery, priorityDivisionId, procurementFocusId, production, projectionActiveResearch.length, projectionFuelDelta, projectionProductionTotal, projectionResearchGain, publicHealth, publicHealthContext, research, resolvedCouncilChoices, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisor, scienceAdvisorBonus, staffCandidates, staffWeeklyCost, supplyPolicy, territories, worldline]);
 
   useEffect(() => {
-    if (speed === 0 || pendingWorldFlashpointId || pendingCoupIncident || showBriefing || showCareerMarket || showWorldHistory || showWorldWeekly || showTutorial) return;
+    if (speed === 0 || pendingWorldFlashpointId || pendingCoupIncident || hasClandestineIncident || showBriefing || showCareerMarket || showWorldHistory || showWorldWeekly || showTutorial) return;
     const delay = speed === 1 ? 4200 : speed === 2 ? 2600 : 1500;
     const timer = window.setInterval(advanceWeek, delay);
     return () => window.clearInterval(timer);
-  }, [advanceWeek, pendingCoupIncident, pendingWorldFlashpointId, showBriefing, showCareerMarket, showTutorial, showWorldHistory, showWorldWeekly, speed]);
+  }, [advanceWeek, hasClandestineIncident, pendingCoupIncident, pendingWorldFlashpointId, showBriefing, showCareerMarket, showTutorial, showWorldHistory, showWorldWeekly, speed]);
 
   useEffect(() => {
     if (periodAdvanceRemaining <= 0 || campaignPhase !== 'nation') return;
     const interrupted = Boolean(
       pendingWorldFlashpointId
       || pendingCoupIncident
+      || hasClandestineIncident
       || pendingCouncilEventId
       || pendingAchievementId
       || showBriefing
@@ -2170,7 +2270,7 @@ export function App() {
       setPeriodAdvanceRemaining((current) => Math.max(0, current - 1));
     }, 120);
     return () => window.clearTimeout(timer);
-  }, [advanceWeek, campaignPhase, pendingAchievementId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, periodAdvanceRemaining, showActionCenter, showBriefing, showCareerMarket, showJournal, showPoliticalCrisis, showSaveCenter, showSettings, showStatusOverview, showTutorial, showWorldHistory, showWorldWeekly]);
+  }, [advanceWeek, campaignPhase, hasClandestineIncident, pendingAchievementId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, periodAdvanceRemaining, showActionCenter, showBriefing, showCareerMarket, showJournal, showPoliticalCrisis, showSaveCenter, showSettings, showStatusOverview, showTutorial, showWorldHistory, showWorldWeekly]);
 
   useEffect(() => {
     if (showBriefing) return;
@@ -2604,6 +2704,8 @@ export function App() {
     setSetupRoleId(nextRole.id);
     setShowCareerMarket(false);
     setPendingCareerOfferId(null);
+    setPendingClandestineMissionId(null);
+    setCareerMarketInitialView(undefined);
     setActiveTab(campaignPhase === 'nation' ? 'governance' : 'command');
     addEvent(
       `국제 경력 이동 — ${nextNation.shortName} ${nextRole.title}`,
@@ -2635,9 +2737,16 @@ export function App() {
       return;
     }
     setCareerMarket(result.state);
+    if (response === 'accept' && result.state.clandestine) {
+      setPendingCareerOfferId(null);
+      setPendingClandestineMissionId(result.state.clandestine.missions.find((mission) => mission.status === 'offered')?.id ?? null);
+      setCareerMarketInitialView('clandestine');
+    }
     if (response === 'defer') {
       setShowCareerMarket(false);
       setPendingCareerOfferId(null);
+      setPendingClandestineMissionId(null);
+      setCareerMarketInitialView(undefined);
       notify(result.detail);
       return;
     }
@@ -2673,7 +2782,7 @@ export function App() {
       },
     );
     const nextPending = result.state.offers.find((offer) => offer.id !== offerId && ['pending', 'exploring', 'negotiating'].includes(offer.status));
-    setPendingCareerOfferId(nextPending?.id ?? null);
+    if (!(response === 'accept' && result.state.clandestine)) setPendingCareerOfferId(nextPending?.id ?? null);
     notify(result.detail);
   };
 
@@ -2687,6 +2796,8 @@ export function App() {
     setGame((current) => applyGameDelta(current, result.gameDelta));
     if (result.offer) {
       setPendingCareerOfferId(result.offer.id);
+      setPendingClandestineMissionId(null);
+      setCareerMarketInitialView('inbox');
       setShowCareerMarket(true);
       setPeriodAdvanceRemaining(0);
       setSpeed(0);
@@ -2708,6 +2819,163 @@ export function App() {
       },
     );
     notify(result.detail);
+  };
+
+  const createCurrentClandestineContext = () => ({
+    week: game.week,
+    role: careerRole,
+    intelNetwork: game.intelNetwork,
+    stability: game.stability,
+    warSupport: game.warSupport,
+    campaignPhase,
+    exposure: careerMarket.exposure,
+  });
+
+  const applyClandestineResolution = (
+    result: NonNullable<ReturnType<typeof respondToClandestineMission>>,
+  ) => {
+    setCareerMarket((current) => ({
+      ...current,
+      clandestine: result.state,
+      exposure: Math.max(0, Math.min(100, current.exposure + result.exposureDelta)),
+    }));
+    setGame((current) => applyGameDelta(current, result.gameDelta));
+    setCareer((current) => ({
+      ...current,
+      reputation: Math.max(0, Math.min(100, current.reputation + result.careerDelta.reputation)),
+      councilTrust: Math.max(0, Math.min(100, current.councilTrust + result.careerDelta.councilTrust)),
+      legacy: Math.max(0, current.legacy + result.careerDelta.legacy),
+    }));
+    addEvent(
+      result.title,
+      result.detail,
+      result.tone,
+      game.week,
+      {
+        domain: 'operations',
+        decision: result.title,
+        trigger: '외국 핸들러 요구 또는 방첩 위기에 사용자가 직접 대응했습니다.',
+        factors: [
+          `노출 변화 ${result.exposureDelta >= 0 ? '+' : ''}${result.exposureDelta}`,
+          `핸들러 신뢰 ${Math.round(result.state.handlerTrust)}`,
+          `본국 신뢰 ${Math.round(result.state.homeTrust)}`,
+          `위장 강도 ${Math.round(result.state.coverStrength)}`,
+        ],
+        effects: Object.entries(result.gameDelta).map(([key, value]) => ({
+          label: key,
+          value: `${Number(value) >= 0 ? '+' : ''}${value}`,
+          tone: Number(value) >= 0 ? 'positive' : 'negative',
+        })),
+        ongoing: ['선택한 진위 방식과 양측의 반응은 취소되지 않으며 이후 임무 난도·보호 약속·조사 확률에 누적됩니다.'],
+        nextActions: [result.needsAttention ? '비밀 접촉실에서 후속 결정을 완료하십시오.' : '다음 주 진행 뒤 임무 결과와 양국 자원 변화를 확인하십시오.'],
+        certainty: 'confirmed',
+      },
+    );
+    notify(result.detail);
+  };
+
+  const respondToHandlerMission = (missionId: string, response: ClandestineMissionResponse) => {
+    if (!careerMarket.clandestine) {
+      notify('활성화된 외국 핸들러가 없습니다.');
+      return;
+    }
+    const result = respondToClandestineMission(
+      careerMarket.clandestine,
+      missionId,
+      response,
+      createCurrentClandestineContext(),
+    );
+    if (!result) {
+      notify('현재는 이 임무에 대응할 수 없습니다. 방첩 위기 또는 임무 상태를 먼저 확인하십시오.');
+      return;
+    }
+    applyClandestineResolution(result);
+    setPendingClandestineMissionId(null);
+    setCareerMarketInitialView('clandestine');
+  };
+
+  const respondToSecretIdentityIncident = (response: ClandestineIncidentResponse) => {
+    if (!careerMarket.clandestine) return;
+    const result = respondToClandestineIncident(
+      careerMarket.clandestine,
+      response,
+      createCurrentClandestineContext(),
+    );
+    if (!result) {
+      notify('현재 대응할 비밀 신분 위기가 없습니다.');
+      return;
+    }
+    if (result.transferNationId) {
+      const targetRole = careerRoles.find((role) =>
+        role.nationId === result.transferNationId
+        && role.branch === careerRole.branch
+        && role.tier === careerRole.tier,
+      ) ?? careerRoles.find((role) => role.nationId === result.transferNationId && role.branch === careerRole.branch)
+        ?? getRole(`${result.transferNationId}-tier3`, result.transferNationId);
+      const handlerNation = getNation(result.transferNationId);
+      const clandestine = careerMarket.clandestine;
+      const extractionOffer: ForeignCareerOffer = {
+        id: `clandestine-extraction-${game.week}-${result.transferNationId}`,
+        sourceNationId: result.transferNationId,
+        targetRoleId: targetRole.id,
+        kind: 'asylum-and-post',
+        status: 'accepted',
+        origin: 'foreign-initiated',
+        receivedWeek: game.week,
+        deadlineWeek: game.week,
+        title: `${handlerNation.shortName} · 비밀 신분 긴급 탈출`,
+        sender: clandestine?.handlerAlias ?? '외국 정보기관 연락관',
+        coverChannel: '게임 내 추상화된 비밀 보호 회선',
+        pitch: '장기 비밀 협조의 최종 보호 조건이 발동됐습니다.',
+        demand: '현재 보직 사임과 외국 보호구역·새 보직으로의 이동',
+        motive: 'security',
+        secrecy: clandestine?.coverStrength ?? 40,
+        exposureRisk: careerMarket.exposure,
+        credibility: clandestine?.handlerTrust ?? 50,
+        acceptanceChance: 100,
+        terms: {
+          signingBonus: clandestine?.operationalFunds ?? 0,
+          weeklyRetainer: 0,
+          authority: targetRole.authority,
+          protection: clandestine?.handlerTrust ?? 50,
+          extraction: 100,
+          autonomy: targetRole.tier <= 2 ? 'independent' : targetRole.tier <= 4 ? 'operational' : 'limited',
+        },
+        consequencePreview: ['현재 국가의 보직을 떠납니다.', '기존 세계선·경력·완료 연구·선택 기록은 유지됩니다.'],
+      };
+      setCareerMarket((current) => ({
+        ...current,
+        affiliationStatus: 'defector',
+        handlerNationId: null,
+        clandestine: null,
+        defections: current.defections + 1,
+        exposure: Math.max(0, Math.min(100, current.exposure + result.exposureDelta)),
+      }));
+      continueCareerInForeignService(
+        extractionOffer,
+        { nationId: result.transferNationId, roleId: targetRole.id, status: 'defector' },
+        result.gameDelta,
+        result.careerDelta,
+      );
+      return;
+    }
+    applyClandestineResolution(result);
+    setPendingClandestineMissionId(null);
+    setCareerMarketInitialView('clandestine');
+  };
+
+  const changeClandestinePosture = (posture: ClandestinePosture) => {
+    if (!careerMarket.clandestine) return;
+    const nextState = setClandestinePosture(careerMarket.clandestine, posture);
+    if (nextState === careerMarket.clandestine) return;
+    setCareerMarket((current) => ({ ...current, clandestine: nextState }));
+    addEvent(
+      `비밀 활동 태세 변경 — ${nextState.posture}`,
+      `장기 비밀 활동의 기본 태세를 변경했습니다. 다음 주부터 위장·핸들러 압박·기만 성공·탈출 준비 계산에 반영됩니다.`,
+      'neutral',
+      game.week,
+    );
+    notify('비밀 활동 태세를 변경했습니다.');
   };
 
   const startCampaign = () => {
@@ -2814,6 +3082,8 @@ export function App() {
     setCareerMarket(createCareerMarketState());
     setShowCareerMarket(false);
     setPendingCareerOfferId(null);
+    setPendingClandestineMissionId(null);
+    setCareerMarketInitialView(undefined);
     const commandTerritoryId = getNationCommandTerritoryId(nation);
     const openingMapRegion = nation.operationalHeadquarters
       ? getMapRegionForTerritory(newTerritories, commandTerritoryId, nation.defaultTheater)
@@ -3007,8 +3277,14 @@ export function App() {
         && restoredCareerMarket.offers.some((offer) => offer.id === data.pendingCareerOfferId && ['pending', 'exploring', 'negotiating'].includes(offer.status))
         ? data.pendingCareerOfferId
         : null;
+      const restoredPendingClandestineMissionId = typeof data.pendingClandestineMissionId === 'string'
+        && restoredCareerMarket.clandestine?.missions.some((mission) => mission.id === data.pendingClandestineMissionId && mission.status === 'offered')
+        ? data.pendingClandestineMissionId
+        : null;
       setCareerMarket(restoredCareerMarket);
       setPendingCareerOfferId(restoredPendingCareerOfferId);
+      setPendingClandestineMissionId(restoredPendingClandestineMissionId);
+      setCareerMarketInitialView(restoredPendingClandestineMissionId ? 'clandestine' : restoredPendingCareerOfferId ? 'inbox' : undefined);
       setShowCareerMarket(false);
       setSetupNationId(restoredCareer.nationId);
       setSetupRoleId(restoredCareer.roleId);
@@ -3093,6 +3369,8 @@ export function App() {
     setCareerMarket(createCareerMarketState());
     setShowCareerMarket(false);
     setPendingCareerOfferId(null);
+    setPendingClandestineMissionId(null);
+    setCareerMarketInitialView(undefined);
     setActiveTheater('europe');
     setActiveMapRegionId('europe-overview');
     setSelectedTerritoryId(getNationCommandTerritoryId(defaultNation));
@@ -4356,6 +4634,13 @@ export function App() {
 
   const continueWeeklyFlow = useCallback(() => {
     setSpeed(0);
+    if (hasClandestineIncident) {
+      setPendingCareerOfferId(null);
+      setPendingClandestineMissionId(null);
+      setCareerMarketInitialView('clandestine');
+      setShowCareerMarket(true);
+      return;
+    }
     if (campaignPhase === 'nation' || globalWeeklyCycle.primaryDestination === 'advance') {
       advanceWeek();
       return;
@@ -4365,9 +4650,11 @@ export function App() {
       return;
     }
     setShowActionCenter(true);
-  }, [acknowledgeWeeklyBriefing, advanceWeek, campaignPhase, globalWeeklyCycle.primaryDestination]);
+  }, [acknowledgeWeeklyBriefing, advanceWeek, campaignPhase, globalWeeklyCycle.primaryDestination, hasClandestineIncident]);
 
-  const globalNextLabel = campaignPhase === 'nation'
+  const globalNextLabel = hasClandestineIncident
+    ? '비밀 위기'
+    : campaignPhase === 'nation'
     ? '다음 주'
     : globalWeeklyCycle.primaryDestination === 'briefing'
       ? '브리핑'
@@ -4378,7 +4665,9 @@ export function App() {
         : globalWeeklyCycle.primaryDestination === 'actions'
           ? '결재'
           : '다음 주';
-  const globalNextAriaLabel = campaignPhase === 'nation' ? '다음 주 진행' : globalWeeklyCycle.primaryLabel;
+  const globalNextAriaLabel = hasClandestineIncident
+    ? '긴급 비밀 신분 위기 대응'
+    : campaignPhase === 'nation' ? '다음 주 진행' : globalWeeklyCycle.primaryLabel;
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -4410,6 +4699,8 @@ export function App() {
         setShowWorldWeekly(false);
         setShowCareerMarket(false);
         setPendingCareerOfferId(null);
+        setPendingClandestineMissionId(null);
+        setCareerMarketInitialView(undefined);
         if (!pendingCoupIncident) setShowPoliticalCrisis(false);
         setPendingAchievementId(null);
         setShowJournal(false);
@@ -5210,6 +5501,8 @@ export function App() {
                 onRenewStaff={renewStaffContract}
                 onOpenCareerMarket={() => {
                   setPendingCareerOfferId(careerMarket.offers.find((offer) => ['pending', 'exploring', 'negotiating'].includes(offer.status))?.id ?? null);
+                  setPendingClandestineMissionId(careerMarket.clandestine?.missions.find((mission) => mission.status === 'offered')?.id ?? null);
+                  setCareerMarketInitialView(careerMarket.clandestine?.incident || careerMarket.clandestine?.missions.some((mission) => mission.status === 'offered') ? 'clandestine' : undefined);
                   setShowCareerMarket(true);
                   setPeriodAdvanceRemaining(0);
                   setSpeed(0);
@@ -5292,7 +5585,29 @@ export function App() {
               </div>
             )}
             {activeTab === 'diplomacy' && <DiplomacyPanel game={game} relations={relations} setRelations={setRelations} setGame={setGame} notify={notify} nation={playerNation} completedDecisions={completedDecisions} onDecision={enactDecision} />}
-            {activeTab === 'intelligence' && <IntelligencePanel game={game} operations={operations} setOperations={setOperations} setGame={setGame} notify={notify} addEvent={addEvent} nation={playerNation} role={careerRole} activeTheater={activeTheater} intelligenceHistory={worldline.intelligenceHistory} />}
+            {activeTab === 'intelligence' && (
+              <IntelligencePanel
+                game={game}
+                operations={operations}
+                setOperations={setOperations}
+                setGame={setGame}
+                notify={notify}
+                addEvent={addEvent}
+                nation={playerNation}
+                role={careerRole}
+                activeTheater={activeTheater}
+                intelligenceHistory={worldline.intelligenceHistory}
+                careerMarket={careerMarket}
+                onOpenClandestineDesk={() => {
+                  setPendingCareerOfferId(null);
+                  setPendingClandestineMissionId(careerMarket.clandestine?.missions.find((mission) => mission.status === 'offered')?.id ?? null);
+                  setCareerMarketInitialView('clandestine');
+                  setShowCareerMarket(true);
+                  setPeriodAdvanceRemaining(0);
+                  setSpeed(0);
+                }}
+              />
+            )}
           </div>
         </section>
         )}
@@ -5402,6 +5717,8 @@ export function App() {
           onContinueNation={() => transitionToNationManagement('victory')}
           onCareerMarket={() => {
             setPendingCareerOfferId(careerMarket.offers.find((offer) => ['pending', 'exploring', 'negotiating'].includes(offer.status))?.id ?? null);
+            setPendingClandestineMissionId(careerMarket.clandestine?.missions.find((mission) => mission.status === 'offered')?.id ?? null);
+            setCareerMarketInitialView(careerMarket.clandestine ? 'clandestine' : 'inbox');
             setShowCareerMarket(true);
           }}
           onRestart={resetCampaign}
@@ -5417,11 +5734,18 @@ export function App() {
             formatMoney={formatGameMoney}
             canTurnApproach={careerRole.branch === 'intelligence' || game.intelNetwork >= 68}
             initialOfferId={pendingCareerOfferId}
+            initialView={careerMarketInitialView}
+            initialMissionId={pendingClandestineMissionId}
             onRespond={respondToForeignCareerOffer}
             onApproach={approachForeignCareerMarket}
+            onClandestineMissionResponse={respondToHandlerMission}
+            onClandestineIncidentResponse={respondToSecretIdentityIncident}
+            onClandestinePostureChange={changeClandestinePosture}
             onClose={() => {
               setShowCareerMarket(false);
               setPendingCareerOfferId(null);
+              setPendingClandestineMissionId(null);
+              setCareerMarketInitialView(undefined);
             }}
           />
         </Suspense>
@@ -6332,7 +6656,7 @@ function DiplomacyPanel({ game, relations, setRelations, setGame, notify, nation
   );
 }
 
-function IntelligencePanel({ game, operations, setOperations, setGame, notify, addEvent, nation, role, activeTheater, intelligenceHistory }: {
+function IntelligencePanel({ game, operations, setOperations, setGame, notify, addEvent, nation, role, activeTheater, intelligenceHistory, careerMarket, onOpenClandestineDesk }: {
   game: GameState;
   operations: CovertOperation[];
   setOperations: React.Dispatch<React.SetStateAction<CovertOperation[]>>;
@@ -6343,6 +6667,8 @@ function IntelligencePanel({ game, operations, setOperations, setGame, notify, a
   role: CareerRole;
   activeTheater: TheaterId;
   intelligenceHistory: ResolvedIntelligenceOrganization[];
+  careerMarket: CareerMarketState;
+  onOpenClandestineDesk: () => void;
 }) {
   const leadOperation = operations[0];
   const operationCost = role.branch === 'intelligence' ? 7 : 10;
@@ -6360,6 +6686,27 @@ function IntelligencePanel({ game, operations, setOperations, setGame, notify, a
   };
   return (
     <div className="intel-layout">
+      {careerMarket.clandestine && (
+        <section className={`deck-section intelligence-double-life status-${careerMarket.clandestine.status}`}>
+          <div className="intelligence-double-life__identity">
+            <span className="eyebrow">COMPARTMENTED · DOUBLE LIFE</span>
+            <h3>비밀 소속 — {getNation(careerMarket.clandestine.handlerNationId).shortName}</h3>
+            <p>{careerMarket.clandestine.coverName} 신분으로 {careerMarket.clandestine.handlerAlias}의 연락망과 연결되어 있습니다.</p>
+          </div>
+          <div className="intelligence-double-life__metrics">
+            <span>본국 신뢰<strong>{Math.round(careerMarket.clandestine.homeTrust)}</strong></span>
+            <span>핸들러 신뢰<strong>{Math.round(careerMarket.clandestine.handlerTrust)}</strong></span>
+            <span>위장 강도<strong>{Math.round(careerMarket.clandestine.coverStrength)}</strong></span>
+            <span>노출 위험<strong>{Math.round(careerMarket.exposure)}</strong></span>
+          </div>
+          <button onClick={onOpenClandestineDesk}>
+            {careerMarket.clandestine.incident
+              ? <><ShieldAlert size={15} /> 긴급 방첩 위기 대응</>
+              : <><Fingerprint size={15} /> 비밀 임무·핸들러 관리</>}
+            <em>{careerMarket.clandestine.missions.filter((mission) => mission.status === 'offered').length + (careerMarket.clandestine.incident ? 1 : 0)}</em>
+          </button>
+        </section>
+      )}
       <section className="deck-section operation-list">
         <div className="deck-section-heading"><div><span className="eyebrow">{role.archetype === 'resistance' ? 'RESISTANCE NETWORK' : 'SPECIAL OPERATIONS'}</span><h3>{role.title} · 비밀 작전</h3></div><em>{role.coverIdentity}</em></div>
         {operations.map((operation) => (

@@ -33,6 +33,12 @@ import type {
 } from './careerMarket';
 import { NationFlag } from './NationFlag';
 import type { CareerRole, NationId } from './types';
+import { ClandestineCareerCenter } from './ClandestineCareerCenter';
+import type {
+  ClandestineIncidentResponse,
+  ClandestineMissionResponse,
+  ClandestinePosture,
+} from './clandestineCareer';
 
 interface CareerMarketCenterProps {
   state: CareerMarketState;
@@ -42,12 +48,17 @@ interface CareerMarketCenterProps {
   formatMoney: (value: number, options?: { signed?: boolean; exact?: boolean }) => string;
   canTurnApproach: boolean;
   initialOfferId?: string | null;
+  initialView?: CareerMarketView;
+  initialMissionId?: string | null;
   onRespond: (offerId: string, response: CareerOfferResponse) => void;
   onApproach: (nationId: NationId, kind: CareerApproachKind) => void;
+  onClandestineMissionResponse: (missionId: string, response: ClandestineMissionResponse) => void;
+  onClandestineIncidentResponse: (response: ClandestineIncidentResponse) => void;
+  onClandestinePostureChange: (posture: ClandestinePosture) => void;
   onClose: () => void;
 }
 
-type CareerMarketView = 'inbox' | 'opportunities' | 'history';
+export type CareerMarketView = 'inbox' | 'opportunities' | 'clandestine' | 'history';
 
 const motiveLabels: Record<ForeignCareerOffer['motive'], string> = {
   money: '금전·생활보장',
@@ -92,15 +103,23 @@ export function CareerMarketCenter({
   formatMoney,
   canTurnApproach,
   initialOfferId,
+  initialView,
+  initialMissionId,
   onRespond,
   onApproach,
+  onClandestineMissionResponse,
+  onClandestineIncidentResponse,
+  onClandestinePostureChange,
   onClose,
 }: CareerMarketCenterProps) {
   const actionableOffers = useMemo(
     () => state.offers.filter((offer) => ['pending', 'exploring', 'negotiating'].includes(offer.status)),
     [state.offers],
   );
-  const [view, setView] = useState<CareerMarketView>(actionableOffers.length > 0 ? 'inbox' : 'opportunities');
+  const [view, setView] = useState<CareerMarketView>(
+    initialView
+      ?? (state.clandestine?.incident ? 'clandestine' : actionableOffers.length > 0 ? 'inbox' : state.clandestine ? 'clandestine' : 'opportunities'),
+  );
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(initialOfferId ?? actionableOffers[0]?.id ?? null);
   const [selectedApproachNationId, setSelectedApproachNationId] = useState<NationId>(
     nations.find((nation) => nation.id !== currentNationId)?.id ?? 'britain',
@@ -109,8 +128,12 @@ export function CareerMarketCenter({
   useEffect(() => {
     if (!initialOfferId) return;
     setSelectedOfferId(initialOfferId);
-    setView('inbox');
-  }, [initialOfferId]);
+    if (!initialView) setView('inbox');
+  }, [initialOfferId, initialView]);
+
+  useEffect(() => {
+    if (initialView) setView(initialView);
+  }, [initialView]);
 
   const selectedOffer = state.offers.find((offer) => offer.id === selectedOfferId) ?? actionableOffers[0] ?? null;
   const selectedNation = nations.find((nation) => nation.id === selectedApproachNationId) ?? nations[0];
@@ -141,6 +164,10 @@ export function CareerMarketCenter({
         <nav className="career-market-tabs" aria-label="국제 경력 화면">
           <button className={view === 'inbox' ? 'active' : ''} onClick={() => setView('inbox')}><Radio size={15} /> 받은 제안 <em>{pendingCount}</em></button>
           <button className={view === 'opportunities' ? 'active' : ''} onClick={() => setView('opportunities')}><UserRoundSearch size={15} /> 직접 접근</button>
+          <button className={view === 'clandestine' ? 'active' : ''} onClick={() => setView('clandestine')}>
+            <LockKeyhole size={15} /> 비밀 소속
+            {state.clandestine && <em>{state.clandestine.incident ? '!' : state.clandestine.missions.filter((mission) => mission.status === 'offered').length}</em>}
+          </button>
           <button className={view === 'history' ? 'active' : ''} onClick={() => setView('history')}><History size={15} /> 경력 기록 <em>{state.history.length}</em></button>
         </nav>
 
@@ -284,6 +311,20 @@ export function CareerMarketCenter({
               );
             })}
           </div>
+        )}
+
+        {view === 'clandestine' && (
+          <ClandestineCareerCenter
+            state={state.clandestine}
+            role={role}
+            week={week}
+            exposure={state.exposure}
+            formatMoney={formatMoney}
+            initialMissionId={initialMissionId}
+            onMissionResponse={onClandestineMissionResponse}
+            onIncidentResponse={onClandestineIncidentResponse}
+            onPostureChange={onClandestinePostureChange}
+          />
         )}
 
         <footer className="career-market-footer">
