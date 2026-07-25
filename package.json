@@ -11,6 +11,7 @@
     "test": "vitest run",
     "playtest:clandestine": "node scripts/run-clandestine-career-playtest-2060.mjs",
     "playtest:korea": "node scripts/run-korea-century-playtest-2060.mjs",
+    "playtest:nations": "node scripts/run-multi-nation-century-playtest-2060.mjs",
     "data:historical-roster": "node scripts/build-wikidata-roster.mjs",
     "data:later-era-roster": "node scripts/build-later-era-roster.mjs"
   },
