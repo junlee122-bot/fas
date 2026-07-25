@@ -292,6 +292,7 @@ import type {
   ClandestinePosture,
 } from './clandestineCareer';
 import type { CareerMarketView } from './CareerMarketCenter';
+import { assessKoreaLiberationReadiness } from './koreaExperience';
 
 const loadOrganizationPanel = () => import('./OrganizationPanel');
 const loadCareerMarketCenter = () => import('./CareerMarketCenter');
@@ -648,6 +649,30 @@ export function App() {
   const economyAdvisorBonus = economyAdvisor?.delegated ? Math.max(8, Math.round((economyAdvisor.ability + economyAdvisor.influence) / 12)) : 0;
   const staffWeeklyCost = staff.reduce((total, member) => total + member.weeklyCost, 0);
   const averageDivisionSupply = useMemo(() => divisions.reduce((total, division) => total + division.supply, 0) / Math.max(1, divisions.length), [divisions]);
+  const averageDivisionStrength = useMemo(() => divisions.reduce((total, division) => total + division.strength, 0) / Math.max(1, divisions.length), [divisions]);
+  const battleVictoryCount = useMemo(() => battleReports.filter((report) => report.victory).length, [battleReports]);
+  const relationAverage = useMemo(
+    () => relations.reduce((total, relation) => total + relation.value, 0) / Math.max(1, relations.length),
+    [relations],
+  );
+  const transitionReadiness = useMemo(
+    () => calculateTransitionReadiness(game, relationAverage, economy),
+    [economy, game, relationAverage],
+  );
+  const koreaLiberationReadiness = useMemo(() => playerNation.id === 'korea' ? assessKoreaLiberationReadiness({
+    politicalPower: game.politicalPower,
+    stability: game.stability,
+    warSupport: game.warSupport,
+    intelNetwork: game.intelNetwork,
+    averageStrength: averageDivisionStrength,
+    averageSupply: averageDivisionSupply,
+    objectiveProgress,
+    victoryScore: game.victoryScore,
+    battleVictories: battleVictoryCount,
+    relationAverage,
+    weeksElapsed: game.week,
+    territories,
+  }) : null, [averageDivisionStrength, averageDivisionSupply, battleVictoryCount, game, objectiveProgress, playerNation.id, relationAverage, territories]);
   const averageStaffLoyalty = useMemo(() => staff.reduce((total, member) => total + member.loyalty, 0) / Math.max(1, staff.length), [staff]);
   const averageStaffOverload = useMemo(() => staff.reduce((total, member) => total + member.workload, 0) / Math.max(1, staff.length), [staff]);
   const publicHealthContext = useMemo(() => ({
@@ -890,23 +915,35 @@ export function App() {
       tab: 'command',
       signalValue: coupRisk.score,
     };
-    const actions = coupAction ? [coupAction, ...baseUXActions] : baseUXActions;
+    const blockedKoreaTrack = campaignPhase === 'war'
+      ? koreaLiberationReadiness?.tracks.find((track) => koreaLiberationReadiness.blockedTrackIds.includes(track.id))
+      : undefined;
+    const koreaAction: UXAction | null = blockedKoreaTrack && koreaLiberationReadiness ? {
+      id: `korea-liberation-${blockedKoreaTrack.id}`,
+      priority: koreaLiberationReadiness.score < 55 ? 'urgent' : 'recommended',
+      title: `해방·건국 준비 ${koreaLiberationReadiness.score}/100 · ${blockedKoreaTrack.label} 보강`,
+      detail: `${blockedKoreaTrack.label} ${blockedKoreaTrack.value}점으로 최소 기준에 미달합니다. 현재 분할 위험은 ${koreaLiberationReadiness.partitionRisk}입니다.`,
+      reason: `미달 축 ${koreaLiberationReadiness.blockedTrackIds.length}개 · 가장 먼저 ${blockedKoreaTrack.label} 보강`,
+      ifIgnored: '해방 뒤 과도정부·외세 점령구역 고착과 분할 위험이 커집니다.',
+      resolution: `${blockedKoreaTrack.label} 기준 충족 즉시 · 건국 전환 화면에서 결과 확인`,
+      instruction: `${blockedKoreaTrack.action} 화면으로 이동해 관련 결정을 실행하고, 상황실의 네 준비축 변화를 확인하십시오.`,
+      label: blockedKoreaTrack.action,
+      tab: blockedKoreaTrack.tab,
+      signalValue: 100 - blockedKoreaTrack.value,
+    } : null;
+    const actions = [
+      ...(coupAction ? [coupAction] : []),
+      ...(koreaAction ? [koreaAction] : []),
+      ...baseUXActions,
+    ];
     const order = { urgent: 0, recommended: 1, info: 2 } as const;
     return [...actions].sort((left, right) => order[left.priority] - order[right.priority]);
-  }, [baseUXActions, coupRisk]);
+  }, [baseUXActions, campaignPhase, coupRisk, koreaLiberationReadiness]);
   const uxActionSignature = rawUXActions.map((action) => `${action.id}:${action.priority}:${action.signalValue ?? ''}`).join('|');
   const uxActions = useMemo(() => decorateUXActions(rawUXActions, uxActionLifecycle), [rawUXActions, uxActionLifecycle]);
   const trackedAction = trackedActionId
     ? uxActions.find((action) => action.id === trackedActionId) ?? null
     : null;
-  const relationAverage = useMemo(
-    () => relations.reduce((total, relation) => total + relation.value, 0) / Math.max(1, relations.length),
-    [relations],
-  );
-  const transitionReadiness = useMemo(
-    () => calculateTransitionReadiness(game, relationAverage, economy),
-    [economy, game, relationAverage],
-  );
   const tabActionSummary = useMemo(() => {
     const counts: Partial<Record<GameTab, number>> = { command: uxActions.length };
     const urgentTabs = new Set<GameTab>();
@@ -2298,17 +2335,33 @@ export function App() {
   }, [addEvent, campaignOutcome, campaignPhase, enemyFaction, game.stability, game.victoryScore, game.warSupport, game.week, playerFaction, playerNation.shortName, showBriefing, theaterTerritories]);
 
   const transitionToNationManagement = useCallback((reason: NationTransitionReason) => {
+    if (playerNation.id === 'korea' && reason === 'negotiated' && !koreaLiberationReadiness?.eligible) {
+      const missing = koreaLiberationReadiness?.tracks
+        .filter((track) => koreaLiberationReadiness.blockedTrackIds.includes(track.id))
+        .map((track) => `${track.label} ${track.value}`)
+        .join(' · ');
+      notify(`해방·건국 준비도 ${koreaLiberationReadiness?.score ?? 0}/100입니다. 기준 미달: ${missing || '네 준비축을 확인하십시오.'}`);
+      return;
+    }
     if (reason === 'negotiated' && !transitionReadiness.eligible) {
       notify(`국가 전환 준비도가 ${transitionReadiness.score}/45입니다. 안정도·재정·산업·외교 기반을 먼저 보강하십시오.`);
       return;
     }
-    const nextState = createNationManagementState(
+    let nextState = createNationManagementState(
       playerNation.id,
       game,
       economy,
       research.filter((project) => project.complete).length,
       reason,
     );
+    if (koreaLiberationReadiness) {
+      nextState = {
+        ...nextState,
+        legitimacy: Math.max(0, Math.min(100, nextState.legitimacy + Math.round((koreaLiberationReadiness.score - koreaLiberationReadiness.partitionRisk) / 12))),
+        unrest: Math.max(0, Math.min(100, nextState.unrest + Math.round((koreaLiberationReadiness.partitionRisk - 35) / 8))),
+        institutionalCapacity: Math.max(0, Math.min(100, nextState.institutionalCapacity + Math.round(koreaLiberationReadiness.score / 18))),
+      };
+    }
     setCampaignPhase('nation');
     setNationManagement(nextState);
     setPeriodAdvanceRemaining(0);
@@ -2320,6 +2373,14 @@ export function App() {
     setPendingCouncilEventId(null);
     setPendingWorldFlashpointId(null);
     setPlanningMode(false);
+    if (playerNation.id === 'korea') {
+      setTerritories((current) => current.map((territory) => territory.id === 'korea' ? {
+        ...territory,
+        controller: playerFaction,
+        ownerId: 'korea',
+        supply: Math.max(territory.supply, Math.round(koreaLiberationReadiness?.tracks.find((track) => track.id === 'return')?.value ?? 58)),
+      } : territory));
+    }
     setDivisions((current) => current.map((division) => ({ ...division, status: 'ready' })));
     setGame((current) => ({
       ...current,
@@ -2328,16 +2389,23 @@ export function App() {
       stability: Math.max(0, Math.min(100, current.stability + (reason === 'victory' ? 4 : -2))),
     }));
     setActiveTab('governance');
+    const transitionTitle = koreaLiberationReadiness
+      ? `충칭에서 한반도로 — ${koreaLiberationReadiness.outcomeLabel}`
+      : reason === 'victory' ? '승전 체제에서 국가 운영 체제로' : '협상 종전 — 국가 운영 체제로';
     addEvent(
-      reason === 'victory' ? '승전 체제에서 국가 운영 체제로' : '협상 종전 — 국가 운영 체제로',
-      `${playerNation.shortName}은(는) 동원과 영토 확장의 시대를 끝내고 전후 국가 운영에 들어갔습니다. 전쟁에서 남은 국고 ${formatGameMoney(game.treasury)}, 부채 ${formatGameMoney(economy.debt)}, 물가 ${economy.inflation.toFixed(1)}%, 공장 ${game.factories}개가 새 정부의 초기 조건입니다.`,
+      transitionTitle,
+      koreaLiberationReadiness
+        ? `대한민국 임시정부의 인물·조직·광복군 기록을 계승한 새 정부가 한반도 국가 운영을 시작했습니다. 해방 준비 ${koreaLiberationReadiness.score}, 분할 위험 ${koreaLiberationReadiness.partitionRisk}, 국고 ${formatGameMoney(game.treasury)}, 물가 ${economy.inflation.toFixed(1)}%가 초기 조건입니다.`
+        : `${playerNation.shortName}은(는) 동원과 영토 확장의 시대를 끝내고 전후 국가 운영에 들어갔습니다. 전쟁에서 남은 국고 ${formatGameMoney(game.treasury)}, 부채 ${formatGameMoney(economy.debt)}, 물가 ${economy.inflation.toFixed(1)}%, 공장 ${game.factories}개가 새 정부의 초기 조건입니다.`,
       reason === 'victory' ? 'good' : 'neutral',
       game.week,
       {
         domain: 'management',
         decision: reason === 'victory' ? '전략적 승리 뒤 같은 세계선에서 국가 운영을 계속하기로 결정했습니다.' : '완전 정복 대신 협상 종전과 국내 재건을 선택했습니다.',
         trigger: reason === 'victory' ? '전구 승리 조건을 달성해 승전국의 전후 질서 설계 권한을 확보했습니다.' : `전환 준비도 ${transitionReadiness.score}와 안정도 ${Math.round(game.stability)}가 협상 종전 조건을 충족했습니다.`,
-        factors: [`전황 ${transitionReadiness.pillars.security}`, `정통성 ${transitionReadiness.pillars.legitimacy}`, `재정 ${transitionReadiness.pillars.finance}`, `산업 ${transitionReadiness.pillars.industry}`, `외교 ${transitionReadiness.pillars.diplomacy}`],
+        factors: koreaLiberationReadiness
+          ? [...koreaLiberationReadiness.tracks.map((track) => `${track.label} ${track.value}`), `분할 위험 ${koreaLiberationReadiness.partitionRisk}`]
+          : [`전황 ${transitionReadiness.pillars.security}`, `정통성 ${transitionReadiness.pillars.legitimacy}`, `재정 ${transitionReadiness.pillars.finance}`, `산업 ${transitionReadiness.pillars.industry}`, `외교 ${transitionReadiness.pillars.diplomacy}`],
         effects: [{ label: '캠페인 단계', value: '전쟁 수행 → 국가 운영', tone: 'positive' }, { label: '새 승리 조건', value: '국가 성과 · 국민 위임 · 경제 · 제도', tone: 'neutral' }],
         ongoing: ['전쟁 중 축적한 인물·기술·재정·외교·영토·세계선 선택은 모두 유지됩니다.', reason === 'victory' ? '승전 위임과 함께 동원 해제·점령지·부채 관리 책임도 이어집니다.' : '조기 민생 회복의 이점과 미완의 전선·강경파 반발을 함께 관리해야 합니다.'],
         nextActions: ['국가 운영 화면에서 발전 노선, 조세·지출 수준, 6개 부처 예산을 결정하십시오.', '한 주를 진행해 선택의 재정·민생·산업·정치 결과를 확인하십시오.'],
@@ -2365,7 +2433,7 @@ export function App() {
       },
     );
     notify(`${reason === 'victory' ? '승전국의 전후 국가 운영' : '협상 종전 뒤 국가 운영'}을 시작합니다. 새 직함: ${nextRoleTitle}`);
-  }, [addEvent, careerRole, economy, formatGameMoney, game, notify, playerNation.id, playerNation.shortName, playerNation.status, research, staffAuthority.managedDepartments, transitionReadiness]);
+  }, [addEvent, careerRole, economy, formatGameMoney, game, koreaLiberationReadiness, notify, playerFaction, playerNation.id, playerNation.shortName, playerNation.status, research, staffAuthority.managedDepartments, transitionReadiness]);
 
   const changeNationBudget = (domain: NationBudgetDomain, delta: -5 | 5) => {
     setNationManagement((current) => rebalanceNationBudget(current, domain, delta));
@@ -5399,6 +5467,8 @@ export function App() {
                   weeklyUnread={hasUnreadWorldWeekly}
                   resultsReviewed={game.week === 0 || lastReviewedJournalWeek >= game.week}
                   objectiveProgress={objectiveProgress}
+                  relationAverage={relationAverage}
+                  battleVictories={battleVictoryCount}
                   achievement={activeAchievement}
                   achievementProgress={activeAchievement ? achievementProgress[activeAchievement.id] : undefined}
                   achievementTracked={Boolean(activeAchievement && trackedAchievementId === activeAchievement.id)}

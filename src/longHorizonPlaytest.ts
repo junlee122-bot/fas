@@ -10,7 +10,7 @@ import {
 } from './campaign';
 import { getEligibleCouncilEvents, selectNextCouncilEvent, strategicPolicies } from './choices';
 import { forecastBattle, resolveBattle } from './combat';
-import { initialResearch, territories } from './data';
+import { initialResearch, territories as initialTerritories } from './data';
 import {
   commanderSkills,
   createCommanderDevelopment,
@@ -23,6 +23,7 @@ import { advanceEconomyWeek, calculateEconomyLedger, createEconomyState } from '
 import { applyElectionCampaignAction, electionCampaignActions as electionActionDefinitions } from './electoralPolitics';
 import { deriveEmergentHistory } from './emergentHistory';
 import { calculateProductionGains } from './engine';
+import { assessKoreaLiberationReadiness, type KoreaLiberationAssessment } from './koreaExperience';
 import { createLaterEraCandidates } from './laterEraFigures';
 import {
   advanceNationManagementWeek,
@@ -119,6 +120,8 @@ export interface LongHorizonSessionResult {
   endYear: number;
   transitionWeek: number;
   transitionYear: number;
+  koreaLiberationAtTransition: KoreaLiberationAssessment | null;
+  koreaTransitionMode: 'fixed-timer' | 'readiness' | 'deadline' | null;
   warWeeks: number;
   nationWeeks: number;
   actionPrompts: number;
@@ -694,6 +697,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
   let economy = createEconomyState(nation.id);
   let publicHealth = createPublicHealthState(createPublicHealthSeed(nation.id, role.id));
   let relations = createDiplomaticRelations(nation.id);
+  let territories = initialTerritories.map((territory) => ({ ...territory, neighbors: [...territory.neighbors] }));
   const operations = createCovertOperations(nation.defaultTheater, nation.id);
   let selectedPolicies: StrategicPolicy[] = [];
   const policyQueue = selectedPolicyObjects(config.policies);
@@ -767,6 +771,9 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
   let staffWeeksAdvanced = 0;
   let expiredStaffAtTransition = 0;
   let laterEraCandidatesAtTransition = 0;
+  let actualTransitionWeek = Math.min(config.transitionWeek, weeksPlayed);
+  let koreaLiberationAtTransition: KoreaLiberationAssessment | null = null;
+  let koreaTransitionMode: LongHorizonSessionResult['koreaTransitionMode'] = null;
   const discoveredLaterEraIds = new Set<string>();
   let previousOutbreakId: string | null = null;
   let previousElectionResultId: string | null = null;
@@ -895,9 +902,46 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     return true;
   };
 
-  const transitionToNation = (week: number) => {
+  const getKoreaLiberationAssessment = (week: number) => assessKoreaLiberationReadiness({
+    politicalPower: game.politicalPower,
+    stability: game.stability,
+    warSupport: game.warSupport,
+    intelNetwork: game.intelNetwork,
+    averageStrength: average(divisions.map((division) => division.strength)),
+    averageSupply: average(divisions.map((division) => division.supply)),
+    objectiveProgress: game.victoryScore,
+    victoryScore: game.victoryScore,
+    battleVictories,
+    relationAverage: average(relations.map((relation) => relation.value)),
+    weeksElapsed: week,
+    territories,
+  });
+
+  const transitionToNation = (
+    week: number,
+    mode: Exclude<LongHorizonSessionResult['koreaTransitionMode'], null> = 'fixed-timer',
+  ) => {
+    actualTransitionWeek = week;
+    if (nation.id === 'korea') {
+      koreaTransitionMode = mode;
+      koreaLiberationAtTransition = getKoreaLiberationAssessment(week);
+    }
     phase = 'nation';
     nationState = createNationManagementState(nation.id, game, economy, research.filter((project) => project.complete).length, 'negotiated');
+    if (koreaLiberationAtTransition) {
+      nationState = {
+        ...nationState,
+        legitimacy: clamp(nationState.legitimacy + Math.round((koreaLiberationAtTransition.score - koreaLiberationAtTransition.partitionRisk) / 12), 0, 100),
+        unrest: clamp(nationState.unrest + Math.round((koreaLiberationAtTransition.partitionRisk - 35) / 8), 0, 100),
+        institutionalCapacity: clamp(nationState.institutionalCapacity + Math.round(koreaLiberationAtTransition.score / 18), 0, 100),
+      };
+      territories = territories.map((territory) => territory.id === 'korea' ? {
+        ...territory,
+        controller: nation.alignment,
+        ownerId: 'korea',
+        supply: Math.max(territory.supply, koreaLiberationAtTransition?.tracks.find((track) => track.id === 'return')?.value ?? 50),
+      } : territory);
+    }
     nationState = { ...nationState, strategyId: config.nationStrategy };
     if (profile === 'state-builder') nationState = rebalanceNationBudget(rebalanceNationBudget(nationState, 'education', 5), 'industry', 5);
     if (profile === 'guided' || profile === 'completionist') nationState = rebalanceNationBudget(nationState, 'welfare', 5);
@@ -1089,7 +1133,16 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
       const openedCoup = processPoliticalCrisis(nextWeek);
       const openedFlashpoint = !openedCoup && nextWeek % WORLD_FLASHPOINT_INTERVAL_WEEKS === 0 && applyWorldFlashpoint(nextWeek);
       if (!openedCoup && !openedFlashpoint && nextWeek % 52 === 26) applyCouncilChoice(nextWeek);
-      if (nextWeek >= config.transitionWeek) transitionToNation(nextWeek);
+      if (nextWeek >= config.transitionWeek) {
+        if (nation.id !== 'korea') {
+          transitionToNation(nextWeek);
+        } else {
+          const readiness = getKoreaLiberationAssessment(nextWeek);
+          const deadlineWeek = config.transitionWeek + 104;
+          if (readiness.eligible) transitionToNation(nextWeek, 'readiness');
+          else if (nextWeek >= deadlineWeek) transitionToNation(nextWeek, 'deadline');
+        }
+      }
     } else {
       const contextBefore = politicalContext(nextWeek, phase, game, economy, nationState, divisions, staff, councilTrust, reputation);
       const coupRisk = assessCoupRisk(politicalState, contextBefore);
@@ -1383,10 +1436,12 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     profile,
     weeksPlayed,
     endYear: Math.floor(endingYear),
-    transitionWeek: Math.min(config.transitionWeek, weeksPlayed),
-    transitionYear: getCampaignYear(Math.min(config.transitionWeek, weeksPlayed)),
-    warWeeks: Math.min(config.transitionWeek, weeksPlayed),
-    nationWeeks: Math.max(0, weeksPlayed - config.transitionWeek),
+    transitionWeek: actualTransitionWeek,
+    transitionYear: getCampaignYear(actualTransitionWeek),
+    koreaLiberationAtTransition,
+    koreaTransitionMode,
+    warWeeks: actualTransitionWeek,
+    nationWeeks: Math.max(0, weeksPlayed - actualTransitionWeek),
     actionPrompts,
     urgentPromptWeeks,
     recommendedPromptWeeks,

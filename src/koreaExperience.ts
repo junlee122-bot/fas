@@ -32,6 +32,30 @@ export interface KoreaLiberationInput {
   territories: readonly Territory[];
 }
 
+export type KoreaLiberationOutcome =
+  | 'contested-transition'
+  | 'negotiated-return'
+  | 'coalition-government'
+  | 'armed-liberation'
+  | 'sovereign-return';
+
+export interface KoreaLiberationAssessment {
+  score: number;
+  eligible: boolean;
+  outcome: KoreaLiberationOutcome;
+  outcomeLabel: string;
+  partitionRisk: number;
+  blockedTrackIds: KoreaLiberationTrack['id'][];
+  tracks: KoreaLiberationTrack[];
+}
+
+export interface KoreaLiberationAssessmentInput extends KoreaLiberationInput {
+  weeksElapsed: number;
+  victoryScore: number;
+  battleVictories: number;
+  relationAverage: number;
+}
+
 const clamp = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
 
 function trackPresentation(value: number): Pick<KoreaLiberationTrack, 'tone' | 'state'> {
@@ -99,4 +123,78 @@ export function deriveKoreaLiberationTracks(input: KoreaLiberationInput): KoreaL
       ...trackPresentation(returnPlan),
     },
   ];
+}
+
+export const koreaLiberationOutcomeLabels: Record<KoreaLiberationOutcome, string> = {
+  'contested-transition': '분할 위험 속 과도정부',
+  'negotiated-return': '협상 귀환·과도정부',
+  'coalition-government': '통합 독립연합정부',
+  'armed-liberation': '광복군 주도 해방정부',
+  'sovereign-return': '주권 회복·통합 건국',
+};
+
+export function classifyKoreaLiberationOutcome(
+  assessment: Pick<KoreaLiberationAssessment, 'eligible' | 'score' | 'partitionRisk' | 'tracks'>,
+): KoreaLiberationOutcome {
+  if (!assessment.eligible) return 'contested-transition';
+  const trackValue = (id: KoreaLiberationTrack['id']) => assessment.tracks.find((track) => track.id === id)?.value ?? 0;
+  if (assessment.score >= 86 && assessment.partitionRisk <= 38) return 'sovereign-return';
+  if (trackValue('force') >= 68 && trackValue('return') >= 60) return 'armed-liberation';
+  if (trackValue('recognition') >= 88 && trackValue('network') >= 82) return 'coalition-government';
+  return 'negotiated-return';
+}
+
+export function assessKoreaLiberationReadiness(input: KoreaLiberationAssessmentInput): KoreaLiberationAssessment {
+  const operationalReturn = clamp(
+    input.objectiveProgress * 0.34
+      + input.victoryScore * 0.32
+      + input.battleVictories * 4
+      + Math.min(18, input.weeksElapsed / 13)
+      + (input.territories.find((territory) => territory.id === 'korea')?.controller === 'allies' ? 24 : 0),
+  );
+  const baseTracks = deriveKoreaLiberationTracks({ ...input, objectiveProgress: operationalReturn });
+  const operationalForce = clamp(
+    (input.averageStrength + input.averageSupply) / 2
+      + Math.min(18, input.battleVictories * 2)
+      + Math.min(10, input.weeksElapsed / 26),
+  );
+  const tracks = baseTracks.map((track) => track.id === 'force' ? {
+    ...track,
+    value: operationalForce,
+    detail: '현재 전력·보급에 광복군의 실전 경험과 장기 편제 숙련을 합산한 준비도',
+    ...trackPresentation(operationalForce),
+  } : track);
+  const trackValue = (id: KoreaLiberationTrack['id']) => tracks.find((track) => track.id === id)?.value ?? 0;
+  const recognition = trackValue('recognition');
+  const network = trackValue('network');
+  const force = trackValue('force');
+  const returnPlan = trackValue('return');
+  const score = clamp(recognition * 0.28 + network * 0.22 + force * 0.2 + returnPlan * 0.3);
+  const thresholds: Record<KoreaLiberationTrack['id'], number> = {
+    recognition: 58,
+    network: 52,
+    force: 50,
+    return: 50,
+  };
+  const blockedTrackIds = tracks.filter((track) => track.value < thresholds[track.id]).map((track) => track.id);
+  const eligible = score >= 62 && blockedTrackIds.length === 0;
+  const partitionRisk = clamp(
+    120
+      - recognition * 0.28
+      - network * 0.18
+      - force * 0.14
+      - returnPlan * 0.32
+      - Math.max(0, input.relationAverage - 50) * 0.12
+      + Math.max(0, input.weeksElapsed - 208) * 0.025,
+  );
+  const outcome = classifyKoreaLiberationOutcome({ eligible, score, partitionRisk, tracks });
+  return {
+    score,
+    eligible,
+    outcome,
+    outcomeLabel: koreaLiberationOutcomeLabels[outcome],
+    partitionRisk,
+    blockedTrackIds,
+    tracks,
+  };
 }

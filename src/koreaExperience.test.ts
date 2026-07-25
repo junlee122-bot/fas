@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveKoreaLiberationTracks, getKoreaRoleGuide } from './koreaExperience';
+import { assessKoreaLiberationReadiness, deriveKoreaLiberationTracks, getKoreaRoleGuide } from './koreaExperience';
 import type { Territory } from './types';
 
 const homeland = (controller: Territory['controller']): Territory => ({
@@ -39,5 +39,49 @@ describe('Korea campaign experience', () => {
     expect(getKoreaRoleGuide('military').destination).toBe('army');
     expect(getKoreaRoleGuide('intelligence').destination).toBe('intelligence');
     expect(getKoreaRoleGuide('military').authorityBoundary).toContain('정치 지도부');
+  });
+
+  it('blocks a premature state transition and explains the missing liberation tracks', () => {
+    const assessment = assessKoreaLiberationReadiness({
+      politicalPower: 44,
+      stability: 50,
+      warSupport: 48,
+      intelNetwork: 36,
+      averageStrength: 48,
+      averageSupply: 41,
+      objectiveProgress: 18,
+      victoryScore: 22,
+      battleVictories: 1,
+      relationAverage: 47,
+      weeksElapsed: 52,
+      territories: [homeland('axis')],
+    });
+
+    expect(assessment.eligible).toBe(false);
+    expect(assessment.outcome).toBe('contested-transition');
+    expect(assessment.blockedTrackIds).toContain('return');
+    expect(assessment.partitionRisk).toBeGreaterThan(55);
+  });
+
+  it('rewards combined diplomacy, organization, armed force and homecoming preparation', () => {
+    const assessment = assessKoreaLiberationReadiness({
+      politicalPower: 92,
+      stability: 82,
+      warSupport: 86,
+      intelNetwork: 84,
+      averageStrength: 86,
+      averageSupply: 82,
+      objectiveProgress: 84,
+      victoryScore: 88,
+      battleVictories: 8,
+      relationAverage: 76,
+      weeksElapsed: 182,
+      territories: [homeland('allies')],
+    });
+
+    expect(assessment.eligible).toBe(true);
+    expect(assessment.blockedTrackIds).toEqual([]);
+    expect(assessment.outcome).not.toBe('contested-transition');
+    expect(assessment.partitionRisk).toBeLessThan(35);
   });
 });

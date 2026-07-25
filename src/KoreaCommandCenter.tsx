@@ -1,6 +1,6 @@
 import { ChevronRight, MapPinned } from 'lucide-react';
 import { GameIcon } from './GameIcon';
-import { deriveKoreaLiberationTracks, getKoreaRoleGuide } from './koreaExperience';
+import { assessKoreaLiberationReadiness, getKoreaRoleGuide } from './koreaExperience';
 import type { CareerRole, Division, GameState, GameTab, Territory } from './types';
 
 interface KoreaCommandCenterProps {
@@ -9,13 +9,15 @@ interface KoreaCommandCenterProps {
   territories: Territory[];
   divisions: Division[];
   objectiveProgress: number;
+  relationAverage: number;
+  battleVictories: number;
   onNavigate: (tab: GameTab) => void;
 }
 
-export function KoreaCommandCenter({ role, game, territories, divisions, objectiveProgress, onNavigate }: KoreaCommandCenterProps) {
+export function KoreaCommandCenter({ role, game, territories, divisions, objectiveProgress, relationAverage, battleVictories, onNavigate }: KoreaCommandCenterProps) {
   const averageStrength = divisions.reduce((sum, division) => sum + division.strength, 0) / Math.max(1, divisions.length);
   const averageSupply = divisions.reduce((sum, division) => sum + division.supply, 0) / Math.max(1, divisions.length);
-  const tracks = deriveKoreaLiberationTracks({
+  const assessment = assessKoreaLiberationReadiness({
     politicalPower: game.politicalPower,
     stability: game.stability,
     warSupport: game.warSupport,
@@ -23,16 +25,21 @@ export function KoreaCommandCenter({ role, game, territories, divisions, objecti
     averageStrength,
     averageSupply,
     objectiveProgress,
+    victoryScore: game.victoryScore,
+    battleVictories,
+    relationAverage,
+    weeksElapsed: game.week,
     territories,
   });
+  const tracks = assessment.tracks;
   const roleGuide = getKoreaRoleGuide(role.branch);
 
   return (
     <section className="korea-command-center" data-tour="korea-command-center" aria-labelledby="korea-command-title">
       <header>
         <span className="korea-command-location"><MapPinned size={17} /><i><small>현재 지휘 거점</small><strong>중화민국 충칭</strong></i></span>
-        <span className="korea-command-heading"><em>LIBERATION COMMAND · 1942</em><h3 id="korea-command-title">대한민국 임시정부 독립 준비 상황판</h3><p>조선 본토의 점령 상태와 충칭 지휘부의 역량을 혼동하지 않도록 네 준비축을 분리했습니다.</p></span>
-        <button type="button" onClick={() => onNavigate('governance')}><GameIcon name="organization" size={15} tone="gold" /> 해방·건국 설계<ChevronRight size={13} /></button>
+        <span className="korea-command-heading"><em>LIBERATION COMMAND · {1942 + Math.floor(game.week / 52)}</em><h3 id="korea-command-title">대한민국 임시정부 독립 준비 상황판</h3><p>네 준비축을 모두 충족해야 협상 건국이 열립니다. 현재 종합 {assessment.score} · 분할 위험 {assessment.partitionRisk}.</p></span>
+        <button type="button" onClick={() => onNavigate('governance')}><GameIcon name="organization" size={15} tone={assessment.eligible ? 'green' : 'gold'} /> {assessment.eligible ? '건국 전환 가능' : `${assessment.blockedTrackIds.length}축 보강 필요`}<ChevronRight size={13} /></button>
       </header>
       <div className="korea-liberation-tracks">
         {tracks.map((track) => (

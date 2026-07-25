@@ -68,6 +68,8 @@ interface CommandDashboardProps {
   weeklyUnread: boolean;
   resultsReviewed: boolean;
   objectiveProgress: number;
+  relationAverage: number;
+  battleVictories: number;
   achievement?: AchievementDefinition;
   achievementProgress?: AchievementProgress;
   achievementTracked?: boolean;
@@ -113,6 +115,8 @@ export function CommandDashboard({
   weeklyUnread,
   resultsReviewed,
   objectiveProgress,
+  relationAverage,
+  battleVictories,
   achievement,
   achievementProgress,
   achievementTracked = false,
@@ -223,6 +227,8 @@ export function CommandDashboard({
           territories={territories}
           divisions={divisions}
           objectiveProgress={objectiveProgress}
+          relationAverage={relationAverage}
+          battleVictories={battleVictories}
           onNavigate={onNavigate}
         />
       )}
