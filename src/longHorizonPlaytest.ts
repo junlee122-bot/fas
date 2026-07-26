@@ -8,6 +8,11 @@ import {
   createStaffRoster,
   nations,
 } from './campaign';
+import {
+  getCenturyTransitionBehaviorWeek,
+  type CenturyBehaviorProfile,
+  type CenturyScenarioBlueprint,
+} from './centuryScenario';
 import { getEligibleCouncilEvents, selectNextCouncilEvent, strategicPolicies } from './choices';
 import { forecastBattle, resolveBattle } from './combat';
 import { initialResearch, territories as initialTerritories } from './data';
@@ -87,7 +92,7 @@ export const LONG_HORIZON_START_YEAR = 1942;
 export const LONG_HORIZON_END_YEAR = 2020;
 export const LONG_HORIZON_WEEKS = (LONG_HORIZON_END_YEAR - LONG_HORIZON_START_YEAR) * 52;
 
-export type LongHorizonProfile = 'guided' | 'rushed' | 'military' | 'state-builder' | 'completionist' | 'opportunist';
+export type LongHorizonProfile = CenturyBehaviorProfile;
 
 export interface LongHorizonEraMetric {
   era: string;
@@ -116,6 +121,8 @@ export interface LongHorizonEraMetric {
 export interface LongHorizonSessionResult {
   id: number;
   nationId: string;
+  scenarioCombinationKey: string;
+  scenarioCombinationCode: number | null;
   roleId: string;
   roleTier: number;
   roleBranch: string;
@@ -535,20 +542,38 @@ function selectedPolicyObjects(ids: string[]) {
   return ids.map((id) => strategicPolicies.find((policy) => policy.id === id)).filter((policy): policy is StrategicPolicy => Boolean(policy));
 }
 
-function chooseCouncilChoiceIndex(profile: LongHorizonProfile, eventId: string, week: number) {
+function chooseCouncilChoiceIndex(
+  profile: LongHorizonProfile,
+  eventId: string,
+  week: number,
+  scenario?: CenturyScenarioBlueprint,
+) {
+  if (scenario) return scenario.worldVariant;
   if (profile === 'guided' || profile === 'state-builder') return 1;
   if (profile === 'military') return 0;
   if (profile === 'rushed') return 0;
   return Math.floor(stableRoll(`${profile}:${eventId}:${week}`) * 3) % 3;
 }
 
-function chooseWorldVariantIndex(profile: LongHorizonProfile, eventId: string, week: number): 0 | 1 | 2 {
+function chooseWorldVariantIndex(
+  profile: LongHorizonProfile,
+  eventId: string,
+  week: number,
+  scenario?: CenturyScenarioBlueprint,
+): 0 | 1 | 2 {
+  if (scenario) return scenario.worldVariant;
   const configured = profileConfigs[profile].worldVariant;
   if (configured !== 'rotate') return configured;
   return (Math.floor(stableRoll(`${profile}:${eventId}:${week}:world`) * 3) % 3) as 0 | 1 | 2;
 }
 
-function chooseNationAgendaChoice(profile: LongHorizonProfile, issueId: string, week: number): NationAgendaChoiceId {
+function chooseNationAgendaChoice(
+  profile: LongHorizonProfile,
+  issueId: string,
+  week: number,
+  scenario?: CenturyScenarioBlueprint,
+): NationAgendaChoiceId {
+  if (scenario) return scenario.agendaChoice;
   if (profile === 'guided') return 'bargain';
   if (profile === 'state-builder') return 'invest';
   if (profile === 'military' || profile === 'rushed') return 'enforce';
@@ -556,16 +581,49 @@ function chooseNationAgendaChoice(profile: LongHorizonProfile, issueId: string, 
   return choices[Math.floor(stableRoll(`${profile}:${issueId}:${week}:nation-agenda`) * choices.length) % choices.length];
 }
 
-function budgetPriority(profile: LongHorizonProfile, nation: NationManagementState): NationBudgetDomain {
+function budgetPriority(
+  profile: LongHorizonProfile,
+  nation: NationManagementState,
+  scenario?: CenturyScenarioBlueprint,
+): NationBudgetDomain {
   if (nation.unrest >= 55) return 'welfare';
+  if (scenario) return scenario.budgetPriority;
   if (profile === 'military') return 'security';
   if (profile === 'state-builder') return nation.education < nation.civilianIndustry ? 'education' : 'industry';
   if (profile === 'completionist') return nation.infrastructure < nation.welfare ? 'reconstruction' : 'diplomacy';
   return 'industry';
 }
 
-function battleStance(profile: LongHorizonProfile) {
+function battleStance(profile: LongHorizonProfile, scenario?: CenturyScenarioBlueprint) {
+  if (scenario) return scenario.warPosture;
   return profile === 'military' || profile === 'opportunist' ? 'aggressive' as const : profile === 'state-builder' ? 'cautious' as const : 'balanced' as const;
+}
+
+function scenarioElectionActions(scenario: CenturyScenarioBlueprint) {
+  if (scenario.electionStyle === 'consensus') return ['policy-manifesto', 'coalition-pact', 'public-debate'];
+  if (scenario.electionStyle === 'grassroots') return ['local-endorsement', 'mass-rally', 'fundraising-drive'];
+  if (scenario.electionStyle === 'media') return ['radio-address', 'public-debate', 'policy-manifesto'];
+  return ['fundraising-drive', 'mass-rally', 'coalition-pact'];
+}
+
+function scenarioPolicyIds(scenario: CenturyScenarioBlueprint) {
+  const economy = scenario.economicModel === 'industrial'
+    ? 'economy-mass'
+    : scenario.economicModel === 'open-market'
+      ? 'economy-distributed'
+      : 'economy-balanced';
+  const doctrine = scenario.doctrine === 'maneuver'
+    ? 'doctrine-maneuver'
+    : scenario.doctrine === 'methodical'
+      ? 'doctrine-defense'
+      : 'doctrine-firepower';
+  const society = scenario.economicModel === 'welfare' ? 'society-welfare' : scenario.economicModel === 'security' ? 'society-mobilization' : 'society-autonomy';
+  const diplomacy = scenario.diplomaticPosture === 'alliance' || scenario.diplomaticPosture === 'revisionist'
+    ? 'diplomacy-bloc'
+    : scenario.diplomaticPosture === 'multilateral'
+      ? 'diplomacy-aid'
+      : 'diplomacy-pragmatic';
+  return [economy, doctrine, society, diplomacy];
 }
 
 function findingsFor(aggregate: LongHorizonAggregate): LongHorizonFinding[] {
@@ -697,14 +755,29 @@ function findingsFor(aggregate: LongHorizonAggregate): LongHorizonFinding[] {
   });
 }
 
-export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEEKS): LongHorizonSessionResult {
+export function runLongHorizonSession(
+  id: number,
+  weeksPlayed = LONG_HORIZON_WEEKS,
+  scenario?: CenturyScenarioBlueprint,
+): LongHorizonSessionResult {
   const nation = nations[id % nations.length];
   const nationRoles = careerRoles.filter((role) => role.nationId === nation.id);
   const role = nationRoles[Math.floor(id / nations.length) % nationRoles.length];
-  const profile = profiles[id % profiles.length];
-  const config = profileConfigs[profile];
+  const profile = scenario?.profile ?? profiles[id % profiles.length];
+  const baseConfig = profileConfigs[profile];
+  const config: ProfileConfig = scenario ? {
+    ...baseConfig,
+    doctrine: scenario.doctrine,
+    nationStrategy: scenario.nationStrategy,
+    policies: scenarioPolicyIds(scenario),
+    electionActions: scenarioElectionActions(scenario),
+    worldVariant: scenario.worldVariant,
+  } : baseConfig;
   const development = getNationDevelopmentProfile(nation.id);
-  const transitionSchedule = getNationTransitionSchedule(nation.id, config.transitionWeek, id);
+  const transitionBehaviorWeek = scenario
+    ? getCenturyTransitionBehaviorWeek(scenario, config.transitionWeek)
+    : config.transitionWeek;
+  const transitionSchedule = getNationTransitionSchedule(nation.id, transitionBehaviorWeek, id);
   let game: GameState = { ...baseGame, ...nation.modifiers };
   let stockpile = { ...baseStockpile };
   let production = createCampaignProduction(nation);
@@ -838,7 +911,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     const resolvedChoices = [...resolvedCouncilIds].map((eventId) => `${eventId}:resolved`);
     const councilEvent = selectNextCouncilEvent(nation.id, role.branch, getCampaignYear(week), resolvedChoices);
     if (!councilEvent) return false;
-    const choice = councilEvent.choices[chooseCouncilChoiceIndex(profile, councilEvent.id, week)];
+    const choice = councilEvent.choices[chooseCouncilChoiceIndex(profile, councilEvent.id, week, scenario)];
     game = applyGameDelta(game, choice.effect.gameDelta ?? {});
     if (choice.effect.divisionSupply || choice.effect.divisionOrganization) {
       divisions = divisions.map((division) => ({
@@ -870,10 +943,10 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
   };
 
   const applyWorldFlashpoint = (week: number) => {
-    if (completedDecisions.filter((decision) => decision.startsWith('world-flashpoint:')).length >= worldHistoryEvents.length) return false;
+    if (worldFlashpointCount >= schedulingTimeline.length) return false;
     const selection = selectNextWorldFlashpoint(schedulingTimeline, week, completedDecisions);
     if (!selection) return false;
-    const variant = selection.entry.event.variants[chooseWorldVariantIndex(profile, selection.entry.event.id, week)];
+    const variant = selection.entry.event.variants[chooseWorldVariantIndex(profile, selection.entry.event.id, week, scenario)];
     const effects = deriveWorldFlashpointEffects(selection.entry.event.id, selection.entry.event.category, variant);
     game = applyGameDelta(game, effects.gameDelta);
     (Object.entries(effects.stockpileDelta) as Array<[keyof Stockpile, number]>).forEach(([key, value]) => {
@@ -903,9 +976,19 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     coupAttempts += 1;
     interruptionCount += 1;
     recordDecisionTrace(week, `crisis:${result.incident.kind}:${result.incident.leadingFactionId}`);
+    const preferredResponseId = scenario?.crisisApproach === 'constitutional'
+      ? 'constitutional-appeal'
+      : scenario?.crisisApproach === 'negotiation'
+        ? 'faction-negotiation'
+        : scenario?.crisisApproach === 'command'
+          ? 'loyal-command'
+          : scenario?.crisisApproach === 'counter-intelligence'
+            ? 'counter-operation'
+            : null;
     const forecasts = getCoupResponseForecasts(result.incident, role, context)
       .filter((forecast) => forecast.allowed)
-      .sort((left, right) => right.successChance - left.successChance);
+      .sort((left, right) => Number(right.id === preferredResponseId) - Number(left.id === preferredResponseId)
+        || right.successChance - left.successChance);
     let resolution = null;
     for (const forecast of forecasts) {
       resolution = resolveCoupAttempt(politicalState, result.incident, role, context, forecast.id);
@@ -982,9 +1065,26 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
       } : territory);
     }
     nationState = { ...nationState, strategyId: config.nationStrategy };
-    if (profile === 'state-builder') nationState = rebalanceNationBudget(rebalanceNationBudget(nationState, 'education', 5), 'industry', 5);
-    if (profile === 'guided' || profile === 'completionist') nationState = rebalanceNationBudget(nationState, 'welfare', 5);
-    const planId: NationalPlanId | null = profile === 'military'
+    if (scenario) {
+      nationState = rebalanceNationBudget(
+        rebalanceNationBudget(nationState, scenario.budgetPriority, 5),
+        scenario.technologyPosture === 'civilian' || scenario.technologyPosture === 'frontier' ? 'education' : 'security',
+        5,
+      );
+    } else if (profile === 'state-builder') {
+      nationState = rebalanceNationBudget(rebalanceNationBudget(nationState, 'education', 5), 'industry', 5);
+    } else if (profile === 'guided' || profile === 'completionist') {
+      nationState = rebalanceNationBudget(nationState, 'welfare', 5);
+    }
+    const planId: NationalPlanId | null = scenario
+      ? scenario.futurePriority === 'climate'
+        ? 'climate-resilience'
+        : scenario.futurePriority === 'human-development'
+          ? 'social-capability'
+          : scenario.futurePriority === 'strategic-autonomy'
+            ? 'secure-transition'
+            : 'knowledge-economy'
+      : profile === 'military'
       ? 'secure-transition'
       : profile === 'state-builder'
         ? 'knowledge-economy'
@@ -1092,13 +1192,13 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
         const commander = commanders.find((candidate) => candidate.id === division.commanderId) ?? commanders[0];
         const target = territories.find((candidate) => nation.strategicTargets.includes(candidate.id)) ?? territories[0];
         if (division && commander && target) {
-          orders = [{ divisionId: division.id, fromId: division.territoryId, targetId: target.id, startedWeek: nextWeek, stance: battleStance(profile) }];
+          orders = [{ divisionId: division.id, fromId: division.territoryId, targetId: target.id, startedWeek: nextWeek, stance: battleStance(profile, scenario) }];
           const input = {
             week: nextWeek,
             division,
             commander,
             target,
-            stance: battleStance(profile),
+            stance: battleStance(profile, scenario),
             enemyPressure: game.enemyPressure,
             intelNetwork: game.intelNetwork,
             doctrineBonus: config.doctrine === 'maneuver' && division.type === 'armor' ? 14 : config.doctrine === 'methodical' ? 7 : 4,
@@ -1198,7 +1298,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
       recordActions(prompts, nextWeek);
       const activeAgenda = getActiveNationAgenda(nationState);
       if (activeAgenda && (profile !== 'rushed' || nextWeek >= activeAgenda.expiresWeek)) {
-        const choiceId = chooseNationAgendaChoice(profile, activeAgenda.id, nextWeek);
+        const choiceId = chooseNationAgendaChoice(profile, activeAgenda.id, nextWeek, scenario);
         const agendaResult = resolveNationAgendaChoice(nationState, choiceId, nextWeek);
         if (agendaResult) {
           nationState = agendaResult.state;
@@ -1221,11 +1321,20 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
       // measures the full detect -> act -> verify loop instead of counting an ignored modal
       // as a permanent UX failure for otherwise attentive profiles.
       if (profile !== 'rushed' && coupRisk.tier !== 'stable' && nextWeek % 13 === 0) {
-        const preventionOrder = role.branch === 'politics'
+        const scenarioPreventionOrder = scenario?.crisisApproach === 'negotiation'
+          ? ['faction-dialogue', 'public-relief', 'security-audit', 'loyalty-review'] as const
+          : scenario?.crisisApproach === 'command'
+            ? ['loyalty-review', 'security-audit', 'public-relief', 'faction-dialogue'] as const
+            : scenario?.crisisApproach === 'counter-intelligence'
+              ? ['security-audit', 'loyalty-review', 'faction-dialogue', 'public-relief'] as const
+              : scenario?.crisisApproach === 'constitutional'
+                ? ['public-relief', 'faction-dialogue', 'loyalty-review', 'security-audit'] as const
+                : null;
+        const preventionOrder = scenarioPreventionOrder ?? (role.branch === 'politics'
           ? ['public-relief', 'faction-dialogue', 'security-audit', 'loyalty-review'] as const
           : role.branch === 'intelligence'
             ? ['public-relief', 'security-audit', 'faction-dialogue', 'loyalty-review'] as const
-            : ['public-relief', 'loyalty-review', 'security-audit', 'faction-dialogue'] as const;
+            : ['public-relief', 'loyalty-review', 'security-audit', 'faction-dialogue'] as const);
         const prevention = preventionOrder
           .map((id) => applyCoupPrevention(politicalState, contextBefore, role, id))
           .find((result) => result !== null);
@@ -1282,7 +1391,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
       }
 
       if (profile !== 'rushed' && nextWeek % 13 === 0 && (economy.inflation >= 10 || nationState.unrest >= 55 || nationState.mandateScore < 50)) {
-        const domain = budgetPriority(profile, nationState);
+        const domain = budgetPriority(profile, nationState, scenario);
         nationState = rebalanceNationBudget(nationState, domain, 5);
         if (economy.inflation >= 10) nationState = { ...nationState, spendingLevel: Math.max(35, nationState.spendingLevel - 1), taxBurden: Math.min(72, nationState.taxBurden + 1) };
         decisionInteractions += 1;
@@ -1479,11 +1588,12 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     game,
     state: worldHistoryState,
     trajectory: finalTrajectory,
-    careerSignature: `${role.id}:${role.branch}:tier-${role.tier}:${profile}`,
+    careerSignature: `${role.id}:${role.branch}:tier-${role.tier}:${profile}:${scenario?.combinationKey ?? 'legacy-profile'}`,
     recentDecisionSignature: endingDecisionTrace.slice(-96).join('|'),
     nationalPlanSignature: [
       `transition:${development.transition.archetype}:${actualTransitionWeek}`,
       `structure:${development.endingTags.join('+')}`,
+      `scenario:${scenario?.combinationKey ?? 'legacy-profile'}`,
       nationState.nationalPlanning.active?.id ?? 'no-active-plan',
       ...nationState.nationalPlanning.history.map((record) => `${record.planId}:${record.outcome}`),
       ...nationState.strategicContinuity.history.map((record) => `${record.operationId}:${record.outcome}`),
@@ -1500,6 +1610,8 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
   return {
     id,
     nationId: nation.id,
+    scenarioCombinationKey: scenario?.combinationKey ?? `legacy:${profile}`,
+    scenarioCombinationCode: scenario?.combinationCode ?? null,
     roleId: role.id,
     roleTier: role.tier,
     roleBranch: role.branch,
@@ -1580,7 +1692,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     finalWorldlineCode: finalWorldline.code,
     finalEndingId: finalWorldline.outcomeId,
     finalDominantForce: finalTrajectory.dominantForce,
-    worldChoiceSignature: worldHistoryEvents.map((event) => worldHistoryState.choices[event.id] ?? '-').join('|'),
+    worldChoiceSignature: `${scenario?.combinationKey ?? `legacy:${profile}`}::${worldHistoryEvents.map((event) => worldHistoryState.choices[event.id] ?? '-').join('|')}`,
     eraMetrics: [...eraMetrics.values()].sort((left, right) => left.startYear - right.startYear),
   };
 }

@@ -43,23 +43,37 @@ function resolvedFlashpointCount(completedDecisions: string[]) {
   return completedDecisions.filter((decision) => decision.startsWith(WORLD_FLASHPOINT_PREFIX)).length;
 }
 
-function resolvedFlashpointRecords(completedDecisions: string[]) {
-  return completedDecisions.flatMap((decision) => {
-    if (!decision.startsWith(WORLD_FLASHPOINT_PREFIX)) return [];
+function resolvedFlashpointState(completedDecisions: string[]) {
+  const ids = new Set<string>();
+  let count = 0;
+  let lastEventId: string | null = null;
+  let lastWeek = Number.NEGATIVE_INFINITY;
+  completedDecisions.forEach((decision) => {
+    if (!decision.startsWith(WORLD_FLASHPOINT_PREFIX)) return;
+    count += 1;
     const [eventId, , rawWeek] = decision.slice(WORLD_FLASHPOINT_PREFIX.length).split(':');
+    if (!eventId) return;
+    ids.add(eventId);
     const week = Number(rawWeek);
-    return eventId && Number.isFinite(week) ? [{ eventId, week }] : [];
-  }).sort((left, right) => right.week - left.week);
+    if (Number.isFinite(week) && week > lastWeek) {
+      lastWeek = week;
+      lastEventId = eventId;
+    }
+  });
+  return { ids, count, lastEventId };
+}
+
+function historicalHorizonFromCount(week: number, resolvedCount: number) {
+  const campaignYear = getCampaignYear(week);
+  const accelerationYears = Math.min(6, Math.max(0, Math.floor(Math.log2(resolvedCount + 1)) - 2));
+  return campaignYear + accelerationYears;
 }
 
 export function getHistoricalHorizon(week: number, completedDecisions: string[]) {
-  const campaignYear = getCampaignYear(week);
-  const resolvedCount = resolvedFlashpointCount(completedDecisions);
   // Institutional learning can bring a later development forward, but no longer turns every
   // quarterly choice into two whole years of acceleration. The logarithmic ceiling keeps the
   // late-century atlas alive without erasing alternate-history momentum.
-  const accelerationYears = Math.min(6, Math.max(0, Math.floor(Math.log2(resolvedCount + 1)) - 2));
-  return campaignYear + accelerationYears;
+  return historicalHorizonFromCount(week, resolvedFlashpointCount(completedDecisions));
 }
 
 export function createWorldFlashpointSelection(
@@ -88,10 +102,11 @@ export function selectNextWorldFlashpoint(
 ): WorldFlashpointSelection | null {
   if (week < WORLD_FLASHPOINT_INTERVAL_WEEKS) return null;
   const campaignYear = getCampaignYear(week);
-  const resolvedCount = resolvedFlashpointCount(completedDecisions);
-  const historicalHorizon = getHistoricalHorizon(week, completedDecisions);
+  const resolved = resolvedFlashpointState(completedDecisions);
+  const resolvedCount = resolved.count;
+  const historicalHorizon = historicalHorizonFromCount(week, resolvedCount);
   const eligible = timeline
-    .filter((entry) => !isWorldFlashpointResolved(entry.event.id, completedDecisions))
+    .filter((entry) => !resolved.ids.has(entry.event.id))
     .filter((entry) => entry.event.historicalYear <= historicalHorizon)
     .sort((left, right) => {
       const leftHistoricallyDue = left.event.historicalYear <= campaignYear ? 0 : 1;
@@ -100,8 +115,9 @@ export function selectNextWorldFlashpoint(
         || left.event.historicalYear - right.event.historicalYear
         || left.event.id.localeCompare(right.event.id);
     });
-  const lastResolved = resolvedFlashpointRecords(completedDecisions)[0];
-  const lastCategory = lastResolved ? timeline.find((entry) => entry.event.id === lastResolved.eventId)?.event.category : undefined;
+  const lastCategory = resolved.lastEventId
+    ? timeline.find((entry) => entry.event.id === resolved.lastEventId)?.event.category
+    : undefined;
   const historicallyDue = eligible.filter((entry) => entry.event.historicalYear <= campaignYear);
   const selectionPool = historicallyDue.length > 0 ? historicallyDue : eligible;
   const next = selectionPool.find((entry) => entry.event.category !== lastCategory) ?? selectionPool[0];

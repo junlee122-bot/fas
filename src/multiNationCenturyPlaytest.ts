@@ -1,4 +1,5 @@
 import { careerRoles, nations } from './campaign';
+import { createCenturyScenarioBlueprint, type CenturyScenarioBlueprint } from './centuryScenario';
 import {
   aggregateCenturySessions,
   CENTURY_PLAYTEST_WEEKS,
@@ -18,6 +19,7 @@ export const MULTI_NATION_TOTAL_SESSIONS = nations.length * MULTI_NATION_SESSION
 
 export interface NationCenturySessionResult extends LongHorizonSessionResult {
   nationScenarioId: number;
+  scenarioBlueprint: CenturyScenarioBlueprint;
 }
 
 export interface NationCenturyResult {
@@ -124,9 +126,16 @@ export function runNationCenturySession(
   nationScenarioId: number,
   weeksPlayed = CENTURY_PLAYTEST_WEEKS,
 ): NationCenturySessionResult {
-  const session = runLongHorizonSession(getNationCenturyEngineSessionId(nationId, nationScenarioId), weeksPlayed);
+  const nation = nations.find((candidate) => candidate.id === nationId);
+  if (!nation) throw new Error(`unknown nation: ${nationId}`);
+  const scenarioBlueprint = createCenturyScenarioBlueprint(nation.id, nationScenarioId);
+  const session = runLongHorizonSession(
+    getNationCenturyEngineSessionId(nationId, nationScenarioId),
+    weeksPlayed,
+    scenarioBlueprint,
+  );
   if (session.nationId !== nationId) throw new Error(`nation routing mismatch: expected ${nationId}, received ${session.nationId}`);
-  return { ...session, nationScenarioId };
+  return { ...session, nationScenarioId, scenarioBlueprint };
 }
 
 function buildCrossNationFindings(aggregate: MultiNationCenturyAggregate): MultiNationCenturyFinding[] {
