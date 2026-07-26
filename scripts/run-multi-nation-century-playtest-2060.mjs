@@ -1,7 +1,11 @@
 import { createServer } from 'vite';
 
 const server = await createServer({
-  server: { middlewareMode: true, hmr: false },
+  configFile: false,
+  server: {
+    middlewareMode: true,
+    hmr: { port: 25000 + (process.pid % 20000) },
+  },
   appType: 'custom',
   logLevel: 'warn',
 });

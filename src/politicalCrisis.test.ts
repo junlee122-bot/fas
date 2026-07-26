@@ -94,7 +94,8 @@ describe('coup risk simulation', () => {
     const assessment = assessCoupRisk(createPoliticalCrisisState('korea'), context('korea', true));
     expect(assessment.tier).toBe('critical');
     expect(assessment.score).toBeGreaterThanOrEqual(70);
-    expect(assessment.weeklyChance).toBeGreaterThan(10);
+    expect(assessment.weeklyChance).toBeGreaterThan(8);
+    expect(assessment.crisisLabel).toBe('건국 주도권 분열');
     expect(assessment.triggers[0].contribution).toBeGreaterThan(0);
   });
 
@@ -146,6 +147,8 @@ describe('office authority and crisis outcomes', () => {
         id: `forced-coup-${index}`,
         week: 20,
         nationId,
+        kind: 'regime-struggle',
+        crisisLabel: '왕실·정당·군 권력투쟁',
         title: '권력 장악 시도',
         leadingFactionId,
         riskScore: 100,

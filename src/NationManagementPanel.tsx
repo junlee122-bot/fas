@@ -51,6 +51,7 @@ import {
   type NationalPlanId,
 } from './strategicContinuity';
 import {
+  getActiveNationAgenda,
   nationBudgetDefinitions,
   nationStrategies,
   type CampaignPhase,
@@ -59,17 +60,25 @@ import {
   type NationStrategyId,
   type NationTransitionReason,
 } from './nationManagement';
+import type { NationAgendaChoiceId } from './nationDevelopment';
 import type { CareerRole, DiplomaticRelation, GameState, GameTab, NationProfile, StaffMember, Territory } from './types';
 
 interface TransitionReadiness {
   score: number;
   eligible: boolean;
+  threshold: number;
+  stabilityFloor: number;
+  earliestWeek: number;
+  transitionLabel: string;
+  transitionDescription: string;
+  blockedReasons: string[];
   pillars: {
     security: number;
     legitimacy: number;
     finance: number;
     industry: number;
     diplomacy: number;
+    sovereignty: number;
   };
 }
 
@@ -92,6 +101,7 @@ interface NationManagementPanelProps {
   onTaxChange: (delta: -5 | 5) => void;
   onSpendingChange: (delta: -5 | 5) => void;
   onStrategyChange: (strategyId: NationStrategyId) => void;
+  onNationAgendaChoice: (choiceId: NationAgendaChoiceId) => void;
   onGovernmentFormChange: (formId: GovernmentFormId) => void;
   onGrantTitle: (input: { recipientId: string; rankId: NobleRankId; domainId: string }) => void;
   onRevokeTitle: (grantId: string) => void;
@@ -145,6 +155,7 @@ export function NationManagementPanel({
   onTaxChange,
   onSpendingChange,
   onStrategyChange,
+  onNationAgendaChoice,
   onGovernmentFormChange,
   onGrantTitle,
   onRevokeTitle,
@@ -165,6 +176,15 @@ export function NationManagementPanel({
   const [selectedRankId, setSelectedRankId] = useState<NobleRankId>('baron');
   const [selectedMarriageNationId, setSelectedMarriageNationId] = useState('');
   const latestReport = state.reports[0] ?? null;
+  const activeAgenda = getActiveNationAgenda(state);
+  const transitionReasonLabel: Record<NationTransitionReason, string> = {
+    victory: '승전 계승 체제',
+    negotiated: '협상 종전 체제',
+    liberation: '해방 건국 체제',
+    independence: '독립 주권이양 체제',
+    restoration: '정부 복원 체제',
+    'regime-collapse': '전쟁체제 재건국',
+  };
   const localizeMoney = (text: string) => text.replace(/([+−-]?)£([\d.]+)M/g, (_match, sign: string, amount: string) => formatMoney(Number(amount) * (sign === '−' || sign === '-' ? -1 : 1), { signed: sign === '+' }));
   const electionWeeks = Math.max(0, state.nextElectionWeek - game.week);
   const currentStrategy = nationStrategies.find((strategy) => strategy.id === state.strategyId) ?? nationStrategies[0];
@@ -201,14 +221,15 @@ export function NationManagementPanel({
       { label: '재정 여력', value: readiness.pillars.finance, detail: '전후 예산을 버틸 국고' },
       { label: '산업 전환력', value: readiness.pillars.industry, detail: '군수 공장을 민수로 돌릴 기반' },
       { label: '외교 출구', value: readiness.pillars.diplomacy, detail: '강화 회담과 무역망의 신뢰' },
+      { label: '주권·대표성', value: readiness.pillars.sovereignty, detail: '해방·복원·독립 뒤 통치할 정치 기반' },
     ];
     return (
       <div className="nation-management nation-transition-planner">
         <section className="nation-transition-hero">
           <div>
             <span className="eyebrow">WAR TO STATE · 연속 캠페인</span>
-            <h2>전쟁을 끝내도, 이 세계선은 끝나지 않습니다</h2>
-            <p>전쟁에서 만든 국경·부채·물가·공장·연구·인물·외교 관계를 그대로 이어받아 {nation.shortName}의 전후 국가를 운영합니다. 완전 승전과 협상 종전은 서로 다른 출발 조건을 만듭니다.</p>
+            <h2>{readiness.transitionLabel}</h2>
+            <p>{readiness.transitionDescription} 전쟁에서 만든 국경·부채·물가·공장·연구·인물·외교 관계는 그대로 이어집니다.</p>
           </div>
           <div className={`transition-readiness-seal ${readiness.eligible ? 'ready' : ''}`}>
             <span>국가 전환 준비도</span>
@@ -219,7 +240,7 @@ export function NationManagementPanel({
 
         <div className="nation-transition-grid">
           <section className="nation-surface transition-pillars">
-            <header><div><span>전환 조건</span><h3>전쟁에서 국가로</h3></div><small>45점 이상 · 안정도 35 이상</small></header>
+            <header><div><span>전환 조건</span><h3>전쟁에서 국가로</h3></div><small>{readiness.threshold}점 이상 · 안정도 {readiness.stabilityFloor} 이상</small></header>
             <div className="transition-pillar-list">
               {pillarRows.map((pillar) => (
                 <div key={pillar.label} className="transition-pillar">
@@ -234,9 +255,9 @@ export function NationManagementPanel({
               disabled={!readiness.eligible}
               onClick={() => onTransition('negotiated')}
             >
-              <Handshake size={18} /> 협상 종전 후 국가 운영 시작 <ArrowRight size={17} />
+              <Handshake size={18} /> {readiness.transitionLabel} 승인 <ArrowRight size={17} />
             </button>
-            {!readiness.eligible && <p className="transition-lock-note">전선을 안정시키거나 국고·산업·외교 관계를 보강하면 협상 종전이 열립니다. 완전 승리 시에는 준비도와 관계없이 전환할 수 있습니다.</p>}
+            {!readiness.eligible && <p className="transition-lock-note">{readiness.blockedReasons.join(' · ')}. 전선·국고·산업·외교뿐 아니라 주권과 대표성을 함께 보강하십시오.</p>}
           </section>
 
           <section className="nation-surface inherited-state">
@@ -254,7 +275,7 @@ export function NationManagementPanel({
           <header><div><span>두 개의 종전 경로</span><h3>같은 나라, 다른 출발선</h3></div><small>{worldlineTitle}</small></header>
           <div>
             <article className="preferred"><CheckCircle2 /><h4>완전 승전 체제</h4><p>승전국의 외교 영향력과 국민적 위임을 얻지만, 넓어진 점령지·동원 해제·전쟁 부채를 동시에 관리해야 합니다.</p><b>전쟁 승리 화면에서 선택</b></article>
-            <article><Scale /><h4>협상 종전 체제</h4><p>더 일찍 민생 회복을 시작하고 인명·산업 손실을 줄이지만, 미완의 전선과 강경파 반발이 초기 정통성을 압박합니다.</p><b>{readiness.eligible ? '현재 선택 가능' : `준비도 ${Math.max(0, 45 - readiness.score)}점 추가 필요`}</b></article>
+            <article><Scale /><h4>{readiness.transitionLabel}</h4><p>{readiness.transitionDescription}</p><b>{readiness.eligible ? '현재 선택 가능' : `준비도 ${Math.max(0, readiness.threshold - readiness.score)}점 추가 필요`}</b></article>
           </div>
         </section>
       </div>
@@ -272,7 +293,7 @@ export function NationManagementPanel({
     <div className="nation-management nation-live-government">
       <section className="nation-government-hero">
         <div>
-          <span className="eyebrow">{nation.code} NATIONAL GOVERNMENT · {state.transitionReason === 'victory' ? '승전 계승 체제' : '협상 종전 체제'}</span>
+          <span className="eyebrow">{nation.code} NATIONAL GOVERNMENT · {transitionReasonLabel[state.transitionReason]}</span>
           <h2>{nation.shortName} 국가 운영 내각</h2>
           <p>{worldlineTitle} · 영토 확장보다 국민의 삶, 제도의 지속성, 경제와 외교에서 국가의 성과를 증명해야 합니다.</p>
         </div>
@@ -295,6 +316,50 @@ export function NationManagementPanel({
           const MetricIcon = Icon as typeof Factory;
           return <article key={label as string} className={danger && Number(value) > 55 ? 'warning' : ''}><MetricIcon /><span>{label as string}</span><strong>{Math.round(Number(value))}</strong><MetricBar value={Number(value)} danger={Boolean(danger)} /></article>;
         })}
+      </section>
+
+      <section className="nation-surface national-agenda-board" aria-labelledby="national-agenda-title">
+        <header>
+          <div><span>국가 고유 의제</span><h3 id="national-agenda-title">{activeAgenda?.title ?? '다음 구조 의제 준비 중'}</h3></div>
+          <small>{activeAgenda ? `결론까지 ${Math.max(0, activeAgenda.expiresWeek - game.week)}주` : `다음 의제까지 ${Math.max(0, state.agenda.nextIssueWeek - game.week)}주`}</small>
+        </header>
+        {activeAgenda ? (
+          <>
+            <div className="national-agenda-briefing">
+              <ScrollText />
+              <div><strong>{activeAgenda.briefing}</strong><p>{activeAgenda.stakes}</p></div>
+            </div>
+            <div className="national-agenda-options">
+              {(Object.entries(activeAgenda.options) as Array<[NationAgendaChoiceId, (typeof activeAgenda.options)[NationAgendaChoiceId]]>).map(([choiceId, choice]) => (
+                <button key={choiceId} onClick={() => onNationAgendaChoice(choiceId)}>
+                  <span>{choiceId === 'bargain' ? '대표협상' : choiceId === 'invest' ? '집중투자' : '중앙집행'}</span>
+                  <strong>{choice.label}</strong>
+                  <small>{choice.description}</small>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="continuity-empty-state">국가마다 다른 주기로 외교·지역·헌정·독립·사회경제 의제가 열립니다. 장기 진행은 의제나 위기가 생기면 자동으로 멈춥니다.</p>
+        )}
+      </section>
+
+      <section className="nation-surface structural-pressure-board" aria-labelledby="structural-pressure-title">
+        <header>
+          <div><span>사회 불안 구조</span><h3 id="structural-pressure-title">사라지는 수치가 아니라 계속 재생되는 갈등</h3></div>
+          <small>현재 {state.unrest.toFixed(1)} · 구조 목표 {state.structuralPressure.targetUnrest.toFixed(1)} · 최소 {state.structuralPressure.floor}</small>
+        </header>
+        <div className="structural-pressure-summary">
+          <div><Activity /><span><strong>최대 압력 · {state.structuralPressure.dominantDriver}</strong><small>정책 완화 효과 {state.structuralPressure.policyRelief.toFixed(1)}</small></span></div>
+          <MetricBar value={state.structuralPressure.targetUnrest} danger />
+        </div>
+        <div className="structural-pressure-drivers">
+          {state.structuralPressure.drivers.slice(0, 5).map((driver) => (
+            <article key={driver.id}>
+              <span>{driver.label}</span><strong>+{driver.value.toFixed(1)}</strong><small>{driver.detail}</small>
+            </article>
+          ))}
+        </div>
       </section>
 
       <NationalSimulationOverview snapshot={nationalSimulation} phase="nation" onNavigate={onNavigate} />

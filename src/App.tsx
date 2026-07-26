@@ -222,8 +222,10 @@ import {
   nationStrategies,
   normalizeNationManagementState,
   rebalanceNationBudget,
+  resolveNationAgendaChoice,
 } from './nationManagement';
 import type { CampaignPhase, NationBudgetDomain, NationStrategyId, NationTransitionReason } from './nationManagement';
+import type { NationAgendaChoiceId } from './nationDevelopment';
 import {
   adoptGovernmentForm,
   arrangeDynasticMarriage,
@@ -656,8 +658,8 @@ export function App() {
     [relations],
   );
   const transitionReadiness = useMemo(
-    () => calculateTransitionReadiness(game, relationAverage, economy),
-    [economy, game, relationAverage],
+    () => calculateTransitionReadiness(game, relationAverage, economy, playerNation.id),
+    [economy, game, playerNation.id, relationAverage],
   );
   const koreaLiberationReadiness = useMemo(() => playerNation.id === 'korea' ? assessKoreaLiberationReadiness({
     politicalPower: game.politicalPower,
@@ -905,10 +907,10 @@ export function App() {
     const coupAction: UXAction | null = coupRisk.tier === 'stable' ? null : {
       id: 'political-crisis',
       priority: coupRisk.tier === 'critical' || coupRisk.tier === 'dangerous' ? 'urgent' : 'recommended',
-      title: `쿠데타 위험 ${getCoupRiskLabel(coupRisk.tier)} · ${coupRisk.score}`,
+      title: `${coupRisk.crisisLabel} 위험 ${getCoupRiskLabel(coupRisk.tier)} · ${coupRisk.score}`,
       detail: `${coupRisk.leadingFaction.name}의 불만·조직력과 국내 대립이 누적되고 있습니다. 다음 주 시도 확률 ${coupRisk.weeklyChance.toFixed(1)}%.`,
       reason: `${coupRisk.leadingFaction.name} 주도 · 위험 점수 ${coupRisk.score}`,
-      ifIgnored: `다음 주 쿠데타 시도 확률 ${coupRisk.weeklyChance.toFixed(1)}%가 그대로 적용됩니다.`,
+      ifIgnored: `다음 주 ${coupRisk.crisisLabel} 발생 확률 ${coupRisk.weeklyChance.toFixed(1)}%가 그대로 적용됩니다.`,
       resolution: '파벌·기관 대응 즉시 · 다음 주 정치위기 판정에서 검증',
       instruction: '최대 위험 파벌과 장악 기관을 확인하고 회유·감찰·인사 조치 중 권한과 자원에 맞는 대응을 선택하십시오.',
       label: '정치위기 상황실',
@@ -1516,7 +1518,7 @@ export function App() {
         decision: '주간 국정·전쟁 수행 결과가 국내 권력관계에 반영됐습니다.',
         trigger: result.assessment.triggers.filter((item) => item.contribution > 0).slice(0, 4).map((item) => `${item.label} +${item.contribution.toFixed(1)}`).join(' · '),
         factors: result.assessment.triggers.slice(0, 5).map((item) => `${item.label}: ${item.detail}`),
-        effects: [{ label: '쿠데타 위험', value: `${getCoupRiskLabel(result.assessment.tier)} ${result.assessment.score} · 주간 ${result.assessment.weeklyChance.toFixed(1)}%`, tone: result.assessment.tier === 'stable' ? 'positive' : result.assessment.tier === 'watch' ? 'neutral' : 'negative' }],
+        effects: [{ label: result.assessment.crisisLabel, value: `${getCoupRiskLabel(result.assessment.tier)} ${result.assessment.score} · 주간 ${result.assessment.weeklyChance.toFixed(1)}%`, tone: result.assessment.tier === 'stable' ? 'positive' : result.assessment.tier === 'watch' ? 'neutral' : 'negative' }],
         ongoing: ['정치위기 상황실에서 권력집단 불만, 조직력, 상호관계와 예방조치를 확인할 수 있습니다.'],
         nextActions: ['권한이 허용하는 예방조치를 실행하거나 안정도·재정·보급·참모 충성을 회복하십시오.'],
         certainty: 'forecast',
@@ -1533,7 +1535,7 @@ export function App() {
       week,
       {
         domain: 'management',
-        decision: '아직 결정하지 않음 — 쿠데타 대응 명령이 필요합니다.',
+        decision: `아직 결정하지 않음 — ${result.assessment.crisisLabel} 대응 명령이 필요합니다.`,
         trigger: result.assessment.triggers.filter((item) => item.contribution > 0).slice(0, 5).map((item) => `${item.label} +${item.contribution.toFixed(1)}`).join(' · '),
         factors: result.assessment.triggers.slice(0, 6).map((item) => item.detail),
         effects: [{ label: '진행 상태', value: '시간 정지 · 대응 대기', tone: 'negative' }],
@@ -2344,7 +2346,7 @@ export function App() {
       return;
     }
     if (reason === 'negotiated' && !transitionReadiness.eligible) {
-      notify(`국가 전환 준비도가 ${transitionReadiness.score}/45입니다. 안정도·재정·산업·외교 기반을 먼저 보강하십시오.`);
+      notify(`${transitionReadiness.transitionLabel} 준비도 ${transitionReadiness.score}/${transitionReadiness.threshold}입니다. ${transitionReadiness.blockedReasons.join(' · ')}`);
       return;
     }
     let nextState = createNationManagementState(
@@ -2450,6 +2452,28 @@ export function App() {
   const changeNationStrategy = (strategyId: NationStrategyId) => {
     setNationManagement((current) => ({ ...current, strategyId }));
     notify(`${nationStrategies.find((strategy) => strategy.id === strategyId)?.name ?? '국가 발전 노선'}을 내각의 장기 노선으로 채택했습니다.`);
+  };
+
+  const decideNationAgenda = (choiceId: NationAgendaChoiceId) => {
+    const result = resolveNationAgendaChoice(nationManagement, choiceId, game.week);
+    if (!result) {
+      notify('현재 결재할 국가 고유 의제가 없습니다.');
+      return;
+    }
+    setNationManagement(result.state);
+    setGame((current) => applyGameDelta(current, result.gameDelta));
+    setEconomy((current) => ({
+      ...current,
+      debt: Math.max(0, current.debt + result.economyDelta.debt),
+      inflation: Math.max(0, Math.min(100, current.inflation + result.economyDelta.inflation)),
+      publicConfidence: Math.max(0, Math.min(100, current.publicConfidence + result.economyDelta.publicConfidence)),
+    }));
+    setCompletedDecisions((current) => [
+      ...current,
+      `nation-agenda:${playerNation.id}:${result.state.agenda.history[0]?.issueId ?? 'unknown'}:${choiceId}:${game.week}`,
+    ]);
+    addEvent(result.title, `${result.detail} ${result.effects.join(' · ')}`, choiceId === 'enforce' ? 'neutral' : 'good', game.week);
+    notify(`${result.title}: ${result.effects.join(' · ')}`);
   };
 
   const launchPeacetimeStrategicOperation = (operationId: string) => {
@@ -5096,9 +5120,9 @@ export function App() {
             <Landmark size={15} />
             <span><small>{isKoreaWarCampaign ? 'LIBERATION GOVERNMENT' : campaignPhase === 'nation' ? 'POSTWAR GOVERNMENT' : 'WAR GOVERNMENT'}</small><strong>{isKoreaWarCampaign ? `해방·건국 준비 ${transitionReadiness.score}` : campaignPhase === 'nation' ? '국가 운영 단계' : `전환 준비 ${transitionReadiness.score}`}</strong></span>
           </button>
-          <button className={`political-crisis-chip ${coupRisk.tier}`} onClick={() => { setSpeed(0); setShowPoliticalCrisis(true); }} aria-label={`${isKoreaWarCampaign ? '독립운동 내부 갈등' : '국내 정치위기'} 상황실, 쿠데타 위험 ${getCoupRiskLabel(coupRisk.tier)} ${coupRisk.score}점`}>
+          <button className={`political-crisis-chip ${coupRisk.tier}`} onClick={() => { setSpeed(0); setShowPoliticalCrisis(true); }} aria-label={`${coupRisk.crisisLabel} 상황실, 위험 ${getCoupRiskLabel(coupRisk.tier)} ${coupRisk.score}점`}>
             <ShieldAlert size={16} />
-            <span><small>{isKoreaWarCampaign ? '독립운동 내부 갈등' : '국내 정치위기'}</small><strong>{getCoupRiskLabel(coupRisk.tier)} {coupRisk.score}</strong></span>
+            <span><small>{coupRisk.crisisLabel}</small><strong>{getCoupRiskLabel(coupRisk.tier)} {coupRisk.score}</strong></span>
             {coupRisk.tier === 'critical' && <em aria-hidden="true" />}
           </button>
           <button className={`health-command-chip ${publicHealthView.activeOutbreak ? 'crisis' : ''}`} onClick={() => setActiveTab('health')} aria-label={publicHealthView.activeOutbreak ? `${publicHealthView.activeOutbreak.codeName} 보건 위기 지휘실 열기` : `보건 대비 본부 열기, 다음 주 발병 확률 ${(publicHealthView.weeklyRisk * 100).toFixed(2)}퍼센트`}>
@@ -5529,9 +5553,10 @@ export function App() {
                   onTransition={transitionToNationManagement}
                   onBudgetChange={changeNationBudget}
                   onTaxChange={changeNationTax}
-                  onSpendingChange={changeNationSpending}
-                  onStrategyChange={changeNationStrategy}
-                  onGovernmentFormChange={changeGovernmentForm}
+                   onSpendingChange={changeNationSpending}
+                   onStrategyChange={changeNationStrategy}
+                   onNationAgendaChoice={decideNationAgenda}
+                   onGovernmentFormChange={changeGovernmentForm}
                   onGrantTitle={appointNobleTitle}
                   onRevokeTitle={revokeNobleTitle}
                   onArrangeMarriage={arrangeRoyalMarriage}

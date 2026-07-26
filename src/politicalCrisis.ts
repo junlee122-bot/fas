@@ -1,5 +1,6 @@
 import type { EconomyState } from './economy';
 import { getDynasticWeeklyEffects, getGovernmentForm } from './dynasticPolitics';
+import { getNationDevelopmentProfile, type PoliticalRuptureKind } from './nationDevelopment';
 import type { CampaignPhase, NationManagementState } from './nationManagement';
 import type { CareerRole, GameState, NationId } from './types';
 
@@ -77,12 +78,15 @@ export interface CoupRiskAssessment {
   triggers: CoupRiskTrigger[];
   leadingFaction: PoliticalFactionDefinition;
   weakestRelation: { pair: string; value: number };
+  crisisLabel: string;
 }
 
 export interface CoupIncident {
   id: string;
   week: number;
   nationId: NationId;
+  kind: PoliticalRuptureKind;
+  crisisLabel: string;
   title: string;
   leadingFactionId: string;
   riskScore: number;
@@ -287,6 +291,7 @@ function riskTier(score: number): CoupRiskTier {
 
 export function assessCoupRisk(state: PoliticalCrisisState, context: PoliticalCrisisContext): CoupRiskAssessment {
   const profile = getNationPoliticalProfile(state.nationId);
+  const development = getNationDevelopmentProfile(state.nationId);
   const weakestRelationEntry = Object.entries(state.relations).sort((left, right) => left[1] - right[1])[0] ?? ['', 50];
   const leadingFaction = [...profile.factions].sort((left, right) => {
     const leftState = state.factionStandings[left.id];
@@ -310,7 +315,10 @@ export function assessCoupRisk(state: PoliticalCrisisState, context: PoliticalCr
     { id: 'election', label: activeElection ? '선거 불복·정치 양극화' : '선거제도 신뢰', contribution: context.phase === 'nation' ? Math.max(0, 52 - context.nation.electoral.electoralIntegrity) * 0.18 + Math.max(0, (activeElection?.polarization ?? 0) - 55) * 0.14 : 0, detail: activeElection ? `절차 신뢰 ${activeElection.integrity.toFixed(1)} · 양극화 ${activeElection.polarization.toFixed(1)} · ${activeElection.stage}` : `선거 신뢰 ${context.nation.electoral.electoralIntegrity.toFixed(1)} · 진행 중 선거 없음` },
     { id: 'intelligence', label: '방첩 억제력', contribution: -Math.max(0, context.game.intelNetwork - 45) * 0.11, detail: `정보망 ${Math.round(context.game.intelNetwork)}가 사전 적발 가능성을 높입니다.` },
   ].map((trigger) => ({ ...trigger, contribution: round(trigger.contribution) }));
-  const raw = triggers.reduce((total, trigger) => total + trigger.contribution, 8 + Math.min(4, state.weeksInDanger * 0.35));
+  const raw = triggers.reduce(
+    (total, trigger) => total + trigger.contribution,
+    8 + development.crisis.riskBias + Math.min(4, state.weeksInDanger * 0.35),
+  );
   const score = Math.round(clamp(raw));
   const tier = riskTier(score);
   const weeklyChance = tier === 'stable' || tier === 'watch' ? 0 : round(Math.min(12, 0.6 + (score - 50) * 0.2 + Math.min(24, state.weeksInDanger) * 0.12));
@@ -321,6 +329,7 @@ export function assessCoupRisk(state: PoliticalCrisisState, context: PoliticalCr
     triggers: triggers.sort((left, right) => right.contribution - left.contribution),
     leadingFaction,
     weakestRelation: { pair: weakestRelationEntry[0], value: weakestRelationEntry[1] },
+    crisisLabel: development.crisis.label,
   };
 }
 
@@ -346,6 +355,7 @@ function updateFactionStanding(definition: PoliticalFactionDefinition, standing:
 
 export function advancePoliticalCrisisWeek(state: PoliticalCrisisState, context: PoliticalCrisisContext): PoliticalWeekResult {
   const profile = getNationPoliticalProfile(state.nationId);
+  const development = getNationDevelopmentProfile(state.nationId);
   const activeElection = context.nation.electoral.activeCampaign;
   const factionStandings = Object.fromEntries(profile.factions.map((definition) => [definition.id, updateFactionStanding(definition, state.factionStandings[definition.id], context)]));
   const averageGrievance = Object.values(factionStandings).reduce((total, item) => total + item.grievance, 0) / profile.factions.length;
@@ -365,7 +375,7 @@ export function advancePoliticalCrisisWeek(state: PoliticalCrisisState, context:
   // A coup is a generational political rupture, not a quarterly nuisance modal. Wartime can
   // still produce rapid instability, while a postwar state receives at least two years to
   // absorb the last attempt and make prevention choices meaningful.
-  const cooldownWeeks = context.phase === 'nation' ? 416 : 104;
+  const cooldownWeeks = context.phase === 'nation' ? development.crisis.cooldownWeeks : 104;
   const cooldownReady = state.lastCoupWeek === null || context.week - state.lastCoupWeek >= cooldownWeeks;
   const roll = deterministicPercent(`${state.nationId}:${context.week}:${state.attempts}:${assessment.leadingFaction.id}`);
   const shouldTrigger = context.week >= 6 && cooldownReady && assessment.weeklyChance > 0 && roll < assessment.weeklyChance;
@@ -378,7 +388,9 @@ export function advancePoliticalCrisisWeek(state: PoliticalCrisisState, context:
     id: `coup-${state.nationId}-${context.week}-${state.attempts + 1}`,
     week: context.week,
     nationId: state.nationId,
-    title: `${assessment.leadingFaction.name}의 ${activeElection && activeElection.integrity < 48 ? '개표 불복·권력 장악 시도' : getGovernmentForm(context.nation.dynasty.formId).monarchy ? (context.nation.dynasty.successionSecurity < 42 ? '왕위 찬탈' : '궁정 쿠데타') : (detected ? '쿠데타 음모 적발' : '권력 장악 시도')}`,
+    kind: development.crisis.kind,
+    crisisLabel: development.crisis.label,
+    title: `${assessment.leadingFaction.name}의 ${activeElection && activeElection.integrity < 48 ? '개표 불복·권력 장악 시도' : getGovernmentForm(context.nation.dynasty.formId).monarchy ? (context.nation.dynasty.successionSecurity < 42 ? '왕위 찬탈' : '궁정 쿠데타') : development.crisis.attemptLabel}${detected ? ' · 사전 징후 포착' : ''}`,
     leadingFactionId: assessment.leadingFaction.id,
     riskScore: assessment.score,
     weeklyChance: assessment.weeklyChance,
@@ -388,7 +400,7 @@ export function advancePoliticalCrisisWeek(state: PoliticalCrisisState, context:
       : '수도 핵심시설과 명령망 일부가 이미 흔들리고 있습니다. 제한된 정보 속에서 즉시 대응해야 합니다.',
     historicalEcho: profile.historicalContext,
   };
-  nextState = { ...nextState, lastCoupWeek: context.week, attempts: state.attempts + 1, lastOutcome: '쿠데타 대응 대기' };
+  nextState = { ...nextState, lastCoupWeek: context.week, attempts: state.attempts + 1, lastOutcome: `${development.crisis.label} 대응 대기` };
   return { state: nextState, assessment, incident, notices };
 }
 
@@ -431,6 +443,7 @@ export function resolveCoupAttempt(state: PoliticalCrisisState, incident: CoupIn
   const compromise = !success && responseId === 'faction-negotiation' && roll < forecast.successChance + 24;
   const outcome: CoupResolution['outcome'] = success ? 'prevented' : compromise ? 'compromise' : 'successful';
   const profile = getNationPoliticalProfile(state.nationId);
+  const development = getNationDevelopmentProfile(state.nationId);
   const leader = profile.factions.find((item) => item.id === incident.leadingFactionId) ?? profile.factions[0];
   const leaderStanding = state.factionStandings[leader.id];
   const directCosts: Partial<Record<keyof GameState, number>> = responseId === 'constitutional-appeal' ? { politicalPower: -8 }
@@ -444,11 +457,11 @@ export function resolveCoupAttempt(state: PoliticalCrisisState, incident: CoupIn
         prevented: state.prevented + 1,
         weeksInDanger: Math.max(0, state.weeksInDanger - 4),
         lastRiskTier: 'watch',
-        lastOutcome: `${leader.name} 쿠데타 저지`,
+        lastOutcome: `${leader.name} ${development.crisis.label} 저지`,
         factionStandings: { ...state.factionStandings, [leader.id]: { ...leaderStanding, grievance: clamp(leaderStanding.grievance - 12), organization: clamp(leaderStanding.organization - 18) } },
       },
       outcome,
-      title: '쿠데타 진압 — 지휘체계 유지',
+      title: `${development.crisis.label} 저지 — 지휘체계 유지`,
       detail: `${leader.name}의 실행망을 분리하고 정부 지휘권을 지켰습니다. 관련 파벌은 약화됐지만 정치적 후유증은 남습니다.`,
       gameDelta: { ...directCosts, stability: (directCosts.stability ?? 0) + 3, warSupport: 2 },
       careerDelta: { reputation: 5, councilTrust: 6, legacy: 2 },
@@ -467,7 +480,7 @@ export function resolveCoupAttempt(state: PoliticalCrisisState, incident: CoupIn
         factionStandings: { ...state.factionStandings, [leader.id]: { ...leaderStanding, grievance: clamp(leaderStanding.grievance - 20), support: clamp(leaderStanding.support + 7) } },
       },
       outcome,
-      title: '쿠데타 봉합 — 권력분점 합의',
+      title: `${development.crisis.label} 봉합 — 권력분점 합의`,
       detail: `${leader.name}이 무력행동을 중단하는 대신 내각·군 지휘권 일부를 얻었습니다. 정권은 생존했지만 이후 결정 자유가 좁아집니다.`,
       gameDelta: { ...directCosts, stability: -1, politicalPower: (directCosts.politicalPower ?? 0) - 5 },
       careerDelta: { reputation: -2, councilTrust: -3, legacy: 1 },
@@ -494,8 +507,8 @@ export function resolveCoupAttempt(state: PoliticalCrisisState, incident: CoupIn
       relations: Object.fromEntries(Object.entries(state.relations).map(([key, value]) => [key, Math.max(42, value)])),
     },
     outcome,
-    title: '쿠데타 성공 — 정권 교체',
-    detail: `${leader.name}이 핵심 국가기관을 장악해 ${successor}을(를) 세웠습니다. 캠페인은 끝나지 않으며, 사용자는 새 권력구조 속에서 보직과 영향력을 다시 확보해야 합니다.`,
+    title: `${development.crisis.successLabel} — 권력구조 교체`,
+    detail: `${leader.name}이 핵심 국가기관을 장악해 ${successor}을(를) 세웠습니다. 이 사건은 ${development.crisis.kind}의 결과이며 캠페인은 끝나지 않으며, 사용자는 새 권력구조 속에서 보직과 영향력을 다시 확보해야 합니다.`,
     gameDelta: { ...directCosts, stability: -14, warSupport: -7, politicalPower: -18, commandPoints: -10, treasury: -80 },
     careerDelta: { reputation: -12, councilTrust: -18, legacy: -2 },
     nationDelta: { unrest: 14, legitimacy: -16, mandateScore: -12 },

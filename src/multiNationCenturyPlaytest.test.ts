@@ -15,6 +15,8 @@ describe('multi-nation century playtest harness', () => {
     expect(run.aggregate.totalSessions).toBe(nations.length);
     expect(new Set(sessions.map((session) => session.nationId)).size).toBe(nations.length);
     expect(Object.values(run.aggregate.byNation).every((nation) => nation.sessions === 1)).toBe(true);
+    expect(run.aggregate.transitionArchetypeCoverage).toBeGreaterThan(1);
+    expect(Object.values(run.aggregate.byNation).every((nation) => nation.averageFinalStructuralUnrestTarget >= nation.averageFinalStructuralUnrestFloor)).toBe(true);
   }, 60_000);
 
   it('uses stable, non-overlapping engine session ids', () => {

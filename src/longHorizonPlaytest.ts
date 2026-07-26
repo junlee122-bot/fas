@@ -27,12 +27,16 @@ import { assessKoreaLiberationReadiness, type KoreaLiberationAssessment } from '
 import { createLaterEraCandidates } from './laterEraFigures';
 import {
   advanceNationManagementWeek,
+  calculateTransitionReadiness,
   createNationManagementState,
+  getActiveNationAgenda,
   rebalanceNationBudget,
+  resolveNationAgendaChoice,
   type NationBudgetDomain,
   type NationManagementState,
   type NationStrategyId,
 } from './nationManagement';
+import { getNationDevelopmentProfile, getNationTransitionSchedule, type NationAgendaChoiceId } from './nationDevelopment';
 import {
   applyCoupPrevention,
   advancePoliticalCrisisWeek,
@@ -120,6 +124,7 @@ export interface LongHorizonSessionResult {
   endYear: number;
   transitionWeek: number;
   transitionYear: number;
+  transitionArchetype: string;
   koreaLiberationAtTransition: KoreaLiberationAssessment | null;
   koreaTransitionMode: 'fixed-timer' | 'readiness' | 'deadline' | null;
   warWeeks: number;
@@ -135,6 +140,7 @@ export interface LongHorizonSessionResult {
   battleCount: number;
   battleVictories: number;
   strategicOperationCount: number;
+  nationAgendaDecisionCount: number;
   councilDecisionCount: number;
   uniqueCouncilEvents: number;
   historicalCouncilEventsSeen: number;
@@ -184,6 +190,8 @@ export interface LongHorizonSessionResult {
   finalNationalScore: number;
   finalMandateScore: number;
   finalUnrest: number;
+  finalStructuralUnrestTarget: number;
+  finalStructuralUnrestFloor: number;
   finalResearchCompleted: number;
   finalWorldlineCode: string;
   finalEndingId: string;
@@ -473,6 +481,10 @@ function nationPromptSet(
     id: 'nation-election-campaign',
     priority: nation.electoral.activeCampaign.electionWeek - nation.reports[0]?.week <= 2 ? 'urgent' : 'recommended',
   });
+  if (getActiveNationAgenda(nation)) actions.unshift({
+    id: 'nation-structural-agenda',
+    priority: getActiveNationAgenda(nation)!.expiresWeek - (nation.reports[0]?.week ?? 0) <= 4 ? 'urgent' : 'recommended',
+  });
   if (hasOutbreak) actions.push({ id: 'nation-health', priority: 'urgent' });
   if (coupRisk.tier !== 'stable') actions.unshift({
     id: 'political-crisis',
@@ -534,6 +546,14 @@ function chooseWorldVariantIndex(profile: LongHorizonProfile, eventId: string, w
   const configured = profileConfigs[profile].worldVariant;
   if (configured !== 'rotate') return configured;
   return (Math.floor(stableRoll(`${profile}:${eventId}:${week}:world`) * 3) % 3) as 0 | 1 | 2;
+}
+
+function chooseNationAgendaChoice(profile: LongHorizonProfile, issueId: string, week: number): NationAgendaChoiceId {
+  if (profile === 'guided') return 'bargain';
+  if (profile === 'state-builder') return 'invest';
+  if (profile === 'military' || profile === 'rushed') return 'enforce';
+  const choices: NationAgendaChoiceId[] = ['bargain', 'invest', 'enforce'];
+  return choices[Math.floor(stableRoll(`${profile}:${issueId}:${week}:nation-agenda`) * choices.length) % choices.length];
 }
 
 function budgetPriority(profile: LongHorizonProfile, nation: NationManagementState): NationBudgetDomain {
@@ -683,6 +703,8 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
   const role = nationRoles[Math.floor(id / nations.length) % nationRoles.length];
   const profile = profiles[id % profiles.length];
   const config = profileConfigs[profile];
+  const development = getNationDevelopmentProfile(nation.id);
+  const transitionSchedule = getNationTransitionSchedule(nation.id, config.transitionWeek, id);
   let game: GameState = { ...baseGame, ...nation.modifiers };
   let stockpile = { ...baseStockpile };
   let production = createCampaignProduction(nation);
@@ -730,6 +752,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
   const longestActionRun: Record<string, number> = {};
   const actionVerificationUntil = new Map<string, number>();
   const endingDecisionWeeks = new Set<number>();
+  const endingDecisionTrace: string[] = [];
   const eraMetrics = new Map<string, LongHorizonEraMetric>();
   let actionPrompts = 0;
   let urgentPromptWeeks = 0;
@@ -771,7 +794,10 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
   let staffWeeksAdvanced = 0;
   let expiredStaffAtTransition = 0;
   let laterEraCandidatesAtTransition = 0;
-  let actualTransitionWeek = Math.min(config.transitionWeek, weeksPlayed);
+  // A short diagnostic run can end before a country reaches its transition gate.
+  // In that case the whole run remains wartime instead of reporting the planned
+  // target week as though the transition had actually happened.
+  let actualTransitionWeek = weeksPlayed;
   let koreaLiberationAtTransition: KoreaLiberationAssessment | null = null;
   let koreaTransitionMode: LongHorizonSessionResult['koreaTransitionMode'] = null;
   const discoveredLaterEraIds = new Set<string>();
@@ -802,6 +828,11 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
   const markActionHandled = (actionId: string, week: number, verificationWeeks = 13) => {
     actionVerificationUntil.set(actionId, week + verificationWeeks);
   };
+  const recordDecisionTrace = (week: number, signature: string) => {
+    endingDecisionWeeks.add(week);
+    endingDecisionTrace.push(`${getCampaignYear(week)}:${signature}`);
+    if (endingDecisionTrace.length > 128) endingDecisionTrace.shift();
+  };
 
   const applyCouncilChoice = (week: number) => {
     const resolvedChoices = [...resolvedCouncilIds].map((eventId) => `${eventId}:resolved`);
@@ -826,7 +857,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     councilDecisionCount += 1;
     decisionInteractions += 1;
     interruptionCount += 1;
-    endingDecisionWeeks.add(week);
+    recordDecisionTrace(week, `council:${councilEvent.id}:${choice.id}`);
     return true;
   };
 
@@ -860,7 +891,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     lastFlashpointYear = campaignYear;
     decisionInteractions += 1;
     interruptionCount += 1;
-    endingDecisionWeeks.add(week);
+    recordDecisionTrace(week, `world:${selection.entry.event.id}:${variant.id}`);
     return true;
   };
 
@@ -871,7 +902,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     if (!result.incident) return false;
     coupAttempts += 1;
     interruptionCount += 1;
-    endingDecisionWeeks.add(week);
+    recordDecisionTrace(week, `crisis:${result.incident.kind}:${result.incident.leadingFactionId}`);
     const forecasts = getCoupResponseForecasts(result.incident, role, context)
       .filter((forecast) => forecast.allowed)
       .sort((left, right) => right.successChance - left.successChance);
@@ -898,6 +929,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     else if (resolution.outcome === 'compromise') coupCompromises += 1;
     else coupSuccesses += 1;
     decisionInteractions += 1;
+    recordDecisionTrace(week, `crisis-resolution:${resolution.outcome}:${forecasts[0]?.id ?? 'none'}`);
     markActionHandled('political-crisis', week, 26);
     return true;
   };
@@ -927,7 +959,14 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
       koreaLiberationAtTransition = getKoreaLiberationAssessment(week);
     }
     phase = 'nation';
-    nationState = createNationManagementState(nation.id, game, economy, research.filter((project) => project.complete).length, 'negotiated');
+    nationState = createNationManagementState(
+      nation.id,
+      game,
+      economy,
+      research.filter((project) => project.complete).length,
+      development.transition.outcome,
+    );
+    recordDecisionTrace(week, `transition:${development.transition.archetype}:${development.transition.outcome}:${mode}`);
     if (koreaLiberationAtTransition) {
       nationState = {
         ...nationState,
@@ -1024,7 +1063,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
       let battleRequested = nextWeek % config.battleCadence === 0;
       attempts.forEach((action) => {
         decisionInteractions += 1;
-        endingDecisionWeeks.add(nextWeek);
+        recordDecisionTrace(nextWeek, `war-action:${action.id}`);
         markActionHandled(action.id, nextWeek, 4);
         if (action.id === 'idle-factories') production = completeFactories(production, game.factories);
         if (action.id === 'research-slot') research = fillOpenResearchSlots(research, getCampaignYear(nextWeek));
@@ -1085,7 +1124,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
           battleCount += 1;
           if (report.victory) battleVictories += 1;
           decisionInteractions += 1;
-          endingDecisionWeeks.add(nextWeek);
+          recordDecisionTrace(nextWeek, `battle:${target.id}:${report.victory ? 'victory' : 'defeat'}:${input.stance}`);
         }
       }
       orders = [];
@@ -1133,14 +1172,23 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
       const openedCoup = processPoliticalCrisis(nextWeek);
       const openedFlashpoint = !openedCoup && nextWeek % WORLD_FLASHPOINT_INTERVAL_WEEKS === 0 && applyWorldFlashpoint(nextWeek);
       if (!openedCoup && !openedFlashpoint && nextWeek % 52 === 26) applyCouncilChoice(nextWeek);
-      if (nextWeek >= config.transitionWeek) {
+      if (nextWeek >= transitionSchedule.earliestWeek) {
+        const readiness = calculateTransitionReadiness(
+          { ...game, week: nextWeek },
+          average(relations.map((relation) => relation.value)),
+          economy,
+          nation.id,
+        );
+        const reachedTarget = nextWeek >= transitionSchedule.targetWeek;
+        const extraordinaryExit = readiness.score >= transitionSchedule.extraordinaryThreshold && game.victoryScore >= 72;
+        const deadlineReached = nextWeek >= transitionSchedule.deadlineWeek;
         if (nation.id !== 'korea') {
-          transitionToNation(nextWeek);
+          if ((reachedTarget && readiness.eligible) || extraordinaryExit) transitionToNation(nextWeek, readiness.eligible ? 'readiness' : 'fixed-timer');
+          else if (deadlineReached) transitionToNation(nextWeek, 'deadline');
         } else {
-          const readiness = getKoreaLiberationAssessment(nextWeek);
-          const deadlineWeek = config.transitionWeek + 104;
-          if (readiness.eligible) transitionToNation(nextWeek, 'readiness');
-          else if (nextWeek >= deadlineWeek) transitionToNation(nextWeek, 'deadline');
+          const liberation = getKoreaLiberationAssessment(nextWeek);
+          if ((reachedTarget && readiness.eligible && liberation.eligible) || (extraordinaryExit && liberation.score >= 72)) transitionToNation(nextWeek, 'readiness');
+          else if (deadlineReached) transitionToNation(nextWeek, 'deadline');
         }
       }
     } else {
@@ -1148,6 +1196,25 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
       const coupRisk = assessCoupRisk(politicalState, contextBefore);
       const prompts = nationPromptSet(nationState, economy, Boolean(publicHealth.activeOutbreak), coupRisk, research, getCampaignYear(nextWeek));
       recordActions(prompts, nextWeek);
+      const activeAgenda = getActiveNationAgenda(nationState);
+      if (activeAgenda && (profile !== 'rushed' || nextWeek >= activeAgenda.expiresWeek)) {
+        const choiceId = chooseNationAgendaChoice(profile, activeAgenda.id, nextWeek);
+        const agendaResult = resolveNationAgendaChoice(nationState, choiceId, nextWeek);
+        if (agendaResult) {
+          nationState = agendaResult.state;
+          game = applyGameDelta(game, agendaResult.gameDelta);
+          economy = {
+            ...economy,
+            debt: Math.max(0, economy.debt + agendaResult.economyDelta.debt),
+            inflation: clamp(economy.inflation + agendaResult.economyDelta.inflation, 0, 100),
+            publicConfidence: clamp(economy.publicConfidence + agendaResult.economyDelta.publicConfidence, 0, 100),
+          };
+          completedDecisions.push(`nation-agenda:${nation.id}:${activeAgenda.id}:${choiceId}:${nextWeek}`);
+          decisionInteractions += 1;
+          recordDecisionTrace(nextWeek, `nation-agenda:${activeAgenda.id}:${choiceId}`);
+          markActionHandled('nation-structural-agenda', nextWeek, development.agendaCadenceWeeks);
+        }
+      }
 
       // A non-rushed player who is shown the political-crisis command surface uses one
       // affordable, role-appropriate preventive action during the quarterly review. This
@@ -1166,7 +1233,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
           politicalState = prevention.state;
           game = applyGameDelta(game, prevention.gameDelta);
           decisionInteractions += 1;
-          endingDecisionWeeks.add(nextWeek);
+          recordDecisionTrace(nextWeek, `crisis-prevention:${coupRisk.crisisLabel}:${prevention.state.lastOutcome ?? role.branch}`);
           markActionHandled('political-crisis', nextWeek, 13);
         }
       }
@@ -1208,7 +1275,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
             game = applyGameDelta(game, { politicalPower: actionResult.politicalPowerDelta, treasury: actionResult.treasuryDelta });
             electionCampaignActions += 1;
             decisionInteractions += 1;
-            endingDecisionWeeks.add(nextWeek);
+            recordDecisionTrace(nextWeek, `election:${campaign.type}:${definition.id}`);
             markActionHandled('nation-election-campaign', nextWeek, 2);
           }
         }
@@ -1219,7 +1286,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
         nationState = rebalanceNationBudget(nationState, domain, 5);
         if (economy.inflation >= 10) nationState = { ...nationState, spendingLevel: Math.max(35, nationState.spendingLevel - 1), taxBurden: Math.min(72, nationState.taxBurden + 1) };
         decisionInteractions += 1;
-        endingDecisionWeeks.add(nextWeek);
+        recordDecisionTrace(nextWeek, `budget:${domain}:${economy.inflation >= 10 ? 'anti-inflation' : 'social-response'}`);
         if (economy.inflation >= 10) markActionHandled('nation-inflation', nextWeek, 13);
         if (nationState.unrest >= 55) markActionHandled('nation-unrest', nextWeek, 13);
         if (nationState.mandateScore < 50) markActionHandled('nation-mandate', nextWeek, 13);
@@ -1231,7 +1298,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
       if (profile !== 'rushed' && prompts.some((prompt) => prompt.id === 'nation-research-slot')) {
         research = fillOpenResearchSlots(research, getCampaignYear(nextWeek));
         decisionInteractions += 1;
-        endingDecisionWeeks.add(nextWeek);
+        recordDecisionTrace(nextWeek, `research:${research.filter((project) => project.active && !project.complete).map((project) => project.id).join('+')}`);
         markActionHandled('nation-research-slot', nextWeek, 4);
       }
       if (profile !== 'rushed' && !nationState.strategicContinuity.active && nextWeek % 13 === 0) {
@@ -1257,7 +1324,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
             game = applyGameDelta(game, launch.gameDelta);
             strategicOperationCount += 1;
             decisionInteractions += 1;
-            endingDecisionWeeks.add(nextWeek);
+            recordDecisionTrace(nextWeek, `strategic-operation:${operation.id}`);
           }
         }
       }
@@ -1291,7 +1358,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
         if (planning) {
           nationState = { ...nationState, nationalPlanning: planning };
           decisionInteractions += 1;
-          endingDecisionWeeks.add(nextWeek);
+          recordDecisionTrace(nextWeek, `national-plan:${planId}`);
         }
       }
 
@@ -1413,11 +1480,14 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     state: worldHistoryState,
     trajectory: finalTrajectory,
     careerSignature: `${role.id}:${role.branch}:tier-${role.tier}:${profile}`,
-    recentDecisionSignature: [...endingDecisionWeeks].slice(-48).join('|'),
+    recentDecisionSignature: endingDecisionTrace.slice(-96).join('|'),
     nationalPlanSignature: [
+      `transition:${development.transition.archetype}:${actualTransitionWeek}`,
+      `structure:${development.endingTags.join('+')}`,
       nationState.nationalPlanning.active?.id ?? 'no-active-plan',
       ...nationState.nationalPlanning.history.map((record) => `${record.planId}:${record.outcome}`),
       ...nationState.strategicContinuity.history.map((record) => `${record.operationId}:${record.outcome}`),
+      ...nationState.agenda.history.slice(0, 24).map((record) => `${record.issueId}:${record.choiceId}:${record.decidedWeek}`),
     ].join('|'),
   });
   const endingYear = LONG_HORIZON_START_YEAR + weeksPlayed / 52;
@@ -1438,6 +1508,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     endYear: Math.floor(endingYear),
     transitionWeek: actualTransitionWeek,
     transitionYear: getCampaignYear(actualTransitionWeek),
+    transitionArchetype: development.transition.archetype,
     koreaLiberationAtTransition,
     koreaTransitionMode,
     warWeeks: actualTransitionWeek,
@@ -1453,6 +1524,7 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     battleCount,
     battleVictories,
     strategicOperationCount,
+    nationAgendaDecisionCount: nationState.agenda.totalDecisions,
     councilDecisionCount,
     uniqueCouncilEvents: seenCouncilIds.size,
     historicalCouncilEventsSeen: seenHistoricalCouncilIds.size,
@@ -1502,6 +1574,8 @@ export function runLongHorizonSession(id: number, weeksPlayed = LONG_HORIZON_WEE
     finalNationalScore: nationState.nationalScore,
     finalMandateScore: nationState.mandateScore,
     finalUnrest: round(nationState.unrest),
+    finalStructuralUnrestTarget: round(nationState.structuralPressure.targetUnrest),
+    finalStructuralUnrestFloor: round(nationState.structuralPressure.floor),
     finalResearchCompleted: research.filter((project) => project.complete).length,
     finalWorldlineCode: finalWorldline.code,
     finalEndingId: finalWorldline.outcomeId,

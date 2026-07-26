@@ -5,8 +5,10 @@ import {
   calculateNationScore,
   calculateTransitionReadiness,
   createNationManagementState,
+  getActiveNationAgenda,
   normalizeNationManagementState,
   rebalanceNationBudget,
+  resolveNationAgendaChoice,
 } from './nationManagement';
 import type { GameState } from './types';
 
@@ -42,12 +44,19 @@ describe('war-to-state nation management', () => {
 
   it('requires a credible mix of war position, legitimacy, finance, industry and diplomacy for negotiated peace', () => {
     const economy = createEconomyState('britain');
-    const ready = calculateTransitionReadiness(game, 68, economy);
-    const unready = calculateTransitionReadiness({ ...game, victoryScore: 18, stability: 26, treasury: 80, factories: 8 }, 22, { ...economy, inflation: 18 });
+    const ready = calculateTransitionReadiness({ ...game, week: 160 }, 68, economy, 'britain');
+    const unready = calculateTransitionReadiness(
+      { ...game, week: 160, victoryScore: 18, stability: 26, treasury: 80, factories: 8 },
+      22,
+      { ...economy, inflation: 18 },
+      'britain',
+    );
     expect(ready.eligible).toBe(true);
     expect(ready.score).toBeGreaterThan(unready.score);
     expect(unready.eligible).toBe(false);
-    expect(Object.keys(ready.pillars)).toEqual(['security', 'legitimacy', 'finance', 'industry', 'diplomacy']);
+    expect(Object.keys(ready.pillars)).toEqual(['security', 'legitimacy', 'finance', 'industry', 'diplomacy', 'sovereignty']);
+    expect(ready.transitionLabel).toBe('연합전 승리와 제국 재협상');
+    expect(ready.earliestWeek).toBe(150);
   });
 
   it('rebalances a fixed 100 percent cabinet budget without mutating the previous state', () => {
@@ -144,5 +153,44 @@ describe('war-to-state nation management', () => {
     const lateHegemony = calculateNationScore({ ...excellent, relativeCompetitiveness: 58, institutionalAge: 55, demographicPressure: 52, ecologicalPressure: 61, hegemonyCost: 48 });
     expect(healthyCompetition).toBeLessThan(99);
     expect(lateHegemony).toBeLessThan(healthyCompetition);
+  });
+
+  it('regenerates social unrest from country-specific structural pressure instead of collapsing to zero', () => {
+    const economy = createEconomyState('britain');
+    const base = createNationManagementState('britain', game, economy, 8, 'victory');
+    const state = { ...base, unrest: 0 };
+    const result = advanceNationManagementWeek(state, {
+      week: game.week + 1,
+      game,
+      economy,
+      relationAverage: 62,
+      completedResearch: 8,
+      publicHealthPressure: 4,
+    });
+
+    expect(result.state.unrest).toBeGreaterThanOrEqual(result.state.structuralPressure.floor);
+    expect(result.state.structuralPressure.targetUnrest).toBeGreaterThan(result.state.structuralPressure.floor);
+    expect(result.state.structuralPressure.drivers[0].value).toBeGreaterThan(0);
+  });
+
+  it('opens a national historical agenda on its own cadence and records the actual response', () => {
+    const economy = createEconomyState('britain');
+    const state = createNationManagementState('britain', game, economy, 3, 'victory');
+    const result = advanceNationManagementWeek(state, {
+      week: state.agenda.nextIssueWeek,
+      game,
+      economy,
+      relationAverage: 62,
+      completedResearch: 3,
+      publicHealthPressure: 0,
+    });
+    const active = getActiveNationAgenda(result.state);
+    expect(active?.title).toBeTruthy();
+
+    const decision = resolveNationAgendaChoice(result.state, 'bargain', state.agenda.nextIssueWeek);
+    expect(decision?.state.agenda.active).toBeNull();
+    expect(decision?.state.agenda.totalDecisions).toBe(1);
+    expect(decision?.state.agenda.history[0].choiceId).toBe('bargain');
+    expect(decision?.title).toContain(active!.title);
   });
 });

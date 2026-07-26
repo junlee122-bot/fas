@@ -25,12 +25,17 @@ import {
   type NationalPlanningState,
   type StrategicContinuityState,
 } from './strategicContinuity';
+import {
+  getNationDevelopmentProfile,
+  type NationAgendaChoiceId,
+  type NationTransitionOutcome,
+} from './nationDevelopment';
 import type { CareerRole, GameState, NationId } from './types';
 
 export type CampaignPhase = 'war' | 'nation';
 export type NationBudgetDomain = 'reconstruction' | 'welfare' | 'education' | 'industry' | 'diplomacy' | 'security';
 export type NationStrategyId = 'reconstruction-state' | 'social-contract' | 'developmental-state' | 'open-republic' | 'security-republic';
-export type NationTransitionReason = 'victory' | 'negotiated';
+export type NationTransitionReason = NationTransitionOutcome;
 
 export interface NationBudgetDefinition {
   id: NationBudgetDomain;
@@ -56,6 +61,34 @@ export interface NationWeeklyEvent {
   tone: 'good' | 'bad' | 'neutral';
   cause: string;
   consequence: string;
+}
+
+export interface NationStructuralPressure {
+  floor: number;
+  targetUnrest: number;
+  policyRelief: number;
+  dominantDriver: string;
+  drivers: Array<{ id: string; label: string; value: number; detail: string }>;
+}
+
+export interface ActiveNationAgenda {
+  issueId: string;
+  openedWeek: number;
+  expiresWeek: number;
+}
+
+export interface NationAgendaRecord {
+  issueId: string;
+  choiceId: NationAgendaChoiceId;
+  decidedWeek: number;
+  outcome: string;
+}
+
+export interface NationAgendaState {
+  nextIssueWeek: number;
+  active: ActiveNationAgenda | null;
+  totalDecisions: number;
+  history: NationAgendaRecord[];
 }
 
 export interface NationWeeklyReport {
@@ -101,6 +134,8 @@ export interface NationManagementState {
   demographicPressure: number;
   ecologicalPressure: number;
   hegemonyCost: number;
+  structuralPressure: NationStructuralPressure;
+  agenda: NationAgendaState;
   dynasty: DynasticPoliticsState;
   electoral: ElectoralPoliticsState;
   strategicContinuity: StrategicContinuityState;
@@ -154,14 +189,218 @@ const initialBudget: Record<NationBudgetDomain, number> = {
 const clamp = (value: number, minimum = 0, maximum = 100) => Math.max(minimum, Math.min(maximum, value));
 const round = (value: number, digits = 1) => Number(value.toFixed(digits));
 
-export function calculateNationScore(state: Pick<NationManagementState, 'legitimacy' | 'welfare' | 'infrastructure' | 'education' | 'housing' | 'employment' | 'inequality' | 'institutionalCapacity' | 'civilianIndustry' | 'unrest'> & Partial<Pick<NationManagementState, 'relativeCompetitiveness' | 'institutionalAge' | 'demographicPressure' | 'ecologicalPressure' | 'hegemonyCost'>>) {
+export function createNationAgendaState(nationId: NationId, startedWeek: number): NationAgendaState {
+  const profile = getNationDevelopmentProfile(nationId);
+  return {
+    nextIssueWeek: startedWeek + profile.agendaCadenceWeeks,
+    active: null,
+    totalDecisions: 0,
+    history: [],
+  };
+}
+
+export function getActiveNationAgenda(state: Pick<NationManagementState, 'nationId' | 'agenda'>) {
+  if (!state.agenda.active) return null;
+  const definition = getNationDevelopmentProfile(state.nationId).agendas
+    .find((candidate) => candidate.id === state.agenda.active?.issueId);
+  return definition ? { ...definition, ...state.agenda.active } : null;
+}
+
+function advanceNationAgendaState(state: NationManagementState, week: number) {
+  if (state.agenda.active || week < state.agenda.nextIssueWeek) return state.agenda;
+  const profile = getNationDevelopmentProfile(state.nationId);
+  const definition = profile.agendas[state.agenda.history.length % profile.agendas.length];
+  return {
+    ...state.agenda,
+    active: {
+      issueId: definition.id,
+      openedWeek: week,
+      expiresWeek: week + Math.max(8, Math.round(profile.agendaCadenceWeeks * .45)),
+    },
+  };
+}
+
+export function calculateStructuralPressure(
+  state: Pick<NationManagementState, 'nationId' | 'inequality' | 'housing' | 'demographicPressure' | 'ecologicalPressure' | 'institutionalAge' | 'welfare' | 'legitimacy' | 'budget'>,
+  context: { week: number; inflation: number; publicHealthPressure: number },
+): NationStructuralPressure {
+  const profile = getNationDevelopmentProfile(state.nationId);
+  const structure = profile.structure;
+  const year = 1942 + context.week / 52;
+  const generationalCycle = (Math.sin(((year - 1942) / 18) * Math.PI * 2) + 1) * .5 * structure.generationalVolatility;
+  const drivers: NationStructuralPressure['drivers'] = [
+    {
+      id: 'regional',
+      label: '지역·중앙 격차',
+      value: structure.regionalPressure,
+      detail: `${profile.transition.label}에서 이어진 지역 대표권과 행정력의 불균형`,
+    },
+    {
+      id: 'identity',
+      label: '정체성·역사 청산',
+      value: structure.identityPressure,
+      detail: '전쟁·점령·식민지·망명 경험에서 남은 대표권과 기억정치의 압력',
+    },
+    {
+      id: 'inequality',
+      label: '소득·자산 불평등',
+      value: Math.max(0, state.inequality - 32) * structure.inequalityWeight,
+      detail: `불평등 ${state.inequality.toFixed(1)} · 복지 ${state.welfare.toFixed(1)}`,
+    },
+    {
+      id: 'housing',
+      label: '주거·이주 압력',
+      value: Math.max(0, 62 - state.housing) * structure.housingWeight,
+      detail: `주거 역량 ${state.housing.toFixed(1)} · 귀환·도시화·지역 이동의 누적`,
+    },
+    {
+      id: 'generation',
+      label: '세대 갈등',
+      value: generationalCycle,
+      detail: `${Math.floor(year)}년 교육·전쟁기억·권리 기대의 세대 교체`,
+    },
+    {
+      id: 'demography',
+      label: '인구구조',
+      value: state.demographicPressure * structure.demographicWeight,
+      detail: `인구 압력 ${state.demographicPressure.toFixed(1)}`,
+    },
+    {
+      id: 'ecology',
+      label: '환경·자원 전환',
+      value: state.ecologicalPressure * structure.ecologicalWeight,
+      detail: `생태 압력 ${state.ecologicalPressure.toFixed(1)}`,
+    },
+    {
+      id: 'institutions',
+      label: '제도 노후·불신',
+      value: state.institutionalAge * structure.institutionalWeight,
+      detail: `제도 노후 ${state.institutionalAge.toFixed(1)} · 정당성 ${state.legitimacy.toFixed(1)}`,
+    },
+    {
+      id: 'cost-of-living',
+      label: '생활비·보건 충격',
+      value: Math.max(0, context.inflation - 4) * .34 + context.publicHealthPressure * .035,
+      detail: `물가 ${context.inflation.toFixed(1)}% · 보건 압력 ${context.publicHealthPressure.toFixed(1)}`,
+    },
+  ].map((driver) => ({ ...driver, value: round(driver.value) }));
+  const policyRelief = round(
+    state.welfare * .045
+    + state.legitimacy * .025
+    + state.budget.welfare * .06
+    + state.budget.reconstruction * .035,
+  );
+  const targetUnrest = round(clamp(
+    structure.baseUnrest
+    + drivers.reduce((sum, driver) => sum + driver.value, 0)
+    - policyRelief,
+    structure.baseUnrest,
+    88,
+  ));
+  const dominantDriver = [...drivers].sort((left, right) => right.value - left.value)[0]?.label ?? '구조 압력';
+  return {
+    floor: structure.baseUnrest,
+    targetUnrest,
+    policyRelief,
+    dominantDriver,
+    drivers: drivers.sort((left, right) => right.value - left.value),
+  };
+}
+
+export function resolveNationAgendaChoice(
+  state: NationManagementState,
+  choiceId: NationAgendaChoiceId,
+  week: number,
+): {
+  state: NationManagementState;
+  gameDelta: Partial<Record<keyof GameState, number>>;
+  economyDelta: { debt: number; inflation: number; publicConfidence: number };
+  title: string;
+  detail: string;
+  effects: string[];
+} | null {
+  const issue = getActiveNationAgenda(state);
+  if (!issue) return null;
+  const profile = getNationDevelopmentProfile(state.nationId);
+  const choice = issue.options[choiceId];
+  const baseAgenda = {
+    ...state.agenda,
+    active: null,
+    nextIssueWeek: week + profile.agendaCadenceWeeks,
+    totalDecisions: state.agenda.totalDecisions + 1,
+    history: [{
+      issueId: issue.id,
+      choiceId,
+      decidedWeek: week,
+      outcome: choice.label,
+    }, ...state.agenda.history].slice(0, 80),
+  };
+  if (choiceId === 'bargain') {
+    const next = {
+      ...state,
+      agenda: baseAgenda,
+      legitimacy: clamp(state.legitimacy + 3),
+      institutionalCapacity: clamp(state.institutionalCapacity + 2.5),
+      inequality: clamp(state.inequality - 1.8),
+      unrest: clamp(state.unrest - 1),
+      hegemonyCost: clamp(state.hegemonyCost - 1.5),
+    };
+    return {
+      state: next,
+      gameDelta: { politicalPower: -10, stability: 1 },
+      economyDelta: { debt: 8, inflation: .05, publicConfidence: 2 },
+      title: `${issue.title} — ${choice.label}`,
+      detail: choice.description,
+      effects: ['정당성 +3', '제도역량 +2.5', '불평등 -1.8', '정치력 -10'],
+    };
+  }
+  if (choiceId === 'invest') {
+    const next = {
+      ...state,
+      agenda: baseAgenda,
+      infrastructure: clamp(state.infrastructure + 2.5),
+      housing: clamp(state.housing + 1.5),
+      civilianIndustry: clamp(state.civilianIndustry + 2.8),
+      employment: clamp(state.employment + 1.8),
+      inequality: clamp(state.inequality + .8),
+    };
+    return {
+      state: next,
+      gameDelta: { treasury: -90, politicalPower: -5 },
+      economyDelta: { debt: 45, inflation: .18, publicConfidence: 1 },
+      title: `${issue.title} — ${choice.label}`,
+      detail: choice.description,
+      effects: ['민수산업 +2.8', '인프라 +2.5', '고용 +1.8', '국고 -90'],
+    };
+  }
+  const next = {
+    ...state,
+    agenda: baseAgenda,
+    institutionalCapacity: clamp(state.institutionalCapacity + 1.2),
+    legitimacy: clamp(state.legitimacy - 2.5),
+    unrest: clamp(state.unrest - 2),
+    hegemonyCost: clamp(state.hegemonyCost + 1.2),
+  };
+  return {
+    state: next,
+    gameDelta: { commandPoints: -8, stability: 2, politicalPower: -4 },
+    economyDelta: { debt: 0, inflation: 0, publicConfidence: -1.5 },
+    title: `${issue.title} — ${choice.label}`,
+    detail: choice.description,
+    effects: ['단기 안정 +2', '사회불안 -2', '정당성 -2.5', '지휘점수 -8'],
+  };
+}
+
+export function calculateNationScore(state: Pick<NationManagementState, 'legitimacy' | 'welfare' | 'infrastructure' | 'education' | 'housing' | 'employment' | 'inequality' | 'institutionalCapacity' | 'civilianIndustry' | 'unrest'> & Partial<Pick<NationManagementState, 'nationId' | 'relativeCompetitiveness' | 'institutionalAge' | 'demographicPressure' | 'ecologicalPressure' | 'hegemonyCost'>>) {
+  const structure = state.nationId ? getNationDevelopmentProfile(state.nationId).structure : null;
   const structuralBalance =
     -1.5
     + ((state.relativeCompetitiveness ?? 50) - 50) * 0.04
     - (state.institutionalAge ?? 0) * 0.13
     - (state.demographicPressure ?? 0) * 0.08
     - (state.ecologicalPressure ?? 0) * 0.08
-    - (state.hegemonyCost ?? 0) * 0.1;
+    - (state.hegemonyCost ?? 0) * 0.1
+    + (structure ? (structure.longTermPotential - 50) * .055 + (structure.resourceBase - 50) * .02 : 0);
   return Math.round(clamp(
     state.legitimacy * 0.16
     + state.welfare * 0.11
@@ -189,17 +428,53 @@ export function calculateMandateScore(state: Pick<NationManagementState, 'legiti
   ));
 }
 
-export function calculateTransitionReadiness(game: Pick<GameState, 'victoryScore' | 'stability' | 'treasury' | 'factories'>, relationAverage: number, economy: Pick<EconomyState, 'inflation'>) {
+export function calculateTransitionReadiness(
+  game: Pick<GameState, 'week' | 'victoryScore' | 'stability' | 'warSupport' | 'treasury' | 'factories' | 'politicalPower' | 'intelNetwork'>,
+  relationAverage: number,
+  economy: Pick<EconomyState, 'inflation'>,
+  nationId: NationId = 'britain',
+) {
+  const development = getNationDevelopmentProfile(nationId);
+  const transition = development.transition;
   const security = game.victoryScore;
   const legitimacy = game.stability;
   const finance = clamp(game.treasury / 12);
   const industry = clamp(game.factories * 2.1);
   const diplomacy = clamp(relationAverage - Math.max(0, economy.inflation - 8));
-  const score = Math.round(security * 0.24 + legitimacy * 0.23 + finance * 0.18 + industry * 0.2 + diplomacy * 0.15);
+  const sovereignty = development.status === 'sovereign'
+    ? clamp(38 + game.victoryScore * .38 + game.politicalPower * .12)
+    : clamp(
+      game.victoryScore * .24
+      + game.warSupport * .18
+      + game.intelNetwork * .25
+      + game.politicalPower * .15
+      + relationAverage * .18,
+    );
+  const score = Math.round(security * .18 + legitimacy * .18 + finance * .14 + industry * .15 + diplomacy * .13 + sovereignty * .22);
+  const calendarReady = game.week >= transition.earliestWeek || score >= transition.extraordinaryThreshold;
+  const blockedReasons = [
+    ...(calendarReady ? [] : [`${transition.label}의 최소 준비기간까지 ${transition.earliestWeek - game.week}주`]),
+    ...(score >= transition.readinessThreshold ? [] : [`종합 준비도 ${score}/${transition.readinessThreshold}`]),
+    ...(game.stability >= transition.stabilityFloor ? [] : [`안정도 ${Math.round(game.stability)}/${transition.stabilityFloor}`]),
+    ...(sovereignty >= 42 ? [] : [`주권·대표성 ${Math.round(sovereignty)}/42`]),
+  ];
   return {
     score,
-    eligible: score >= 45 && game.stability >= 35,
-    pillars: { security: Math.round(security), legitimacy: Math.round(legitimacy), finance: Math.round(finance), industry: Math.round(industry), diplomacy: Math.round(diplomacy) },
+    eligible: blockedReasons.length === 0,
+    threshold: transition.readinessThreshold,
+    stabilityFloor: transition.stabilityFloor,
+    earliestWeek: transition.earliestWeek,
+    transitionLabel: transition.label,
+    transitionDescription: transition.description,
+    blockedReasons,
+    pillars: {
+      security: Math.round(security),
+      legitimacy: Math.round(legitimacy),
+      finance: Math.round(finance),
+      industry: Math.round(industry),
+      diplomacy: Math.round(diplomacy),
+      sovereignty: Math.round(sovereignty),
+    },
   };
 }
 
@@ -210,6 +485,8 @@ export function createNationManagementState(
   completedResearch: number,
   transitionReason: NationTransitionReason,
 ): NationManagementState {
+  const development = getNationDevelopmentProfile(nationId);
+  const structure = development.structure;
   const state: NationManagementState = {
     version: 1,
     nationId,
@@ -221,30 +498,44 @@ export function createNationManagementState(
     spendingLevel: 58,
     legitimacy: clamp(game.stability * 0.58 + game.warSupport * 0.22 + game.victoryScore * 0.2),
     welfare: clamp(34 + game.stability * 0.12 - economy.inflation * 0.45),
-    infrastructure: clamp(32 + game.factories * 0.72),
+    infrastructure: clamp(32 + game.factories * 0.72 + (structure.reconstructionEfficiency - 1) * 20),
     education: clamp(35 + completedResearch * 4.5),
     housing: clamp(38 + game.stability * 0.08),
     employment: clamp(45 + game.factories * 0.55 - economy.inflation * 0.25),
-    inequality: clamp(58 - game.stability * 0.12),
-    institutionalCapacity: clamp(38 + game.intelNetwork * 0.26 + economy.publicConfidence * 0.14),
-    civilianIndustry: clamp(25 + game.factories * 0.8),
+    inequality: clamp(58 - game.stability * 0.12 + Math.max(0, 58 - structure.administrativeEfficiency) * .08),
+    institutionalCapacity: clamp(22 + structure.administrativeEfficiency * .28 + game.intelNetwork * 0.18 + economy.publicConfidence * 0.1),
+    civilianIndustry: clamp(16 + game.factories * 0.72 + structure.industrialPotential * .16),
     tradeBalance: transitionReason === 'victory' ? 3 : -4,
-    unrest: clamp(52 - game.stability * 0.35 + economy.inflation * 0.4),
+    unrest: clamp(Math.max(structure.baseUnrest, 52 - game.stability * 0.35 + economy.inflation * 0.4 + structure.identityPressure * .35)),
     nationalScore: 0,
     mandateScore: 0,
     nextElectionWeek: game.week + 208,
     electionWins: 0,
-    relativeCompetitiveness: clamp(36 + game.factories * 0.7 + completedResearch * 1.4),
+    relativeCompetitiveness: clamp(18 + structure.industrialPotential * .38 + game.factories * 0.48 + completedResearch * 1.4),
     institutionalAge: 8,
     demographicPressure: 10,
     ecologicalPressure: 6,
     hegemonyCost: 0,
+    structuralPressure: {
+      floor: structure.baseUnrest,
+      targetUnrest: structure.baseUnrest,
+      policyRelief: 0,
+      dominantDriver: '전환기 구조 압력',
+      drivers: [],
+    },
+    agenda: createNationAgendaState(nationId, game.week),
     dynasty: createDynasticPoliticsState(nationId),
     electoral: createElectoralPoliticsState(nationId, game.week),
     strategicContinuity: createStrategicContinuityState(),
     nationalPlanning: createNationalPlanningState(),
     reports: [],
   };
+  state.structuralPressure = calculateStructuralPressure(state, {
+    week: game.week,
+    inflation: economy.inflation,
+    publicHealthPressure: 0,
+  });
+  state.unrest = Math.max(state.unrest, state.structuralPressure.floor);
   state.nationalScore = calculateNationScore(state);
   state.mandateScore = calculateMandateScore(state, economy);
   return state;
@@ -334,6 +625,8 @@ function selectDynasticEvent(state: NationManagementState, context: NationManage
 }
 
 export function advanceNationManagementWeek(state: NationManagementState, context: NationManagementContext): NationAdvanceResult {
+  const development = getNationDevelopmentProfile(state.nationId);
+  const structure = development.structure;
   const dynasticEffects = getDynasticWeeklyEffects(state.dynasty);
   const strategy = strategyModifiers(state.strategyId);
   const investmentScale = state.spendingLevel / 100;
@@ -396,7 +689,10 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     2,
   );
   const competitivenessTarget = clamp(
-    18
+    8
+    + structure.industrialPotential * .22
+    + structure.resourceBase * .1
+    + structure.administrativeEfficiency * .08
     + state.civilianIndustry * 0.32
     + state.education * 0.24
     + state.institutionalCapacity * 0.13
@@ -408,6 +704,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
   const institutionalAgeTarget = clamp(
     5
     + Math.max(0, campaignYear - 1948) * 0.38
+    + Math.max(0, 64 - structure.administrativeEfficiency) * .16
     + Math.max(0, state.institutionalCapacity - 72) * 0.28
     - state.education * 0.12
     - diplomacy * 0.16,
@@ -416,6 +713,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
   );
   const demographicTarget = clamp(
     Math.max(0, campaignYear - 1958) * 0.34
+    + development.structure.identityPressure * .35
     + state.inequality * 0.2
     - state.welfare * 0.15
     - state.housing * 0.1,
@@ -424,6 +722,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
   );
   const ecologicalTarget = clamp(
     Math.max(0, campaignYear - 1968) * 0.4
+    + Math.max(0, structure.resourceBase - 50) * .08
     + state.civilianIndustry * 0.28
     - state.education * 0.12
     - state.infrastructure * 0.08,
@@ -438,25 +737,33 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     0,
     80,
   );
+  const structuralPressure = calculateStructuralPressure(state, {
+    week: context.week,
+    inflation: context.economy.inflation,
+    publicHealthPressure: context.publicHealthPressure,
+  });
+  const agenda = advanceNationAgendaState(state, context.week);
 
   const next = {
     ...state,
-    infrastructure: clamp(state.infrastructure + reconstruction * 0.013 + industry * 0.002 - 0.05),
-    housing: clamp(state.housing + reconstruction * 0.009 + welfare * 0.003 - 0.04),
+    infrastructure: clamp(state.infrastructure + reconstruction * 0.013 * structure.reconstructionEfficiency + industry * 0.002 - 0.05),
+    housing: clamp(state.housing + reconstruction * 0.009 * structure.reconstructionEfficiency + welfare * 0.003 - 0.04),
     welfare: clamp(state.welfare + welfare * 0.014 + education * 0.002 - context.publicHealthPressure * 0.003 - Math.max(0, context.economy.inflation - 7) * 0.006),
     education: clamp(state.education + education * 0.014 + context.completedResearch * 0.003),
-    civilianIndustry: clamp(state.civilianIndustry + industry * 0.014 + reconstruction * 0.002 - Math.max(0, context.economy.inflation - 10) * 0.005),
-    employment: clamp(state.employment + industry * 0.009 + reconstruction * 0.004 - Math.max(0, state.taxBurden - 62) * 0.006),
-    institutionalCapacity: clamp(state.institutionalCapacity + education * 0.005 + diplomacy * 0.005 + security * 0.003 - Math.max(0, state.unrest - 60) * 0.005),
-    tradeBalance: clamp(state.tradeBalance + diplomacy * 0.025 + industry * 0.018 - state.spendingLevel * 0.004, -100, 100),
+    civilianIndustry: clamp(state.civilianIndustry + (industry * 0.014 + reconstruction * 0.002) * (.72 + structure.industrialPotential / 180) - Math.max(0, context.economy.inflation - 10) * 0.005),
+    employment: clamp(state.employment + (industry * 0.009 + reconstruction * 0.004) * (.78 + structure.administrativeEfficiency / 220) - Math.max(0, state.taxBurden - 62) * 0.006),
+    institutionalCapacity: clamp(state.institutionalCapacity + (education * 0.005 + diplomacy * 0.005 + security * 0.003) * (.7 + structure.administrativeEfficiency / 170) - Math.max(0, state.unrest - 60) * 0.005),
+    tradeBalance: clamp(state.tradeBalance + diplomacy * 0.025 + industry * 0.018 + (structure.resourceBase - 50) * .0015 - state.spendingLevel * 0.004, -100, 100),
     inequality: clamp(state.inequality - welfare * 0.009 - Math.max(0, state.taxBurden - 45) * 0.004 + industry * 0.003),
-    unrest: clamp(state.unrest - welfare * 0.006 - security * 0.007 - state.legitimacy * 0.0015 + Math.max(0, context.economy.inflation - 7) * 0.025 + dynasticEffects.unrest),
+    unrest: clamp(state.unrest + (structuralPressure.targetUnrest - state.unrest) * .018 + dynasticEffects.unrest),
     legitimacy: state.legitimacy,
     relativeCompetitiveness: clamp(state.relativeCompetitiveness + (competitivenessTarget - state.relativeCompetitiveness) * 0.018),
     institutionalAge: clamp(state.institutionalAge + (institutionalAgeTarget - state.institutionalAge) * 0.012),
     demographicPressure: clamp(state.demographicPressure + (demographicTarget - state.demographicPressure) * 0.01),
     ecologicalPressure: clamp(state.ecologicalPressure + (ecologicalTarget - state.ecologicalPressure) * 0.01),
     hegemonyCost: clamp(state.hegemonyCost + (hegemonyTarget - state.hegemonyCost) * 0.016),
+    structuralPressure,
+    agenda,
     dynasty: {
       ...state.dynasty,
       courtUnity: clamp(state.dynasty.courtUnity + (context.game.stability >= 65 ? 0.08 : -0.04) - Math.max(0, state.dynasty.estateBurden - 50) * 0.003),
@@ -494,6 +801,12 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
   next.electoral = electoralResult.state;
   next.legitimacy = clamp(next.legitimacy + electoralResult.legitimacyDelta);
   next.unrest = clamp(next.unrest + electoralResult.unrestDelta);
+  next.structuralPressure = calculateStructuralPressure(next, {
+    week: context.week,
+    inflation: context.economy.inflation + inflationChange,
+    publicHealthPressure: context.publicHealthPressure,
+  });
+  next.unrest = Math.max(next.structuralPressure.floor, next.unrest);
   const projectedEconomy = {
     inflation: clamp(context.economy.inflation + inflationChange, 0, 60),
     publicConfidence: clamp(context.economy.publicConfidence + (fiscalBalance >= 0 ? 0.08 : -0.08) + (next.legitimacy - state.legitimacy) * 0.12),
@@ -553,11 +866,22 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
   );
   const event = selectNationEvent(next, context);
   const dynasticEvent = selectDynasticEvent(next, context);
+  const openedAgenda = !state.agenda.active && next.agenda.active
+    ? getActiveNationAgenda(next)
+    : null;
   if (electoralResult.playerWonElection) next.electionWins += 1;
   next.nextElectionWeek = Math.min(next.electoral.nextPresidentialWeek, next.electoral.nextParliamentaryWeek);
   const events = [
     ...(event ? [event] : []),
     ...(dynasticEvent ? [dynasticEvent] : []),
+    ...(openedAgenda ? [{
+      id: `national-agenda-${openedAgenda.id}-${context.week}`,
+      title: `국가 고유 의제 개시 · ${openedAgenda.title}`,
+      detail: openedAgenda.briefing,
+      tone: 'neutral' as const,
+      cause: `${development.transition.label} 이후에도 남은 ${openedAgenda.stakes}`,
+      consequence: `${Math.max(0, openedAgenda.expiresWeek - context.week)}주 안에 대표협상·집중투자·중앙집행 가운데 하나를 선택해야 합니다.`,
+    }] : []),
     ...electoralResult.events,
     ...(strategicResult.event ? [{
       id: `strategic-${context.week}-${next.strategicContinuity.active?.id ?? next.strategicContinuity.history[0]?.id ?? 'review'}`,
@@ -584,6 +908,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
       `거시균형 = ${campaignYear}년 물가 목표 ${inflationTarget.toFixed(1)}% · 7년 경기순환 ${businessCycle >= 0 ? '확장' : '조정'} 국면`,
       `대외압력 = 외교관계·국가안정·치안예산을 반영한 균형점 ${externalPressureTarget.toFixed(1)}/100`,
       `국가안정 = 정당성·국민위임·사회불안을 반영한 장기 균형점 ${stabilityTarget.toFixed(1)}/100`,
+      `구조적 불안 = ${next.structuralPressure.dominantDriver} 중심 목표 ${next.structuralPressure.targetUnrest.toFixed(1)} · 정책 완화 ${next.structuralPressure.policyRelief.toFixed(1)} · 최소 잔존 ${next.structuralPressure.floor}`,
       `후기 경쟁 = 상대경쟁력 ${next.relativeCompetitiveness.toFixed(1)} · 제도노후 ${next.institutionalAge.toFixed(1)} · 인구압력 ${next.demographicPressure.toFixed(1)} · 생태압력 ${next.ecologicalPressure.toFixed(1)} · 패권비용 ${next.hegemonyCost.toFixed(1)}`,
       ...(getGovernmentForm(state.dynasty.formId).monarchy ? [`왕실재정 = ${dynasticEffects.note} · 궁정 결속 ${Math.round(state.dynasty.courtUnity)} · 계승 안정 ${Math.round(state.dynasty.successionSecurity)}`] : []),
       ...(state.electoral.activeCampaign ? [`선거일정 = ${getElectionTypeName(state.electoral.activeCampaign.type)} · ${getCampaignStageName(state.electoral.activeCampaign.stage)} · 투표일까지 ${Math.max(0, state.electoral.activeCampaign.electionWeek - context.week)}주`] : []),
@@ -593,6 +918,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
       `국민 위임 ${state.mandateScore} → ${next.mandateScore}`,
       `재정 ${fiscalBalance >= 0 ? '+' : ''}£${fiscalBalance.toFixed(1)}M · 부채 ${debtChange >= 0 ? '+' : ''}£${debtChange.toFixed(1)}M · 물가 ${inflationChange >= 0 ? '+' : ''}${inflationChange.toFixed(2)}%p`,
       `정치 역량 ${politicalPowerChange >= 0 ? '+' : ''}${politicalPowerChange.toFixed(2)} · 대외 압력 ${enemyPressureChange >= 0 ? '+' : ''}${enemyPressureChange.toFixed(2)}`,
+      ...(next.agenda.active ? [`국가 의제 ${getActiveNationAgenda(next)?.title ?? next.agenda.active.issueId} · 결론까지 ${Math.max(0, next.agenda.active.expiresWeek - context.week)}주`] : []),
       ...(next.strategicContinuity.active ? [`전략작전 ${next.strategicContinuity.active.progressWeeks}주 진행 · 지도 위임을 다음 주까지 유지합니다.`] : []),
       ...(next.nationalPlanning.active ? [`국가계획 진척 ${next.nationalPlanning.active.progress.toFixed(0)}% · 다음 검증까지 ${Math.max(0, next.nationalPlanning.active.reviewWeek - context.week)}주`] : []),
       ...(getGovernmentForm(state.dynasty.formId).monarchy ? [`왕실 상태: 왕권 ${Math.round(next.dynasty.crownAuthority)} · 궁정 결속 ${Math.round(next.dynasty.courtUnity)} · 찬탈 위험 보정 +${dynasticEffects.coupRisk.toFixed(1)}`] : []),
@@ -631,6 +957,16 @@ export function normalizeNationManagementState(value: unknown, fallback: NationM
     ...fallback,
     ...candidate,
     budget,
+    structuralPressure: candidate.structuralPressure ?? fallback.structuralPressure,
+    agenda: {
+      ...fallback.agenda,
+      ...(candidate.agenda ?? {}),
+      active: candidate.agenda?.active ?? null,
+      totalDecisions: Number.isFinite(candidate.agenda?.totalDecisions)
+        ? Math.max(0, Number(candidate.agenda?.totalDecisions))
+        : candidate.agenda?.history?.length ?? 0,
+      history: Array.isArray(candidate.agenda?.history) ? candidate.agenda.history.slice(0, 80) : [],
+    },
     dynasty: normalizeDynasticPoliticsState(candidate.dynasty, fallback.nationId),
     electoral: normalizeElectoralPoliticsState(candidate.electoral, fallback.nationId, fallback.startedWeek),
     strategicContinuity: normalizeStrategicContinuityState(candidate.strategicContinuity),

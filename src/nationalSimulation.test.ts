@@ -71,6 +71,7 @@ function createInput(overrides: Partial<NationalSimulationInput> = {}): National
       triggers: [],
       leadingFaction,
       weakestRelation: { pair: 'civil-military', value: 48 },
+      crisisLabel: '헌정 비상전환',
     },
     nationManagement,
     ...overrides,

@@ -6,7 +6,6 @@ import {
   aggregateMultiNationCenturySessions,
   MULTI_NATION_CENTURY_END_YEAR,
   MULTI_NATION_SESSIONS_PER_NATION,
-  MULTI_NATION_TOTAL_SESSIONS,
   runNationCenturySession,
   type MultiNationCenturyRun,
   type NationCenturyResult,
@@ -17,11 +16,16 @@ const defaultPrefix = 'multi-nation-century-playtest-500-2060';
 const formatNumber = (value: number) => value.toLocaleString('ko-KR');
 const percent = (value: number) => `${value.toFixed(1)}%`;
 const slug = (value: string) => value.replace(/[^a-z0-9-]/gi, '-').replace(/-+/g, '-').toLowerCase();
+const getNationRootName = (prefix: string, sessionsPerNation: number) => (
+  prefix === defaultPrefix && sessionsPerNation === MULTI_NATION_SESSIONS_PER_NATION
+    ? 'nation-century-500-2060'
+    : `${prefix}-nations`
+);
 
 function createOverviewMarkdown(run: MultiNationCenturyRun, prefix: string) {
-  const nationRows = Object.entries(run.aggregate.byNation).map(([id, nation]) => `| ${nation.name} (\`${id}\`) | ${nation.sessions} | ${nation.roleCoverage}/${nation.expectedRoleCount} | ${nation.averageTransitionYear.toFixed(1)} | ${nation.decisionsPerYear.toFixed(1)} | ${nation.averageFinalNationalScore.toFixed(1)} | ${nation.averageFinalMandate.toFixed(1)} | ${percent(nation.coupSessionRate)} | ${nation.uniqueEndings} |`).join('\n');
+  const nationRows = Object.entries(run.aggregate.byNation).map(([id, nation]) => `| ${nation.name} (\`${id}\`) | ${nation.sessions} | ${nation.roleCoverage}/${nation.expectedRoleCount} | ${nation.transitionArchetype} | ${nation.averageTransitionYear.toFixed(1)} | ${nation.decisionsPerYear.toFixed(1)} | ${nation.averageNationAgendaDecisions.toFixed(1)} | ${nation.averageFinalNationalScore.toFixed(1)} | ${nation.averageFinalUnrest.toFixed(1)} / ${nation.averageFinalStructuralUnrestTarget.toFixed(1)} | ${percent(nation.coupSessionRate)} | ${nation.uniqueEndings} |`).join('\n');
   const findings = run.findings.map((finding) => `### ${finding.priority} · ${finding.title}\n\n- 근거: ${finding.evidence}\n- 개선 방향: ${finding.recommendation}`).join('\n\n');
-  return `# IRON DOMINION 전 국가 1942–2060 국가별 500회 플레이테스트
+  return `# IRON DOMINION 전 국가 1942–2060 국가별 ${run.aggregate.sessionsPerNation}회 플레이테스트
 
 ## 범위
 
@@ -35,8 +39,8 @@ function createOverviewMarkdown(run: MultiNationCenturyRun, prefix: string) {
 
 ## 국가별 결과
 
-| 국가 | 경력 | 보직 | 평균 전환연도 | 연간 결정 | 최종 국가점수 | 국민 위임 | 쿠데타 경험 | 고유 결말 |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 국가 | 경력 | 보직 | 전환 유형 | 평균 전환연도 | 연간 결정 | 국가 의제 | 최종 국가점수 | 불안/구조목표 | 정치 위기 | 고유 결말 |
+| --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 ${nationRows}
 
 ## 국가 간 격차
@@ -45,8 +49,12 @@ ${nationRows}
 - 전쟁→국가운영 전환 연도 격차: ${run.aggregate.transitionYearSpread}년
 - 국민 위임 격차: ${run.aggregate.mandateSpread}점
 - 최종 불안 격차: ${run.aggregate.unrestSpread}점
+- 최종 불안/구조 목표 평균: ${run.aggregate.averageFinalUnrest} / ${run.aggregate.averageFinalStructuralUnrestTarget}
 - 쿠데타 경험률 격차: ${run.aggregate.coupSessionRateSpread}%p
+- 정치 위기 발생: 경력당 평균 ${run.aggregate.averageCoupAttempts}회 · 국가별 평균 격차 ${run.aggregate.coupAttemptsSpread}회
 - 연간 결정 밀도 격차: ${run.aggregate.decisionsPerYearSpread}회
+- 국가 의제 응답: 경력당 평균 ${run.aggregate.averageNationAgendaDecisions}회
+- 국가별 결말 충돌률 평균: ${run.aggregate.averageEndingCollisionRate}%
 - 국가별 고유 결말 합계: ${run.aggregate.uniqueEndingsTotal}개
 
 ## 발견된 개선점
@@ -57,7 +65,7 @@ ${findings}
 
 - 전체 보고서: \`docs/${prefix}.md\`
 - 전체 집계: \`docs/${prefix}-summary.json\`
-- 국가별 원자료·집계·보고서: \`docs/nation-century-500-2060/<nation-id>/\`
+- 국가별 원자료·집계·보고서: \`${getNationRootName(prefix, run.aggregate.sessionsPerNation)}/<nation-id>/\`
 - 실행기: \`scripts/run-multi-nation-century-playtest-2060.ts\`
 - 계측기: \`src/multiNationCenturyPlaytest.ts\`
 `;
@@ -91,27 +99,33 @@ ${findings}
 
 function writeArtifacts(run: MultiNationCenturyRun, sessions: NationCenturySessionResult[], outputDirectory: string, prefix: string) {
   const output = resolve(outputDirectory);
-  const nationRoot = resolve(output, 'nation-century-500-2060');
+  const sessionLabel = run.aggregate.sessionsPerNation;
+  const nationRootName = getNationRootName(prefix, sessionLabel);
+  const nationRoot = resolve(output, nationRootName);
   mkdirSync(nationRoot, { recursive: true });
   run.nations.forEach((result) => {
     const nationDirectory = resolve(nationRoot, slug(result.nationId));
     const nationSessions = sessions.filter((session) => session.nationId === result.nationId);
     mkdirSync(nationDirectory, { recursive: true });
-    writeFileSync(resolve(nationDirectory, `${result.nationId}-500-data.json`), `${JSON.stringify(nationSessions, null, 2)}\n`, 'utf8');
-    writeFileSync(resolve(nationDirectory, `${result.nationId}-500-summary.json`), `${JSON.stringify({ generatedAt: run.generatedAt, methodology: run.methodology, nationId: result.nationId, nationName: result.nationName, aggregate: result.aggregate, findings: result.findings }, null, 2)}\n`, 'utf8');
-    writeFileSync(resolve(nationDirectory, `${result.nationId}-500.md`), createNationMarkdown(result), 'utf8');
+    writeFileSync(resolve(nationDirectory, `${result.nationId}-${sessionLabel}-data.json`), `${JSON.stringify(nationSessions, null, 2)}\n`, 'utf8');
+    writeFileSync(resolve(nationDirectory, `${result.nationId}-${sessionLabel}-summary.json`), `${JSON.stringify({ generatedAt: run.generatedAt, methodology: run.methodology, nationId: result.nationId, nationName: result.nationName, aggregate: result.aggregate, findings: result.findings }, null, 2)}\n`, 'utf8');
+    writeFileSync(resolve(nationDirectory, `${result.nationId}-${sessionLabel}.md`), createNationMarkdown(result), 'utf8');
   });
   writeFileSync(resolve(output, `${prefix}-summary.json`), `${JSON.stringify({ generatedAt: run.generatedAt, methodology: run.methodology, aggregate: run.aggregate, findings: run.findings }, null, 2)}\n`, 'utf8');
   writeFileSync(resolve(output, `${prefix}.md`), createOverviewMarkdown(run, prefix), 'utf8');
 }
 
-function validateSessions(sessions: NationCenturySessionResult[]) {
+function validateSessions(
+  sessions: NationCenturySessionResult[],
+  expectedSessionsPerNation = MULTI_NATION_SESSIONS_PER_NATION,
+) {
+  const expectedTotal = nations.length * expectedSessionsPerNation;
   const keys = new Set(sessions.map((session) => `${session.nationId}:${session.nationScenarioId}`));
   const invalid = sessions.filter((session) => session.endYear !== MULTI_NATION_CENTURY_END_YEAR || session.weeksPlayed !== CENTURY_PLAYTEST_WEEKS);
   const perNation = Object.fromEntries(nations.map((nation) => [nation.id, sessions.filter((session) => session.nationId === nation.id).length]));
-  const wrongCounts = Object.entries(perNation).filter(([, count]) => count !== MULTI_NATION_SESSIONS_PER_NATION);
-  if (sessions.length !== MULTI_NATION_TOTAL_SESSIONS || keys.size !== MULTI_NATION_TOTAL_SESSIONS || invalid.length > 0 || wrongCounts.length > 0) {
-    throw new Error(`invalid multi-nation merge: sessions=${sessions.length}/${MULTI_NATION_TOTAL_SESSIONS}, unique=${keys.size}, invalid=${invalid.length}, counts=${JSON.stringify(wrongCounts)}`);
+  const wrongCounts = Object.entries(perNation).filter(([, count]) => count !== expectedSessionsPerNation);
+  if (sessions.length !== expectedTotal || keys.size !== expectedTotal || invalid.length > 0 || wrongCounts.length > 0) {
+    throw new Error(`invalid multi-nation merge: sessions=${sessions.length}/${expectedTotal}, unique=${keys.size}, invalid=${invalid.length}, counts=${JSON.stringify(wrongCounts)}`);
   }
 }
 
@@ -120,12 +134,14 @@ if (args[0] === '--worker') {
   const start = Number(args[1]);
   const end = Number(args[2]);
   const output = resolve(args[3]);
+  const sessionsPerNation = Number(args[4] ?? MULTI_NATION_SESSIONS_PER_NATION);
   const sessions: NationCenturySessionResult[] = [];
   for (let taskId = start; taskId < end; taskId += 1) {
-    const nationIndex = Math.floor(taskId / MULTI_NATION_SESSIONS_PER_NATION);
-    const nationScenarioId = taskId % MULTI_NATION_SESSIONS_PER_NATION;
+    const nationIndex = Math.floor(taskId / sessionsPerNation);
+    const nationScenarioId = taskId % sessionsPerNation;
+    if (!nations[nationIndex]) throw new Error(`worker task ${taskId} exceeds ${nations.length} nations × ${sessionsPerNation} sessions`);
     sessions.push(runNationCenturySession(nations[nationIndex].id, nationScenarioId, CENTURY_PLAYTEST_WEEKS));
-    if ((taskId - start + 1) % 25 === 0 || taskId + 1 === end) {
+    if ((taskId - start + 1) % 5 === 0 || taskId + 1 === end) {
       process.stdout.write(`multi-nation worker ${start}-${end}: ${taskId - start + 1}/${end - start}\n`);
     }
   }
@@ -133,9 +149,13 @@ if (args[0] === '--worker') {
 } else if (args[0] === '--merge') {
   const outputDirectory = args[1] ?? 'docs';
   const prefix = args[2] ?? defaultPrefix;
-  const sessions = args.slice(3).flatMap((path) => JSON.parse(readFileSync(resolve(path), 'utf8')) as NationCenturySessionResult[]);
-  validateSessions(sessions);
-  const run = aggregateMultiNationCenturySessions(sessions, MULTI_NATION_SESSIONS_PER_NATION, CENTURY_PLAYTEST_WEEKS);
+  const requestedSessionsPerNation = Number(args[3]);
+  const hasExplicitSessionCount = Number.isFinite(requestedSessionsPerNation) && requestedSessionsPerNation > 0;
+  const sessionsPerNation = hasExplicitSessionCount ? requestedSessionsPerNation : MULTI_NATION_SESSIONS_PER_NATION;
+  const workerPaths = args.slice(hasExplicitSessionCount ? 4 : 3);
+  const sessions = workerPaths.flatMap((path) => JSON.parse(readFileSync(resolve(path), 'utf8')) as NationCenturySessionResult[]);
+  validateSessions(sessions, sessionsPerNation);
+  const run = aggregateMultiNationCenturySessions(sessions, sessionsPerNation, CENTURY_PLAYTEST_WEEKS);
   writeArtifacts(run, sessions, outputDirectory, prefix);
   process.stdout.write(`merged ${sessions.length} sessions across ${nations.length} nations into ${resolve(outputDirectory)}\n`);
 } else {

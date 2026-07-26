@@ -298,9 +298,9 @@ export function deriveNationalSimulation(input: NationalSimulationInput): Nation
   });
   if (coupRisk.tier !== 'stable') pressures.push({
     id: 'power-struggle',
-    title: `${coupRisk.leadingFaction.name} 권력 투쟁`,
+    title: `${coupRisk.leadingFaction.name} · ${coupRisk.crisisLabel}`,
     severity: coupRisk.tier === 'critical' ? 'critical' : coupRisk.tier === 'dangerous' ? 'high' : 'medium',
-    cause: `집단 불만·조직화 → 쿠데타 위험 ${coupRisk.score} → 주간 발발률 ${coupRisk.weeklyChance.toFixed(1)}%`,
+    cause: `집단 불만·조직화 → ${coupRisk.crisisLabel} 위험 ${coupRisk.score} → 주간 발발률 ${coupRisk.weeklyChance.toFixed(1)}%`,
     consequence: '정책 지연, 지휘 불복종, 연정 붕괴 또는 정권 교체 가능성이 커집니다.',
     actionLabel: '권력집단 관리',
     destination: 'governance',

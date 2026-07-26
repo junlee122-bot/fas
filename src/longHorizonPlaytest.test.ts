@@ -10,8 +10,10 @@ describe('1942-2020 long-horizon production-engine playtest', () => {
     const second = runLongHorizonSession(0, 260);
 
     expect(second).toEqual(first);
-    expect(first.warWeeks).toBe(104);
-    expect(first.nationWeeks).toBe(156);
+    expect(first.warWeeks).toBeGreaterThanOrEqual(150);
+    expect(first.nationWeeks).toBe(260 - first.warWeeks);
+    expect(first.transitionArchetype).toBe('victor-settlement');
+    expect(first.nationAgendaDecisionCount).toBeGreaterThan(0);
     expect(first.worldFlashpointCount).toBeGreaterThan(0);
     expect(first.finalResearchCompleted).toBeGreaterThan(6);
   }, 30_000);

@@ -98,24 +98,24 @@ export function PoliticalCrisisModal({
             <span className="political-crisis-seal"><ShieldAlert size={23} aria-hidden="true" /></span>
             <div>
               <small>{incident ? 'NATIONAL EMERGENCY · TIME STOPPED' : 'INTERNAL SECURITY DIRECTORATE'}</small>
-              <h2 id="political-crisis-title">{incident ? incident.title : '국내 정치위기 상황실'}</h2>
-              <p id="political-crisis-summary">{incident ? incident.briefing : `${state.governmentName}의 권력집단 관계와 쿠데타 위험을 매주 추적합니다.`}</p>
+              <h2 id="political-crisis-title">{incident ? incident.title : `${assessment.crisisLabel} 상황실`}</h2>
+              <p id="political-crisis-summary">{incident ? incident.briefing : `${state.governmentName}의 권력집단 관계와 ${assessment.crisisLabel} 위험을 매주 추적합니다.`}</p>
             </div>
           </div>
           {!incident && onClose && <button ref={firstActionRef} className="icon-button" onClick={onClose} aria-label="정치위기 상황실 닫기"><X size={18} /></button>}
         </header>
 
         <div className="political-crisis-hero">
-          <div className="coup-risk-gauge" aria-label={`쿠데타 위험 ${assessment.score}점, ${getCoupRiskLabel(assessment.tier)}`}>
+          <div className="coup-risk-gauge" aria-label={`${assessment.crisisLabel} 위험 ${assessment.score}점, ${getCoupRiskLabel(assessment.tier)}`}>
             <span style={{ '--risk-value': `${assessment.score * 3.6}deg` } as CSSProperties}>
               <strong>{assessment.score}</strong><small>/ 100</small>
             </span>
             <div><small>위기 단계</small><strong>{getCoupRiskLabel(assessment.tier)}</strong></div>
           </div>
-          <div className="coup-hero-stat"><AlertTriangle size={18} /><span><small>다음 주 시도 확률</small><strong>{assessment.weeklyChance.toFixed(1)}%</strong></span></div>
+          <div className="coup-hero-stat"><AlertTriangle size={18} /><span><small>다음 주 {assessment.crisisLabel} 발생 확률</small><strong>{assessment.weeklyChance.toFixed(1)}%</strong></span></div>
           <div className="coup-hero-stat"><Landmark size={18} /><span><small>현 정부</small><strong>{state.governmentName}</strong></span></div>
           <div className="coup-hero-stat"><Users size={18} /><span><small>주도 위험집단</small><strong>{leadingFaction.shortName}</strong></span></div>
-          <div className="coup-hero-stat"><ShieldCheck size={18} /><span><small>누적 기록</small><strong>시도 {state.attempts} · 저지 {state.prevented} · 성공 {state.successful}</strong></span></div>
+          <div className="coup-hero-stat"><ShieldCheck size={18} /><span><small>누적 기록</small><strong>위기 {state.attempts} · 저지 {state.prevented} · 강제전환 {state.successful}</strong></span></div>
         </div>
 
         {incident ? (
