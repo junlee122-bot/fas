@@ -16,6 +16,7 @@ import type {
 import { getHistoricalRoleHolder, historicalPersonnel, historicalSupplementalPersonnel } from './historicalPersonnel';
 import { getRecruitableHistoricalExperts, getStartingHistoricalExperts } from './historicalExperts';
 import { getNationHistoricalEquipment } from './equipment';
+import { getCivilianSyntheticRole } from './civilianCareer';
 
 export const nations: NationProfile[] = [
   {
@@ -266,7 +267,10 @@ export function getNationCommandTerritoryId(nation: NationProfile) {
 }
 
 export function getRole(id: string, nationId: NationId) {
-  return careerRoles.find((role) => role.id === id) ?? careerRoles.find((role) => role.nationId === nationId && role.tier === 2) ?? careerRoles[0];
+  return careerRoles.find((role) => role.id === id)
+    ?? getCivilianSyntheticRole(id, nationId)
+    ?? careerRoles.find((role) => role.nationId === nationId && role.tier === 2)
+    ?? careerRoles[0];
 }
 
 export function createCareerState(nationId: NationId, roleId: string): CareerState {
@@ -283,6 +287,7 @@ export function createCareerState(nationId: NationId, roleId: string): CareerSta
     legacy: 0,
     alternatePathId: null,
     replacedPersonId: role.historicalHolderId,
+    startMode: role.id.startsWith('civilian-') ? 'civilian' : 'office',
   };
 }
 

@@ -10,7 +10,7 @@ import type {
 
 export type HistoryForce = 'military' | 'industry' | 'diplomacy' | 'civic' | 'liberation' | 'intelligence';
 export type EmergentWorldMetric = 'deterrence' | 'multipolarity' | 'decolonization' | 'rights' | 'prosperity' | 'instability';
-export type HistoryInfluenceSource = '취임' | '국가 원칙' | '결정' | '작전' | '연구' | '외교' | '국정';
+export type HistoryInfluenceSource = '취임' | '민간 활동' | '국가 원칙' | '결정' | '작전' | '연구' | '외교' | '국정';
 
 export interface HistoryInfluence {
   id: string;
@@ -47,6 +47,13 @@ export interface EmergentHistoryInput {
   relations?: DiplomaticRelation[];
   nationStrategyId?: string;
   nationBudget?: Partial<Record<'reconstruction' | 'welfare' | 'education' | 'industry' | 'diplomacy' | 'security', number>>;
+  civilianInfluences?: Array<{
+    id: string;
+    label: string;
+    detail: string;
+    force: HistoryForce;
+    strength: number;
+  }>;
 }
 
 export const historyForceLabels: Record<HistoryForce, string> = {
@@ -164,6 +171,13 @@ export function deriveEmergentHistory(input: EmergentHistoryInput): EmergentHist
     source: '취임',
     force: branchForce[input.roleBranch],
     strength: 11,
+  });
+
+  (input.civilianInfluences ?? []).forEach((influence) => {
+    addInfluence(forces, influences, {
+      ...influence,
+      source: '민간 활동',
+    });
   });
 
   (input.selectedPolicies ?? []).forEach((policy) => {

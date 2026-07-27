@@ -70,8 +70,11 @@ import type {
   CovertOperation,
   EquipmentCategory,
   EquipmentDevelopmentState,
+  CampaignStartMode,
   CareerRole,
   CareerState,
+  CivilianOriginId,
+  CivilianProfessionId,
   Commander,
   CommanderDevelopment,
   CommanderSkillId,
@@ -115,6 +118,7 @@ import {
 } from './campaign';
 import { CampaignSetup } from './CampaignSetup';
 import { CommandDashboard } from './CommandDashboard';
+import { CivilianCareerPanel } from './CivilianCareerPanel';
 import { MapControlCenter } from './MapControlCenter';
 import { GameIcon } from './GameIcon';
 import type { GameIconName, GameIconTone } from './GameIcon';
@@ -183,6 +187,17 @@ import { createWorldHistorySeed, generateWorldline, normalizeWorldHistoryState }
 import type { WorldHistoryState } from './worldHistory';
 import { deriveEmergentHistory, historyForceLabels } from './emergentHistory';
 import type { EmergentHistoryProfile, HistoryForce } from './emergentHistory';
+import {
+  advanceCivilianCareerWeek,
+  createCivilianCareerState,
+  enterCivilianInstitution,
+  getCivilianCareerSignature,
+  getCivilianInstitutionReadiness,
+  getCivilianProfession,
+  getCivilianRoleId,
+  getCivilianStageLabel,
+  resolveCivilianAction,
+} from './civilianCareer';
 import { WorldFlashpointModal } from './WorldFlashpointModal';
 import {
   createWorldFlashpointSelection,
@@ -571,6 +586,9 @@ export function App() {
   const [selectedFrontDetailId, setSelectedFrontDetailId] = useState<string | null>(null);
   const [setupNationId, setSetupNationId] = useState<NationId>(DEFAULT_NATION_ID);
   const [setupRoleId, setSetupRoleId] = useState(DEFAULT_ROLE_ID);
+  const [setupStartMode, setSetupStartMode] = useState<CampaignStartMode>('office');
+  const [setupCivilianProfessionId, setSetupCivilianProfessionId] = useState<CivilianProfessionId>('intellectual');
+  const [setupCivilianOriginId, setSetupCivilianOriginId] = useState<CivilianOriginId>('university-network');
   const [career, setCareer] = useState<CareerState>(() => createCareerState(DEFAULT_NATION_ID, DEFAULT_ROLE_ID));
   const [careerMarket, setCareerMarket] = useState(() => createCareerMarketState());
   const [showCareerMarket, setShowCareerMarket] = useState(false);
@@ -611,6 +629,9 @@ export function App() {
 
   const playerNation = getNation(career.nationId);
   const careerRole = getRole(career.roleId, career.nationId);
+  const civilianCareerActive = career.startMode === 'civilian' && Boolean(career.civilian && !career.civilian.enteredOfficeRoleId);
+  const civilianEntryBranches = career.civilian ? getCivilianInstitutionReadiness(career.civilian).branches : [];
+  const civilianEntryRoles = careerRoles.filter((role) => role.nationId === career.nationId && role.tier === 5 && civilianEntryBranches.includes(role.branch));
   const staffAuthority = useMemo(() => getStaffAuthorityProfile(careerRole), [careerRole]);
   const currentRoleTitle = getCareerInstitutionalTitle(careerRole, campaignPhase, playerNation.status);
   const displayedCareerRole = useMemo(() => ({ ...careerRole, title: currentRoleTitle }), [careerRole, currentRoleTitle]);
@@ -984,7 +1005,8 @@ export function App() {
     relations,
     nationStrategyId: campaignPhase === 'nation' ? nationManagement.strategyId : undefined,
     nationBudget: campaignPhase === 'nation' ? nationManagement.budget : undefined,
-  }), [activePolicies, campaignPhase, careerRole.branch, completedDecisions, doctrine, events, game, nationManagement.budget, nationManagement.strategyId, operations, relations, research]);
+    civilianInfluences: career.civilian?.worldInfluences,
+  }), [activePolicies, campaignPhase, career.civilian?.worldInfluences, careerRole.branch, completedDecisions, doctrine, events, game, nationManagement.budget, nationManagement.strategyId, operations, relations, research]);
   const achievementProgress = useMemo(() => evaluateAchievements({
     game,
     stockpile,
@@ -1023,6 +1045,7 @@ export function App() {
       career.roleId,
       career.replacedPersonId,
       career.alternatePathId ?? 'historical-office',
+      career.civilian ? getCivilianCareerSignature(career.civilian) : 'office-entry',
       careerMarket.affiliationStatus,
       ...careerMarket.history.slice(0, 12).map((record) => `${record.nationId}:${record.outcome}`),
     ].join(':'),
@@ -1032,7 +1055,7 @@ export function App() {
       ...nationManagement.nationalPlanning.history.slice(0, 8).map((record) => `${record.planId}:${record.outcome}`),
       ...nationManagement.strategicContinuity.history.slice(0, 8).map((record) => `${record.operationId}:${record.outcome}`),
     ].join('|'),
-  }), [career.alternatePathId, career.replacedPersonId, career.roleId, careerMarket.affiliationStatus, careerMarket.history, completedDecisions, game, historyTrajectory, nationManagement.nationalPlanning, nationManagement.strategicContinuity.history, playerNation, worldHistoryState]);
+  }), [career.alternatePathId, career.civilian, career.replacedPersonId, career.roleId, careerMarket.affiliationStatus, careerMarket.history, completedDecisions, game, historyTrajectory, nationManagement.nationalPlanning, nationManagement.strategicContinuity.history, playerNation, worldHistoryState]);
   const pendingWorldFlashpointEntry = pendingWorldFlashpointId
     ? worldline.timeline.find((entry) => entry.event.id === pendingWorldFlashpointId)
     : undefined;
@@ -1109,7 +1132,14 @@ export function App() {
   }), [achievementUnlocks, activeTheater, battleReports, battleStance, campaignOutcome, campaignPhase, career, careerMarket, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, economy, equipmentDevelopment, events, game, lastReadWorldWeeklyId, lastReviewedJournalWeek, nationManagement, objectiveProgress, onboardingMilestones, operations, orders, pendingBattleReportId, pendingCareerOfferId, pendingClandestineMissionId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, politicalCrisis, priorityDivisionId, procurementFocusId, production, publicHealth, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized, uxActionLifecycle, visitedOnboardingTabs, worldHistoryState, worldWeeklyIssues]);
   const campaignDate = getCampaignDate(game.week);
   const isKoreaWarCampaign = playerNation.id === 'korea' && campaignPhase === 'war';
-  const statusResources: StatusResource[] = [
+  const statusResources: StatusResource[] = civilianCareerActive && career.civilian ? [
+    { id: 'livelihood', label: '개인 생계', value: `${career.civilian.livelihood}`, detail: '주거·수입·활동비를 포함한 민간 활동 지속 능력', icon: 'treasury', tone: career.civilian.livelihood < 25 ? 'red' : 'gold', priority: true },
+    { id: 'reputation', label: '공적 평판', value: `${career.civilian.publicReputation}`, detail: '대중·언론·지역사회가 당신을 신뢰하는 정도', icon: 'politics', tone: 'gold', priority: true },
+    { id: 'expertise', label: '전문성', value: `${career.civilian.expertise}`, detail: '직업적 성과와 판단의 신뢰도', icon: 'research', tone: 'blue' },
+    { id: 'network', label: '인맥', value: `${career.civilian.network}`, detail: '동료·후원자·조직과의 연결', icon: 'organization', tone: 'green' },
+    { id: 'independence', label: '독립성', value: `${career.civilian.independence}`, detail: '권력과 후원자의 요구에서 벗어나 행동할 수 있는 정도', icon: 'diplomacy', tone: 'steel' },
+    { id: 'scrutiny', label: '감시 위험', value: `${career.civilian.scrutiny}`, detail: '검열·경찰·정보기관의 주목과 활동 노출', icon: 'intelligence', tone: career.civilian.scrutiny >= 65 ? 'red' : 'steel' },
+  ] : [
     { id: 'treasury', label: isKoreaWarCampaign ? '독립운동 기금' : '국고', value: formatGameMoney(game.treasury), delta: campaignPhase === 'nation' && nationManagement.reports[0] ? formatGameMoney(nationManagement.reports[0].fiscalBalance, { signed: true }) : formatGameMoney(economyForecast.netTreasuryChange, { signed: true }), detail: isKoreaWarCampaign ? '임시정부 운영·연합 조달·국내 공작 재원' : '정책·조달·급여의 공통 재원', icon: 'treasury', tone: 'gold', priority: true },
     { id: 'politics', label: isKoreaWarCampaign ? '외교·조직력' : campaignPhase === 'nation' ? '정치 역량' : '정치력', value: formatNumber(game.politicalPower), delta: campaignPhase === 'nation' ? `위임 ${nationManagement.mandateScore}` : '+3/주', detail: isKoreaWarCampaign ? '승인 교섭·정파 통합·인사 결재' : '인사·외교·정책 결재에 사용', icon: 'politics', tone: 'gold', priority: true },
     { id: 'manpower', label: isKoreaWarCampaign ? '동원 가능 인력' : campaignPhase === 'nation' ? '노동·예비 인력' : '가용 인력', value: `${formatNumber(game.manpower)}K`, delta: campaignPhase === 'nation' ? `고용 ${Math.round(nationManagement.employment)}` : '+18/주', detail: isKoreaWarCampaign ? '광복군 충원·연락망·해방 행정 인력' : campaignPhase === 'nation' ? '산업·행정·국방 인력 기반' : '편제 충원과 손실 보충', icon: 'manpower', tone: 'blue' },
@@ -1773,6 +1803,18 @@ export function App() {
       return;
     }
     const nextWeek = game.week + 1;
+    if (career.civilian && !career.civilian.enteredOfficeRoleId) {
+      const nextCivilian = advanceCivilianCareerWeek(career.civilian);
+      setCareer((current) => ({ ...current, civilian: nextCivilian }));
+      if (nextCivilian.stage !== career.civilian.stage) {
+        addEvent(
+          `민간 위상 변화 — ${getCivilianStageLabel(nextCivilian.stage)}`,
+          `누적된 전문성·평판·인맥으로 사회적 활동 단계가 상승했습니다. 새로운 제도권 제안과 고위험 민간 행동의 조건을 확인하십시오.`,
+          'good',
+          nextWeek,
+        );
+      }
+    }
     const currentOrder = orders[0];
     let weeklyOrderComparison: WarEventComparison | null = null;
     const publicHealthResult = advancePublicHealthWeek(publicHealth, publicHealthContext);
@@ -2271,7 +2313,7 @@ export function App() {
       ],
       certainty: 'confirmed',
     });
-  }, [activeTheater, addEvent, advanceNationWeek, battleStance, campaignPhase, career.experience, career.nationId, careerRole.tier, commanderDevelopment, completedDecisions, delegatedDepartments, developmentFocusId, divisions, doctrine, economy, economyAdvisorBonus, economyForecast.netTreasuryChange, effectiveCommanders, effectiveDivisions, enemyFaction, equipmentDevelopment, formatGameMoney, game, hasClandestineIncident, historyTrajectory.dominantForce, notify, orders, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, playerFaction, playerNation.id, playerNation.shortName, policyAttackBonus, policyDefenseBonus, policyProductionMultiplier, policySupplyRecovery, priorityDivisionId, procurementFocusId, production, projectionActiveResearch.length, projectionFuelDelta, projectionProductionTotal, projectionResearchGain, publicHealth, publicHealthContext, research, resolvedCouncilChoices, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisor, scienceAdvisorBonus, staffCandidates, staffWeeklyCost, supplyPolicy, territories, worldline]);
+  }, [activeTheater, addEvent, advanceNationWeek, battleStance, campaignPhase, career.civilian, career.experience, career.nationId, careerRole.tier, commanderDevelopment, completedDecisions, delegatedDepartments, developmentFocusId, divisions, doctrine, economy, economyAdvisorBonus, economyForecast.netTreasuryChange, effectiveCommanders, effectiveDivisions, enemyFaction, equipmentDevelopment, formatGameMoney, game, hasClandestineIncident, historyTrajectory.dominantForce, notify, orders, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, playerFaction, playerNation.id, playerNation.shortName, policyAttackBonus, policyDefenseBonus, policyProductionMultiplier, policySupplyRecovery, priorityDivisionId, procurementFocusId, production, projectionActiveResearch.length, projectionFuelDelta, projectionProductionTotal, projectionResearchGain, publicHealth, publicHealthContext, research, resolvedCouncilChoices, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisor, scienceAdvisorBonus, staffCandidates, staffWeeklyCost, supplyPolicy, territories, worldline]);
 
   useEffect(() => {
     if (speed === 0 || pendingWorldFlashpointId || pendingCoupIncident || hasClandestineIncident || showBriefing || showCareerMarket || showWorldHistory || showWorldWeekly || showTutorial) return;
@@ -3087,15 +3129,31 @@ export function App() {
 
   const startCampaign = () => {
     const nation = getNation(setupNationId);
-    const role = getRole(setupRoleId, setupNationId);
-    const newCareer = createCareerState(nation.id, role.id);
+    const isCivilianStart = setupStartMode === 'civilian';
+    const civilianProfession = getCivilianProfession(setupCivilianProfessionId);
+    const selectedCareerRoleId = isCivilianStart ? getCivilianRoleId(nation.id, setupCivilianProfessionId) : setupRoleId;
+    const role = getRole(selectedCareerRoleId, setupNationId);
+    const newCareer: CareerState = {
+      ...createCareerState(nation.id, role.id),
+      startMode: setupStartMode,
+      replacedPersonId: isCivilianStart ? '' : role.historicalHolderId,
+      civilian: isCivilianStart ? createCivilianCareerState(setupCivilianProfessionId, setupCivilianOriginId) : undefined,
+    };
     const newDivisions = createCampaignDivisions(nation);
-    const doctrineBonus: Partial<GameState> = doctrine === 'methodical'
-      ? { factories: (nation.modifiers.factories ?? initialGame.factories) + 3, steel: (nation.modifiers.steel ?? initialGame.steel) + 13 }
-      : doctrine === 'maneuver'
-        ? { fuel: (nation.modifiers.fuel ?? initialGame.fuel) + 22, commandPoints: initialGame.commandPoints + 8 }
-        : { politicalPower: (nation.modifiers.politicalPower ?? initialGame.politicalPower) + 16, stability: (nation.modifiers.stability ?? initialGame.stability) + 4 };
-    const roleDelta: Partial<Record<keyof GameState, number>> = role.branch === 'intelligence'
+    const doctrineBonus: Partial<GameState> = isCivilianStart
+      ? doctrine === 'methodical'
+        ? { steel: (nation.modifiers.steel ?? initialGame.steel) + 4, stability: (nation.modifiers.stability ?? initialGame.stability) + 2 }
+        : doctrine === 'maneuver'
+          ? { politicalPower: (nation.modifiers.politicalPower ?? initialGame.politicalPower) + 5, intelNetwork: (nation.modifiers.intelNetwork ?? initialGame.intelNetwork) + 3 }
+          : { politicalPower: (nation.modifiers.politicalPower ?? initialGame.politicalPower) + 7, stability: (nation.modifiers.stability ?? initialGame.stability) + 3 }
+      : doctrine === 'methodical'
+        ? { factories: (nation.modifiers.factories ?? initialGame.factories) + 3, steel: (nation.modifiers.steel ?? initialGame.steel) + 13 }
+        : doctrine === 'maneuver'
+          ? { fuel: (nation.modifiers.fuel ?? initialGame.fuel) + 22, commandPoints: initialGame.commandPoints + 8 }
+          : { politicalPower: (nation.modifiers.politicalPower ?? initialGame.politicalPower) + 16, stability: (nation.modifiers.stability ?? initialGame.stability) + 4 };
+    const roleDelta: Partial<Record<keyof GameState, number>> = isCivilianStart
+      ? civilianProfession.gameDelta
+      : role.branch === 'intelligence'
       ? { intelNetwork: role.archetype === 'resistance' ? 16 : 11, politicalPower: 5, manpower: role.archetype === 'resistance' ? 45 : 0 }
       : role.branch === 'military'
         ? { commandPoints: 10, warSupport: 3 }
@@ -3107,13 +3165,34 @@ export function App() {
     const newEconomy = createEconomyState(nation.id);
     const newRelations = createDiplomaticRelations(nation.id);
     const newOperations = createCovertOperations(nation.defaultTheater, nation.id);
-    const openingTrajectory = deriveEmergentHistory({ doctrine, roleBranch: role.branch, game: newGame, relations: newRelations, operations: newOperations });
-    const newWorldline = generateWorldline({ nation, game: newGame, state: newWorldHistoryState, trajectory: openingTrajectory });
+    const openingTrajectory = deriveEmergentHistory({
+      doctrine,
+      roleBranch: role.branch,
+      game: newGame,
+      relations: newRelations,
+      operations: newOperations,
+      civilianInfluences: newCareer.civilian?.worldInfluences,
+    });
+    const newWorldline = generateWorldline({
+      nation,
+      game: newGame,
+      state: newWorldHistoryState,
+      trajectory: openingTrajectory,
+      careerSignature: newCareer.civilian ? getCivilianCareerSignature(newCareer.civilian) : role.id,
+    });
     const newTerritories = initialTerritories.map((territory) => ({ ...territory }));
     const newResearch = initialResearch.map((project) => ({ ...project }));
     const openingEventTimestamp = Date.now();
     const openingEvents: WarEvent[] = [
-      { id: openingEventTimestamp, week: 0, title: '보직 인수 — ' + role.historicalHolderName + '을 대신하여', detail: role.historicalHolderName + '이(가) 맡았던 ' + role.historicalOffice + '의 권한을 대체역사 보직으로 재편했습니다. 전임자는 인재 시장의 경쟁자로 남습니다.', tone: 'good' },
+      isCivilianStart
+        ? {
+          id: openingEventTimestamp,
+          week: 0,
+          title: `민간 커리어 시작 — ${civilianProfession.name}`,
+          detail: `${civilianProfession.vocation}을 일상 기반으로 삼아 공식 권한 없이 활동을 시작했습니다. 실존 인물을 밀어내지 않으며 평판·전문성·인맥·생계·감시 위험이 별도로 계산됩니다.`,
+          tone: 'good',
+        }
+        : { id: openingEventTimestamp, week: 0, title: '보직 인수 — ' + role.historicalHolderName + '을 대신하여', detail: role.historicalHolderName + '이(가) 맡았던 ' + role.historicalOffice + '의 권한을 대체역사 보직으로 재편했습니다. 전임자는 인재 시장의 경쟁자로 남습니다.', tone: 'good' },
       {
         id: openingEventTimestamp + 1,
         week: 0,
@@ -3123,11 +3202,20 @@ export function App() {
         trace: {
           domain: 'history',
           decision: `취임 지휘 철학으로 ‘${doctrine === 'coalition' ? '연합과 협상' : doctrine === 'methodical' ? '산업과 준비' : '속도와 충격'}’을 선택했습니다.`,
-          trigger: `${nation.shortName}의 ${role.title} 보직에서 1942년 10월 25일 지휘를 시작했습니다.`,
-          factors: [`플레이 국가: ${nation.shortName}`, `대체 보직: ${role.historicalHolderName} · ${role.historicalOffice}`, `세계선 코드: ${newWorldline.code}`, `세력권 경쟁: ${newWorldline.rivalryName}`],
+          trigger: isCivilianStart
+            ? `${nation.shortName}에서 ${civilianProfession.name}의 삶으로 1942년 10월 25일 활동을 시작했습니다.`
+            : `${nation.shortName}의 ${role.title} 보직에서 1942년 10월 25일 지휘를 시작했습니다.`,
+          factors: [
+            `플레이 국가: ${nation.shortName}`,
+            isCivilianStart ? `민간 출발: ${civilianProfession.name} · ${setupCivilianOriginId}` : `대체 보직: ${role.historicalHolderName} · ${role.historicalOffice}`,
+            `세계선 코드: ${newWorldline.code}`,
+            `세력권 경쟁: ${newWorldline.rivalryName}`,
+          ],
           effects: [{ label: '세계선', value: newWorldline.code, tone: 'neutral' }],
           ongoing: ['국가 원칙·작전·인사·외교·연구·경제 선택이 여섯 역사 압력에 누적되며, 이후 사건의 행위자와 결과 확률을 바꿉니다.'],
-          nextActions: ['세계 주보의 각 기사에서 전선·외교·경제·사회·과학·정보 화면으로 이동해 첫 주 우선순위를 결정하십시오.'],
+          nextActions: [isCivilianStart
+            ? '세계 주보를 읽은 뒤 상황실의 민간 행동 6개 중 하나를 골라 첫 사회적 흔적을 남기십시오.'
+            : '세계 주보의 각 기사에서 전선·외교·경제·사회·과학·정보 화면으로 이동해 첫 주 우선순위를 결정하십시오.'],
           certainty: 'developing',
         },
       },
@@ -3229,7 +3317,9 @@ export function App() {
     setWorldHistoryState(newWorldHistoryState);
     setShowBriefing(false);
     setShowTutorial(!localStorage.getItem(TUTORIAL_KEY));
-    notify(nation.shortName + ' · ' + role.title + '로 취임했습니다. 세계 주보 창간호가 발행되었습니다.');
+    notify(isCivilianStart
+      ? `${nation.shortName} · ${civilianProfession.name}의 삶을 시작했습니다. 세계 주보 창간호가 발행되었습니다.`
+      : nation.shortName + ' · ' + role.title + '로 취임했습니다. 세계 주보 창간호가 발행되었습니다.');
   };
 
   const continueCampaign = () => {
@@ -3284,6 +3374,7 @@ export function App() {
         relations: restoredRelations,
         nationStrategyId: restoredPhase === 'nation' ? restoredNationManagement.strategyId : undefined,
         nationBudget: restoredPhase === 'nation' ? restoredNationManagement.budget : undefined,
+        civilianInfluences: savedCareer.civilian?.worldInfluences,
       });
       const restoredWorldline = generateWorldline({ nation: restoredNation, game: restoredGame, state: restoredWorldHistoryState, trajectory: restoredTrajectory });
       setEconomy(restoredEconomy);
@@ -3395,6 +3486,11 @@ export function App() {
       setShowCareerMarket(false);
       setSetupNationId(restoredCareer.nationId);
       setSetupRoleId(restoredCareer.roleId);
+      setSetupStartMode(restoredCareer.startMode === 'civilian' ? 'civilian' : 'office');
+      if (restoredCareer.civilian) {
+        setSetupCivilianProfessionId(restoredCareer.civilian.professionId);
+        setSetupCivilianOriginId(restoredCareer.civilian.originId);
+      }
       const restoredTheater = data.activeTheater ?? restoredNation.defaultTheater;
       const restoredMapRegion = getDefaultMapRegion(restoredTheater);
       setActiveTheater(restoredTheater);
@@ -3472,6 +3568,9 @@ export function App() {
     setCommanderDevelopment(defaultCommanderDevelopment);
     setSetupNationId(DEFAULT_NATION_ID);
     setSetupRoleId(DEFAULT_ROLE_ID);
+    setSetupStartMode('office');
+    setSetupCivilianProfessionId('intellectual');
+    setSetupCivilianOriginId('university-network');
     setCareer(createCareerState(DEFAULT_NATION_ID, DEFAULT_ROLE_ID));
     setCareerMarket(createCareerMarketState());
     setShowCareerMarket(false);
@@ -3957,6 +4056,101 @@ export function App() {
     const recognition = [recognized.battleName, recognized.decoration?.name].filter(Boolean).join(' · ');
     addEvent(`전공 기록 승인 — ${recognized.commanderName}`, `${recognition || recognized.targetName}을(를) 전선 공식 기록에 등재했습니다.${recognized.decoration ? ` 공적 사유: ${recognized.decoration.citation}` : ''}`, 'good', game.week);
     notify(`${recognized.commanderName}의 전공 기록을 승인했습니다${recognized.decoration ? ` · ${recognized.decoration.name}` : ''}.`);
+  };
+
+  const performCivilianAction = (actionId: string) => {
+    if (!career.civilian || career.civilian.enteredOfficeRoleId) {
+      notify('현재는 민간 커리어 행동을 실행할 수 없습니다.');
+      return;
+    }
+    const result = resolveCivilianAction(career.civilian, actionId, game.week);
+    if (!result) {
+      notify('생계 또는 준비 기간 조건을 먼저 충족해야 합니다.');
+      return;
+    }
+    setCareer((current) => ({
+      ...current,
+      reputation: Math.min(100, current.reputation + Math.max(1, Math.round((result.state.publicReputation - career.civilian!.publicReputation) / 2))),
+      experience: Math.min(100, current.experience + 2),
+      legacy: Math.min(100, current.legacy + (result.stageChanged ? 3 : 1)),
+      civilian: result.state,
+    }));
+    setGame((current) => applyGameDelta(current, result.gameDelta));
+    setCompletedDecisions((current) => [...current, `civilian:${career.civilian!.professionId}:${actionId}:${game.week}`]);
+    addEvent(
+      `민간 활동 — ${result.record.title}`,
+      `${result.record.outcome}${result.stageChanged ? ` 사회적 단계가 ‘${getCivilianStageLabel(result.state.stage)}’로 상승했습니다.` : ''}`,
+      result.state.scrutiny >= 70 ? 'bad' : 'good',
+      game.week,
+      {
+        domain: 'history',
+        decision: `${getCivilianProfession(result.state.professionId).name}의 경로에서 ‘${result.record.title}’을 실행했습니다.`,
+        trigger: `공적 평판 ${result.state.publicReputation} · 전문성 ${result.state.expertise} · 인맥 ${result.state.network} · 생계 ${result.state.livelihood} · 감시 ${result.state.scrutiny}`,
+        factors: [
+          `출신 배경: ${result.state.originId}`,
+          `누적 민간 활동: ${result.state.actionHistory.length}회`,
+          `역사 압력: ${result.influence.force} +${result.influence.strength}`,
+        ],
+        effects: [
+          { label: '민간 커리어', value: `${result.record.title} · ${getCivilianStageLabel(result.state.stage)}`, tone: 'positive' },
+          { label: '가능세계 영향', value: `${result.influence.force} +${result.influence.strength}`, tone: 'neutral' },
+          { label: '노출 위험', value: `감시 ${result.state.scrutiny}`, tone: result.state.scrutiny >= 70 ? 'negative' : 'neutral' },
+        ],
+        ongoing: ['이 행동은 세계선 원인 기록에 남고 이후 사건·인물·제도권 제안의 조건에 누적됩니다.'],
+        nextActions: ['생계와 감시 위험을 확인한 뒤 다음 민간 행동 또는 제도권 진입 조건을 선택하십시오.'],
+        certainty: 'confirmed',
+      },
+    );
+    notify(`${result.record.title} 완료 · 다음 세계선 계산에 반영됩니다.`);
+  };
+
+  const enterCivilianRole = (roleId: string) => {
+    if (!career.civilian || career.civilian.enteredOfficeRoleId) return;
+    const readiness = getCivilianInstitutionReadiness(career.civilian);
+    const targetRole = careerRoles.find((role) => role.id === roleId && role.nationId === career.nationId && role.tier === 5 && readiness.branches.includes(role.branch));
+    if (!readiness.ready || !targetRole) {
+      notify('제도권 진입 조건을 모두 충족해야 합니다.');
+      return;
+    }
+    const nextCivilian = enterCivilianInstitution(career.civilian, targetRole.id);
+    setCareer((current) => ({
+      ...current,
+      roleId: targetRole.id,
+      reputation: Math.max(current.reputation, 38),
+      councilTrust: Math.max(current.councilTrust, 46),
+      experience: Math.max(current.experience, 18),
+      replacedPersonId: '',
+      civilian: nextCivilian,
+    }));
+    setSetupRoleId(targetRole.id);
+    setStaff(createStaffRoster(playerNation.id, targetRole.id));
+    setStaffCandidates([
+      ...createStaffCandidates(playerNation.id, targetRole.id),
+      ...createEmergentIntelligenceCandidates(playerNation.id, currentYear, worldline.timeline),
+    ]);
+    setCommanderDevelopment(createCommanderDevelopment(createCareerCommanders(playerNation, targetRole)));
+    setCompletedDecisions((current) => [...current, `civilian-entry:${targetRole.id}:${game.week}`]);
+    addEvent(
+      `제도권 진입 — ${targetRole.title}`,
+      `민간에서 쌓은 전문성·평판·관계망을 유지한 채 ${targetRole.title} 제안을 수락했습니다. 특정 실존 인물을 밀어낸 것이 아니라 조직이 사용자를 위한 새 자리를 만들었습니다.`,
+      'good',
+      game.week,
+      {
+        domain: 'history',
+        decision: `${getCivilianProfession(career.civilian.professionId).name}에서 ${targetRole.title}로 진입했습니다.`,
+        trigger: `진입 준비도 ${readiness.score} · 민간 활동 ${career.civilian.actionHistory.length}회`,
+        factors: readiness.requirements.map((requirement) => `${requirement.label}: 충족`),
+        effects: [
+          { label: '공식 보직', value: targetRole.title, tone: 'positive' },
+          { label: '권한', value: `${targetRole.authority} · TIER ${targetRole.tier}`, tone: 'positive' },
+          { label: '민간 유산', value: `${career.civilian.worldInfluences.length}개 세계선 원인 유지`, tone: 'neutral' },
+        ],
+        ongoing: ['이제 참모 스쿼드·후보 시장·보직 이동이 열리지만 민간 경력에서 만든 관계와 위험은 계속 남습니다.'],
+        nextActions: ['상황실에서 새 보직의 권한을 확인하고 조직 운영에서 첫 참모 배치를 결정하십시오.'],
+        certainty: 'confirmed',
+      },
+    );
+    notify(`${targetRole.title} 제안을 수락했습니다. 기존 보직 커리어 흐름이 열렸습니다.`);
   };
 
   const changeSetupNation = (nationId: NationId) => {
@@ -5018,7 +5212,7 @@ export function App() {
   };
 
   const tabItems: { id: GameTab; label: string; description: string; navHint: string; group: string; guide: [string, string, string]; icon: GameIconName }[] = [
-    { id: 'command', label: isKoreaWarCampaign ? '독립운동 상황실' : campaignPhase === 'nation' ? '국정 상황실' : '지휘 본부', navHint: isKoreaWarCampaign ? '승인·공작·광복군' : '이번 주 우선순위', group: '최고 지휘부', description: isKoreaWarCampaign ? '충칭 지휘부에서 승인 외교·국내 공작망·광복군·귀환 준비를 한 화면에 파악합니다.' : campaignPhase === 'nation' ? '국민·재정·보건·외교의 긴급 업무를 한 화면에서 파악합니다.' : '결재 업무·전황·조직·생산·연구를 한 화면에서 파악합니다.', guide: isKoreaWarCampaign ? ['네 축의 준비도 확인', '보직 권한 안에서 결재', '해방 시간선 진행'] : ['경고 확인', '권장 행동 결재', '다음 주 진행'], icon: 'command' },
+    { id: 'command', label: civilianCareerActive ? '시민 활동실' : isKoreaWarCampaign ? '독립운동 상황실' : campaignPhase === 'nation' ? '국정 상황실' : '지휘 본부', navHint: civilianCareerActive ? '직업·인맥·공적 활동' : isKoreaWarCampaign ? '승인·공작·광복군' : '이번 주 우선순위', group: civilianCareerActive ? '민간 커리어' : '최고 지휘부', description: civilianCareerActive ? '평판·전문성·인맥·생계·감시를 관리하고 이번 주 민간 행동과 제도권 진입 경로를 선택합니다.' : isKoreaWarCampaign ? '충칭 지휘부에서 승인 외교·국내 공작망·광복군·귀환 준비를 한 화면에 파악합니다.' : campaignPhase === 'nation' ? '국민·재정·보건·외교의 긴급 업무를 한 화면에서 파악합니다.' : '결재 업무·전황·조직·생산·연구를 한 화면에서 파악합니다.', guide: civilianCareerActive ? ['세계 주보 읽기', '민간 행동 선택', '다음 주 진행'] : isKoreaWarCampaign ? ['네 축의 준비도 확인', '보직 권한 안에서 결재', '해방 시간선 진행'] : ['경고 확인', '권장 행동 결재', '다음 주 진행'], icon: 'command' },
     { id: 'governance', label: isKoreaWarCampaign ? '해방·건국 설계' : campaignPhase === 'nation' ? '국가 운영' : '전후 설계', navHint: isKoreaWarCampaign ? '헌정·통합·국가 전환' : campaignPhase === 'nation' ? '예산·민생·선거' : '종전과 국가 전환', group: '최고 지휘부', description: isKoreaWarCampaign ? '해방 뒤 정부 형태, 헌정 질서, 행정 인력과 무장 세력 통합 방식을 준비합니다.' : campaignPhase === 'nation' ? '예산·민생·산업·제도·국민 위임을 주간 단위로 운영합니다.' : '전쟁에서 국가 운영으로 이어질 종전 방식과 전후 초기 조건을 준비합니다.', guide: isKoreaWarCampaign ? ['귀환 준비도 확인', '헌정·통합안 비교', '해방 이후 경로 선택'] : campaignPhase === 'nation' ? ['국가 지표 확인', '예산·노선 조정', '국정 1주 진행'] : ['전환 준비도 확인', '전후 위험 비교', '종전 경로 선택'], icon: 'organization' },
     { id: 'map', label: isKoreaWarCampaign ? '한반도 작전도' : campaignPhase === 'nation' ? '세계·국경 지도' : '전황 지도', navHint: isKoreaWarCampaign ? '점령 본토·국내정진' : campaignPhase === 'nation' ? '국경과 국제 질서' : '전선과 작전 계획', group: '최고 지휘부', description: isKoreaWarCampaign ? '조선 본토의 점령 상태와 만주 연락선, 중국 거점, 국내정진 경로를 구분해 검토합니다.' : campaignPhase === 'nation' ? '종전 이후 국경·교역·안보 관계와 세계선의 변화를 검토합니다.' : '전선·보급·기상·정보를 지도에서 검토하고 공세 목표를 지정합니다.', guide: isKoreaWarCampaign ? ['한반도 지역 선택', '점령·연락망 확인', '국내정진 목표 지정'] : campaignPhase === 'nation' ? ['세계선 선택', '국경·거점 확인', '외교·안보 검토'] : ['지도층 선택', '부대·거점 확인', '공세 목표 지정'], icon: 'map' },
     { id: 'organization', label: isKoreaWarCampaign ? '독립운동 조직' : '조직 운영', navHint: isKoreaWarCampaign ? '임정·광복군·공작망' : '참모·영입·편제', group: '국가 운영', description: isKoreaWarCampaign ? '임시정부·한국광복군·국내외 공작망의 인재와 지휘선을 보직 권한에 맞춰 관리합니다.' : '참모진·영입·편제·조달·국가 원칙을 관리합니다.', guide: isKoreaWarCampaign ? ['조직별 지휘선 확인', '인재 조사·접촉', '보직과 권한 배정'] : ['조직 병목 확인', '인재 비교·영입', '보직과 권한 배정'], icon: 'organization' },
@@ -5032,6 +5226,11 @@ export function App() {
   ];
   const activeTabMeta = tabItems.find((tab) => tab.id === activeTab) ?? tabItems[0];
   const openGameTab = useCallback((tabId: GameTab) => {
+    if (civilianCareerActive && tabId !== 'command') {
+      setActiveTab('command');
+      notify('공식 권한이 없는 민간 커리어입니다. 상황실의 민간 행동과 세계 주보를 통해 영향력을 키우십시오.');
+      return;
+    }
     preloadGameTab(tabId);
     setVisitedOnboardingTabs((current) => current.includes(tabId) ? current : [...current, tabId]);
     if (tabId === 'map' && isKoreaWarCampaign) {
@@ -5045,7 +5244,7 @@ export function App() {
     }
     setActiveTab(tabId);
     if (window.matchMedia('(max-width: 900px)').matches) setNavigationCollapsed(true);
-  }, [focusMapTerritory, isKoreaWarCampaign]);
+  }, [civilianCareerActive, focusMapTerritory, isKoreaWarCampaign, notify]);
   const commandPaletteItems: CommandPaletteItem[] = [
     ...tabItems.map((tab) => ({ id: `tab-${tab.id}`, group: tab.group, title: tab.label, description: tab.description, keywords: [tab.id, tab.navHint], icon: <GameIcon name={tab.icon} size={18} tone="gold" />, active: activeTab === tab.id })),
     { id: 'theater-europe', group: '전구 지도', title: '유럽·지중해 전구', description: '유럽, 북아프리카와 지중해 전선을 엽니다.', keywords: ['유럽', '아프리카', '지도'], icon: <Map size={17} />, active: activeTheater === 'europe' },
@@ -5069,8 +5268,8 @@ export function App() {
       const tabId = id.slice(4) as GameTab;
       const tab = tabItems.find((item) => item.id === tabId);
       if (tab) {
-        setActiveTab(tabId);
-        notify(`${tab.label} 화면을 열었습니다.`);
+        openGameTab(tabId);
+        if (!civilianCareerActive || tabId === 'command') notify(`${tab.label} 화면을 열었습니다.`);
       }
       return;
     }
@@ -5138,12 +5337,18 @@ export function App() {
 
         <div className="resource-row">
           <div className="resource-scroll-track" role="region" tabIndex={0} aria-label="핵심 자원, 좌우로 스크롤 가능">
-            <ResourceChip priority icon="treasury" tone="gold" value={formatGameMoney(game.treasury)} label={`${isKoreaWarCampaign ? '독립운동 기금' : '국고'} · ${economy.monetarySystem.historicalAutoTransition ? '역사통화' : '신 통화'}`} compactLabel={isKoreaWarCampaign ? '독립기금' : '국고'} delta={campaignPhase === 'nation' && nationManagement.reports[0] ? formatGameMoney(nationManagement.reports[0].fiscalBalance, { signed: true }) : formatGameMoney(economyForecast.netTreasuryChange, { signed: true })} />
-            <ResourceChip icon="politics" tone="gold" value={formatNumber(game.politicalPower)} label={isKoreaWarCampaign ? '외교·조직력' : campaignPhase === 'nation' ? '정치 역량' : '정치력'} compactLabel={isKoreaWarCampaign ? '외교·조직' : '정치'} delta={campaignPhase === 'nation' ? `위임 ${nationManagement.mandateScore}` : '+3'} />
-            <ResourceChip icon="manpower" tone="blue" value={formatNumber(game.manpower) + 'K'} label={isKoreaWarCampaign ? '동원 가능 인력' : campaignPhase === 'nation' ? '노동·예비 인력' : '가용 인력'} compactLabel={isKoreaWarCampaign ? '동원 인력' : campaignPhase === 'nation' ? '인력' : '가용 인력'} delta={campaignPhase === 'nation' ? `고용 ${Math.round(nationManagement.employment)}` : '+18'} />
-            <ResourceChip icon="industry" tone="steel" value={String(game.factories)} label={isKoreaWarCampaign ? '협력 생산망' : campaignPhase === 'nation' ? '산업 기반' : '군수 공장'} compactLabel={isKoreaWarCampaign ? '생산망' : campaignPhase === 'nation' ? '산업' : '군수 공장'} delta={campaignPhase === 'nation' ? `민수 ${Math.round(nationManagement.civilianIndustry)}` : undefined} />
-            <ResourceChip icon="fuel" tone="green" value={formatNumber(game.fuel) + 'K'} label={isKoreaWarCampaign ? '작전 연료' : campaignPhase === 'nation' ? '전략 에너지' : '연료'} delta={campaignPhase === 'nation' ? undefined : '+2.6'} />
-            <ResourceChip icon="steel" tone="steel" value={formatNumber(game.steel) + 'K'} label={isKoreaWarCampaign ? '조달 강철' : '강철'} delta="+9" />
+            {civilianCareerActive ? statusResources.map((resource) => (
+              <ResourceChip key={resource.id} priority={resource.priority} icon={resource.icon} tone={resource.tone} value={resource.value} label={resource.label} compactLabel={resource.label} delta={resource.delta} />
+            )) : (
+              <>
+                <ResourceChip priority icon="treasury" tone="gold" value={formatGameMoney(game.treasury)} label={`${isKoreaWarCampaign ? '독립운동 기금' : '국고'} · ${economy.monetarySystem.historicalAutoTransition ? '역사통화' : '신 통화'}`} compactLabel={isKoreaWarCampaign ? '독립기금' : '국고'} delta={campaignPhase === 'nation' && nationManagement.reports[0] ? formatGameMoney(nationManagement.reports[0].fiscalBalance, { signed: true }) : formatGameMoney(economyForecast.netTreasuryChange, { signed: true })} />
+                <ResourceChip icon="politics" tone="gold" value={formatNumber(game.politicalPower)} label={isKoreaWarCampaign ? '외교·조직력' : campaignPhase === 'nation' ? '정치 역량' : '정치력'} compactLabel={isKoreaWarCampaign ? '외교·조직' : '정치'} delta={campaignPhase === 'nation' ? `위임 ${nationManagement.mandateScore}` : '+3'} />
+                <ResourceChip icon="manpower" tone="blue" value={formatNumber(game.manpower) + 'K'} label={isKoreaWarCampaign ? '동원 가능 인력' : campaignPhase === 'nation' ? '노동·예비 인력' : '가용 인력'} compactLabel={isKoreaWarCampaign ? '동원 인력' : campaignPhase === 'nation' ? '인력' : '가용 인력'} delta={campaignPhase === 'nation' ? `고용 ${Math.round(nationManagement.employment)}` : '+18'} />
+                <ResourceChip icon="industry" tone="steel" value={String(game.factories)} label={isKoreaWarCampaign ? '협력 생산망' : campaignPhase === 'nation' ? '산업 기반' : '군수 공장'} compactLabel={isKoreaWarCampaign ? '생산망' : campaignPhase === 'nation' ? '산업' : '군수 공장'} delta={campaignPhase === 'nation' ? `민수 ${Math.round(nationManagement.civilianIndustry)}` : undefined} />
+                <ResourceChip icon="fuel" tone="green" value={formatNumber(game.fuel) + 'K'} label={isKoreaWarCampaign ? '작전 연료' : campaignPhase === 'nation' ? '전략 에너지' : '연료'} delta={campaignPhase === 'nation' ? undefined : '+2.6'} />
+                <ResourceChip icon="steel" tone="steel" value={formatNumber(game.steel) + 'K'} label={isKoreaWarCampaign ? '조달 강철' : '강철'} delta="+9" />
+              </>
+            )}
           </div>
           <button type="button" className="status-overview-trigger" aria-label="지휘 현황판 열기" aria-keyshortcuts="H" title="핵심 자원·위험·다음 행동 전체 보기 · H" onClick={() => setShowStatusOverview(true)}><LayoutDashboard size={17} /><span>현황</span></button>
         </div>
@@ -5184,7 +5389,7 @@ export function App() {
           {tabItems.map((tab, index) => (
             <div className="nav-entry" key={tab.id}>
             {(index === 0 || tabItems[index - 1].group !== tab.group) && <span className="primary-nav-group-label">{tab.group}</span>}
-            <button data-tour={`${tab.id}-tab`} className={activeTab === tab.id ? 'active' : ''} onMouseEnter={() => preloadGameTab(tab.id)} onFocus={() => preloadGameTab(tab.id)} onClick={() => openGameTab(tab.id)} title={tab.label} data-tooltip={tab.description} aria-label={`${tab.label}${tabActionSummary.counts[tab.id] ? `, 미처리 업무 ${tabActionSummary.counts[tab.id]}건` : ''}`} aria-current={activeTab === tab.id ? 'page' : undefined}>
+            <button data-tour={`${tab.id}-tab`} className={`${activeTab === tab.id ? 'active' : ''}${civilianCareerActive && tab.id !== 'command' ? ' career-locked' : ''}`} onMouseEnter={() => preloadGameTab(tab.id)} onFocus={() => preloadGameTab(tab.id)} onClick={() => openGameTab(tab.id)} title={tab.label} data-tooltip={civilianCareerActive && tab.id !== 'command' ? '제도권 보직 진입 뒤 열립니다.' : tab.description} aria-label={`${tab.label}${civilianCareerActive && tab.id !== 'command' ? ', 제도권 진입 전 잠김' : tabActionSummary.counts[tab.id] ? `, 미처리 업무 ${tabActionSummary.counts[tab.id]}건` : ''}`} aria-disabled={civilianCareerActive && tab.id !== 'command'} aria-current={activeTab === tab.id ? 'page' : undefined}>
               <span className="nav-icon-plate"><GameIcon name={tab.icon} size={21} tone={activeTab === tab.id ? 'gold' : 'steel'} active={activeTab === tab.id} /></span>
               <span className="nav-copy"><strong>{tab.label}</strong><small>{tab.navHint}</small></span>
               {Boolean(tabActionSummary.counts[tab.id]) && <em className={`nav-work-badge ${tabActionSummary.urgentTabs.has(tab.id) ? 'urgent' : ''}`} aria-hidden="true">{tabActionSummary.counts[tab.id]}</em>}
@@ -5466,6 +5671,22 @@ export function App() {
               </section>
             )}
             {activeTab === 'command' && campaignPhase === 'war' && (
+              civilianCareerActive && career.civilian ? (
+                <CivilianCareerPanel
+                  state={career.civilian}
+                  nation={playerNation}
+                  week={game.week}
+                  entryRoles={civilianEntryRoles}
+                  worldlineTitle={worldline.title}
+                  worldlineCode={worldline.code}
+                  weeklyUnread={hasUnreadWorldWeekly}
+                  onAction={performCivilianAction}
+                  onEnterRole={enterCivilianRole}
+                  onOpenWorldWeekly={openWorldWeekly}
+                  onOpenWorldHistory={openWorldHistory}
+                  onNextWeek={advanceWeek}
+                />
+              ) : (
               <div className="command-home">
                 <CommandDashboard
                   nation={playerNation}
@@ -5533,6 +5754,7 @@ export function App() {
                   />
                 </section>
               </div>
+              )
             )}
             {(activeTab === 'governance' || (activeTab === 'command' && campaignPhase === 'nation')) && (
               <Suspense fallback={<DeferredSurface label="국가 운영 내각 준비 중" />}>
@@ -5761,11 +5983,17 @@ export function App() {
         <CampaignSetup
           nationId={setupNationId}
           roleId={setupRoleId}
+          startMode={setupStartMode}
+          civilianProfessionId={setupCivilianProfessionId}
+          civilianOriginId={setupCivilianOriginId}
           doctrine={doctrine}
           hasSave={hasSave}
           hasManualSaves={manualSaves.length > 0}
           onNationChange={changeSetupNation}
           onRoleChange={setSetupRoleId}
+          onStartModeChange={setSetupStartMode}
+          onCivilianProfessionChange={setSetupCivilianProfessionId}
+          onCivilianOriginChange={setSetupCivilianOriginId}
           onDoctrineChange={setDoctrine}
           onStart={startCampaign}
           onContinue={continueCampaign}
@@ -5974,7 +6202,7 @@ export function App() {
       )}
       {showTutorial && !showBriefing && !campaignOutcome && !pendingWorldFlashpoint && !pendingCoupIncident && !showPoliticalCrisis && !pendingCouncilEvent && !pendingBattleReport && (
         <Suspense fallback={null}>
-          <TutorialOverlay nationId={playerNation.id} role={careerRole} onNavigate={openGameTab} onComplete={completeTutorial} />
+          <TutorialOverlay nationId={playerNation.id} role={careerRole} civilian={civilianCareerActive ? career.civilian : undefined} onNavigate={openGameTab} onComplete={completeTutorial} />
         </Suspense>
       )}
       {toast && <div className="toast" role="status" aria-live="polite"><Radio size={16} /><span>{toast}</span></div>}

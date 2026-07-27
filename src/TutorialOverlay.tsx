@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, CircleHelp, X } from 'lucide-react';
-import type { CareerRole, GameTab, NationId } from './types';
+import { getCivilianOrigin, getCivilianProfession } from './civilianCareer';
+import type { CareerRole, CivilianCareerState, GameTab, NationId } from './types';
 
 interface TutorialOverlayProps {
   nationId: NationId;
   role: Pick<CareerRole, 'branch' | 'tier' | 'scope' | 'title'>;
+  civilian?: CivilianCareerState;
   onNavigate: (tab: GameTab) => void;
   onComplete: (openWorldWeekly: boolean) => void;
 }
@@ -39,7 +41,18 @@ function getRoleSteps(role: TutorialOverlayProps['role']): TutorialStep[] {
   ];
 }
 
-function buildTutorialSteps(nationId: NationId, role: TutorialOverlayProps['role']): TutorialStep[] {
+function buildTutorialSteps(nationId: NationId, role: TutorialOverlayProps['role'], civilian?: CivilianCareerState): TutorialStep[] {
+  if (civilian) {
+    const profession = getCivilianProfession(civilian.professionId);
+    const origin = getCivilianOrigin(civilian.originId);
+    return [
+      { title: '공식 보직이 없는 시민으로 시작합니다', detail: `${origin.name} 배경의 ${profession.name}입니다. 국가 자원 대신 개인의 평판·전문성·인맥·생계·독립성·감시 위험을 관리합니다.`, action: '내 삶 확인', tab: 'command', target: '.civilian-career-hero' },
+      { title: '먼저 세계 주보를 읽습니다', detail: '세계 주보는 전쟁과 정치 변화가 당신의 직업·지역·관계망에 어떤 기회와 위험을 만드는지 정리합니다.', action: '주간 흐름 확인', tab: 'command', target: '.civilian-week-loop' },
+      { title: '이번 주 민간 행동을 하나 고릅니다', detail: '발표, 조직, 현장활동, 후원, 지하 연락망, 대중 캠페인은 서로 다른 세계선 압력을 만듭니다. 생계와 감시 비용도 함께 확인하십시오.', action: '행동 선택지 보기', tab: 'command', target: '.civilian-actions-board' },
+      { title: '공식 권한은 플레이로 획득합니다', detail: '평판 42, 전문성 52, 인맥 45와 주요 활동 3회를 채우면 직업에 맞는 정부·저항·정보·군사 조직의 하위 보직 제안이 열립니다.', action: '진입 조건 보기', tab: 'command', target: '.civilian-entry-board' },
+      { title: '제도권 밖에 남는 길도 유효합니다', detail: '보직 제안을 거절하고 전국적 지식인·언론인·기업가·운동가로 성장할 수 있습니다. 행동 순서와 진입 시점이 인물과 사건의 등장 조건을 바꿉니다.', action: '튜토리얼 완료', tab: 'command', target: '.civilian-record' },
+    ];
+  }
   const opening: TutorialStep[] = nationId === 'korea' ? [
     { title: '충칭의 독립운동 지휘부에서 시작합니다', detail: '현재 행정·외교 본부는 충칭의 대한민국 임시정부입니다. 조선 본토는 일제 점령지이므로 본부와 영토를 구분해 읽으십시오.', action: '충칭 지휘부 확인', tab: 'command', target: '[data-tour="command-hero"]' },
     { title: '해방 준비는 네 축으로 나뉩니다', detail: '연합국 승인, 국내 공작망, 한국광복군, 귀환·건국 준비 가운데 가장 약한 축을 먼저 보완하십시오.', action: '해방 준비도 확인', tab: 'command', target: '[data-tour="korea-command-center"]' },
@@ -57,9 +70,12 @@ function buildTutorialSteps(nationId: NationId, role: TutorialOverlayProps['role
   ];
 }
 
-export function TutorialOverlay({ nationId, role, onNavigate, onComplete }: TutorialOverlayProps) {
+export function TutorialOverlay({ nationId, role, civilian, onNavigate, onComplete }: TutorialOverlayProps) {
   const [index, setIndex] = useState(0);
-  const steps = useMemo(() => buildTutorialSteps(nationId, role), [nationId, role.branch, role.scope, role.tier]);
+  const steps = useMemo(
+    () => buildTutorialSteps(nationId, role, civilian),
+    [civilian?.originId, civilian?.professionId, nationId, role.branch, role.scope, role.tier, role.title],
+  );
   const step = steps[index] ?? steps[0];
   const progress = `${index + 1}/${steps.length}`;
 
@@ -83,7 +99,7 @@ export function TutorialOverlay({ nationId, role, onNavigate, onComplete }: Tuto
 
   return (
     <aside className="tutorial-overlay" role="dialog" aria-modal="false" aria-labelledby="tutorial-title">
-      <header><span><CircleHelp size={16} /> FIRST COMMAND · {branchLabels[role.branch]} TIER {role.tier}</span><button onClick={() => onComplete(false)} aria-label="튜토리얼 건너뛰기"><X size={16} /></button></header>
+      <header><span><CircleHelp size={16} /> {civilian ? 'FIRST CIVILIAN WEEK · 공식 권한 없음' : `FIRST COMMAND · ${branchLabels[role.branch]} TIER ${role.tier}`}</span><button onClick={() => onComplete(false)} aria-label="튜토리얼 건너뛰기"><X size={16} /></button></header>
       <div className="tutorial-progress"><i style={{ width: `${(index + 1) / steps.length * 100}%` }} /><span>{progress}</span></div>
       <main><em>STEP {index + 1} · {role.title}</em><h2 id="tutorial-title">{step.title}</h2><p>{step.detail}</p></main>
       <footer><button disabled={index === 0} onClick={() => setIndex((current) => Math.max(0, current - 1))}><ArrowLeft size={14} /> 이전</button><button className="tutorial-next" onClick={next}>{index === steps.length - 1 ? <CheckCircle2 size={14} /> : null}{step.action}{index < steps.length - 1 ? <ArrowRight size={14} /> : null}</button></footer>

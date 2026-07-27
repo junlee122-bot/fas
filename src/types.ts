@@ -9,6 +9,11 @@ export type CareerBranch = 'military' | 'politics' | 'intelligence';
 export type CareerTier = 1 | 2 | 3 | 4 | 5;
 export type CareerArchetype = 'head-of-state' | 'cabinet-minister' | 'bureau-director' | 'regional-command' | 'organizer' | 'theater-command' | 'service-director' | 'field-command' | 'unit-command' | 'agent' | 'resistance';
 export type NationStatus = 'sovereign' | 'government-in-exile' | 'colonized' | 'occupied-commonwealth' | 'resistance-coalition';
+export type CampaignStartMode = 'office' | 'civilian';
+export type CivilianProfessionId = 'intellectual' | 'scientist' | 'engineer' | 'physician' | 'journalist' | 'jurist' | 'educator' | 'entrepreneur' | 'labor-organizer' | 'artist' | 'humanitarian' | 'clergy';
+export type CivilianOriginId = 'university-network' | 'working-community' | 'exile-diaspora' | 'established-family';
+export type CivilianCareerStage = 'private-citizen' | 'public-voice' | 'movement-leader' | 'national-figure' | 'institutional-insider';
+export type CivilianHistoryForce = 'military' | 'industry' | 'diplomacy' | 'civic' | 'liberation' | 'intelligence';
 export type SupplyPolicy = 'balanced' | 'frontline' | 'reserve';
 export type StaffDepartment = 'operations' | 'logistics' | 'armaments' | 'personnel' | 'political' | 'science' | 'economy';
 export type PersonnelAvailability = 'available' | 'poachable' | 'opposition' | 'displaced';
@@ -105,6 +110,39 @@ export interface CareerState {
   legacy: number;
   alternatePathId: string | null;
   replacedPersonId: string;
+  startMode?: CampaignStartMode;
+  civilian?: CivilianCareerState;
+}
+
+export interface CivilianCareerActionRecord {
+  id: string;
+  week: number;
+  title: string;
+  outcome: string;
+}
+
+export interface CivilianWorldInfluence {
+  id: string;
+  label: string;
+  detail: string;
+  force: CivilianHistoryForce;
+  strength: number;
+}
+
+export interface CivilianCareerState {
+  professionId: CivilianProfessionId;
+  originId: CivilianOriginId;
+  stage: CivilianCareerStage;
+  publicReputation: number;
+  expertise: number;
+  network: number;
+  livelihood: number;
+  independence: number;
+  scrutiny: number;
+  weeksActive: number;
+  actionHistory: CivilianCareerActionRecord[];
+  worldInfluences: CivilianWorldInfluence[];
+  enteredOfficeRoleId: string | null;
 }
 
 export interface HistoricalPerson {

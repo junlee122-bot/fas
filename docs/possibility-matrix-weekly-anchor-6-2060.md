@@ -1,5 +1,9 @@
 # IRON DOMINION 전 국가 1942–2060 국가별 6회 플레이테스트
 
+> **기준선 보관본 · 후속 검증 완료**
+>
+> 이 문서는 국가별 6회, 총 78경력으로 문제를 찾은 당시의 기준선 기록이다. 보직 78/169, 권한 계열 2/3, 전시·평시 결정 미분리, 반복 정치 위기라는 표본·계측 한계는 이후 국가별 13회, 총 169경력 교차검증에서 보완됐다. 최신 결과는 [`possibility-matrix-weekly-anchor-13-2060.md`](possibility-matrix-weekly-anchor-13-2060.md), 전체 완료 대조는 [`possibility-matrix-3000-completion-audit.md`](possibility-matrix-3000-completion-audit.md)를 기준으로 한다.
+
 ## 범위
 
 - 플레이 진영: 13개
