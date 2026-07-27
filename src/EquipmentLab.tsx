@@ -12,10 +12,14 @@ import {
   getEquipmentNode,
 } from './equipment';
 import {
+  acquisitionRouteLabels,
+  getAvailableAcquisitionRoutes,
   getEquipmentProcurementQuote,
   getNationArmsProfile,
   getStageWeaponPrograms,
   getStrategicStage,
+  type AcquisitionRoute,
+  type ArmsPortfolioState,
 } from './strategicArmsDiplomacy';
 import type {
   Division,
@@ -36,10 +40,11 @@ interface EquipmentLabProps {
   divisions: Division[];
   weeklyResearchGain: number;
   completedDecisions: string[];
+  armsPortfolio: ArmsPortfolioState;
   formatMoney: (value: number, options?: { signed?: boolean; exact?: boolean }) => string;
   onStartResearch: (nodeId: string) => void;
-  onCreatePrototype: (baseNodeId: string, moduleIds: string[], name: string) => void;
-  onFieldEquipment: (equipmentId: string) => void;
+  onCreatePrototype: (baseNodeId: string, moduleIds: string[], name: string, route: AcquisitionRoute) => void;
+  onFieldEquipment: (equipmentId: string, route: AcquisitionRoute) => void;
   onAssignDivisionEquipment: (divisionId: string, equipmentId: string) => void;
 }
 
@@ -78,6 +83,7 @@ export function EquipmentLab({
   divisions,
   weeklyResearchGain,
   completedDecisions,
+  armsPortfolio,
   formatMoney,
   onStartResearch,
   onCreatePrototype,
@@ -92,6 +98,11 @@ export function EquipmentLab({
   const [baseNodeId, setBaseNodeId] = useState('');
   const [prototypeName, setPrototypeName] = useState('');
   const [selectedModules, setSelectedModules] = useState<Partial<Record<EquipmentModuleSlot, string>>>({});
+  const [selectedRoute, setSelectedRoute] = useState<AcquisitionRoute>(() => getNationArmsProfile(nationId).preferredRoutes[0]);
+
+  useEffect(() => {
+    setSelectedRoute(getNationArmsProfile(nationId).preferredRoutes[0]);
+  }, [nationId]);
 
   useEffect(() => {
     if (!unlockedCategoryNodes.some((node) => node.id === baseNodeId)) {
@@ -124,12 +135,25 @@ export function EquipmentLab({
   const nationArmsProfile = getNationArmsProfile(nationId);
   const stagePrograms = getStageWeaponPrograms(strategicStage.id);
   const selectedProgram = stagePrograms.find((program) => program.category === category)!;
+  const availableRoutes = getAvailableAcquisitionRoutes(nationId);
+  const quoteBaseCost = Math.max(45, Math.round((currentFielded?.industrialCost ?? 80) * 1.2));
+  const routeQuotes = availableRoutes.map((route) => getEquipmentProcurementQuote(
+    nationId,
+    currentYear,
+    category,
+    quoteBaseCost,
+    completedDecisions,
+    route,
+    armsPortfolio,
+  ));
   const selectedQuote = getEquipmentProcurementQuote(
     nationId,
     currentYear,
     category,
-    Math.max(45, Math.round((currentFielded?.industrialCost ?? 80) * 1.2)),
+    quoteBaseCost,
     completedDecisions,
+    selectedRoute,
+    armsPortfolio,
   );
   const prototypeTreasuryCost = getEquipmentProcurementQuote(
     nationId,
@@ -137,6 +161,8 @@ export function EquipmentLab({
     category,
     Math.max(45, Math.round((preview?.industrialCost ?? 0) * 1.6)),
     completedDecisions,
+    selectedRoute,
+    armsPortfolio,
   ).treasuryCost;
 
   const changeModule = (slot: EquipmentModuleSlot, moduleId: string) => {
@@ -163,9 +189,9 @@ export function EquipmentLab({
             <span>제재 회복<strong>{nationArmsProfile.sanctionsResilience}</strong></span>
           </div>
           <aside>
-            <small>현재 권고 조달</small>
+            <small>선택 조달 경로</small>
             <strong>{selectedQuote.routeLabel} · 비용 ×{selectedQuote.multiplier.toFixed(2)}</strong>
-            <span>{selectedQuote.riskLabel} · 자율 {selectedQuote.autonomyEffect > 0 ? '+' : ''}{selectedQuote.autonomyEffect} · 상호운용 {selectedQuote.interoperabilityEffect > 0 ? '+' : ''}{selectedQuote.interoperabilityEffect}</span>
+            <span>{selectedQuote.riskLabel} · 성공 {selectedQuote.successChance}% · 현지화 {selectedQuote.localContent}% · {selectedQuote.deliveryWeeks}주</span>
           </aside>
         </div>
         <div className="equipment-stage-programs">
@@ -184,6 +210,68 @@ export function EquipmentLab({
             <a href={selectedProgram.sourceUrl} target="_blank" rel="noreferrer"><Link2 size={11} /> {selectedProgram.sourceLabel} 근거</a>
           </footer>
         </div>
+      </section>
+
+      <section className="procurement-route-planner" aria-label={`${equipmentCategoryLabels[category]} 조달 경로 비교`}>
+        <header>
+          <div><span>ACQUISITION MARKET · 경로를 직접 선택</span><strong>{equipmentCategoryLabels[category]} 조달·주권 계획</strong></div>
+          <p>도입가만이 아니라 정비권, 제재 충격, 규격 혼합과 5년 교체비까지 비교합니다.</p>
+        </header>
+        <div className="procurement-portfolio-strip">
+          <span><small>통합 전력</small><strong>{Math.round(armsPortfolio.capability)}</strong></span>
+          <span><small>공급 안보</small><strong>{Math.round(armsPortfolio.supplySecurity)}</strong></span>
+          <span><small>조달 자율</small><strong>{Math.round(armsPortfolio.autonomy)}</strong></span>
+          <span><small>상호운용</small><strong>{Math.round(armsPortfolio.interoperability)}</strong></span>
+          <span><small>비상 비축</small><strong>{Math.round(armsPortfolio.emergencyStockpile)}</strong></span>
+          <span className={armsPortfolio.escalation >= 65 ? 'danger' : ''}><small>군비 긴장</small><strong>{Math.round(armsPortfolio.escalation)}</strong></span>
+        </div>
+        <div className="procurement-route-grid">
+          {routeQuotes.map((quote) => (
+            <button type="button" key={quote.route} className={selectedRoute === quote.route ? 'active' : ''} disabled={!quote.available} title={quote.unavailableReason} onClick={() => setSelectedRoute(quote.route)} aria-pressed={selectedRoute === quote.route}>
+              <span><strong>{quote.routeLabel}</strong><em>{quote.available ? quote.riskLabel : '전환 필요'}</em></span>
+              <b>{formatMoney(quote.treasuryCost)}</b>
+              <small>{quote.available ? `성공 ${quote.successChance}% · 유지 ${formatMoney(quote.annualSustainmentCost)}/년` : quote.unavailableReason}</small>
+            </button>
+          ))}
+        </div>
+        <div className="procurement-decision-brief">
+          <div className="procurement-outcome-chain">
+            <header><strong>{selectedQuote.routeLabel} 결과 예측</strong><span>{selectedQuote.explanation}</span></header>
+            <div>
+              <span>초기 도입<strong>{formatMoney(selectedQuote.treasuryCost)}</strong><small>{selectedQuote.deliveryWeeks}주 예상</small></span>
+              <span>현지 정비<strong>{selectedQuote.localContent}%</strong><small>공급안보 {selectedQuote.supplySecurityEffect > 0 ? '+' : ''}{selectedQuote.supplySecurityEffect}</small></span>
+              <span>세대 교체<strong>{formatMoney(selectedQuote.replacementCost)}</strong><small>자율 {selectedQuote.autonomyEffect > 0 ? '+' : ''}{selectedQuote.autonomyEffect}</small></span>
+              <span>외교 파급<strong>{selectedQuote.escalationEffect > 0 ? '+' : ''}{selectedQuote.escalationEffect}</strong><small>상호운용 {selectedQuote.interoperabilityEffect > 0 ? '+' : ''}{selectedQuote.interoperabilityEffect}</small></span>
+            </div>
+            {(selectedQuote.benefits.length > 0 || selectedQuote.warnings.length > 0) && (
+              <ul>
+                {selectedQuote.benefits.map((item) => <li className="benefit" key={item}><ShieldCheck size={11} />{item}</li>)}
+                {selectedQuote.warnings.map((item) => <li className="warning" key={item}><AlertTriangle size={11} />{item}</li>)}
+              </ul>
+            )}
+          </div>
+          <div className="procurement-forecast">
+            <header><span>같은 카드에서 확인</span><strong>1·3·5년 전망</strong></header>
+            {selectedQuote.forecast.map((forecast) => (
+              <div key={forecast.years}>
+                <b>{forecast.years}년</b>
+                <span><small>전력</small>{forecast.readiness}</span>
+                <span><small>공급</small>{forecast.supplySecurity}</span>
+                <span><small>자율</small>{forecast.autonomy}</span>
+                <strong>{formatMoney(forecast.cumulativeCost)}</strong>
+                <em>{forecast.note}</em>
+              </div>
+            ))}
+          </div>
+        </div>
+        {armsPortfolio.history.length > 0 && (
+          <details className="procurement-ledger">
+            <summary><PackageCheck size={13} /> 최근 조달 결정과 실제 누적 결과 {Math.min(6, armsPortfolio.history.length)}건</summary>
+            <div>{armsPortfolio.history.slice(-6).reverse().map((record) => (
+              <span key={record.id}><b>{record.year} · {record.title}</b><small>{record.summary}</small></span>
+            ))}</div>
+          </details>
+        )}
       </section>
 
       <section className="equipment-workflow" aria-label={`${equipmentCategoryLabels[category]} 장비 운용 흐름`}>
@@ -240,13 +328,16 @@ export function EquipmentLab({
                 const active = development.activeProjectId === node.id;
                 const available = canResearchEquipment(node, development, nationId);
                 const fielded = currentFieldedId === node.id;
-                const adoptionCost = getEquipmentProcurementQuote(
+                const adoptionQuote = getEquipmentProcurementQuote(
                   nationId,
                   currentYear,
                   node.category,
                   Math.max(30, Math.round(node.industrialCost * 1.2)),
                   completedDecisions,
-                ).treasuryCost;
+                  selectedRoute,
+                  armsPortfolio,
+                );
+                const adoptionCost = adoptionQuote.treasuryCost;
                 return (
                   <article className={`equipment-node ${unlocked ? 'unlocked' : ''} ${active ? 'active' : ''} ${fielded ? 'fielded' : ''}`} key={node.id}>
                     <div className="equipment-node-flags"><span className={node.authenticity}>{authenticityLabels[node.authenticity]}</span><em>{node.year ?? '가상 연도'}</em></div>
@@ -257,7 +348,7 @@ export function EquipmentLab({
                     {active && <div className="equipment-progress"><i><b style={{ width: `${progressPercent}%` }} /></i><span>{Math.round(progressPercent)}%</span></div>}
                     {node.sourceUrl && <a href={node.sourceUrl} target="_blank" rel="noreferrer"><Link2 size={10} /> {node.sourceLabel}</a>}
                     <div className="equipment-node-actions">
-                      {unlocked ? <button className={fielded ? 'selected' : ''} disabled={fielded || game.politicalPower < 6 || game.treasury < adoptionCost} title={fielded ? '현재 제식 장비입니다.' : `정치력 6 · 재정 ${formatMoney(adoptionCost)}`} onClick={() => onFieldEquipment(node.id)}>{fielded ? <Check size={11} /> : <PackageCheck size={11} />}{fielded ? '현행 장비' : `채택 6PP · ${formatMoney(adoptionCost)}`}</button> : <button disabled={!available || Boolean(development.activeProjectId) || game.politicalPower < 5} title="개발 착수 승인에는 정치력 5가 필요합니다." onClick={() => onStartResearch(node.id)}>{active ? '개발 진행 중' : available ? `연구 ${node.researchCost} · 5PP` : '선행 연구 필요'}</button>}
+                      {unlocked ? <button className={fielded ? 'selected' : ''} disabled={fielded || !adoptionQuote.available || game.politicalPower < 6 || game.treasury < adoptionCost} title={fielded ? '현재 제식 장비입니다.' : adoptionQuote.unavailableReason ?? `${acquisitionRouteLabels[selectedRoute]} · 정치력 6 · 재정 ${formatMoney(adoptionCost)}`} onClick={() => onFieldEquipment(node.id, selectedRoute)}>{fielded ? <Check size={11} /> : <PackageCheck size={11} />}{fielded ? '현행 장비' : !adoptionQuote.available ? '경로 전환 필요' : `채택 6PP · ${formatMoney(adoptionCost)}`}</button> : <button disabled={!available || Boolean(development.activeProjectId) || game.politicalPower < 5} title="개발 착수 승인에는 정치력 5가 필요합니다." onClick={() => onStartResearch(node.id)}>{active ? '개발 진행 중' : available ? `연구 ${node.researchCost} · 5PP` : '선행 연구 필요'}</button>}
                     </div>
                   </article>
                 );
@@ -289,8 +380,8 @@ export function EquipmentLab({
                 );
               })}
             </div>
-            <button className="build-prototype" disabled={!baseNode || moduleIds.length < 2 || development.prototypes.length >= 8 || game.politicalPower < 8 || game.treasury < prototypeTreasuryCost} onClick={() => baseNode && onCreatePrototype(baseNode.id, moduleIds, prototypeName)}><Plus size={14} /> 시제 장비 제작 · 8PP · {formatMoney(prototypeTreasuryCost)}</button>
-            <small>최소 2개 모듈 · 최대 8개 시제품 보관 · 제작 시 재정과 정치력이 사용됩니다.</small>
+            <button className="build-prototype" disabled={!selectedQuote.available || !baseNode || moduleIds.length < 2 || development.prototypes.length >= 8 || game.politicalPower < 8 || game.treasury < prototypeTreasuryCost} title={selectedQuote.unavailableReason} onClick={() => baseNode && onCreatePrototype(baseNode.id, moduleIds, prototypeName, selectedRoute)}><Plus size={14} /> {!selectedQuote.available ? '현지 정비·면허 전환 필요' : `${acquisitionRouteLabels[selectedRoute]} 시제 제작 · 8PP · ${formatMoney(prototypeTreasuryCost)}`}</button>
+            <small>최소 2개 모듈 · 최대 8개 시제품 보관 · 선택한 조달 경로의 현지화·정비·제재 조건이 함께 누적됩니다.</small>
           </div>
           <div className="prototype-preview">
             <header><span>설계 예측</span><strong>{preview?.name ?? '모듈을 선택하십시오'}</strong></header>
@@ -306,7 +397,18 @@ export function EquipmentLab({
           </div>
         </div>
         {relevantPrototypes.length > 0 && <div className="prototype-roster">
-          {relevantPrototypes.map((prototype) => <PrototypeCard key={prototype.id} prototype={prototype} fielded={currentFieldedId === prototype.id} game={game} formatMoney={formatMoney} onField={() => onFieldEquipment(prototype.id)} />)}
+          {relevantPrototypes.map((prototype) => {
+            const prototypeQuote = getEquipmentProcurementQuote(
+              nationId,
+              currentYear,
+              prototype.category,
+              Math.max(30, Math.round(prototype.industrialCost * 1.2)),
+              completedDecisions,
+              selectedRoute,
+              armsPortfolio,
+            );
+            return <PrototypeCard key={prototype.id} prototype={prototype} adoptionCost={prototypeQuote.treasuryCost} available={prototypeQuote.available} unavailableReason={prototypeQuote.unavailableReason} routeLabel={acquisitionRouteLabels[selectedRoute]} fielded={currentFieldedId === prototype.id} game={game} formatMoney={formatMoney} onField={() => onFieldEquipment(prototype.id, selectedRoute)} />;
+          })}
         </div>}
       </div>
 
@@ -328,14 +430,13 @@ export function EquipmentLab({
   );
 }
 
-function PrototypeCard({ prototype, fielded, game, formatMoney, onField }: { prototype: EquipmentPrototype; fielded: boolean; game: GameState; formatMoney: (value: number, options?: { signed?: boolean; exact?: boolean }) => string; onField: () => void }) {
-  const adoptionCost = Math.max(30, Math.round(prototype.industrialCost * 1.2));
+function PrototypeCard({ prototype, adoptionCost, available, unavailableReason, routeLabel, fielded, game, formatMoney, onField }: { prototype: EquipmentPrototype; adoptionCost: number; available: boolean; unavailableReason?: string; routeLabel: string; fielded: boolean; game: GameState; formatMoney: (value: number, options?: { signed?: boolean; exact?: boolean }) => string; onField: () => void }) {
   return (
     <article className={fielded ? 'fielded' : ''}>
       <span>시제 {prototype.createdWeek + 1}주차 · 위험 {prototype.risk}%</span>
       <strong>{prototype.name}</strong>
       <small>화력 {prototype.stats.firepower} · 기동 {prototype.stats.mobility} · 방호 {prototype.stats.protection} · 신뢰 {prototype.reliability}</small>
-      <button disabled={fielded || game.politicalPower < 6 || game.treasury < adoptionCost} title={`정치력 6 · 재정 ${formatMoney(adoptionCost)}`} onClick={onField}>{fielded ? <Check size={11} /> : <PackageCheck size={11} />}{fielded ? '현행 채택' : `채택 6PP · ${formatMoney(adoptionCost)}`}</button>
+      <button disabled={fielded || !available || game.politicalPower < 6 || game.treasury < adoptionCost} title={unavailableReason ?? `${routeLabel} · 정치력 6 · 재정 ${formatMoney(adoptionCost)}`} onClick={onField}>{fielded ? <Check size={11} /> : <PackageCheck size={11} />}{fielded ? '현행 채택' : !available ? '경로 전환 필요' : `채택 6PP · ${formatMoney(adoptionCost)}`}</button>
     </article>
   );
 }

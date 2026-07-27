@@ -3743,6 +3743,59 @@ button:focus-visible,
 .equipment-capability-dossier > aside small { font-size: 5px; color: var(--faint); }
 .equipment-capability-dossier > aside strong { font-size: 8px; color: var(--gold-bright); }
 .equipment-capability-dossier > aside span { font-size: 5.5px; color: #8d9a93; }
+.procurement-route-planner { margin: 0 9px 9px; padding: 11px; border: 1px solid rgba(198,168,107,.24); background: linear-gradient(145deg,rgba(198,168,107,.045),rgba(8,14,13,.64) 46%,rgba(72,105,112,.035)); }
+.procurement-route-planner > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 9px; }
+.procurement-route-planner > header div { display: flex; flex-direction: column; gap: 3px; }
+.procurement-route-planner > header span { font: 600 6px 'IBM Plex Mono',monospace; color: var(--gold); letter-spacing: .05em; }
+.procurement-route-planner > header strong { font: 500 12px 'Oswald','Noto Sans KR',sans-serif; color: #dfe5e1; }
+.procurement-route-planner > header p { max-width: 430px; margin: 0; font-size: 7px; line-height: 1.55; color: #89968f; text-align: right; }
+.procurement-portfolio-strip { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); margin-bottom: 8px; border: 1px solid var(--line); background: rgba(0,0,0,.12); }
+.procurement-portfolio-strip > span { min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 5px; padding: 6px 8px; border-right: 1px solid var(--line); }
+.procurement-portfolio-strip > span:last-child { border-right: 0; }
+.procurement-portfolio-strip small { overflow: hidden; font-size: 6px; color: #75827c; text-overflow: ellipsis; white-space: nowrap; }
+.procurement-portfolio-strip strong { font: 600 9px 'IBM Plex Mono',monospace; color: #b5c4bc; }
+.procurement-portfolio-strip .danger strong { color: #d98e7c; }
+.procurement-route-grid { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 5px; }
+.procurement-route-grid button { min-width: 0; min-height: 53px; display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 7px; border: 1px solid rgba(109,143,163,.2); color: #8f9d96; background: rgba(18,29,28,.5); text-align: left; cursor: pointer; transition: border-color .15s,background .15s,transform .15s; }
+.procurement-route-grid button:hover { border-color: rgba(198,168,107,.42); background: rgba(198,168,107,.055); transform: translateY(-1px); }
+.procurement-route-grid button.active { border-color: rgba(198,168,107,.62); box-shadow: inset 0 0 0 1px rgba(198,168,107,.1); color: #e2d3ad; background: linear-gradient(145deg,rgba(198,168,107,.12),rgba(31,35,29,.66)); }
+.procurement-route-grid button:disabled { opacity: .5; border-style: dashed; cursor: not-allowed; transform: none; }
+.procurement-route-grid button > span { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.procurement-route-grid button strong { overflow: hidden; font-size: 7px; text-overflow: ellipsis; white-space: nowrap; }
+.procurement-route-grid button em { flex: 0 0 auto; font-size: 5px; color: #8b8170; }
+.procurement-route-grid button b { font: 600 8px 'IBM Plex Mono',monospace; color: var(--gold-bright); }
+.procurement-route-grid button small { overflow: hidden; font-size: 5.5px; color: #78867f; text-overflow: ellipsis; white-space: nowrap; }
+.procurement-decision-brief { display: grid; grid-template-columns: minmax(0,1.7fr) minmax(310px,.8fr); align-items: start; gap: 8px; margin-top: 8px; }
+.procurement-outcome-chain,.procurement-forecast { min-width: 0; border: 1px solid var(--line); background: rgba(0,0,0,.13); }
+.procurement-outcome-chain > header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px; border-bottom: 1px solid var(--line); }
+.procurement-outcome-chain > header strong { flex: 0 0 auto; font-size: 8px; color: #d2dbd6; }
+.procurement-outcome-chain > header span { overflow: hidden; font-size: 5.5px; color: #73817a; text-overflow: ellipsis; white-space: nowrap; }
+.procurement-outcome-chain > div { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); }
+.procurement-outcome-chain > div > span { display: flex; flex-direction: column; gap: 2px; padding: 8px; border-right: 1px solid var(--line); color: #78867f; font-size: 5.5px; }
+.procurement-outcome-chain > div > span:last-child { border-right: 0; }
+.procurement-outcome-chain > div strong { font: 600 9px 'IBM Plex Mono',monospace; color: #c5d1cb; }
+.procurement-outcome-chain > div small { color: #6f7d76; }
+.procurement-outcome-chain ul { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 4px; margin: 0; padding: 0 8px 8px; list-style: none; }
+.procurement-outcome-chain li { min-width: 0; display: flex; align-items: flex-start; gap: 4px; padding: 5px; font-size: 5.5px; line-height: 1.4; border: 1px solid; }
+.procurement-outcome-chain li svg { flex: 0 0 auto; }
+.procurement-outcome-chain li.benefit { color: #93bba2; border-color: rgba(110,157,127,.22); background: rgba(110,157,127,.04); }
+.procurement-outcome-chain li.warning { color: #d09a8a; border-color: rgba(169,95,81,.24); background: rgba(169,95,81,.045); }
+.procurement-forecast > header { display: flex; align-items: center; justify-content: space-between; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+.procurement-forecast > header span { font-size: 5px; color: var(--faint); }
+.procurement-forecast > header strong { font-size: 8px; color: #cfd8d3; }
+.procurement-forecast > div { display: grid; grid-template-columns: 30px repeat(3,38px) minmax(62px,1fr); align-items: center; gap: 5px; min-height: 33px; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+.procurement-forecast > div:last-child { border-bottom: 0; }
+.procurement-forecast > div > b { font: 600 7px 'IBM Plex Mono',monospace; color: var(--gold); }
+.procurement-forecast > div > span { display: flex; flex-direction: column; font: 600 7px 'IBM Plex Mono',monospace; color: #aebdb5; }
+.procurement-forecast > div > span small { font: 400 4.5px 'Noto Sans KR',sans-serif; color: var(--faint); }
+.procurement-forecast > div > strong { justify-self: end; font: 600 6.5px 'IBM Plex Mono',monospace; color: #c6d0cb; }
+.procurement-forecast > div > em { grid-column: 2 / -1; font-size: 5px; color: #69766f; }
+.procurement-ledger { margin-top: 8px; border-top: 1px solid var(--line); }
+.procurement-ledger summary { display: flex; align-items: center; gap: 5px; padding: 8px 2px 0; color: #9ca9a3; font-size: 6.5px; cursor: pointer; }
+.procurement-ledger > div { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 5px; padding-top: 7px; }
+.procurement-ledger > div > span { min-width: 0; display: flex; flex-direction: column; gap: 3px; padding: 6px; border-left: 2px solid rgba(109,143,163,.35); background: rgba(109,143,163,.035); }
+.procurement-ledger b { overflow: hidden; font-size: 6px; color: #aab6b0; text-overflow: ellipsis; white-space: nowrap; }
+.procurement-ledger small { font-size: 5px; line-height: 1.45; color: #69766f; }
 .equipment-stage-programs { min-width: 0; }
 .equipment-stage-programs > header { min-height: 47px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 7px 10px; border-bottom: 1px solid var(--line); }
 .equipment-stage-programs > header > div { display: flex; flex-direction: column; gap: 2px; }
@@ -3898,6 +3951,28 @@ button:focus-visible,
 
 .diplomacy-layout { display: grid; grid-template-columns: minmax(730px, 2fr) minmax(300px, 0.8fr); gap: 10px; min-width: 1060px; }
 .arms-diplomacy-board { grid-column: 1 / -1; }
+.arms-strategy-dashboard { display: grid; grid-template-columns: minmax(0,1.15fr) minmax(260px,.75fr) minmax(300px,1fr); gap: 7px; margin: 0 10px 9px; }
+.arms-strategy-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); border: 1px solid var(--line); background: rgba(0,0,0,.12); }
+.arms-strategy-metrics > span { min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 5px; padding: 7px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.arms-strategy-metrics > span:nth-child(3n) { border-right: 0; }
+.arms-strategy-metrics > span:nth-last-child(-n+3) { border-bottom: 0; }
+.arms-strategy-metrics small { overflow: hidden; font-size: 5.5px; color: #76847d; text-overflow: ellipsis; white-space: nowrap; }
+.arms-strategy-metrics strong { font: 600 8px 'IBM Plex Mono',monospace; color: #b7c6be; }
+.arms-strategy-metrics .danger strong { color: #d78c7b; }
+.arms-stockpile-card { min-width: 0; display: flex; flex-direction: column; justify-content: space-between; gap: 7px; padding: 8px; border: 1px solid rgba(198,168,107,.24); background: rgba(198,168,107,.04); }
+.arms-stockpile-card > div { display: flex; flex-direction: column; gap: 3px; }
+.arms-stockpile-card span { font: 600 5px 'IBM Plex Mono',monospace; color: var(--gold); }
+.arms-stockpile-card strong { font-size: 7px; color: #d6c9a9; }
+.arms-stockpile-card small { font-size: 5.5px; line-height: 1.45; color: #7f887f; }
+.arms-stockpile-card button { min-height: 27px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid rgba(198,168,107,.3); color: var(--gold-bright); background: rgba(198,168,107,.06); font-size: 6px; cursor: pointer; }
+.arms-stockpile-card button:disabled { opacity: .45; cursor: not-allowed; }
+.arms-stockpile-card button b { font: 600 5px 'IBM Plex Mono',monospace; }
+.arms-policy-ledger { min-width: 0; display: flex; flex-direction: column; border: 1px solid var(--line); background: rgba(0,0,0,.1); }
+.arms-policy-ledger > span { padding: 5px 7px; font: 600 5px 'IBM Plex Mono',monospace; color: var(--allied-bright); border-bottom: 1px solid var(--line); }
+.arms-policy-ledger > div { min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 5px 7px; border-bottom: 1px solid var(--line); }
+.arms-policy-ledger > div:last-child { border-bottom: 0; }
+.arms-policy-ledger strong { overflow: hidden; font-size: 5.5px; color: #aebbb4; text-overflow: ellipsis; white-space: nowrap; }
+.arms-policy-ledger small { overflow: hidden; font-size: 5px; color: #69766f; text-overflow: ellipsis; white-space: nowrap; }
 .arms-diplomacy-context { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin: 0 10px 10px; border: 1px solid var(--line); background: rgba(109,143,163,.025); }
 .arms-diplomacy-context > div { min-width: 0; padding: 9px 10px; border-right: 1px solid var(--line); }
 .arms-diplomacy-context > div:last-child { border-right: 0; }
@@ -10087,4 +10162,24 @@ button:focus-visible,
   .civilization-path-grid footer { grid-template-columns: 1fr; }
   .civilization-path-grid footer button { justify-content: center; }
   .civilization-era-progress > em { white-space: normal; }
+}
+
+@media (max-width: 1100px) {
+  .procurement-route-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .procurement-decision-brief { grid-template-columns: 1fr; }
+  .arms-strategy-dashboard { grid-template-columns: 1fr 1fr; }
+  .arms-policy-ledger { grid-column: 1 / -1; }
+}
+
+@media (max-width: 680px) {
+  .procurement-route-planner > header { flex-direction: column; }
+  .procurement-route-planner > header p { max-width: none; text-align: left; }
+  .procurement-portfolio-strip { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .procurement-portfolio-strip > span:nth-child(3n) { border-right: 0; }
+  .procurement-route-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .procurement-outcome-chain > div { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .procurement-outcome-chain > div > span:nth-child(2n) { border-right: 0; }
+  .procurement-outcome-chain ul,.procurement-ledger > div { grid-template-columns: 1fr; }
+  .arms-strategy-dashboard { grid-template-columns: 1fr; }
+  .arms-policy-ledger { grid-column: auto; }
 }

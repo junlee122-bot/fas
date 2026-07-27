@@ -78,10 +78,71 @@ export interface EquipmentProcurementQuote {
   routeLabel: string;
   multiplier: number;
   treasuryCost: number;
+  annualSustainmentCost: number;
+  replacementCost: number;
+  deliveryWeeks: number;
+  successChance: number;
+  localContent: number;
+  available: boolean;
+  unavailableReason?: string;
   autonomyEffect: number;
   interoperabilityEffect: number;
+  supplySecurityEffect: number;
+  escalationEffect: number;
   riskLabel: string;
   explanation: string;
+  benefits: string[];
+  warnings: string[];
+  forecast: ProcurementForecast[];
+}
+
+export interface ProcurementForecast {
+  years: 1 | 3 | 5;
+  readiness: number;
+  supplySecurity: number;
+  autonomy: number;
+  cumulativeCost: number;
+  note: string;
+}
+
+export type ArmsPortfolioRecordKind = 'prototype' | 'adoption' | 'policy' | 'review' | 'stockpile';
+
+export interface ArmsPortfolioRecord {
+  id: string;
+  week: number;
+  year: number;
+  kind: ArmsPortfolioRecordKind;
+  title: string;
+  category?: EquipmentCategory;
+  route?: AcquisitionRoute;
+  treasuryCost: number;
+  summary: string;
+}
+
+export interface ArmsPortfolioState {
+  version: 1;
+  nationId: NationId;
+  capability: number;
+  autonomy: number;
+  interoperability: number;
+  supplySecurity: number;
+  escalation: number;
+  proliferation: number;
+  treatyCompliance: number;
+  emergencyStockpile: number;
+  covertExposure: number;
+  localizationByCategory: Partial<Record<EquipmentCategory, number>>;
+  maintenanceByCategory: Partial<Record<EquipmentCategory, number>>;
+  routeUses: Partial<Record<AcquisitionRoute, number>>;
+  categoryUses: Partial<Record<EquipmentCategory, number>>;
+  activeStandards: AcquisitionRoute[];
+  history: ArmsPortfolioRecord[];
+}
+
+export interface ArmsPolicyReviewSchedule {
+  dueWeek: number;
+  stageId: StrategicStageId;
+  policyId: string;
 }
 
 export const strategicStages: StrategicStage[] = [
@@ -449,9 +510,102 @@ export function getStrategicDecisionId(policyId: string, stageId: StrategicStage
 }
 
 const clamp = (value: number, min = 0, max = 100) => Math.max(min, Math.min(max, value));
+const equipmentCategories: EquipmentCategory[] = ['infantry', 'artillery', 'armor', 'aircraft', 'naval', 'logistics', 'systems', 'strategic'];
 
 function enactedPolicyIds(completedDecisions: string[]) {
   return new Set(completedDecisions.filter((id) => id.startsWith('arms-diplomacy-')));
+}
+
+function round(value: number, precision = 0) {
+  const scale = 10 ** precision;
+  return Math.round(value * scale) / scale;
+}
+
+function diminishingDelta(current: number, delta: number) {
+  const headroom = delta >= 0 ? Math.max(0.18, (112 - current) / 100) : Math.max(0.22, current / 78);
+  return clamp(current + delta * headroom);
+}
+
+function civilizationArmsBonus(completedDecisions: string[]) {
+  const decisions = completedDecisions.filter((id) => id.startsWith('civilization:'));
+  const hasDomain = (domain: string) => decisions.some((id) => id.includes(`-${domain}:`));
+  return {
+    industry: (hasDomain('labor') ? 4 : 0) + (hasDomain('energy') ? 3 : 0),
+    science: (hasDomain('science') ? 6 : 0) + (hasDomain('education') ? 3 : 0),
+    logistics: (hasDomain('transport') ? 6 : 0) + (hasDomain('information') ? 3 : 0),
+  };
+}
+
+export function createArmsPortfolioState(nationId: NationId): ArmsPortfolioState {
+  const nation = getNationArmsProfile(nationId);
+  const baselineLocalization = clamp(Math.round(nation.industrialBase * 0.56 - nation.importDependence * 0.18), 6, 72);
+  const baselineMaintenance = clamp(Math.round(nation.industrialBase * 0.46 + nation.scienceBase * 0.18 - nation.importDependence * 0.12), 8, 78);
+  return {
+    version: 1,
+    nationId,
+    capability: clamp(Math.round(18 + nation.industrialBase * 0.28 + nation.scienceBase * 0.18)),
+    autonomy: nation.autonomy,
+    interoperability: nation.interoperability,
+    supplySecurity: clamp(Math.round(18 + nation.sanctionsResilience * 0.48 + (100 - nation.importDependence) * 0.28)),
+    escalation: clamp(Math.round(16 + nation.escalationTolerance * 0.24)),
+    proliferation: 4,
+    treatyCompliance: 52,
+    emergencyStockpile: clamp(Math.round(10 + nation.sanctionsResilience * 0.16), 10, 30),
+    covertExposure: 0,
+    localizationByCategory: Object.fromEntries(equipmentCategories.map((category) => [category, baselineLocalization])),
+    maintenanceByCategory: Object.fromEntries(equipmentCategories.map((category) => [category, baselineMaintenance])),
+    routeUses: {},
+    categoryUses: {},
+    activeStandards: nation.preferredRoutes.slice(0, 1),
+    history: [],
+  };
+}
+
+export function normalizeArmsPortfolioState(value: unknown, nationId: NationId): ArmsPortfolioState {
+  const fallback = createArmsPortfolioState(nationId);
+  if (!value || typeof value !== 'object') return fallback;
+  const candidate = value as Partial<ArmsPortfolioState>;
+  if (candidate.nationId !== nationId) return fallback;
+  const bounded = (input: unknown, defaultValue: number) => typeof input === 'number' ? clamp(input) : defaultValue;
+  const localization = candidate.localizationByCategory ?? {};
+  const maintenance = candidate.maintenanceByCategory ?? {};
+  const routeUses = candidate.routeUses ?? {};
+  const categoryUses = candidate.categoryUses ?? {};
+  return {
+    ...fallback,
+    capability: bounded(candidate.capability, fallback.capability),
+    autonomy: bounded(candidate.autonomy, fallback.autonomy),
+    interoperability: bounded(candidate.interoperability, fallback.interoperability),
+    supplySecurity: bounded(candidate.supplySecurity, fallback.supplySecurity),
+    escalation: bounded(candidate.escalation, fallback.escalation),
+    proliferation: bounded(candidate.proliferation, fallback.proliferation),
+    treatyCompliance: bounded(candidate.treatyCompliance, fallback.treatyCompliance),
+    emergencyStockpile: bounded(candidate.emergencyStockpile, fallback.emergencyStockpile),
+    covertExposure: bounded(candidate.covertExposure, fallback.covertExposure),
+    localizationByCategory: Object.fromEntries(equipmentCategories.map((category) => [
+      category,
+      bounded(localization[category], fallback.localizationByCategory[category] ?? 10),
+    ])),
+    maintenanceByCategory: Object.fromEntries(equipmentCategories.map((category) => [
+      category,
+      bounded(maintenance[category], fallback.maintenanceByCategory[category] ?? 10),
+    ])),
+    routeUses: Object.fromEntries((Object.keys(acquisitionRouteLabels) as AcquisitionRoute[])
+      .map((route) => [route, Math.max(0, Math.floor(routeUses[route] ?? 0))])),
+    categoryUses: Object.fromEntries(equipmentCategories
+      .map((category) => [category, Math.max(0, Math.floor(categoryUses[category] ?? 0))])),
+    activeStandards: Array.isArray(candidate.activeStandards)
+      ? candidate.activeStandards.filter((route): route is AcquisitionRoute => route in acquisitionRouteLabels).slice(-3)
+      : fallback.activeStandards,
+    history: Array.isArray(candidate.history)
+      ? candidate.history.filter((record) => record && typeof record.id === 'string' && typeof record.week === 'number').slice(-80)
+      : [],
+  };
+}
+
+export function getAvailableAcquisitionRoutes(nationId: NationId): AcquisitionRoute[] {
+  const preferred = getNationArmsProfile(nationId).preferredRoutes;
+  return [...new Set([...preferred, 'indigenous', 'license', 'import', 'joint', 'aid', 'covert'] as AcquisitionRoute[])];
 }
 
 export function getEquipmentProcurementQuote(
@@ -460,18 +614,57 @@ export function getEquipmentProcurementQuote(
   category: EquipmentCategory,
   baseCost: number,
   completedDecisions: string[] = [],
+  routeOverride?: AcquisitionRoute,
+  portfolio?: ArmsPortfolioState,
 ): EquipmentProcurementQuote {
   const nation = getNationArmsProfile(nationId);
   const stage = getStrategicStage(year);
   const enacted = enactedPolicyIds(completedDecisions);
   const priority = nation.priorities.includes(category);
-  const route = nation.preferredRoutes[0];
-  const industrialPenalty = (70 - nation.industrialBase) / 180;
+  const route = routeOverride ?? nation.preferredRoutes[0];
+  const state = portfolio?.nationId === nationId ? portfolio : createArmsPortfolioState(nationId);
+  const civilizationBonus = civilizationArmsBonus(completedDecisions);
+  const effectiveIndustry = nation.industrialBase + civilizationBonus.industry;
+  const effectiveScience = nation.scienceBase + civilizationBonus.science;
+  const localization = state.localizationByCategory[category] ?? 10;
+  const maintenance = state.maintenanceByCategory[category] ?? 10;
+  const routeUses = state.routeUses[route] ?? 0;
+  const categoryUses = state.categoryUses[category] ?? 0;
+  const industrialPenalty = (70 - effectiveIndustry) / 180;
   const priorityDiscount = priority ? -0.08 : 0.03;
   const eraComplexity = strategicStages.indexOf(stage) * 0.025;
+  const routeBase: Record<AcquisitionRoute, number> = {
+    indigenous: 1.2,
+    license: 1,
+    import: 0.87,
+    joint: 1.08,
+    aid: 0.52,
+    covert: 0.83,
+    export: 0.72,
+  };
+  const routeIndustrySensitivity: Record<AcquisitionRoute, number> = {
+    indigenous: 1.15, license: 0.82, import: 0.16, joint: 0.56, aid: 0.08, covert: 0.2, export: 0.18,
+  };
+  const repeatPenalty = Math.min(0.24, routeUses * 0.035) + Math.min(0.17, categoryUses * 0.028);
+  const foreignRoute = ['license', 'import', 'joint', 'aid'].includes(route);
+  const mixedStandards = foreignRoute && state.activeStandards.length >= 2 && !state.activeStandards.includes(route)
+    ? 0.07 + state.activeStandards.length * 0.02
+    : 0;
+  const localizationDiscount = ['indigenous', 'license', 'joint'].includes(route) ? localization / 820 : 0;
+  const smallNationJointBonus = effectiveIndustry < 55 && route === 'joint' ? 0.1 : 0;
+  const directImportLocked = route === 'import'
+    && routeUses >= 2
+    && maintenance < 45
+    && (state.routeUses.license ?? 0) < 1;
+  const strategicTransparency = category !== 'strategic' || getStageDiplomaticPolicies(stage.id).some((item) => (
+    enacted.has(getStrategicDecisionId(item.id, stage.id))
+    && (item.effects.treatyCompliance >= 10 || item.effects.escalation <= -8)
+  ));
   let policyDiscount = 0;
   let autonomyEffect = route === 'indigenous' ? 5 : route === 'license' ? 2 : route === 'joint' ? -1 : -4;
   let interoperabilityEffect = route === 'joint' ? 7 : route === 'license' ? 4 : route === 'aid' || route === 'import' ? 5 : -1;
+  let supplySecurityEffect = route === 'indigenous' ? 6 : route === 'license' ? 4 : route === 'joint' ? 2 : route === 'export' ? 2 : -4;
+  let escalationEffect = route === 'covert' ? 9 : category === 'strategic' ? 7 : route === 'aid' ? 2 : 1;
 
   getStageDiplomaticPolicies(stage.id).forEach((item) => {
     if (!enacted.has(getStrategicDecisionId(item.id, stage.id))) return;
@@ -479,26 +672,276 @@ export function getEquipmentProcurementQuote(
     if (item.route === 'aid' || item.route === 'import') policyDiscount += 0.035;
     autonomyEffect += Math.round(item.effects.autonomy / 6);
     interoperabilityEffect += Math.round(item.effects.interoperability / 6);
+    supplySecurityEffect += Math.round(item.effects.supplySecurity / 7);
+    escalationEffect += Math.round(item.effects.escalation / 8);
   });
 
-  const multiplier = clamp(1 + industrialPenalty + priorityDiscount + eraComplexity - policyDiscount, 0.62, 1.48);
+  const transitionBonus = route === 'license' && (state.routeUses.aid ?? 0) >= 1 ? 0.08
+    : route === 'indigenous' && ((state.routeUses.license ?? 0) >= 1 || (state.routeUses.joint ?? 0) >= 1) ? 0.1
+      : 0;
+  const multiplier = clamp(
+    routeBase[route]
+      + industrialPenalty * routeIndustrySensitivity[route]
+      + priorityDiscount
+      + eraComplexity
+      + repeatPenalty
+      + mixedStandards
+      - localizationDiscount
+      - transitionBonus
+      - smallNationJointBonus
+      - policyDiscount,
+    0.4,
+    1.72,
+  );
   const treasuryCost = Math.max(20, Math.round(baseCost * multiplier));
-  const riskLabel = nation.importDependence >= 75 && route !== 'indigenous'
-    ? '공급 중단 고위험'
-    : nation.sanctionsResilience < 55
-      ? '제재 취약'
-      : route === 'indigenous' && nation.scienceBase < 60
-        ? '개발 지연 위험'
-        : '관리 가능';
+  const annualSustainmentCost = Math.max(4, Math.round(baseCost * (
+    route === 'import' ? 0.18 : route === 'aid' ? 0.16 : route === 'covert' ? 0.22 : route === 'joint' ? 0.13 : 0.1
+  ) * (1 + Math.max(0, 50 - maintenance) / 100 + mixedStandards)));
+  const replacementCost = Math.max(20, Math.round(treasuryCost * (
+    route === 'import' || route === 'aid' ? 0.82 : route === 'covert' ? 0.94 : route === 'license' ? 0.64 : 0.56
+  )));
+  const scienceRisk = route === 'indigenous' ? Math.max(0, 65 - effectiveScience) * 0.42 : 0;
+  const sanctionsRisk = foreignRoute ? nation.importDependence * 0.25 + Math.max(0, 65 - nation.sanctionsResilience) * 0.38 : 0;
+  const sustainmentRelief = maintenance * 0.18 + state.emergencyStockpile * 0.12 + civilizationBonus.logistics * 0.4;
+  const covertRisk = route === 'covert' ? 22 + state.covertExposure * 0.35 : 0;
+  const riskScore = clamp(18 + scienceRisk + sanctionsRisk + covertRisk + mixedStandards * 100 + (strategicTransparency ? 0 : 10) - sustainmentRelief);
+  const successChance = Math.round(clamp(96 - riskScore * 0.62 + localization * 0.12, 24, 95));
+  const deliveryWeeks = Math.max(2, Math.round(
+    route === 'aid' ? 7 : route === 'import' ? 10 : route === 'license' ? 18 : route === 'joint' ? 22 : route === 'covert' ? 9 : 28,
+  ) - Math.round(effectiveIndustry / 20));
+  const projectedReadinessGain = Math.round((selectedProgramFor(category, stage.id)?.capabilityGain ?? 10) * successChance / 100);
+  const riskLabel = riskScore >= 67 ? '중대 위험' : riskScore >= 45 ? '주의 필요' : '관리 가능';
+  const benefits = [
+    priority ? '국가 중점 분야의 기존 교리·인력·생산 경험을 활용합니다.' : '비중점 분야지만 경로 전환으로 새로운 산업·외교 선택지를 엽니다.',
+    transitionBonus > 0 ? '이전 조달 단계에서 축적한 기술·정비 경험을 승계합니다.' : '',
+    smallNationJointBonus > 0 ? '소국 공동개발 협정이 정비권·기술자 교육·부품 현지화를 묶어 비용을 낮춥니다.' : '',
+    route === 'joint' ? '공동 시험·정비권과 지역 예비부품 풀을 함께 구축합니다.' : '',
+    category === 'strategic' && strategicTransparency ? '사전통보·검증·핫라인 약정이 전략무기 오판 위험을 낮춥니다.' : '',
+    localization >= 55 ? `현지화 ${Math.round(localization)}%로 장기 유지비가 절감됩니다.` : '',
+    state.emergencyStockpile >= 35 ? '공동 비축이 첫 공급 충격을 완충합니다.' : '',
+    civilizationBonus.science > 0 ? '교육·과학 국가체계 투자가 개발 성공률에 반영됩니다.' : '',
+  ].filter(Boolean);
+  const warnings = [
+    repeatPenalty >= 0.12 ? '동일 경로·분야 반복으로 공급자 협상 피로와 한계효용 저하가 발생합니다.' : '',
+    mixedStandards > 0 ? '새 규격이 추가되어 교육·부품·탄약의 혼합 규격 비용이 발생합니다.' : '',
+    foreignRoute && maintenance < 45 ? '현지 정비권이 부족해 공급 중단 시 가동률이 빠르게 하락합니다.' : '',
+    route === 'covert' ? `비공식 조달 노출 위험 ${Math.round(clamp(state.covertExposure + 12))}%가 누적됩니다.` : '',
+    category === 'strategic' && !strategicTransparency ? '사전통보·검증·핫라인 정책이 없어 전략무기 오판·확산 위험이 가산됩니다.' : '',
+    directImportLocked ? '직도입 2회 이후입니다. 현지 정비권 또는 면허생산 경험을 확보해야 추가 도입할 수 있습니다.' : '',
+  ].filter(Boolean);
+  const forecast = ([1, 3, 5] as const).map((years): ProcurementForecast => {
+    const attrition = Math.max(0, years - 1) * Math.max(0, 58 - maintenance) * (foreignRoute ? 0.06 : 0.035);
+    const readiness = clamp(state.capability + projectedReadinessGain - attrition);
+    const supply = clamp(state.supplySecurity + supplySecurityEffect * Math.min(years, 3) - Math.max(0, riskScore - 45) * years * 0.08);
+    const autonomy = clamp(state.autonomy + autonomyEffect * Math.min(years, 3));
+    return {
+      years,
+      readiness: Math.round(readiness),
+      supplySecurity: Math.round(supply),
+      autonomy: Math.round(autonomy),
+      cumulativeCost: treasuryCost + annualSustainmentCost * years + (years === 5 ? Math.round(replacementCost * 0.35) : 0),
+      note: years === 1 ? '도입·훈련' : years === 3 ? '정비권·부품망 검증' : '세대교체·제재 충격 검증',
+    };
+  });
   return {
     route,
     routeLabel: acquisitionRouteLabels[route],
-    multiplier: Math.round(multiplier * 100) / 100,
+    multiplier: round(multiplier, 2),
     treasuryCost,
+    annualSustainmentCost,
+    replacementCost,
+    deliveryWeeks,
+    successChance,
+    localContent: Math.round(localization),
+    available: !directImportLocked,
+    unavailableReason: directImportLocked ? '현지 정비 45 또는 면허생산 1회 필요' : undefined,
     autonomyEffect,
     interoperabilityEffect,
+    supplySecurityEffect,
+    escalationEffect,
     riskLabel,
-    explanation: `${priority ? '국가 중점 분야' : '비중점 분야'} · 산업 ${nation.industrialBase} · 과학 ${nation.scienceBase} · 수입의존 ${nation.importDependence}`,
+    explanation: `${priority ? '국가 중점 분야' : '비중점 분야'} · 실효 산업 ${effectiveIndustry} · 과학 ${effectiveScience} · 현지 정비 ${Math.round(maintenance)} · 수입의존 ${nation.importDependence}`,
+    benefits,
+    warnings,
+    forecast,
+  };
+}
+
+function selectedProgramFor(category: EquipmentCategory, stageId: StrategicStageId) {
+  return weaponPrograms.find((program) => program.stageId === stageId && program.category === category);
+}
+
+export function applyProcurementToPortfolio(
+  current: ArmsPortfolioState,
+  input: {
+    week: number;
+    year: number;
+    kind: 'prototype' | 'adoption';
+    title: string;
+    category: EquipmentCategory;
+    quote: EquipmentProcurementQuote;
+  },
+): ArmsPortfolioState {
+  const { quote, category } = input;
+  const route = quote.route;
+  const nextLocalization = clamp((current.localizationByCategory[category] ?? 10) + (
+    route === 'indigenous' ? 9 : route === 'license' ? 8 : route === 'joint' ? 6 : route === 'aid' ? 2 : route === 'import' ? 1 : 3
+  ));
+  const nextMaintenance = clamp((current.maintenanceByCategory[category] ?? 10) + (
+    route === 'license' ? 10 : route === 'joint' ? 8 : route === 'indigenous' ? 7 : route === 'aid' ? 3 : route === 'import' ? 2 : 1
+  ));
+  const capabilityGain = Math.max(2, Math.round((selectedProgramFor(category, getStrategicStage(input.year).id)?.capabilityGain ?? 10) * quote.successChance / 115));
+  const standards = ['import', 'aid', 'license', 'joint'].includes(route)
+    ? [...current.activeStandards.filter((item) => item !== route), route].slice(-3)
+    : current.activeStandards;
+  return {
+    ...current,
+    capability: diminishingDelta(current.capability, capabilityGain),
+    autonomy: diminishingDelta(current.autonomy, quote.autonomyEffect),
+    interoperability: diminishingDelta(current.interoperability, quote.interoperabilityEffect),
+    supplySecurity: diminishingDelta(current.supplySecurity, quote.supplySecurityEffect),
+    escalation: clamp(current.escalation + quote.escalationEffect),
+    proliferation: clamp(current.proliferation + (category === 'strategic' ? 5 : 0) + (route === 'covert' ? 3 : 0)),
+    emergencyStockpile: clamp(current.emergencyStockpile - (['import', 'aid', 'covert'].includes(route) ? 3 : 0)),
+    covertExposure: clamp(current.covertExposure + (route === 'covert' ? 14 : -2)),
+    localizationByCategory: { ...current.localizationByCategory, [category]: nextLocalization },
+    maintenanceByCategory: { ...current.maintenanceByCategory, [category]: nextMaintenance },
+    routeUses: { ...current.routeUses, [route]: (current.routeUses[route] ?? 0) + 1 },
+    categoryUses: { ...current.categoryUses, [category]: (current.categoryUses[category] ?? 0) + 1 },
+    activeStandards: standards,
+    history: [...current.history, {
+      id: `${input.kind}-${input.week}-${category}-${route}-${current.history.length}`,
+      week: input.week,
+      year: input.year,
+      kind: input.kind,
+      title: input.title,
+      category,
+      route,
+      treasuryCost: quote.treasuryCost,
+      summary: `${quote.routeLabel} · 성공 ${quote.successChance}% · 현지화 ${Math.round(current.localizationByCategory[category] ?? 10)}→${Math.round(nextLocalization)} · 정비 ${Math.round(current.maintenanceByCategory[category] ?? 10)}→${Math.round(nextMaintenance)}`,
+    }].slice(-80),
+  };
+}
+
+export function applyStrategicPolicyToPortfolio(
+  current: ArmsPortfolioState,
+  policyItem: ArmsDiplomacyPolicy,
+  week: number,
+  year: number,
+): ArmsPortfolioState {
+  const effects = policyItem.effects;
+  const stockpileGain = policyItem.id.includes('stock')
+    || policyItem.id.includes('supply')
+    || policyItem.id.includes('aid')
+    || policyItem.id.includes('credit')
+    ? Math.max(3, Math.round(effects.supplySecurity * 0.7 + 5))
+    : 0;
+  return {
+    ...current,
+    capability: diminishingDelta(current.capability, effects.capability),
+    autonomy: diminishingDelta(current.autonomy, effects.autonomy),
+    interoperability: diminishingDelta(current.interoperability, effects.interoperability),
+    supplySecurity: diminishingDelta(current.supplySecurity, effects.supplySecurity),
+    escalation: clamp(current.escalation + effects.escalation),
+    proliferation: clamp(current.proliferation + effects.proliferation),
+    treatyCompliance: clamp(current.treatyCompliance + effects.treatyCompliance),
+    emergencyStockpile: clamp(current.emergencyStockpile + stockpileGain),
+    covertExposure: clamp(current.covertExposure + (policyItem.route === 'covert' ? 8 : -2)),
+    history: [...current.history, {
+      id: `policy-${week}-${policyItem.id}`,
+      week,
+      year,
+      kind: 'policy' as const,
+      title: policyItem.title,
+      route: policyItem.route,
+      treasuryCost: Math.max(0, -effects.treasury),
+      summary: `${policyItem.reviewYears}년 검증 착수 · ${getPolicyEffectLabels(policyItem).join(' · ')}`,
+    }].slice(-80),
+  };
+}
+
+export function fundEmergencyArmsStockpile(
+  current: ArmsPortfolioState,
+  week: number,
+  year: number,
+): ArmsPortfolioState {
+  return {
+    ...current,
+    supplySecurity: diminishingDelta(current.supplySecurity, 6),
+    emergencyStockpile: clamp(current.emergencyStockpile + 16),
+    history: [...current.history, {
+      id: `stockpile-${week}-${current.history.length}`,
+      week,
+      year,
+      kind: 'stockpile' as const,
+      title: '90일 예비부품·탄약 공동비축',
+      treasuryCost: 55,
+      summary: '제재·봉쇄 발생 시 첫 공급 충격을 완충하고 직도입 체계의 가동률 하락을 늦춥니다.',
+    }].slice(-80),
+  };
+}
+
+export function getArmsPolicyReviewMarker(policyItem: ArmsDiplomacyPolicy, dueWeek: number) {
+  return `arms-review:${Math.max(0, Math.floor(dueWeek))}:${policyItem.stageId}:${policyItem.id}`;
+}
+
+export function getArmsPolicyReviewedMarker(schedule: ArmsPolicyReviewSchedule) {
+  return `arms-reviewed:${schedule.dueWeek}:${schedule.stageId}:${schedule.policyId}`;
+}
+
+export function parseArmsPolicyReviewMarker(value: string): ArmsPolicyReviewSchedule | null {
+  const match = /^arms-review:(\d+):(total-war|reconstruction|bipolar|networked|horizon):([^:]+)$/.exec(value);
+  if (!match) return null;
+  return {
+    dueWeek: Number(match[1]),
+    stageId: match[2] as StrategicStageId,
+    policyId: match[3],
+  };
+}
+
+export function applyArmsPolicyReviewToPortfolio(
+  current: ArmsPortfolioState,
+  schedule: ArmsPolicyReviewSchedule,
+  week: number,
+): { state: ArmsPortfolioState; status: 'better' | 'matched' | 'worse'; score: number; summary: string } {
+  const policyItem = armsDiplomacyPolicies.find((item) => item.id === schedule.policyId && item.stageId === schedule.stageId);
+  const score = Math.round((
+    current.supplySecurity
+    + current.autonomy
+    + current.interoperability
+    + current.treatyCompliance
+    + Math.max(0, 100 - current.escalation)
+    + Math.max(0, 100 - current.covertExposure)
+  ) / 6);
+  const status = score >= 70 ? 'better' : score >= 48 ? 'matched' : 'worse';
+  const capabilityDelta = status === 'better' ? 3 : status === 'worse' ? -2 : 1;
+  const supplyDelta = status === 'better' ? 4 : status === 'worse' ? -3 : 1;
+  const title = policyItem?.title ?? schedule.policyId;
+  const summary = status === 'better'
+    ? `공급·규범·정비 조건이 계획을 웃돌아 ${title}의 후속 이익이 확정됐습니다.`
+    : status === 'worse'
+      ? `혼합 규격·공급 취약·긴장이 겹쳐 ${title}의 예상 효과 일부가 지연됐습니다.`
+      : `${title}이 계획 범위에서 작동해 현 체계를 유지합니다.`;
+  return {
+    status,
+    score,
+    summary,
+    state: {
+      ...current,
+      capability: diminishingDelta(current.capability, capabilityDelta),
+      supplySecurity: diminishingDelta(current.supplySecurity, supplyDelta),
+      emergencyStockpile: clamp(current.emergencyStockpile + (status === 'better' ? 4 : status === 'worse' ? -4 : 1)),
+      history: [...current.history, {
+        id: `review-${week}-${schedule.policyId}`,
+        week,
+        year: 1942 + Math.floor(week / 52),
+        kind: 'review' as const,
+        title: `${title} 성과 검증`,
+        route: policyItem?.route,
+        treasuryCost: 0,
+        summary: `집행 점수 ${score}/100 · ${summary}`,
+      }].slice(-80),
+    },
   };
 }
 

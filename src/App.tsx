@@ -126,14 +126,27 @@ import { NationFlag } from './NationFlag';
 import { getHistoricalFlag } from './historicalFlags';
 import { applyDiplomaticAgendaReward, calculateAgendaReadiness, getDiplomaticAgenda, getDiplomaticAgendaOutcome } from './diplomacy';
 import {
+  applyArmsPolicyReviewToPortfolio,
+  applyProcurementToPortfolio,
   applyStrategicPolicyRelations,
   applyStrategicPolicyReward,
+  applyStrategicPolicyToPortfolio,
+  armsDiplomacyPolicies,
+  createArmsPortfolioState,
+  fundEmergencyArmsStockpile,
+  getArmsPolicyReviewedMarker,
+  getArmsPolicyReviewMarker,
   getEquipmentProcurementQuote,
   getNationArmsProfile,
   getPolicyEffectLabels,
   getStageDiplomaticPolicies,
   getStrategicDecisionId,
   getStrategicStage,
+  normalizeArmsPortfolioState,
+  parseArmsPolicyReviewMarker,
+  type AcquisitionRoute,
+  type ArmsDiplomacyPolicy,
+  type ArmsPortfolioState,
 } from './strategicArmsDiplomacy';
 import {
   applyCivilizationEconomyEffects,
@@ -195,6 +208,7 @@ import {
   canResearchEquipment,
   canUseModule,
   createEquipmentDevelopment,
+  equipmentCategoryLabels,
   getDevelopedEquipment,
   getEquipmentModule,
   getEquipmentNode,
@@ -511,6 +525,7 @@ export function App() {
   const [divisions, setDivisions] = useState<Division[]>(defaultDivisions);
   const [research, setResearch] = useState<ResearchProject[]>(initialResearch);
   const [equipmentDevelopment, setEquipmentDevelopment] = useState<EquipmentDevelopmentState>(() => createEquipmentDevelopment(DEFAULT_NATION_ID));
+  const [armsPortfolio, setArmsPortfolio] = useState<ArmsPortfolioState>(() => createArmsPortfolioState(DEFAULT_NATION_ID));
   const [production, setProduction] = useState<ProductionLine[]>(defaultProduction);
   const [events, setEvents] = useState<WarEvent[]>(initialEvents);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -1102,12 +1117,13 @@ export function App() {
     activeResearch: research.filter((project) => project.active && !project.complete).length,
   }), [events, game.week, hasUnreadWorldWeekly, lastReviewedJournalWeek, orders.length, research, uxActions]);
   const savePayload = useMemo<CampaignSavePayload>(() => ({
-    version: 27,
+    version: 28,
     game,
     territories,
     divisions,
     research,
     equipmentDevelopment,
+    armsPortfolio,
     production,
     events,
     orders,
@@ -1154,7 +1170,7 @@ export function App() {
     nationManagement,
     politicalCrisis,
     pendingCoupIncident,
-  }), [achievementUnlocks, activeTheater, battleReports, battleStance, campaignOutcome, campaignPhase, career, careerMarket, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, economy, equipmentDevelopment, events, game, lastReadWorldWeeklyId, lastReviewedJournalWeek, nationManagement, objectiveProgress, onboardingMilestones, operations, orders, pendingBattleReportId, pendingCareerOfferId, pendingClandestineMissionId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, politicalCrisis, priorityDivisionId, procurementFocusId, production, publicHealth, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized, uxActionLifecycle, visitedOnboardingTabs, worldHistoryState, worldWeeklyIssues]);
+  }), [achievementUnlocks, activeTheater, armsPortfolio, battleReports, battleStance, campaignOutcome, campaignPhase, career, careerMarket, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, economy, equipmentDevelopment, events, game, lastReadWorldWeeklyId, lastReviewedJournalWeek, nationManagement, objectiveProgress, onboardingMilestones, operations, orders, pendingBattleReportId, pendingCareerOfferId, pendingClandestineMissionId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, politicalCrisis, priorityDivisionId, procurementFocusId, production, publicHealth, relations, research, resolvedCouncilChoices, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, stockpile, supplyPolicy, territories, torchAuthorized, uxActionLifecycle, visitedOnboardingTabs, worldHistoryState, worldWeeklyIssues]);
   const campaignDate = getCampaignDate(game.week);
   const isKoreaWarCampaign = playerNation.id === 'korea' && campaignPhase === 'war';
   const statusResources: StatusResource[] = civilianCareerActive && career.civilian ? [
@@ -1497,6 +1513,64 @@ export function App() {
     nationManagement.unrest,
     playerNation.id,
   ]);
+
+  useEffect(() => {
+    const dueReviews = completedDecisions
+      .flatMap((decisionId) => {
+        const schedule = parseArmsPolicyReviewMarker(decisionId);
+        return schedule ? [schedule] : [];
+      })
+      .filter((schedule) => schedule.dueWeek <= game.week)
+      .filter((schedule) => !completedDecisions.includes(getArmsPolicyReviewedMarker(schedule)));
+    if (dueReviews.length === 0) return;
+
+    let nextPortfolio = armsPortfolio;
+    const results = dueReviews.map((schedule) => {
+      const result = applyArmsPolicyReviewToPortfolio(nextPortfolio, schedule, game.week);
+      nextPortfolio = result.state;
+      return { schedule, ...result };
+    });
+    setArmsPortfolio(nextPortfolio);
+    setCompletedDecisions((current) => [...current, ...dueReviews.map(getArmsPolicyReviewedMarker)]);
+
+    results.forEach(({ schedule, status, score, summary }) => {
+      const policy = armsDiplomacyPolicies.find((item) => item.id === schedule.policyId && item.stageId === schedule.stageId);
+      if (!policy) return;
+      addEvent(
+        `군비 정책 검증 — ${policy.title}`,
+        `${policy.reviewYears}년 성과 검증이 끝났습니다. 집행 점수 ${score}/100. ${summary}`,
+        status === 'better' ? 'good' : status === 'worse' ? 'bad' : 'neutral',
+        game.week,
+        {
+          domain: 'diplomacy',
+          decision: policy.title,
+          trigger: `제 ${schedule.dueWeek + 1}주 예정 검증 도래`,
+          factors: [
+            `공급안보 ${Math.round(armsPortfolio.supplySecurity)}/100`,
+            `조달 자율 ${Math.round(armsPortfolio.autonomy)}/100 · 상호운용 ${Math.round(armsPortfolio.interoperability)}/100`,
+            `규범 신뢰 ${Math.round(armsPortfolio.treatyCompliance)}/100`,
+            `군비 긴장 ${Math.round(armsPortfolio.escalation)}/100 · 비공식 노출 ${Math.round(armsPortfolio.covertExposure)}/100`,
+          ],
+          effects: [
+            { label: '실제 집행 점수', value: `${score}/100`, tone: status === 'worse' ? 'negative' : 'positive' },
+            { label: '평가', value: status === 'better' ? '예상 상회' : status === 'worse' ? '예상 미달' : '계획 범위', tone: status === 'better' ? 'positive' : status === 'worse' ? 'negative' : 'neutral' },
+          ],
+          comparisons: [{
+            label: '군비·외교 정책 집행',
+            expected: '48–69 계획 범위',
+            actual: `${score}/100`,
+            status,
+            explanation: summary,
+          }],
+          ongoing: ['검증 결과가 다음 조달의 공급안보와 비상비축에 누적', '같은 시대의 다른 정책과 조달 경로에 파급'],
+          nextActions: status === 'worse'
+            ? ['비상 군수비축 확충', '혼합 규격 축소', '현지 정비권·면허생산 협상']
+            : ['성과가 검증된 경로의 다음 단계 현지화', '전략무기 통보·검증·핫라인 병행'],
+          certainty: 'confirmed',
+        },
+      );
+    });
+  }, [addEvent, armsPortfolio, completedDecisions, game.week]);
 
   useEffect(() => {
     if (showBriefing || showTutorial || campaignOutcome || pendingWorldFlashpointId || pendingCoupIncident || pendingCouncilEventId || pendingAchievementId) return;
@@ -2937,6 +3011,7 @@ export function App() {
     setDivisions(nextDivisions);
     setProduction(createCampaignProduction(nextNation));
     setEquipmentDevelopment(createEquipmentDevelopment(nextNation.id));
+    setArmsPortfolio(createArmsPortfolioState(nextNation.id));
     setStaff(createStaffRoster(nextNation.id, nextRole.id));
     setStaffCandidates(nextCandidates);
     setRelations(nextRelations);
@@ -3372,6 +3447,7 @@ export function App() {
     setDivisions(newDivisions);
     setResearch(newResearch);
     setEquipmentDevelopment(createEquipmentDevelopment(nation.id));
+    setArmsPortfolio(createArmsPortfolioState(nation.id));
     setProduction(createCampaignProduction(nation));
     setStaff(createStaffRoster(nation.id, role.id));
     setStaffCandidates([
@@ -3512,6 +3588,7 @@ export function App() {
       setDivisions(migratedDivisions);
       setResearch(restoredResearch);
       setEquipmentDevelopment(normalizeEquipmentDevelopment(data.equipmentDevelopment, restoredNation.id));
+      setArmsPortfolio(normalizeArmsPortfolioState(data.armsPortfolio, restoredNation.id));
       setProduction(migratedProduction);
       setEvents(restoredEvents);
       setOrders(data.orders ?? []);
@@ -3665,6 +3742,7 @@ export function App() {
     setDivisions(defaultDivisions);
     setResearch(initialResearch);
     setEquipmentDevelopment(createEquipmentDevelopment(DEFAULT_NATION_ID));
+    setArmsPortfolio(createArmsPortfolioState(DEFAULT_NATION_ID));
     setProduction(defaultProduction);
     setEvents(initialEvents);
     setOrders([]);
@@ -3978,6 +4056,92 @@ export function App() {
     notify(title + ' 시행 완료');
   };
 
+  const enactArmsDiplomacyPolicy = (policy: ArmsDiplomacyPolicy) => {
+    const id = getStrategicDecisionId(policy.id, policy.stageId);
+    if (completedDecisions.includes(id)) {
+      notify('이미 시행한 군비·외교 정책입니다.');
+      return;
+    }
+    if (game.politicalPower < policy.politicalCost) {
+      notify(`정책 시행에 정치력 ${policy.politicalCost - game.politicalPower}이 더 필요합니다.`);
+      return;
+    }
+    if (policy.effects.treasury < 0 && game.treasury < Math.abs(policy.effects.treasury)) {
+      notify(`이 정책에는 재정 ${formatGameMoney(Math.abs(policy.effects.treasury))}이 필요합니다.`);
+      return;
+    }
+    const dueWeek = game.week + policy.reviewYears * 52;
+    setGame((current) => ({
+      ...applyStrategicPolicyReward(current, policy),
+      politicalPower: Math.max(0, current.politicalPower - policy.politicalCost),
+    }));
+    setRelations((current) => applyStrategicPolicyRelations(current, policy));
+    setArmsPortfolio((current) => applyStrategicPolicyToPortfolio(current, policy, game.week, campaignYear));
+    setCompletedDecisions((current) => [...current, id, getArmsPolicyReviewMarker(policy, dueWeek)]);
+    addEvent(
+      `군비·외교 결정 — ${policy.title}`,
+      `${policy.summary} 자원은 즉시 반영되며 ${policy.reviewYears}년 뒤 공급·자율·규범·긴장을 함께 검증합니다.`,
+      policy.effects.escalation >= 10 ? 'neutral' : 'good',
+      game.week,
+      {
+        domain: 'diplomacy',
+        decision: policy.title,
+        trigger: `${campaignYear}년 ${getStrategicStage(campaignYear).label} · ${policy.route}`,
+        factors: [policy.historicalBasis, `검증 예정: ${1942 + Math.floor(dueWeek / 52)}년`, `현재 공급안보 ${Math.round(armsPortfolio.supplySecurity)} · 자율 ${Math.round(armsPortfolio.autonomy)}`],
+        effects: [
+          ...getPolicyEffectLabels(policy).map((effect) => ({
+            label: effect.split(' ')[0],
+            value: effect.split(' ').slice(1).join(' '),
+            tone: effect.includes('-') ? 'negative' as const : 'positive' as const,
+          })),
+          { label: '정치 비용', value: `−${policy.politicalCost}`, tone: 'negative' },
+        ],
+        ongoing: [
+          `${policy.reviewYears}년 뒤 실제 집행 점수 검증`,
+          '다음 장비 견적의 비용·성공률·현지화·공급안보에 누적',
+          policy.route === 'covert' ? '비공식 경로의 노출 위험과 외교 비용이 누적' : '동맹 규격과 조달 자율성의 상충관계 추적',
+        ],
+        nextActions: ['연구·무기에서 조달 경로별 1·3·5년 전망 확인', '취약 분야의 정비권·부품 현지화 확보', '세계 주보에서 상대국 반응 확인'],
+        certainty: 'developing',
+      },
+    );
+    notify(`${policy.title} 시행 · ${policy.reviewYears}년 뒤 성과 검증`);
+  };
+
+  const fundArmsEmergencyStockpile = () => {
+    if (game.treasury < 55 || game.politicalPower < 4) {
+      notify(`공동 비축에는 정치력 4와 재정 ${formatGameMoney(55)}가 필요합니다.`);
+      return;
+    }
+    if (armsPortfolio.emergencyStockpile >= 90) {
+      notify('비상 부품·탄약 비축이 이미 안전 상한에 도달했습니다.');
+      return;
+    }
+    setGame((current) => ({ ...current, treasury: current.treasury - 55, politicalPower: current.politicalPower - 4 }));
+    setArmsPortfolio((current) => fundEmergencyArmsStockpile(current, game.week, campaignYear));
+    addEvent(
+      '군수 비축 — 90일 예비부품·탄약',
+      '서로 다른 규격의 핵심 부품과 탄약을 공동 비축하고 대체 공급 계약을 체결했습니다. 다음 제재·봉쇄 충격의 가동률 하락을 완충합니다.',
+      'good',
+      game.week,
+      {
+        domain: 'management',
+        decision: '90일 군수 공동비축',
+        trigger: `공급안보 ${Math.round(armsPortfolio.supplySecurity)} · 비축 ${Math.round(armsPortfolio.emergencyStockpile)}`,
+        factors: ['조달 경로별 제재·봉쇄 위험', '현지 정비권과 혼합 규격 부담', '65,000회 국가별 시뮬레이션의 소국 공급취약 보완'],
+        effects: [
+          { label: '비축', value: '+16', tone: 'positive' },
+          { label: '공급안보', value: '+6', tone: 'positive' },
+          { label: '재정', value: formatGameMoney(-55, { signed: true }), tone: 'negative' },
+        ],
+        ongoing: ['직도입·원조·비공식 조달 때 비축 3씩 사용', '재비축 여부는 매 조달 전 같은 화면에서 확인'],
+        nextActions: ['면허생산 또는 독자개발로 단계 전환', '정비 기술자·부품 현지화 확보'],
+        certainty: 'confirmed',
+      },
+    );
+    notify('90일 군수 공동비축 완료 · 공급 충격 완충력 상승');
+  };
+
   const enactCivilizationProgram = (program: CivilizationProgram, path: CivilizationPath) => {
     const domain = civilizationDomainDefinitions[program.domainId];
     const programAlreadyCompleted = completedDecisions.some((decisionId) => decisionId.startsWith(getCivilizationDecisionPrefix(program.id)));
@@ -4103,7 +4267,7 @@ export function App() {
     notify(node.name + ' 개발 사업을 시작했습니다.');
   };
 
-  const createEquipmentPrototype = (baseNodeId: string, moduleIds: string[], name: string) => {
+  const createEquipmentPrototype = (baseNodeId: string, moduleIds: string[], name: string, route: AcquisitionRoute) => {
     const base = getEquipmentNode(baseNodeId);
     const modules = moduleIds.map(getEquipmentModule);
     if (!base || !equipmentDevelopment.unlockedIds.includes(base.id) || modules.some((module) => !module || !canUseModule(module, equipmentDevelopment))) {
@@ -4120,13 +4284,20 @@ export function App() {
     }
     const prototype = calculatePrototype(base.id, moduleIds, name, game.week);
     if (!prototype) return;
-    const treasuryCost = getEquipmentProcurementQuote(
+    const quote = getEquipmentProcurementQuote(
       playerNation.id,
       campaignYear,
       prototype.category,
       Math.max(45, Math.round(prototype.industrialCost * 1.6)),
       completedDecisions,
-    ).treasuryCost;
+      route,
+      armsPortfolio,
+    );
+    const treasuryCost = quote.treasuryCost;
+    if (!quote.available) {
+      notify(quote.unavailableReason ?? '현재 조달 경로를 사용할 수 없습니다.');
+      return;
+    }
     if (game.treasury < treasuryCost || game.politicalPower < 8) {
       notify(`시제품 제작에는 정치력 8과 재정 ${formatGameMoney(treasuryCost)}가 필요합니다.`);
       return;
@@ -4134,21 +4305,56 @@ export function App() {
     const storedPrototype = { ...prototype, id: `${prototype.id}-${equipmentDevelopment.prototypes.length + 1}` };
     setGame((current) => ({ ...current, politicalPower: current.politicalPower - 8, treasury: current.treasury - treasuryCost }));
     setEquipmentDevelopment((current) => ({ ...current, prototypes: [...current.prototypes, storedPrototype] }));
-    addEvent('시제 장비 완성 — ' + storedPrototype.name, `6개 성능 지표 시험이 시작됐습니다. 통합 위험 ${storedPrototype.risk}%, 신뢰성 ${storedPrototype.reliability}.`, storedPrototype.risk >= 35 ? 'bad' : 'good', game.week);
-    notify(`${storedPrototype.name} 제작 완료 · 개발 위험 ${storedPrototype.risk}%`);
+    setArmsPortfolio((current) => applyProcurementToPortfolio(current, {
+      week: game.week,
+      year: campaignYear,
+      kind: 'prototype',
+      title: storedPrototype.name,
+      category: prototype.category,
+      quote,
+    }));
+    addEvent(
+      '시제 장비 완성 — ' + storedPrototype.name,
+      `${quote.routeLabel} 경로로 시험 사업을 완료했습니다. 도입 성공 ${quote.successChance}%, 현지화 ${quote.localContent}%, 연 유지비 ${formatGameMoney(quote.annualSustainmentCost)}가 조달 원장에 기록됐습니다.`,
+      storedPrototype.risk >= 35 || quote.successChance < 55 ? 'bad' : 'good',
+      game.week,
+      {
+        domain: 'management',
+        decision: `${storedPrototype.name} · ${quote.routeLabel} 시제품`,
+        trigger: `${playerNation.shortName} ${campaignYear}년 ${prototype.category} 조달`,
+        factors: [quote.explanation, ...quote.warnings],
+        effects: [
+          { label: '초기 비용', value: formatGameMoney(-treasuryCost, { signed: true }), tone: 'negative' },
+          { label: '도입 성공', value: `${quote.successChance}%`, tone: quote.successChance >= 65 ? 'positive' : 'negative' },
+          { label: '공급 안보', value: `${quote.supplySecurityEffect > 0 ? '+' : ''}${quote.supplySecurityEffect}`, tone: quote.supplySecurityEffect >= 0 ? 'positive' : 'negative' },
+          { label: '조달 자율', value: `${quote.autonomyEffect > 0 ? '+' : ''}${quote.autonomyEffect}`, tone: quote.autonomyEffect >= 0 ? 'positive' : 'negative' },
+        ],
+        ongoing: quote.forecast.map((forecast) => `${forecast.years}년: 전력 ${forecast.readiness} · 공급 ${forecast.supplySecurity} · 누적 ${formatGameMoney(forecast.cumulativeCost)}`),
+        nextActions: ['제식 채택 전 조달 경로 재비교', '현지 정비권·부품 현지화 확보', '외교 정책실에서 제재·상호운용 조건 보완'],
+        certainty: 'developing',
+      },
+    );
+    notify(`${storedPrototype.name} 제작 · ${quote.routeLabel} · 5년 누적 ${formatGameMoney(quote.forecast[2].cumulativeCost)}`);
   };
 
-  const fieldEquipment = (equipmentId: string) => {
+  const fieldEquipment = (equipmentId: string, route: AcquisitionRoute) => {
     const equipment = getDevelopedEquipment(equipmentId, equipmentDevelopment);
     if (!equipment || (!equipmentDevelopment.unlockedIds.includes(equipment.id) && !equipmentDevelopment.prototypes.some((prototype) => prototype.id === equipment.id))) return;
     if (equipmentDevelopment.fieldedByCategory[equipment.category] === equipment.id) return;
-    const adoptionCost = getEquipmentProcurementQuote(
+    const quote = getEquipmentProcurementQuote(
       playerNation.id,
       campaignYear,
       equipment.category,
       Math.max(30, Math.round(equipment.industrialCost * 1.2)),
       completedDecisions,
-    ).treasuryCost;
+      route,
+      armsPortfolio,
+    );
+    const adoptionCost = quote.treasuryCost;
+    if (!quote.available) {
+      notify(quote.unavailableReason ?? '현재 조달 경로를 사용할 수 없습니다.');
+      return;
+    }
     if (game.politicalPower < 6 || game.treasury < adoptionCost) {
       notify(`채택 승인에는 정치력 6과 재정 ${formatGameMoney(adoptionCost)}가 필요합니다.`);
       return;
@@ -4160,6 +4366,14 @@ export function App() {
     const lineId = lineIds[equipment.category];
     setGame((current) => ({ ...current, politicalPower: current.politicalPower - 6, treasury: current.treasury - adoptionCost }));
     setEquipmentDevelopment((current) => ({ ...current, fieldedByCategory: { ...current.fieldedByCategory, [equipment.category]: equipment.id } }));
+    setArmsPortfolio((current) => applyProcurementToPortfolio(current, {
+      week: game.week,
+      year: campaignYear,
+      kind: 'adoption',
+      title: equipment.name,
+      category: equipment.category,
+      quote,
+    }));
     if (lineId) {
       setProduction((current) => current.map((line) => line.id === lineId ? {
         ...line,
@@ -4171,8 +4385,28 @@ export function App() {
         efficiency: Math.max(20, line.efficiency - 12 - Math.round(('risk' in equipment ? equipment.risk : 0) / 8)),
       } : line));
     }
-    addEvent('제식 채택 — ' + equipment.name, `${equipment.category} 분야의 생산·보급 표준을 전환했습니다. 생산 효율은 재편 후 매주 회복됩니다.`, 'good', game.week);
-    notify(equipment.name + (lineId ? ' 양산 전환을 승인했습니다.' : ' 운용 교리를 전군에 적용했습니다.'));
+    addEvent(
+      '제식 채택 — ' + equipment.name,
+      `${quote.routeLabel} 계약으로 생산·보급 표준을 전환했습니다. 현지 정비·부품망과 공급자 피로가 다음 조달 견적에 누적됩니다.`,
+      quote.successChance >= 60 ? 'good' : 'neutral',
+      game.week,
+      {
+        domain: 'management',
+        decision: `${equipment.name} · ${quote.routeLabel} 제식 채택`,
+        trigger: `${campaignYear}년 ${equipmentCategoryLabels[equipment.category]} 세대교체`,
+        factors: [quote.explanation, ...quote.warnings],
+        effects: [
+          { label: '도입 비용', value: formatGameMoney(-adoptionCost, { signed: true }), tone: 'negative' },
+          { label: '연 유지비', value: formatGameMoney(-quote.annualSustainmentCost, { signed: true }), tone: 'negative' },
+          { label: '상호운용', value: `${quote.interoperabilityEffect > 0 ? '+' : ''}${quote.interoperabilityEffect}`, tone: quote.interoperabilityEffect >= 0 ? 'positive' : 'negative' },
+          { label: '긴장', value: `${quote.escalationEffect > 0 ? '+' : ''}${quote.escalationEffect}`, tone: quote.escalationEffect <= 0 ? 'positive' : 'negative' },
+        ],
+        ongoing: quote.forecast.map((forecast) => `${forecast.years}년: 전력 ${forecast.readiness} · 공급 ${forecast.supplySecurity} · 자율 ${forecast.autonomy}`),
+        nextActions: quote.warnings.length > 0 ? ['조달 경고 해소 정책 선택', '정비권·기술자 양성 투자', '다음 세대 교체비 비축'] : ['생산 효율 검증', '부대별 장비 배치', '5년 세대교체 계획 수립'],
+        certainty: 'confirmed',
+      },
+    );
+    notify(`${equipment.name} 채택 · ${quote.routeLabel} · 공급안보 ${quote.supplySecurityEffect > 0 ? '+' : ''}${quote.supplySecurityEffect}`);
   };
 
   const assignDivisionEquipment = (divisionId: string, equipmentId: string) => {
@@ -6137,6 +6371,7 @@ export function App() {
                   divisions={effectiveDivisions}
                   weeklyResearchGain={8 + Math.floor(game.factories / 7) + (doctrine === 'methodical' ? 3 : 0) + (delegatedDepartments.has('armaments') ? 2 : 0) + Math.max(0, scienceAdvisorBonus - 1) + (scienceAdvisor?.discipline === 'engineering' ? 1 : 0) + 2}
                   completedDecisions={completedDecisions}
+                  armsPortfolio={armsPortfolio}
                   formatMoney={formatGameMoney}
                   onStartResearch={startEquipmentResearch}
                   onCreatePrototype={createEquipmentPrototype}
@@ -6146,7 +6381,7 @@ export function App() {
                 </Suspense>
               </div>
             )}
-            {activeTab === 'diplomacy' && <DiplomacyPanel game={game} relations={relations} setRelations={setRelations} setGame={setGame} notify={notify} nation={playerNation} completedDecisions={completedDecisions} onDecision={enactDecision} />}
+            {activeTab === 'diplomacy' && <DiplomacyPanel game={game} relations={relations} setRelations={setRelations} setGame={setGame} notify={notify} nation={playerNation} completedDecisions={completedDecisions} armsPortfolio={armsPortfolio} formatMoney={formatGameMoney} onDecision={enactDecision} onEnactArmsPolicy={enactArmsDiplomacyPolicy} onFundStockpile={fundArmsEmergencyStockpile} />}
             {activeTab === 'intelligence' && (
               <IntelligencePanel
                 game={game}
@@ -7139,7 +7374,7 @@ function ResearchPanel({ nationId, research, currentYear, weeklyGain, onToggle }
   );
 }
 
-function DiplomacyPanel({ game, relations, setRelations, setGame, notify, nation, completedDecisions, onDecision }: {
+function DiplomacyPanel({ game, relations, setRelations, setGame, notify, nation, completedDecisions, armsPortfolio, formatMoney, onDecision, onEnactArmsPolicy, onFundStockpile }: {
   game: GameState;
   relations: DiplomaticRelation[];
   setRelations: React.Dispatch<React.SetStateAction<DiplomaticRelation[]>>;
@@ -7147,7 +7382,11 @@ function DiplomacyPanel({ game, relations, setRelations, setGame, notify, nation
   notify: (message: string) => void;
   nation: NationProfile;
   completedDecisions: string[];
+  armsPortfolio: ArmsPortfolioState;
+  formatMoney: (value: number, options?: { signed?: boolean; exact?: boolean }) => string;
   onDecision: (id: string, title: string, cost: number, effect: () => void) => void;
+  onEnactArmsPolicy: (policy: ArmsDiplomacyPolicy) => void;
+  onFundStockpile: () => void;
 }) {
   const influenceCost = 8;
   const currentYear = 1942 + Math.floor(game.week / 52);
@@ -7188,17 +7427,7 @@ function DiplomacyPanel({ game, relations, setRelations, setGame, notify, nation
     setRelations((current) => current.map((country) => country.id === id ? { ...country, value: Math.min(100, country.value + 7) } : country));
     notify(name + '과의 관계가 개선되었습니다.');
   };
-  const enactArmsPolicy = (policy: ReturnType<typeof getStageDiplomaticPolicies>[number]) => {
-    const id = getStrategicDecisionId(policy.id, policy.stageId);
-    if (completedDecisions.includes(id)) return notify('이미 시행한 군비·외교 정책입니다.');
-    if (policy.effects.treasury < 0 && game.treasury < Math.abs(policy.effects.treasury)) {
-      return notify(`이 정책에는 재정 ${Math.abs(policy.effects.treasury)}이 필요합니다.`);
-    }
-    onDecision(id, policy.title, policy.politicalCost, () => {
-      setGame((current) => applyStrategicPolicyReward(current, policy));
-      setRelations((current) => applyStrategicPolicyRelations(current, policy));
-    });
-  };
+  const latestArmsRecords = armsPortfolio.history.slice(-4).reverse();
   return (
     <div className="diplomacy-layout">
       <section className="deck-section diplomatic-list">
@@ -7246,6 +7475,26 @@ function DiplomacyPanel({ game, relations, setRelations, setGame, notify, nation
           <div><strong>국가 조달 원칙</strong><p>{armsProfile.historicalAnchor}</p></div>
           <div><strong>결과 확인 시점</strong><p>자원은 즉시 변하고, 상호운용·자율성·제재 위험은 각 카드의 검증 연도 안에 다음 선택지와 조달 비용을 바꿉니다.</p></div>
         </div>
+        <div className="arms-strategy-dashboard">
+          <div className="arms-strategy-metrics">
+            <span><small>통합 전력</small><strong>{Math.round(armsPortfolio.capability)}</strong></span>
+            <span><small>공급 안보</small><strong>{Math.round(armsPortfolio.supplySecurity)}</strong></span>
+            <span><small>조달 자율</small><strong>{Math.round(armsPortfolio.autonomy)}</strong></span>
+            <span><small>상호운용</small><strong>{Math.round(armsPortfolio.interoperability)}</strong></span>
+            <span className={armsPortfolio.escalation >= 65 ? 'danger' : ''}><small>군비 긴장</small><strong>{Math.round(armsPortfolio.escalation)}</strong></span>
+            <span><small>규범 신뢰</small><strong>{Math.round(armsPortfolio.treatyCompliance)}</strong></span>
+          </div>
+          <div className="arms-stockpile-card">
+            <div><span>제재·봉쇄 완충</span><strong>90일 군수 공동비축 · {Math.round(armsPortfolio.emergencyStockpile)}/100</strong><small>직도입·원조·비공식 조달 때 비축이 소모됩니다. 면허·독자화로 넘어갈 시간을 확보합니다.</small></div>
+            <button type="button" disabled={game.treasury < 55 || game.politicalPower < 4 || armsPortfolio.emergencyStockpile >= 90} onClick={onFundStockpile}>비축 확충 <b>4 PP · {formatMoney(55)}</b></button>
+          </div>
+          <div className="arms-policy-ledger">
+            <span>최근 실제 결과</span>
+            {latestArmsRecords.length > 0
+              ? latestArmsRecords.map((record) => <div key={record.id}><strong>{record.year} · {record.title}</strong><small>{record.summary}</small></div>)
+              : <div className="empty"><strong>아직 조달·정책 기록이 없습니다.</strong><small>아래 정책을 시행하거나 연구·무기에서 조달 경로를 선택하면 예상→결정→실제 결과가 이곳에 쌓입니다.</small></div>}
+          </div>
+        </div>
         <div className="arms-policy-grid">
           {stagePolicies.map((policy) => {
             const id = getStrategicDecisionId(policy.id, policy.stageId);
@@ -7261,7 +7510,7 @@ function DiplomacyPanel({ game, relations, setRelations, setGame, notify, nation
                 <small>{policy.historicalBasis}</small>
                 <footer>
                   <a href={policy.sourceUrl} target="_blank" rel="noreferrer"><BookOpen size={11} /> {policy.sourceLabel}</a>
-                  <button type="button" disabled={completed || lacksTreasury || lacksPoliticalPower} onClick={() => enactArmsPolicy(policy)}>
+                  <button type="button" disabled={completed || lacksTreasury || lacksPoliticalPower} onClick={() => onEnactArmsPolicy(policy)}>
                     {completed ? '시행 완료' : lacksTreasury ? '재정 부족' : lacksPoliticalPower ? '정치력 부족' : '정책 시행'}
                     {!completed && <b>{policy.politicalCost} PP</b>}
                   </button>
