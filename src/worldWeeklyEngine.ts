@@ -1,5 +1,7 @@
 import type { EconomyState } from './economy';
 import { deriveFrontSummaries } from './mapPresentation';
+import { getNewsMediaEraForWeek } from './newsMediaEvolution';
+import type { NewsMediaEra } from './newsMediaEvolution';
 import type { PublicHealthState } from './publicHealth';
 import { strategicFronts } from './strategicMapData';
 import type {
@@ -61,6 +63,7 @@ export interface WorldWeeklyIssue {
   dateRange: string;
   worldlineCode: string;
   worldlineTitle: string;
+  media: NewsMediaEra;
   leadArticleId: string;
   articles: WorldNewsArticle[];
   metrics: WorldWeeklyMetrics;
@@ -346,6 +349,7 @@ export function generateWorldWeeklyIssue(context: WorldWeeklyContext): WorldWeek
     dateRange: `${campaignDate(context.week - 1)} — ${campaignDate(context.week)}`,
     worldlineCode: context.worldline.code,
     worldlineTitle: context.worldline.title,
+    media: getNewsMediaEraForWeek(context.week),
     leadArticleId: lead.id,
     articles,
     metrics: {
@@ -364,7 +368,7 @@ export function generateWorldWeeklyIssue(context: WorldWeeklyContext): WorldWeek
 export function normalizeWorldWeeklyIssues(value: unknown): WorldWeeklyIssue[] {
   if (!Array.isArray(value)) return [];
   const seenWeeks = new Set<number>();
-  return value.filter((item): item is WorldWeeklyIssue => {
+  return value.filter((item): item is Omit<WorldWeeklyIssue, 'media'> & { media?: NewsMediaEra } => {
     if (!item || typeof item !== 'object') return false;
     const candidate = item as Partial<WorldWeeklyIssue>;
     if (typeof candidate.id !== 'string' || typeof candidate.week !== 'number' || !Array.isArray(candidate.articles) || candidate.articles.length === 0 || !candidate.metrics) return false;
@@ -373,5 +377,10 @@ export function normalizeWorldWeeklyIssues(value: unknown): WorldWeeklyIssue[] {
     if (!validArticles) return false;
     seenWeeks.add(candidate.week);
     return true;
-  }).sort((left, right) => right.week - left.week).slice(0, 104);
+  }).map((issue) => ({
+    ...issue,
+    // The issue date, not the current save date, owns the format. This also migrates
+    // old saves so their 1940s archive remains a newspaper after later media transitions.
+    media: getNewsMediaEraForWeek(issue.week),
+  })).sort((left, right) => right.week - left.week).slice(0, 104);
 }

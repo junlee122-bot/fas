@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Atom,
+  AlertTriangle,
   BookOpen,
   Check,
   ChevronDown,
@@ -14,6 +15,7 @@ import {
   Orbit,
   Search,
   ShieldCheck,
+  ShieldAlert,
   Sparkles,
   X,
 } from 'lucide-react';
@@ -96,6 +98,19 @@ const intelligenceKindLabels = {
   'political-police': '정치경찰·가해기관',
 } as const;
 
+const pressureStageLabels = {
+  contained: '억제됨',
+  emerging: '형성 중',
+  advanced: '고착 위험',
+  entrenched: '체제화',
+} as const;
+
+const outlookWarningLabels = {
+  guarded: '제도적 방어선 유지',
+  unstable: '암울한 체제 분기 진행',
+  critical: '디스토피아 체제화 임박',
+} as const;
+
 export function WorldHistoryAtlas({ worldline, trajectory, onClose }: WorldHistoryAtlasProps) {
   const [category, setCategory] = useState<'all' | WorldHistoryCategory>('all');
   const [era, setEra] = useState<'all' | WorldHistoryEra>('all');
@@ -122,6 +137,14 @@ export function WorldHistoryAtlas({ worldline, trajectory, onClose }: WorldHisto
     return filterHistoricalEndings({ query: endingSearch, orderId: endingOrder, settlementId: endingSettlement, horizonId: endingHorizon })
       .sort((left, right) => Number(right.id === worldline.ending.id) - Number(left.id === worldline.ending.id) || left.title.localeCompare(right.title, 'ko-KR'));
   }, [endingHorizon, endingOrder, endingSearch, endingSettlement, worldline.ending.id]);
+  const endingDifference = (ending: (typeof worldline.endingAlternatives)[number]) => {
+    const differences = [
+      ending.orderId !== worldline.ending.orderId ? '세계질서' : '',
+      ending.settlementId !== worldline.ending.settlementId ? '경제·재건' : '',
+      ending.horizonId !== worldline.ending.horizonId ? '과학·사회' : '',
+    ].filter(Boolean);
+    return differences.join(' · ') || '가중치 차이';
+  };
 
   function resetEndingCatalog() {
     setEndingSearch('');
@@ -213,6 +236,42 @@ export function WorldHistoryAtlas({ worldline, trajectory, onClose }: WorldHisto
             ))}
           </section>
 
+          <section className={`world-history-dark-futures ${worldline.dystopianOutlook.warningLevel}`} aria-labelledby="world-history-dark-futures-title">
+            <header className="world-history-section-heading">
+              <div>
+                <span className="atlas-label"><AlertTriangle size={14} /> PATH-DEPENDENT DARK FUTURES</span>
+                <h2 id="world-history-dark-futures-title">선택이 만들 수 있는 암울한 세계들</h2>
+                <p>{worldline.dystopianOutlook.explanation}</p>
+              </div>
+              <div className="dark-future-resilience">
+                <span>{outlookWarningLabels[worldline.dystopianOutlook.warningLevel]}</span>
+                <strong>{worldline.dystopianOutlook.resilience}<small>/100 제도 회복력</small></strong>
+              </div>
+            </header>
+            <div className="dark-future-dominant">
+              <ShieldAlert size={18} />
+              <span><small>현재 가장 가까운 암울한 세계</small><strong>{worldline.dystopianOutlook.dominantWorldTitle}</strong></span>
+              <p>아래 위험은 무작위 이벤트 확률이 아닙니다. 직접 선택 {worldline.dystopianOutlook.directChoiceCount}회는 더 큰 가중치로, 자동 분기는 누적된 국가 조건으로 반영됩니다.</p>
+            </div>
+            <div className="dark-future-grid">
+              {worldline.dystopianOutlook.pressures.map((pressure) => (
+                <article className={pressure.id === worldline.dystopianOutlook.dominantPressureId ? 'dominant' : ''} key={pressure.id}>
+                  <header>
+                    <span><small>{pressureStageLabels[pressure.stage]} · 직접 선택 {pressure.directChoiceCount}</small><strong>{pressure.title}</strong></span>
+                    <em>{pressure.risk}</em>
+                  </header>
+                  <i aria-label={`${pressure.title} 위험 ${pressure.risk}%`}><b style={{ width: `${pressure.risk}%` }} /></i>
+                  <p>{pressure.premise}</p>
+                  <div><small>그 세계의 일상</small><span>{pressure.everydayLife}</span></div>
+                  <ul>
+                    {pressure.causes.slice(0, 3).map((cause) => <li key={cause}><GitBranch size={11} />{cause}</li>)}
+                  </ul>
+                  <footer><small>되돌리는 선택</small>{pressure.reversalLevers.map((lever) => <span key={lever}>{lever}</span>)}</footer>
+                </article>
+              ))}
+            </div>
+          </section>
+
           <section className="world-history-intelligence" aria-labelledby="world-history-intelligence-title">
             <header className="world-history-section-heading">
               <div>
@@ -264,6 +323,8 @@ export function WorldHistoryAtlas({ worldline, trajectory, onClose }: WorldHisto
                 <strong>{worldline.endingCount}</strong>
                 <span>개 사료 기반 결말</span>
                 <small>현재 적합도 {worldline.ending.fitScore}</small>
+                <code>{worldline.code}</code>
+                <small>분기 {worldline.divergenceCount.toLocaleString('ko-KR')}회</small>
               </div>
             </header>
 
@@ -278,6 +339,27 @@ export function WorldHistoryAtlas({ worldline, trajectory, onClose }: WorldHisto
               <p className="danger"><b>남은 균열</b>{worldline.ending.warning}</p>
             </div>
 
+            <section className="world-history-causal-ledger" aria-labelledby="world-history-causal-title">
+              <header>
+                <span><GitBranch size={14} /><b id="world-history-causal-title">이 결말을 만든 결정 기록</b></span>
+                <small>선택 → 즉시 변화 → 장기 축</small>
+              </header>
+              {worldline.ending.decisiveChoices.length > 0 ? (
+                <div>
+                  {worldline.ending.decisiveChoices.slice(0, 6).map((choice) => (
+                    <article key={`${choice.year}-${choice.eventTitle}-${choice.choiceTitle}`}>
+                      <time>{choice.year}</time>
+                      <span><small>{choice.eventTitle}</small><strong>{choice.choiceTitle}</strong></span>
+                      <p>{choice.consequence}</p>
+                      <em>{choice.axisImpact}</em>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="world-history-causal-empty">아직 결말 축을 바꿀 만큼 큰 선택이 기록되지 않았습니다.</p>
+              )}
+            </section>
+
             <div className="world-history-ending-footer">
               <div className="world-history-ending-sources" aria-label="결말 설계의 역사 자료">
                 {worldline.ending.anchors.map((anchor) => (
@@ -288,7 +370,7 @@ export function WorldHistoryAtlas({ worldline, trajectory, onClose }: WorldHisto
               </div>
               <div className="world-history-ending-nearby">
                 <span>선택 하나로 가까워지는 다른 결말</span>
-                <div>{worldline.endingAlternatives.map((ending) => <em key={ending.id}>{ending.title}</em>)}</div>
+                <div>{worldline.endingAlternatives.map((ending) => <em key={ending.id}><b>{endingDifference(ending)}</b>{ending.title}</em>)}</div>
               </div>
             </div>
 

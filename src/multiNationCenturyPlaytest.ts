@@ -67,6 +67,9 @@ export interface MultiNationCenturyAggregate {
   averageCoupAttempts: number;
   coupAttemptsSpread: number;
   decisionsPerYearSpread: number;
+  warDecisionsPerYearSpread: number;
+  nationDecisionsPerYearSpread: number;
+  averageSuccessfulRuptures: number;
   averageEndingCollisionRate: number;
   uniqueEndingsTotal: number;
   byNation: Record<string, {
@@ -83,6 +86,8 @@ export interface MultiNationCenturyAggregate {
     averageWarYears: number;
     averageNationYears: number;
     decisionsPerYear: number;
+    warDecisionsPerYear: number;
+    nationDecisionsPerYear: number;
     averageNationAgendaDecisions: number;
     interruptionsPerYear: number;
     averageFinalNationalScore: number;
@@ -92,7 +97,9 @@ export interface MultiNationCenturyAggregate {
     averageFinalStructuralUnrestFloor: number;
     coupSessionRate: number;
     averageCoupAttempts: number;
+    averageSuccessfulRuptures: number;
     successfulCoupSessionRate: number;
+    crisisIncidentsByKind: Record<string, number>;
     outbreakSessionRate: number;
     averageHistoricalCouncilCoverage: number;
     uniqueWorldlineCodes: number;
@@ -214,6 +221,39 @@ function buildCrossNationFindings(aggregate: MultiNationCenturyAggregate): Multi
     evidence: `경력당 정치 위기는 평균 ${aggregate.averageCoupAttempts}회, 국가별 평균 횟수 격차 ${aggregate.coupAttemptsSpread}회이며 각 국가는 고유 위기 명칭과 재발 간격을 사용합니다.`,
     recommendation: '쿠데타 외에도 지도부 분열·종주국 탄압·망명정부 분열이 실제 UI 기록에 남는지 브라우저 플레이로 점검하십시오.',
   });
+  const phaseDensityOutliers = Object.entries(aggregate.byNation).filter(([, result]) =>
+    result.warDecisionsPerYear < 6
+    || result.warDecisionsPerYear > 26
+    || result.nationDecisionsPerYear < 6
+    || result.nationDecisionsPerYear > 26
+  );
+  findings.push({
+    priority: phaseDensityOutliers.length > 0 ? 'P1' : 'P2',
+    id: 'phase-decision-density',
+    title: phaseDensityOutliers.length > 0
+      ? '일부 국가의 전시·평시 결정 밀도가 가독 범위를 벗어남'
+      : '개선됨 · 전시와 평시 모두 연간 6–26개의 가독 가능한 결정 리듬을 유지함',
+    evidence: phaseDensityOutliers.length > 0
+      ? phaseDensityOutliers.map(([id, result]) => `${id} 전시 ${result.warDecisionsPerYear} · 평시 ${result.nationDecisionsPerYear}`).join(' · ')
+      : `국가별 전시 결정 격차 ${aggregate.warDecisionsPerYearSpread}회, 평시 결정 격차 ${aggregate.nationDecisionsPerYearSpread}회입니다.`,
+    recommendation: phaseDensityOutliers.length > 0
+      ? '주간 반복 행동을 묶고 빈 단계에는 직무·국가 고유 의제 또는 월간 검토를 공급하십시오.'
+      : '새 콘텐츠를 추가할 때 전시·평시를 합산하지 말고 두 단계의 범위를 각각 회귀 검증하십시오.',
+  });
+  const ruptureOutliers = Object.entries(aggregate.byNation).filter(([, result]) => result.averageSuccessfulRuptures > 2.5);
+  findings.push({
+    priority: ruptureOutliers.length > 0 ? 'P1' : 'P2',
+    id: 'successful-political-rupture-frequency',
+    title: ruptureOutliers.length > 0
+      ? '한 경력에서 성공한 권력구조 교체가 과도하게 반복됨'
+      : '개선됨 · 예방 경험과 제도 학습이 반복적인 체제 전복을 억제함',
+    evidence: ruptureOutliers.length > 0
+      ? ruptureOutliers.map(([id, result]) => `${id} 평균 ${result.averageSuccessfulRuptures}회`).join(' · ')
+      : `전 국가 경력당 성공한 권력구조 교체 평균은 ${aggregate.averageSuccessfulRuptures}회입니다.`,
+    recommendation: ruptureOutliers.length > 0
+      ? '저지 경험과 체제 단절 뒤의 제도 학습을 다음 대응 성공률·재발 대기기간에 누적하십시오.'
+      : '성공적 체제 단절은 드물지만 중대한 사건으로 유지하고 국가별 위기 명칭과 결과 기록을 보존하십시오.',
+  });
   if (aggregate.decisionsPerYearSpread >= 20) findings.push({
     priority: 'P1',
     id: 'nation-decision-density-spread',
@@ -293,6 +333,8 @@ export function aggregateMultiNationCenturySessions(
       averageWarYears: aggregate.averageWarYears,
       averageNationYears: aggregate.averageNationYears,
       decisionsPerYear: aggregate.decisionsPerYear,
+      warDecisionsPerYear: aggregate.warDecisionsPerYear,
+      nationDecisionsPerYear: aggregate.nationDecisionsPerYear,
       averageNationAgendaDecisions: round(average(nationSessions.map((session) => session.nationAgendaDecisionCount))),
       interruptionsPerYear: aggregate.interruptionsPerYear,
       averageFinalNationalScore: round(average(nationSessions.map((session) => session.finalNationalScore))),
@@ -302,7 +344,14 @@ export function aggregateMultiNationCenturySessions(
       averageFinalStructuralUnrestFloor: round(average(nationSessions.map((session) => session.finalStructuralUnrestFloor))),
       coupSessionRate: aggregate.coupSessionRate,
       averageCoupAttempts: aggregate.averageCoupAttempts,
+      averageSuccessfulRuptures: round(average(nationSessions.map((session) => session.coupSuccesses))),
       successfulCoupSessionRate: aggregate.successfulCoupSessionRate,
+      crisisIncidentsByKind: nationSessions.reduce<Record<string, number>>((counts, session) => {
+        Object.entries(session.crisisIncidentsByKind ?? {}).forEach(([kind, count]) => {
+          counts[kind] = (counts[kind] ?? 0) + count;
+        });
+        return counts;
+      }, {}),
       outbreakSessionRate: aggregate.outbreakSessionRate,
       averageHistoricalCouncilCoverage: aggregate.averageHistoricalCouncilCoverage,
       uniqueWorldlineCodes: aggregate.uniqueWorldlineCodes,
@@ -339,6 +388,9 @@ export function aggregateMultiNationCenturySessions(
     averageCoupAttempts: round(average(values.map((value) => value.averageCoupAttempts))),
     coupAttemptsSpread: spread(values.map((value) => value.averageCoupAttempts)),
     decisionsPerYearSpread: spread(values.map((value) => value.decisionsPerYear)),
+    warDecisionsPerYearSpread: spread(values.map((value) => value.warDecisionsPerYear)),
+    nationDecisionsPerYearSpread: spread(values.map((value) => value.nationDecisionsPerYear)),
+    averageSuccessfulRuptures: round(average(values.map((value) => value.averageSuccessfulRuptures))),
     averageEndingCollisionRate: round(average(values.map((value) => value.endingCollisionRate))),
     uniqueEndingsTotal: values.reduce((sum, value) => sum + value.uniqueEndings, 0),
     byNation,

@@ -8,6 +8,7 @@ import {
   assessCoupRisk,
   canUsePoliticalAction,
   createPoliticalCrisisState,
+  getCoupResponseForecasts,
   getNationPoliticalProfile,
   normalizePoliticalCrisisState,
   resolveCoupAttempt,
@@ -163,5 +164,79 @@ describe('office authority and crisis outcomes', () => {
     expect(successful?.state.generation).toBe(1);
     expect(successful?.state.governmentName).not.toBe(baseState.governmentName);
     expect(successful?.detail).toContain('캠페인은 끝나지 않으며');
+  });
+
+  it('turns prior prevention and detected cases into visible preparedness without exceeding the cap', () => {
+    const nationId: NationId = 'korea';
+    const crisisContext = context(nationId, true);
+    const role = getRole('korea-tier1', nationId);
+    const baseState = createPoliticalCrisisState(nationId);
+    const leadingFactionId = assessCoupRisk(baseState, crisisContext).leadingFaction.id;
+    const incident: CoupIncident = {
+      id: 'preparedness-comparison',
+      week: 52,
+      nationId,
+      kind: 'liberation-split',
+      crisisLabel: '건국 주도권 분열',
+      title: '권력 장악 시도',
+      leadingFactionId,
+      riskScore: 78,
+      weeklyChance: 22,
+      detected: true,
+      briefing: '대응 준비도 비교',
+      historicalEcho: '역사적 분열 사례',
+    };
+    const baseline = getCoupResponseForecasts(incident, role, crisisContext, baseState)[0];
+    const preparedState = {
+      ...baseState,
+      prevented: 5,
+      generation: 1,
+      history: [{
+        id: 'prior-crisis',
+        week: 24,
+        kind: incident.kind,
+        crisisLabel: incident.crisisLabel,
+        leadingFactionId,
+        detected: true,
+        responseId: 'constitutional-appeal' as const,
+        responseName: '헌정 질서 호소',
+        outcome: 'prevented' as const,
+        title: '위기 저지',
+      }],
+    };
+    const prepared = getCoupResponseForecasts(incident, role, crisisContext, preparedState)[0];
+    expect(prepared.preparednessBonus).toBeGreaterThan(baseline.preparednessBonus);
+    expect(prepared.successChance).toBeGreaterThan(baseline.successChance);
+    expect(prepared.successChance).toBeLessThanOrEqual(96);
+  });
+
+  it('stores every resolved political rupture in institutional history', () => {
+    const nationId: NationId = 'britain';
+    const crisisContext = context(nationId, true);
+    const role = getRole('britain-tier1', nationId);
+    const state = createPoliticalCrisisState(nationId);
+    const leadingFactionId = assessCoupRisk(state, crisisContext).leadingFaction.id;
+    const incident: CoupIncident = {
+      id: 'history-record',
+      week: 80,
+      nationId,
+      kind: 'regime-struggle',
+      crisisLabel: '정권 정통성 위기',
+      title: '권력 장악 시도',
+      leadingFactionId,
+      riskScore: 74,
+      weeklyChance: 20,
+      detected: true,
+      briefing: '기록 검증',
+      historicalEcho: '정권 위기 사례',
+    };
+    const result = resolveCoupAttempt(state, incident, role, crisisContext, 'constitutional-appeal');
+    expect(result).not.toBeNull();
+    expect(result!.state.history).toHaveLength(1);
+    expect(result!.state.history[0]).toMatchObject({
+      id: incident.id,
+      outcome: result!.outcome,
+      responseId: 'constitutional-appeal',
+    });
   });
 });

@@ -67,8 +67,8 @@ export function PoliticalCrisisModal({
 }: PoliticalCrisisModalProps) {
   const firstActionRef = useRef<HTMLButtonElement>(null);
   const responseForecasts = useMemo(
-    () => incident ? getCoupResponseForecasts(incident, role, context) : [],
-    [context, incident, role],
+    () => incident ? getCoupResponseForecasts(incident, role, context, state) : [],
+    [context, incident, role, state],
   );
 
   useEffect(() => {
@@ -141,6 +141,7 @@ export function PoliticalCrisisModal({
                       <span className="response-card-top"><b>{response.name}</b><em>{response.successChance}%</em></span>
                       <p>{response.description}</p>
                       <small>{localizeMoney(response.costLabel)}</small>
+                      {response.preparednessBonus > 0 && <span className="response-preparedness">과거 대응 학습·제도 준비 +{response.preparednessBonus}%p</span>}
                       <span className="response-consequence">{response.consequence}</span>
                       <span className="response-availability">{!response.allowed ? <><LockKeyhole size={13} /> {response.branch} 계열 또는 1급 보직 필요</> : !resourcesReady ? <><LockKeyhole size={13} /> 자원 부족</> : <>명령 확정 <ArrowRight size={14} /></>}</span>
                     </button>
@@ -203,6 +204,21 @@ export function PoliticalCrisisModal({
                   );
                 })}
               </div>
+            </section>
+
+            <section className="coup-history-section" aria-labelledby="coup-history-title">
+              <div className="section-heading"><div><small>INSTITUTIONAL MEMORY</small><h3 id="coup-history-title">정치 위기 대응 기록</h3></div><span>최근 {state.history.length}/24건</span></div>
+              {state.history.length > 0 ? (
+                <div className="coup-history-list">
+                  {state.history.slice(0, 8).map((record) => (
+                    <article className={`outcome-${record.outcome}`} key={record.id}>
+                      <time>{1942 + Math.floor(record.week / 52)}년</time>
+                      <span><strong>{record.title}</strong><small>{record.crisisLabel} · {resolveFactionName(record.leadingFactionId)} · {record.responseName}</small></span>
+                      <em>{record.outcome === 'prevented' ? '저지' : record.outcome === 'compromise' ? '타협' : '체제 전환'}</em>
+                    </article>
+                  ))}
+                </div>
+              ) : <p className="coup-history-empty">아직 확정된 정치 위기 대응 기록이 없습니다. 예방조치와 실제 대응 결과가 이곳에 누적됩니다.</p>}
             </section>
           </div>
         )}

@@ -4,29 +4,29 @@
   "sessions": 3000,
   "uniqueCombinations": 3000,
   "uniqueFuturePaths": 3000,
-  "uniqueEndings": 1831,
+  "uniqueEndings": 1805,
   "futurePathCollisionRate": 0,
-  "endingCollisionRate": 39,
+  "endingCollisionRate": 39.8,
   "dominantEndingShare": 0.2,
-  "viableRate": 92.2,
+  "viableRate": 93.1,
   "averageTransitionYear": 1946.8,
   "transitionYearSpread": 4.7,
-  "averageNationalScore": 51.4,
-  "nationalScoreP10": 42.5,
-  "nationalScoreP90": 59.1,
-  "averageMandate": 46.4,
+  "averageNationalScore": 54.1,
+  "nationalScoreP10": 45.1,
+  "nationalScoreP90": 61.9,
+  "averageMandate": 48.3,
   "averageUnrest": 33.4,
-  "averageProsperity": 73.4,
-  "averageTechnology": 64.9,
-  "averageRights": 59.9,
-  "averageSecurity": 86,
-  "averageSustainability": 19.8,
+  "averageProsperity": 77.7,
+  "averageTechnology": 70,
+  "averageRights": 61.3,
+  "averageSecurity": 88.1,
+  "averageSustainability": 21,
   "averageCrisisAttempts": 1.6,
   "successfulRuptureRate": 24.9,
   "averageConflicts": 10.1,
   "averageOutbreaks": 8.1,
   "averageElections": 16.8,
-  "electionWinRate": 35.3,
+  "electionWinRate": 35.9,
   "dimensionCoverage": {
     "profile": 6,
     "doctrine": 3,
@@ -48,14 +48,14 @@
       "dimension": "profile",
       "variants": 6,
       "transitionYearSpread": 0,
-      "nationalScoreSpread": 0.7,
-      "unrestSpread": 0.5,
-      "prosperitySpread": 0.7,
-      "sustainabilitySpread": 1.5,
-      "crisisAttemptSpread": 0.1,
+      "nationalScoreSpread": 4.1,
+      "unrestSpread": 2.2,
+      "prosperitySpread": 11.4,
+      "sustainabilitySpread": 10.3,
+      "crisisAttemptSpread": 0.6,
       "conflictSpread": 0.7,
       "outbreakSpread": 0.6,
-      "electionWinRateSpread": 2.2
+      "electionWinRateSpread": 6
     },
     {
       "dimension": "doctrine",
@@ -68,7 +68,7 @@
       "crisisAttemptSpread": 0.1,
       "conflictSpread": 0.3,
       "outbreakSpread": 0.1,
-      "electionWinRateSpread": 0.7
+      "electionWinRateSpread": 0.6
     },
     {
       "dimension": "nationStrategy",
@@ -81,7 +81,7 @@
       "crisisAttemptSpread": 0.4,
       "conflictSpread": 0.8,
       "outbreakSpread": 0.4,
-      "electionWinRateSpread": 2.3
+      "electionWinRateSpread": 2.5
     },
     {
       "dimension": "transitionApproach",
@@ -104,10 +104,10 @@
       "unrestSpread": 7.4,
       "prosperitySpread": 0.4,
       "sustainabilitySpread": 0.3,
-      "crisisAttemptSpread": 2.7,
+      "crisisAttemptSpread": 2.6,
       "conflictSpread": 0.4,
       "outbreakSpread": 0.1,
-      "electionWinRateSpread": 19.7
+      "electionWinRateSpread": 20
     },
     {
       "dimension": "crisisApproach",
@@ -120,72 +120,72 @@
       "crisisAttemptSpread": 0.4,
       "conflictSpread": 0.8,
       "outbreakSpread": 0.4,
-      "electionWinRateSpread": 3.2
+      "electionWinRateSpread": 2.9
     },
     {
       "dimension": "economicModel",
       "variants": 5,
       "transitionYearSpread": 0.1,
-      "nationalScoreSpread": 4.5,
-      "unrestSpread": 9,
-      "prosperitySpread": 17.5,
-      "sustainabilitySpread": 2,
-      "crisisAttemptSpread": 1.2,
+      "nationalScoreSpread": 4.4,
+      "unrestSpread": 8.9,
+      "prosperitySpread": 16.8,
+      "sustainabilitySpread": 1.9,
+      "crisisAttemptSpread": 1.1,
       "conflictSpread": 0.9,
       "outbreakSpread": 0.6,
-      "electionWinRateSpread": 4.7
+      "electionWinRateSpread": 4.1
     },
     {
       "dimension": "diplomaticPosture",
       "variants": 5,
       "transitionYearSpread": 0.1,
-      "nationalScoreSpread": 2.3,
-      "unrestSpread": 0.6,
-      "prosperitySpread": 4,
-      "sustainabilitySpread": 0.5,
+      "nationalScoreSpread": 2.2,
+      "unrestSpread": 0.5,
+      "prosperitySpread": 3.7,
+      "sustainabilitySpread": 0.7,
       "crisisAttemptSpread": 0.2,
       "conflictSpread": 13.1,
       "outbreakSpread": 0.4,
-      "electionWinRateSpread": 1.6
+      "electionWinRateSpread": 1.3
     },
     {
       "dimension": "technologyPosture",
       "variants": 4,
       "transitionYearSpread": 0.1,
-      "nationalScoreSpread": 2.3,
+      "nationalScoreSpread": 2.1,
       "unrestSpread": 1.3,
       "prosperitySpread": 0.6,
-      "sustainabilitySpread": 5.1,
+      "sustainabilitySpread": 4.5,
       "crisisAttemptSpread": 0.3,
       "conflictSpread": 0.7,
       "outbreakSpread": 0.2,
-      "electionWinRateSpread": 7.1
+      "electionWinRateSpread": 7.4
     },
     {
       "dimension": "publicHealthPosture",
       "variants": 3,
       "transitionYearSpread": 0,
-      "nationalScoreSpread": 1.4,
+      "nationalScoreSpread": 1.3,
       "unrestSpread": 0.1,
-      "prosperitySpread": 0.9,
-      "sustainabilitySpread": 0.5,
-      "crisisAttemptSpread": 0.4,
+      "prosperitySpread": 0.6,
+      "sustainabilitySpread": 0.6,
+      "crisisAttemptSpread": 0.3,
       "conflictSpread": 0.2,
       "outbreakSpread": 11.6,
-      "electionWinRateSpread": 2.4
+      "electionWinRateSpread": 2.6
     },
     {
       "dimension": "warPosture",
       "variants": 3,
       "transitionYearSpread": 0.6,
-      "nationalScoreSpread": 0.8,
+      "nationalScoreSpread": 0.7,
       "unrestSpread": 0.2,
-      "prosperitySpread": 0.4,
+      "prosperitySpread": 0.1,
       "sustainabilitySpread": 0.6,
       "crisisAttemptSpread": 0.1,
       "conflictSpread": 11.1,
       "outbreakSpread": 0.3,
-      "electionWinRateSpread": 0.7
+      "electionWinRateSpread": 1.5
     },
     {
       "dimension": "futurePriority",
@@ -194,37 +194,37 @@
       "nationalScoreSpread": 4.6,
       "unrestSpread": 2,
       "prosperitySpread": 0.5,
-      "sustainabilitySpread": 21.5,
+      "sustainabilitySpread": 21.6,
       "crisisAttemptSpread": 0.2,
       "conflictSpread": 0.2,
       "outbreakSpread": 0.3,
-      "electionWinRateSpread": 1.7
+      "electionWinRateSpread": 2.1
     },
     {
       "dimension": "electionStyle",
       "variants": 4,
       "transitionYearSpread": 0.1,
-      "nationalScoreSpread": 2.3,
+      "nationalScoreSpread": 2.1,
       "unrestSpread": 1.3,
       "prosperitySpread": 0.6,
-      "sustainabilitySpread": 5.1,
+      "sustainabilitySpread": 4.5,
       "crisisAttemptSpread": 0.3,
       "conflictSpread": 0.7,
       "outbreakSpread": 0.2,
-      "electionWinRateSpread": 7.1
+      "electionWinRateSpread": 7.4
     },
     {
       "dimension": "worldVariant",
       "variants": 3,
       "transitionYearSpread": 0,
-      "nationalScoreSpread": 1,
-      "unrestSpread": 1.2,
-      "prosperitySpread": 0.4,
-      "sustainabilitySpread": 1.1,
-      "crisisAttemptSpread": 0.1,
+      "nationalScoreSpread": 1.2,
+      "unrestSpread": 1.9,
+      "prosperitySpread": 0.5,
+      "sustainabilitySpread": 1,
+      "crisisAttemptSpread": 0.2,
       "conflictSpread": 0.5,
       "outbreakSpread": 0.2,
-      "electionWinRateSpread": 0.3
+      "electionWinRateSpread": 0.4
     }
   ]
 }

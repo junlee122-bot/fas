@@ -51,6 +51,7 @@ describe('alternate Earth worldline engine', () => {
     expect(generateWorldline(input).endingCount).toBe(4096);
     expect(generateWorldline(input).ending.anchors).toHaveLength(3);
     expect(generateWorldline(input).intelligenceHistory.length).toBeGreaterThanOrEqual(35);
+    expect(generateWorldline(input).dystopianOutlook.pressures).toHaveLength(7);
     expect(generateWorldline(input).timeline.find((entry) => entry.event.id === 'civil-rights-march-1963')?.actor).toBe('마틴 루터 킹 2세');
   });
 
@@ -119,6 +120,42 @@ describe('alternate Earth worldline engine', () => {
     expect(selected.timeline.find((entry) => entry.event.id === 'missile-crisis')?.isPlayerChoice).toBe(true);
     expect(selected.atomicSponsor).toContain('공동망');
     expect(selected.timeline.filter((entry) => entry.isPlayerChoice)).toHaveLength(2);
+  });
+
+  it('turns repeated coercive choices into specific dystopian pressures and keeps reversal routes visible', () => {
+    const shared = { nation: getNation('germany'), game, state: { seed: 991962, choices: {} } };
+    const pluralist = generateWorldline({
+      ...shared,
+      state: {
+        seed: 991962,
+        choices: {
+          'rights-movements': 'legislation',
+          'missile-crisis': 'conference',
+          'nuclear-accident': 'open-safety',
+          'information-network': 'open-network',
+        },
+      },
+    });
+    const coercive = generateWorldline({
+      ...shared,
+      state: {
+        seed: 991962,
+        choices: {
+          'rights-movements': 'security-state',
+          'missile-crisis': 'exchange',
+          'nuclear-accident': 'secrecy',
+          'information-network': 'sovereign-nets',
+        },
+      },
+    });
+    const pluralistSurveillance = pluralist.dystopianOutlook.pressures.find((pressure) => pressure.id === 'surveillance-state')!;
+    const coerciveSurveillance = coercive.dystopianOutlook.pressures.find((pressure) => pressure.id === 'surveillance-state')!;
+    const coerciveWar = coercive.dystopianOutlook.pressures.find((pressure) => pressure.id === 'permanent-war')!;
+
+    expect(coerciveSurveillance.risk).toBeGreaterThan(pluralistSurveillance.risk);
+    expect(coerciveWar.causes.some((cause) => cause.includes('직접 선택'))).toBe(true);
+    expect(coercive.dystopianOutlook.pressures.every((pressure) => pressure.reversalLevers.length >= 3)).toBe(true);
+    expect(coercive.dystopianOutlook.explanation).toContain('무작위');
   });
 
   it('migrates saved choices and discards invalid event branches', () => {

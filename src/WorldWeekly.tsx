@@ -8,12 +8,17 @@ import {
   ChevronRight,
   CircleDollarSign,
   Crosshair,
+  Monitor,
   Newspaper,
   Radio,
+  Satellite,
   ShieldQuestion,
   Sparkles,
+  Tv,
+  Wifi,
   X,
 } from 'lucide-react';
+import type { NewsMediaEraId } from './newsMediaEvolution';
 import type { GameTab } from './types';
 import { worldNewsCategoryMeta } from './worldWeeklyEngine';
 import type { WorldNewsArticle, WorldNewsCategory, WorldNewsConfidence, WorldWeeklyIssue } from './worldWeeklyEngine';
@@ -37,6 +42,16 @@ const categoryIcons: Record<WorldNewsCategory, React.ReactNode> = {
   society: <Activity size={15} />,
   science: <Sparkles size={15} />,
   intelligence: <ShieldQuestion size={15} />,
+};
+
+const mediaIcons: Record<NewsMediaEraId, React.ReactNode> = {
+  'wartime-press': <Newspaper size={26} />,
+  'radio-wire': <Radio size={26} />,
+  'television-bulletin': <Tv size={26} />,
+  'satellite-network': <Satellite size={26} />,
+  'web-edition': <Monitor size={26} />,
+  'live-feed': <Wifi size={26} />,
+  'civic-network': <Wifi size={26} />,
 };
 
 function Signal({ article, compact = false }: { article: WorldNewsArticle; compact?: boolean }) {
@@ -101,14 +116,14 @@ export function WorldWeekly({ issues, onNavigate, onClose }: WorldWeeklyProps) {
   };
 
   return (
-    <div className="world-weekly-backdrop" role="dialog" aria-modal="true" aria-labelledby="world-weekly-title">
+    <div className={`world-weekly-backdrop media-${issue.media.id}`} role="dialog" aria-modal="true" aria-labelledby="world-weekly-title">
       <div className="world-weekly-shell">
         <aside className="world-weekly-archive" aria-label="세계 주보 지난 호">
-          <div className="weekly-archive-brand"><Newspaper size={22} /><span><strong>THE WORLD WIRE</strong><small>세계 주보 보관소</small></span></div>
+          <div className="weekly-archive-brand">{mediaIcons[issue.media.id]}<span><strong>{issue.media.masthead}</strong><small>{issue.media.archiveLabel}</small></span></div>
           <div className="weekly-archive-list">
             {issues.map((candidate) => (
               <button key={candidate.id} className={candidate.id === issue.id ? 'active' : ''} onClick={() => { setSelectedIssueId(candidate.id); setCategory('all'); }}>
-                <span>제 {candidate.edition}호</span>
+                <span>제 {candidate.edition}호 · {candidate.media.shortLabel}</span>
                 <strong>{candidate.articles.find((article) => article.id === candidate.leadArticleId)?.headline ?? '세계 주간 결산'}</strong>
                 <small>{candidate.dateRange}</small>
               </button>
@@ -119,14 +134,20 @@ export function WorldWeekly({ issues, onNavigate, onClose }: WorldWeeklyProps) {
 
         <main className="world-weekly-paper">
           <header className="world-weekly-header">
-            <div className="weekly-dateline"><span>{issue.worldlineCode} · ALTERNATE HISTORY NEWS SERVICE</span><em>{issue.dateRange}</em></div>
+            <div className="weekly-dateline"><span>{issue.worldlineCode} · {issue.media.medium}</span><em>{issue.dateRange}</em></div>
             <div className="weekly-masthead">
-              <div><Newspaper size={26} /></div>
-              <span><small>THE</small><h1 id="world-weekly-title">WORLD WIRE</h1><strong>세계 주보</strong></span>
+              <div>{mediaIcons[issue.media.id]}</div>
+              <span><small>{issue.media.startYear}</small><h1 id="world-weekly-title">{issue.media.masthead}</h1><strong>{issue.media.koreanName}</strong></span>
               <button onClick={onClose} aria-label="세계 주보 닫기"><X size={20} /></button>
             </div>
-            <div className="weekly-edition-line"><span>제 {issue.edition}호 · 지난 7일의 세계</span><strong>{issue.worldlineTitle}</strong><em>전황·외교·경제·사회·과학·정보</em></div>
+            <div className="weekly-edition-line"><span>제 {issue.edition}호 · {issue.media.cadence}</span><strong>{issue.worldlineTitle}</strong><em>전황·외교·경제·사회·과학·정보</em></div>
           </header>
+
+          <section className="weekly-media-era" aria-label="현재 보도 매체와 편집 방식">
+            <div>{mediaIcons[issue.media.id]}<span><small>MEDIA EVOLUTION · {issue.media.startYear}–{issue.media.endYear}</small><strong>{issue.media.medium}</strong></span></div>
+            <p><b>{issue.media.newsroom}</b>{issue.media.interaction}</p>
+            <em>{issue.media.nextTransitionYear ? `${issue.media.nextTransitionYear}년 다음 매체 전환` : '2060년까지 이어지는 현재 매체'}</em>
+          </section>
 
           <section className="weekly-metrics" aria-label="이번 주 세계 핵심 수치">
             <div><Crosshair size={16} /><span><small>활성 전선</small><strong>{issue.metrics.activeFronts}</strong></span></div>
@@ -139,7 +160,7 @@ export function WorldWeekly({ issues, onNavigate, onClose }: WorldWeeklyProps) {
 
           <section className={`weekly-lead ${lead.tone}`}>
             <div className="weekly-lead-copy">
-              <div className="weekly-article-kicker"><span>{categoryIcons[lead.category]} {worldNewsCategoryMeta[lead.category].desk} · 1면</span><em>{lead.region}</em></div>
+              <div className="weekly-article-kicker"><span>{categoryIcons[lead.category]} {worldNewsCategoryMeta[lead.category].desk} · TOP STORY</span><em>{lead.region}</em></div>
               <h2>{lead.headline}</h2>
               <p>{lead.summary}</p>
               <Signal article={lead} />

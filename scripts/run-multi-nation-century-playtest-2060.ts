@@ -23,7 +23,7 @@ const getNationRootName = (prefix: string, sessionsPerNation: number) => (
 );
 
 function createOverviewMarkdown(run: MultiNationCenturyRun, prefix: string) {
-  const nationRows = Object.entries(run.aggregate.byNation).map(([id, nation]) => `| ${nation.name} (\`${id}\`) | ${nation.sessions} | ${nation.roleCoverage}/${nation.expectedRoleCount} | ${nation.transitionArchetype} | ${nation.averageTransitionYear.toFixed(1)} | ${nation.decisionsPerYear.toFixed(1)} | ${nation.averageNationAgendaDecisions.toFixed(1)} | ${nation.averageFinalNationalScore.toFixed(1)} | ${nation.averageFinalUnrest.toFixed(1)} / ${nation.averageFinalStructuralUnrestTarget.toFixed(1)} | ${percent(nation.coupSessionRate)} | ${nation.uniqueEndings} |`).join('\n');
+  const nationRows = Object.entries(run.aggregate.byNation).map(([id, nation]) => `| ${nation.name} (\`${id}\`) | ${nation.sessions} | ${nation.roleCoverage}/${nation.expectedRoleCount} | ${nation.transitionArchetype} | ${nation.averageTransitionYear.toFixed(1)} | ${nation.warDecisionsPerYear.toFixed(1)} / ${nation.nationDecisionsPerYear.toFixed(1)} | ${nation.averageNationAgendaDecisions.toFixed(1)} | ${nation.averageFinalNationalScore.toFixed(1)} | ${nation.averageFinalUnrest.toFixed(1)} / ${nation.averageFinalStructuralUnrestTarget.toFixed(1)} | ${percent(nation.coupSessionRate)} / ${nation.averageSuccessfulRuptures.toFixed(1)}회 | ${nation.uniqueEndings} |`).join('\n');
   const findings = run.findings.map((finding) => `### ${finding.priority} · ${finding.title}\n\n- 근거: ${finding.evidence}\n- 개선 방향: ${finding.recommendation}`).join('\n\n');
   return `# IRON DOMINION 전 국가 1942–2060 국가별 ${run.aggregate.sessionsPerNation}회 플레이테스트
 
@@ -39,7 +39,7 @@ function createOverviewMarkdown(run: MultiNationCenturyRun, prefix: string) {
 
 ## 국가별 결과
 
-| 국가 | 경력 | 보직 | 전환 유형 | 평균 전환연도 | 연간 결정 | 국가 의제 | 최종 국가점수 | 불안/구조목표 | 정치 위기 | 고유 결말 |
+| 국가 | 경력 | 보직 | 전환 유형 | 평균 전환연도 | 전시/평시 연간 결정 | 국가 의제 | 최종 국가점수 | 불안/구조목표 | 정치 위기율/성공 단절 | 고유 결말 |
 | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 ${nationRows}
 
@@ -52,7 +52,9 @@ ${nationRows}
 - 최종 불안/구조 목표 평균: ${run.aggregate.averageFinalUnrest} / ${run.aggregate.averageFinalStructuralUnrestTarget}
 - 쿠데타 경험률 격차: ${run.aggregate.coupSessionRateSpread}%p
 - 정치 위기 발생: 경력당 평균 ${run.aggregate.averageCoupAttempts}회 · 국가별 평균 격차 ${run.aggregate.coupAttemptsSpread}회
+- 성공한 권력구조 교체: 경력당 평균 ${run.aggregate.averageSuccessfulRuptures}회
 - 연간 결정 밀도 격차: ${run.aggregate.decisionsPerYearSpread}회
+- 전시/평시 결정 밀도 격차: ${run.aggregate.warDecisionsPerYearSpread}회 / ${run.aggregate.nationDecisionsPerYearSpread}회
 - 국가 의제 응답: 경력당 평균 ${run.aggregate.averageNationAgendaDecisions}회
 - 국가별 결말 충돌률 평균: ${run.aggregate.averageEndingCollisionRate}%
 - 국가별 고유 결말 합계: ${run.aggregate.uniqueEndingsTotal}개
@@ -71,8 +73,15 @@ ${findings}
 `;
 }
 
-function createNationMarkdown(result: NationCenturyResult) {
+function createNationMarkdown(
+  result: NationCenturyResult,
+  nationMetrics: MultiNationCenturyRun['aggregate']['byNation'][string],
+) {
   const aggregate = result.aggregate;
+  const crisisKinds = Object.entries(nationMetrics.crisisIncidentsByKind)
+    .sort((left, right) => right[1] - left[1])
+    .map(([kind, count]) => `${kind} ${count.toLocaleString('ko-KR')}건`)
+    .join(' · ') || '발생 없음';
   const profileRows = Object.entries(aggregate.byProfile).map(([profile, value]) => `| ${profile} | ${value.sessions} | ${percent(value.urgentWeekRate)} | ${value.decisionsPerYear.toFixed(1)} | ${value.averageFinalNationalScore.toFixed(1)} | ${value.averageFinalUnrest.toFixed(1)} | ${value.uniqueEndings} |`).join('\n');
   const findings = result.findings.map((finding) => `### ${finding.priority} · ${finding.title}\n\n- 근거: ${finding.evidence}\n- 재미 저하: ${finding.funImpact}\n- 개선 방향: ${finding.recommendation}`).join('\n\n');
   return `# ${result.nationName} 1942–2060 엔진 플레이테스트 ${result.sessionCount}회
@@ -82,7 +91,10 @@ function createNationMarkdown(result: NationCenturyResult) {
 - 직급·계열·행동 성향: ${aggregate.tierCoverage}단계 · ${aggregate.branchCoverage}계열 · ${aggregate.profileCoverage}종
 - 평균 전쟁/국가 운영: ${aggregate.averageWarYears.toFixed(1)}년 / ${aggregate.averageNationYears.toFixed(1)}년
 - 연간 결정/중단: ${aggregate.decisionsPerYear.toFixed(1)}회 / ${aggregate.interruptionsPerYear.toFixed(1)}회
-- 쿠데타 경험/성공 세션: ${percent(aggregate.coupSessionRate)} / ${percent(aggregate.successfulCoupSessionRate)}
+- 전시/평시 연간 결정: ${aggregate.warDecisionsPerYear.toFixed(1)}회 / ${aggregate.nationDecisionsPerYear.toFixed(1)}회
+- 정치 위기 경험/성공 세션: ${percent(aggregate.coupSessionRate)} / ${percent(aggregate.successfulCoupSessionRate)}
+- 성공한 권력구조 교체: 경력당 평균 ${nationMetrics.averageSuccessfulRuptures.toFixed(1)}회
+- 위기 유형: ${crisisKinds}
 - 감염병 경험: ${percent(aggregate.outbreakSessionRate)}
 - 고유 세계선/결말: ${aggregate.uniqueWorldlineCodes}개 / ${aggregate.uniqueEndings}개
 - 결말 충돌률: ${percent(aggregate.endingCollisionRate)}
@@ -109,7 +121,7 @@ function writeArtifacts(run: MultiNationCenturyRun, sessions: NationCenturySessi
     mkdirSync(nationDirectory, { recursive: true });
     writeFileSync(resolve(nationDirectory, `${result.nationId}-${sessionLabel}-data.json`), `${JSON.stringify(nationSessions, null, 2)}\n`, 'utf8');
     writeFileSync(resolve(nationDirectory, `${result.nationId}-${sessionLabel}-summary.json`), `${JSON.stringify({ generatedAt: run.generatedAt, methodology: run.methodology, nationId: result.nationId, nationName: result.nationName, aggregate: result.aggregate, findings: result.findings }, null, 2)}\n`, 'utf8');
-    writeFileSync(resolve(nationDirectory, `${result.nationId}-${sessionLabel}.md`), createNationMarkdown(result), 'utf8');
+    writeFileSync(resolve(nationDirectory, `${result.nationId}-${sessionLabel}.md`), createNationMarkdown(result, run.aggregate.byNation[result.nationId]), 'utf8');
   });
   writeFileSync(resolve(output, `${prefix}-summary.json`), `${JSON.stringify({ generatedAt: run.generatedAt, methodology: run.methodology, aggregate: run.aggregate, findings: run.findings }, null, 2)}\n`, 'utf8');
   writeFileSync(resolve(output, `${prefix}.md`), createOverviewMarkdown(run, prefix), 'utf8');

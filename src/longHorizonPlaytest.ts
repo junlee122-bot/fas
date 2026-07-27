@@ -141,6 +141,8 @@ export interface LongHorizonSessionResult {
   recommendedPromptWeeks: number;
   quietWeeks: number;
   decisionInteractions: number;
+  warDecisionInteractions: number;
+  nationDecisionInteractions: number;
   decisionWeeks: number;
   interruptionCount: number;
   repeatedActionRuns: Record<string, number>;
@@ -167,6 +169,7 @@ export interface LongHorizonSessionResult {
   coupCompromises: number;
   coupSuccesses: number;
   unresolvedCoupResponses: number;
+  crisisIncidentsByKind: Record<string, number>;
   outbreakCount: number;
   outbreakWeeks: number;
   outbreakDeaths: number;
@@ -832,6 +835,8 @@ export function runLongHorizonSession(
   let recommendedPromptWeeks = 0;
   let quietWeeks = 0;
   let decisionInteractions = 0;
+  let warDecisionInteractions = 0;
+  let nationDecisionInteractions = 0;
   let interruptionCount = 0;
   let battleCount = 0;
   let battleVictories = 0;
@@ -850,6 +855,7 @@ export function runLongHorizonSession(
   let coupCompromises = 0;
   let coupSuccesses = 0;
   let unresolvedCoupResponses = 0;
+  const crisisIncidentsByKind: Record<string, number> = {};
   let outbreakCount = 0;
   let outbreakWeeks = 0;
   let economicEventCount = 0;
@@ -897,6 +903,7 @@ export function runLongHorizonSession(
       longestActionRun[actionId] = Math.max(longestActionRun[actionId] ?? 0, currentActionRun[actionId]);
     });
     if (displayedActions.length > 0 && displayedActions.some((action) => action.priority !== 'info')) endingDecisionWeeks.add(week);
+    return displayedActions;
   };
   const markActionHandled = (actionId: string, week: number, verificationWeeks = 13) => {
     actionVerificationUntil.set(actionId, week + verificationWeeks);
@@ -974,6 +981,7 @@ export function runLongHorizonSession(
     politicalState = result.state;
     if (!result.incident) return false;
     coupAttempts += 1;
+    crisisIncidentsByKind[result.incident.kind] = (crisisIncidentsByKind[result.incident.kind] ?? 0) + 1;
     interruptionCount += 1;
     recordDecisionTrace(week, `crisis:${result.incident.kind}:${result.incident.leadingFactionId}`);
     const preferredResponseId = scenario?.crisisApproach === 'constitutional'
@@ -985,7 +993,7 @@ export function runLongHorizonSession(
           : scenario?.crisisApproach === 'counter-intelligence'
             ? 'counter-operation'
             : null;
-    const forecasts = getCoupResponseForecasts(result.incident, role, context)
+    const forecasts = getCoupResponseForecasts(result.incident, role, context, politicalState)
       .filter((forecast) => forecast.allowed)
       .sort((left, right) => Number(right.id === preferredResponseId) - Number(left.id === preferredResponseId)
         || right.successChance - left.successChance);
@@ -1121,6 +1129,7 @@ export function runLongHorizonSession(
   for (let index = 0; index < weeksPlayed; index += 1) {
     const nextWeek = index + 1;
     game.week = index;
+    const phaseAtWeekStart = phase;
     const eraYear = getCampaignYear(nextWeek);
     const eraRange = getEraRange(eraYear);
     const eraMetric = eraMetrics.get(eraRange.era) ?? createEraMetric(eraYear);
@@ -1157,13 +1166,18 @@ export function runLongHorizonSession(
         economyDebt: economy.debt,
         currentYear: getCampaignYear(nextWeek),
       });
-      recordActions(actions, nextWeek);
-      const allowed = actions.filter((action) => shouldResolveWarAction(profile, action.id));
-      const attempts = profile === 'guided' ? allowed.slice(0, 1) : allowed;
+      const displayedActions = recordActions(actions, nextWeek);
+      const allowed = displayedActions
+        .filter((action) => action.priority !== 'info')
+        .filter((action) => shouldResolveWarAction(profile, action.id));
+      // Routine production, research, health and personnel maintenance is confirmed as one
+      // quarterly command review. Battles and true flashpoints remain separate decisions.
+      const quarterlyActions = nextWeek % 13 === 0 ? allowed : [];
+      const attempts = profile === 'guided' ? quarterlyActions.slice(0, 1) : quarterlyActions;
       let battleRequested = nextWeek % config.battleCadence === 0;
+      const resolvedWarActionIds: string[] = [];
       attempts.forEach((action) => {
-        decisionInteractions += 1;
-        recordDecisionTrace(nextWeek, `war-action:${action.id}`);
+        resolvedWarActionIds.push(action.id);
         markActionHandled(action.id, nextWeek, 4);
         if (action.id === 'idle-factories') production = completeFactories(production, game.factories);
         if (action.id === 'research-slot') research = fillOpenResearchSlots(research, getCampaignYear(nextWeek));
@@ -1172,12 +1186,15 @@ export function runLongHorizonSession(
           selectedPolicies = [...selectedPolicies, policy];
           game = applyGameDelta(game, policy.gameDelta);
         }
-        if (action.id === 'idle-formations') battleRequested = true;
         if (action.id === 'commander-skill') commanderDevelopment = unlockAvailableSkills(commanderDevelopment);
         if (action.id === 'economy-operating-deficit') economy = { ...economy, taxPolicy: 'total-war', bondProgram: 'institutional' };
         if (action.id === 'economy-inflation') economy = { ...economy, priceControl: 'comprehensive', bondProgram: 'none' };
         if (action.id === 'public-health-crisis' || action.id === 'public-health-readiness') publicHealth = { ...publicHealth, policyId: recommendPublicHealthPolicy(publicHealth, game).policyId };
       });
+      if (resolvedWarActionIds.length > 0) {
+        decisionInteractions += 1;
+        recordDecisionTrace(nextWeek, `war-briefing:${resolvedWarActionIds.join('+')}`);
+      }
 
       divisions = divisions.map((division) => division.status === 'recovering' ? {
         ...division,
@@ -1187,7 +1204,7 @@ export function runLongHorizonSession(
         status: division.organization + 11 >= 70 ? 'ready' : 'recovering',
       } : division);
 
-      if (battleRequested && profile !== 'rushed') {
+      if (battleRequested) {
         const division = divisions[0];
         const commander = commanders.find((candidate) => candidate.id === division.commanderId) ?? commanders[0];
         const target = territories.find((candidate) => nation.strategicTargets.includes(candidate.id)) ?? territories[0];
@@ -1556,6 +1573,8 @@ export function runLongHorizonSession(
     eraMetric.urgentWeeks += urgentPromptWeeks - eraBefore.urgentPromptWeeks;
     eraMetric.quietWeeks += quietWeeks - eraBefore.quietWeeks;
     eraMetric.decisions += decisionInteractions - eraBefore.decisionInteractions;
+    if (phaseAtWeekStart === 'war') warDecisionInteractions += decisionInteractions - eraBefore.decisionInteractions;
+    else nationDecisionInteractions += decisionInteractions - eraBefore.decisionInteractions;
     eraMetric.interruptions += interruptionCount - eraBefore.interruptionCount;
     eraMetric.battles += battleCount - eraBefore.battleCount;
     eraMetric.strategicOperations += strategicOperationCount - eraBefore.strategicOperationCount;
@@ -1630,6 +1649,8 @@ export function runLongHorizonSession(
     recommendedPromptWeeks,
     quietWeeks,
     decisionInteractions,
+    warDecisionInteractions,
+    nationDecisionInteractions,
     decisionWeeks: endingDecisionWeeks.size,
     interruptionCount,
     repeatedActionRuns: longestActionRun,
@@ -1656,6 +1677,7 @@ export function runLongHorizonSession(
     coupCompromises,
     coupSuccesses,
     unresolvedCoupResponses,
+    crisisIncidentsByKind,
     outbreakCount,
     outbreakWeeks,
     outbreakDeaths: publicHealth.totalDeaths,

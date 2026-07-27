@@ -11,6 +11,8 @@ import type { HistoricalEnding, ResolvedHistoricalEnding } from './historicalEnd
 import type { EmergentHistoryProfile, HistoryForce } from './emergentHistory';
 import { getHistoricalExpert } from './historicalExperts';
 import { getLaterEraFigure } from './laterEraFigures';
+import { resolveDystopianWorldOutlook } from './dystopianWorlds';
+import type { DystopianWorldOutlook } from './dystopianWorlds';
 
 export type WorldHistoryCategory = 'nuclear' | 'world-order' | 'economy' | 'decolonization' | 'proxy-war' | 'space' | 'society' | 'technology' | 'environment' | 'public-health' | 'intelligence';
 export type WorldHistoryEra = 'war-end' | 'reconstruction' | 'early-rivalry' | 'high-rivalry' | 'detente' | 'transformation' | 'post-cold-war' | 'connected-world' | 'planetary-transition' | 'synthetic-century';
@@ -77,6 +79,7 @@ export interface GeneratedWorldline {
   ending: ResolvedHistoricalEnding;
   endingCount: number;
   endingAlternatives: HistoricalEnding[];
+  dystopianOutlook: DystopianWorldOutlook;
 }
 
 export interface WorldHistoryInput {
@@ -519,7 +522,13 @@ function applyMetrics(metrics: Record<WorldMetric, number>, delta: Partial<Recor
   });
 }
 
-function getWorldTitle(metrics: Record<WorldMetric, number>, primaryBloc: string, rivalBloc: string) {
+function getWorldTitle(
+  metrics: Record<WorldMetric, number>,
+  primaryBloc: string,
+  rivalBloc: string,
+  dystopianOutlook?: DystopianWorldOutlook,
+) {
+  if (dystopianOutlook?.warningLevel === 'critical') return dystopianOutlook.dominantWorldTitle;
   if (metrics.instability >= 76) return '깨진 억지의 시대';
   if (metrics.decolonization >= 80 && metrics.multipolarity >= 72) return '해방국가들의 다극세기';
   if (metrics.rights >= 78 && metrics.instability <= 40) return '헌장과 개방국경의 세계';
@@ -559,7 +568,8 @@ export function generateWorldline(input: WorldHistoryInput): GeneratedWorldline 
   const atomicVariant = timeline.find((entry) => entry.event.id === 'atomic-program')?.variant ?? worldHistoryEvents[0].variants[0];
   const atomicControl = timeline.find((entry) => entry.event.id === 'atomic-control')?.variant;
   const axisStyle = metrics.multipolarity >= 70 ? '다극 장기경쟁' : metrics.deterrence >= 68 ? '원자 억지 냉전' : '재건질서 경쟁';
-  const title = getWorldTitle(metrics, blocs.primaryBloc, blocs.rivalBloc);
+  const dystopianOutlook = resolveDystopianWorldOutlook(timeline, metrics);
+  const title = getWorldTitle(metrics, blocs.primaryBloc, blocs.rivalBloc, dystopianOutlook);
   const legacySignature = [
     input.trajectory?.signature ?? 'initial',
     input.careerSignature ?? 'career-unrecorded',
@@ -574,6 +584,7 @@ export function generateWorldline(input: WorldHistoryInput): GeneratedWorldline 
     `${blocs.primaryBloc}와 ${blocs.rivalBloc}의 ${axisStyle}`,
     metrics.decolonization >= 68 ? `${blocs.thirdPole}가 독립국 표결권과 자원주권을 결집` : '제국 승계국과 해방운동 사이의 미완 청산',
     highestMetric === 'instability' ? '핵지휘·국경·대리전이 서로 증폭하는 연쇄위기' : `${worldMetricLabels[highestMetric]}이 국제기구의 최우선 의제로 부상`,
+    ...(dystopianOutlook.pressures[0].risk >= 55 ? [`${dystopianOutlook.pressures[0].title} 위험 ${dystopianOutlook.pressures[0].risk}/100`] : []),
   ];
   const ending = resolveHistoricalEnding({
     nationId: input.nation.id,
@@ -591,7 +602,7 @@ export function generateWorldline(input: WorldHistoryInput): GeneratedWorldline 
     outcomeId: `${ending.id}:${input.nation.id}:${String(outcomeHash).padStart(10, '0')}`,
     legacySignature,
     title,
-    summary: `${input.nation.shortName}에서 실제로 집행한 정책·작전·외교·연구가 누적된 세계입니다. 현재 경쟁의 두 주축은 ${blocs.primaryBloc}와 ${blocs.rivalBloc}이며, 다음 선택에 따라 다시 달라질 수 있습니다.`,
+    summary: `${input.nation.shortName}에서 실제로 집행한 정책·작전·외교·연구가 누적된 세계입니다. 현재 경쟁의 두 주축은 ${blocs.primaryBloc}와 ${blocs.rivalBloc}이며, ${dystopianOutlook.dominantWorldTitle}의 압력도 다음 선택에 따라 강화되거나 되돌릴 수 있습니다.`,
     primaryBloc: blocs.primaryBloc,
     rivalBloc: blocs.rivalBloc,
     thirdPole: blocs.thirdPole,
@@ -609,6 +620,7 @@ export function generateWorldline(input: WorldHistoryInput): GeneratedWorldline 
     ending,
     endingCount: historicalEndings.length,
     endingAlternatives: getEndingAlternatives(ending),
+    dystopianOutlook,
   };
 }
 

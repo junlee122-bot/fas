@@ -339,19 +339,51 @@ export function runPossibilityMatrixSession(
     const doctrineRights = scenario.doctrine === 'coalition' ? .8 : scenario.doctrine === 'maneuver' ? -.25 : .2;
     const doctrineSecurity = scenario.doctrine === 'maneuver' ? 1.1 : scenario.doctrine === 'methodical' ? .65 : .25;
     const doctrineSustainability = scenario.doctrine === 'methodical' ? .55 : 0;
-    const worldRights = scenario.worldVariant === 1 ? .75 : scenario.worldVariant === 0 ? -.2 : .25;
-    const worldSecurity = scenario.worldVariant === 0 ? .8 : scenario.worldVariant === 1 ? .2 : -.15;
-    const worldTechnology = scenario.worldVariant === 2 ? .85 : scenario.worldVariant === 1 ? .2 : .35;
+    const worldRights = scenario.worldVariant === 1 ? 1.15 : scenario.worldVariant === 0 ? -.35 : .35;
+    const worldSecurity = scenario.worldVariant === 0 ? 1.15 : scenario.worldVariant === 1 ? .25 : -.3;
+    const worldTechnology = scenario.worldVariant === 2 ? 1.15 : scenario.worldVariant === 1 ? .2 : .45;
     const crisisRights = scenario.crisisApproach === 'constitutional' ? .5 : scenario.crisisApproach === 'command' ? -.35 : .1;
     const crisisSecurity = scenario.crisisApproach === 'command' ? .65 : scenario.crisisApproach === 'counter-intelligence' ? .5 : .1;
     const crisisMandate = scenario.crisisApproach === 'negotiation' ? .45 : scenario.crisisApproach === 'constitutional' ? .3 : -.05;
+    const profileProsperity = scenario.profile === 'rushed' ? .75
+      : scenario.profile === 'state-builder' ? .6
+        : scenario.profile === 'opportunist' ? .4
+          : 0;
+    const profileTechnology = scenario.profile === 'completionist' ? 1
+      : scenario.profile === 'state-builder' ? .25
+        : 0;
+    const profileRights = scenario.profile === 'guided' ? .35
+      : scenario.profile === 'military' ? -.6
+        : scenario.profile === 'completionist' ? .15
+          : 0;
+    const profileSecurity = scenario.profile === 'military' ? 1.05
+      : scenario.profile === 'guided' ? .25
+        : scenario.profile === 'rushed' ? -.2
+          : 0;
+    const profileSustainability = scenario.profile === 'completionist' ? .55
+      : scenario.profile === 'state-builder' ? .2
+        : scenario.profile === 'rushed' ? -.2
+          : 0;
+    const profileMandate = scenario.profile === 'guided' ? .65
+      : scenario.profile === 'state-builder' ? .45
+        : scenario.profile === 'rushed' ? -.35
+          : scenario.profile === 'opportunist' ? -.2
+            : 0;
+    const profileUnrest = scenario.profile === 'rushed' ? .8
+      : scenario.profile === 'military' ? .55
+        : scenario.profile === 'opportunist' ? .45
+          : scenario.profile === 'guided' ? -.35
+            : 0;
+    const profileMultipolarity = scenario.profile === 'opportunist' ? .75
+      : scenario.profile === 'guided' ? .2
+        : 0;
 
-    state.prosperity = clamp(state.prosperity + economicGain * years / 8 - instabilityPressure * .025);
-    state.technology = clamp(state.technology + (technologyGain + worldTechnology) * years / 8);
-    state.rights = clamp(state.rights + (rightsGain + doctrineRights + worldRights + crisisRights) * years / 9 + rightsPressure * .035 - (scenario.economicModel === 'security' ? .8 : 0));
-    state.security = clamp(state.security + (securityGain + doctrineSecurity + worldSecurity + crisisSecurity) * years / 10 + deterrencePressure * .035 - instabilityPressure * .018);
-    state.sustainability = clamp(state.sustainability + (sustainabilityGain + doctrineSustainability) * years / 9 - climateLoad);
-    state.multipolarity = clamp(state.multipolarity + multipolarityPressure * .04 + (scenario.diplomaticPosture === 'multilateral' ? 1.2 : scenario.diplomaticPosture === 'revisionist' ? .6 : .25));
+    state.prosperity = clamp(state.prosperity + (economicGain + profileProsperity) * years / 8 - instabilityPressure * .025);
+    state.technology = clamp(state.technology + (technologyGain + worldTechnology + profileTechnology) * years / 8);
+    state.rights = clamp(state.rights + (rightsGain + doctrineRights + worldRights + crisisRights + profileRights) * years / 9 + rightsPressure * .035 - (scenario.economicModel === 'security' ? .8 : 0));
+    state.security = clamp(state.security + (securityGain + doctrineSecurity + worldSecurity + crisisSecurity + profileSecurity) * years / 10 + deterrencePressure * .035 - instabilityPressure * .018);
+    state.sustainability = clamp(state.sustainability + (sustainabilityGain + doctrineSustainability + profileSustainability) * years / 9 - climateLoad);
+    state.multipolarity = clamp(state.multipolarity + multipolarityPressure * .04 + profileMultipolarity + (scenario.diplomaticPosture === 'multilateral' ? 1.2 : scenario.diplomaticPosture === 'revisionist' ? .6 : .25));
 
     const inequalityPressure = scenario.economicModel === 'open-market' ? 5 : scenario.economicModel === 'industrial' ? 3 : scenario.economicModel === 'welfare' ? -4 : 1;
     const structuralTarget = structure.baseUnrest
@@ -361,6 +393,7 @@ export function runPossibilityMatrixSession(
       + instabilityPressure * .035
       + Math.max(0, 45 - state.prosperity) * .22
       + Math.max(0, 38 - state.sustainability) * .12
+      + profileUnrest
       - Math.max(0, state.rights - 45) * .12
       - (scenario.agendaChoice === 'bargain' ? 3 : scenario.agendaChoice === 'invest' ? 2 : -2);
     state.unrest = clamp(state.unrest * .55 + structuralTarget * .45 + randomShock);
@@ -419,6 +452,7 @@ export function runPossibilityMatrixSession(
       state.mandate
       + (scenario.agendaChoice === 'bargain' ? 2 : scenario.agendaChoice === 'invest' ? 1 : -.8)
       + crisisMandate
+      + profileMandate
       + (winsThisEra - Math.max(0, electionsThisEra - winsThisEra)) * .8
       - successfulThisEra * 8
       - outbreaksThisEra * .7
@@ -605,7 +639,7 @@ function buildFindings(run: Omit<PossibilityMatrixRun, 'findings'>): Possibility
         impact.conflictSpread,
         impact.outbreakSpread,
         impact.electionWinRateSpread,
-      ) < 1
+      ) < 1.5
     )
       .map((impact) => `${nation.nationId}:${String(impact.dimension)}`)
   );
@@ -648,7 +682,7 @@ function buildFindings(run: Omit<PossibilityMatrixRun, 'findings'>): Possibility
       evidence: weakDimensions.length > 0
         ? weakDimensions.slice(0, 20).join(' · ')
         : '행동 성향·교리·체제·전환·의제·위기·경제·외교·기술·보건·전쟁·미래·선거·세계 대응의 결과 민감도가 확인됐습니다.',
-      recommendation: weakDimensions.length > 0 ? '영향이 약한 축에 전용 성공 조건·부작용·회복 수단을 배정합니다.' : '새 선택지를 추가할 때 결과 민감도 1점 미만을 경고하는 계측을 유지합니다.',
+      recommendation: weakDimensions.length > 0 ? '영향이 약한 축에 전용 성공 조건·부작용·회복 수단을 배정합니다.' : '새 선택지를 추가할 때 결과 민감도 1.5점 미만을 경고하는 회귀 기준을 유지합니다.',
     },
   ];
 }

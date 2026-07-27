@@ -78,6 +78,8 @@ export interface CenturyAggregate {
   quietWeekRate: number;
   decisionWeeksRate: number;
   decisionsPerYear: number;
+  warDecisionsPerYear: number;
+  nationDecisionsPerYear: number;
   interruptionsPerYear: number;
   promptToDecisionRatio: number;
   medianResearchCompleteYear: number | null;
@@ -268,6 +270,10 @@ export function aggregateCenturySessions(sessions: LongHorizonSessionResult[], w
   const years = totalWeeks / 52;
   const totalPrompts = sessions.reduce((sum, session) => sum + session.actionPrompts, 0);
   const totalDecisions = sessions.reduce((sum, session) => sum + session.decisionInteractions, 0);
+  const totalWarDecisions = sessions.reduce((sum, session) => sum + (session.warDecisionInteractions ?? 0), 0);
+  const totalNationDecisions = sessions.reduce((sum, session) => sum + (session.nationDecisionInteractions ?? 0), 0);
+  const totalWarYears = sessions.reduce((sum, session) => sum + session.warWeeks / 52, 0);
+  const totalNationYears = sessions.reduce((sum, session) => sum + session.nationWeeks / 52, 0);
   const totalBattles = sessions.reduce((sum, session) => sum + session.battleCount, 0);
   const totalStrategicOperations = sessions.reduce((sum, session) => sum + (session.strategicOperationCount ?? 0), 0);
   const totalElections = sessions.reduce((sum, session) => sum + session.electionCount, 0);
@@ -319,6 +325,8 @@ export function aggregateCenturySessions(sessions: LongHorizonSessionResult[], w
     quietWeekRate: rate(sessions.reduce((sum, session) => sum + session.quietWeeks, 0), totalWeeks),
     decisionWeeksRate: rate(sessions.reduce((sum, session) => sum + session.decisionWeeks, 0), totalWeeks),
     decisionsPerYear: round(totalDecisions / Math.max(1, years), 1),
+    warDecisionsPerYear: round(totalWarDecisions / Math.max(1, totalWarYears), 1),
+    nationDecisionsPerYear: round(totalNationDecisions / Math.max(1, totalNationYears), 1),
     interruptionsPerYear: round(sessions.reduce((sum, session) => sum + session.interruptionCount, 0) / Math.max(1, years), 1),
     promptToDecisionRatio: round(totalPrompts / Math.max(1, totalDecisions), 2),
     medianResearchCompleteYear: researchCompletionYears.length ? percentile(researchCompletionYears, .5) : null,

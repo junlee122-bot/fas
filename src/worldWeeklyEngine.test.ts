@@ -55,6 +55,7 @@ describe('world weekly issue generator', () => {
     expect(issue.edition).toBe(1);
     expect(issue.dateRange).toBe('1942년 10월 18일 — 1942년 10월 25일');
     expect(issue.worldlineCode).toBe('WL-TEST');
+    expect(issue.media.id).toBe('wartime-press');
     expect(issue.articles).toHaveLength(6);
   });
 
@@ -118,5 +119,15 @@ describe('world weekly issue generator', () => {
     expect(normalized).toHaveLength(104);
     expect(normalized[0].week).toBe(110);
     expect(new Set(normalized.map((issue) => issue.week)).size).toBe(104);
+    expect(normalized.every((issue) => Boolean(issue.media.masthead))).toBe(true);
+  });
+
+  it('changes the publication itself as decades pass while preserving the same six desks', () => {
+    const weekIn2020 = Math.ceil((Date.UTC(2020, 0, 1) - Date.UTC(1942, 9, 25)) / (7 * 24 * 60 * 60 * 1000));
+    const issue = generateWorldWeeklyIssue(createContext({ week: weekIn2020 }));
+
+    expect(issue.media.id).toBe('live-feed');
+    expect(issue.media.medium).toContain('모바일');
+    expect(issue.articles).toHaveLength(6);
   });
 });

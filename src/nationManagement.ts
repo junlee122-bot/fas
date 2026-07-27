@@ -71,6 +71,79 @@ export interface NationStructuralPressure {
   drivers: Array<{ id: string; label: string; value: number; detail: string }>;
 }
 
+export interface StructuralPressureLever {
+  budgetDomain: NationBudgetDomain;
+  action: string;
+  expectedEffect: string;
+  verificationWeeks: 4 | 13;
+}
+
+const structuralPressureLevers: Record<string, StructuralPressureLever> = {
+  regional: {
+    budgetDomain: 'reconstruction',
+    action: '지역 재건 예산과 지방 대표 협상을 확대',
+    expectedEffect: '지역 격차와 분리 압력을 함께 낮춤',
+    verificationWeeks: 13,
+  },
+  identity: {
+    budgetDomain: 'diplomacy',
+    action: '자치·언어·대표권 협약을 국가 의제로 상정',
+    expectedEffect: '정체성 갈등과 체제 정당성 손실을 완화',
+    verificationWeeks: 13,
+  },
+  inequality: {
+    budgetDomain: 'welfare',
+    action: '복지 예산과 누진 재원을 확대',
+    expectedEffect: '불평등 압력과 생활비 불만을 낮춤',
+    verificationWeeks: 4,
+  },
+  housing: {
+    budgetDomain: 'reconstruction',
+    action: '주택·이주 정착 사업을 우선 배정',
+    expectedEffect: '주거 부족과 도시 과밀을 완화',
+    verificationWeeks: 13,
+  },
+  generation: {
+    budgetDomain: 'education',
+    action: '교육·청년 대표·전쟁세대 통합 사업을 확대',
+    expectedEffect: '세대 교체기의 급진화와 신뢰 단절을 완화',
+    verificationWeeks: 13,
+  },
+  demography: {
+    budgetDomain: 'welfare',
+    action: '가족·이민·고령화 지원을 인구 구조에 맞게 재편',
+    expectedEffect: '부양 부담과 노동력 충격을 완화',
+    verificationWeeks: 13,
+  },
+  ecology: {
+    budgetDomain: 'industry',
+    action: '산업 전환과 자원 효율 투자를 병행',
+    expectedEffect: '환경 비용과 자원 공급 충격을 낮춤',
+    verificationWeeks: 13,
+  },
+  institutions: {
+    budgetDomain: 'education',
+    action: '공직 전문화·감사·사법 독립 개혁을 추진',
+    expectedEffect: '제도 피로와 불신을 줄이고 정당성을 회복',
+    verificationWeeks: 13,
+  },
+  'cost-of-living': {
+    budgetDomain: 'welfare',
+    action: '생활비·보건 긴급 지원과 물가 대책을 시행',
+    expectedEffect: '단기 생활 충격과 보건 불안을 완화',
+    verificationWeeks: 4,
+  },
+};
+
+export function getStructuralPressureLever(driverId: string): StructuralPressureLever {
+  return structuralPressureLevers[driverId] ?? {
+    budgetDomain: 'reconstruction',
+    action: '관련 부처 예산과 국가 의제를 함께 재검토',
+    expectedEffect: '구조 압력의 원인과 정책 완화 효과를 재측정',
+    verificationWeeks: 13,
+  };
+}
+
 export interface ActiveNationAgenda {
   issueId: string;
   openedWeek: number;

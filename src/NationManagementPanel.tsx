@@ -52,6 +52,7 @@ import {
 } from './strategicContinuity';
 import {
   getActiveNationAgenda,
+  getStructuralPressureLever,
   nationBudgetDefinitions,
   nationStrategies,
   type CampaignPhase,
@@ -354,11 +355,19 @@ export function NationManagementPanel({
           <MetricBar value={state.structuralPressure.targetUnrest} danger />
         </div>
         <div className="structural-pressure-drivers">
-          {state.structuralPressure.drivers.slice(0, 5).map((driver) => (
-            <article key={driver.id}>
-              <span>{driver.label}</span><strong>+{driver.value.toFixed(1)}</strong><small>{driver.detail}</small>
-            </article>
-          ))}
+          {state.structuralPressure.drivers.slice(0, 5).map((driver) => {
+            const lever = getStructuralPressureLever(driver.id);
+            const budgetName = nationBudgetDefinitions.find((definition) => definition.id === lever.budgetDomain)?.name ?? lever.budgetDomain;
+            return (
+              <article key={driver.id}>
+                <span>{driver.label}</span><strong>+{driver.value.toFixed(1)}</strong><small>{driver.detail}</small>
+                <div className="structural-pressure-action">
+                  <b>{lever.action}</b>
+                  <em>{budgetName} 연결 · {lever.expectedEffect} · {lever.verificationWeeks}주 뒤 확인</em>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
