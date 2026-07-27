@@ -125,6 +125,16 @@ import type { GameIconName, GameIconTone } from './GameIcon';
 import { NationFlag } from './NationFlag';
 import { getHistoricalFlag } from './historicalFlags';
 import { applyDiplomaticAgendaReward, calculateAgendaReadiness, getDiplomaticAgenda, getDiplomaticAgendaOutcome } from './diplomacy';
+import {
+  applyStrategicPolicyRelations,
+  applyStrategicPolicyReward,
+  getEquipmentProcurementQuote,
+  getNationArmsProfile,
+  getPolicyEffectLabels,
+  getStageDiplomaticPolicies,
+  getStrategicDecisionId,
+  getStrategicStage,
+} from './strategicArmsDiplomacy';
 import { CouncilEventModal } from './CouncilEventModal';
 import { councilEvents, selectNextCouncilEvent, strategicPolicies } from './choices';
 import { forecastBattle, resolveBattle } from './combat';
@@ -3907,7 +3917,13 @@ export function App() {
     }
     const prototype = calculatePrototype(base.id, moduleIds, name, game.week);
     if (!prototype) return;
-    const treasuryCost = Math.max(45, Math.round(prototype.industrialCost * 1.6));
+    const treasuryCost = getEquipmentProcurementQuote(
+      playerNation.id,
+      campaignYear,
+      prototype.category,
+      Math.max(45, Math.round(prototype.industrialCost * 1.6)),
+      completedDecisions,
+    ).treasuryCost;
     if (game.treasury < treasuryCost || game.politicalPower < 8) {
       notify(`시제품 제작에는 정치력 8과 재정 ${formatGameMoney(treasuryCost)}가 필요합니다.`);
       return;
@@ -3923,7 +3939,13 @@ export function App() {
     const equipment = getDevelopedEquipment(equipmentId, equipmentDevelopment);
     if (!equipment || (!equipmentDevelopment.unlockedIds.includes(equipment.id) && !equipmentDevelopment.prototypes.some((prototype) => prototype.id === equipment.id))) return;
     if (equipmentDevelopment.fieldedByCategory[equipment.category] === equipment.id) return;
-    const adoptionCost = Math.max(30, Math.round(equipment.industrialCost * 1.2));
+    const adoptionCost = getEquipmentProcurementQuote(
+      playerNation.id,
+      campaignYear,
+      equipment.category,
+      Math.max(30, Math.round(equipment.industrialCost * 1.2)),
+      completedDecisions,
+    ).treasuryCost;
     if (game.politicalPower < 6 || game.treasury < adoptionCost) {
       notify(`채택 승인에는 정치력 6과 재정 ${formatGameMoney(adoptionCost)}가 필요합니다.`);
       return;
@@ -5907,6 +5929,7 @@ export function App() {
                   production={production}
                   divisions={effectiveDivisions}
                   weeklyResearchGain={8 + Math.floor(game.factories / 7) + (doctrine === 'methodical' ? 3 : 0) + (delegatedDepartments.has('armaments') ? 2 : 0) + Math.max(0, scienceAdvisorBonus - 1) + (scienceAdvisor?.discipline === 'engineering' ? 1 : 0) + 2}
+                  completedDecisions={completedDecisions}
                   formatMoney={formatGameMoney}
                   onStartResearch={startEquipmentResearch}
                   onCreatePrototype={createEquipmentPrototype}
@@ -6920,6 +6943,10 @@ function DiplomacyPanel({ game, relations, setRelations, setGame, notify, nation
   onDecision: (id: string, title: string, cost: number, effect: () => void) => void;
 }) {
   const influenceCost = 8;
+  const currentYear = 1942 + Math.floor(game.week / 52);
+  const strategicStage = getStrategicStage(currentYear);
+  const armsProfile = getNationArmsProfile(nation.id);
+  const stagePolicies = getStageDiplomaticPolicies(strategicStage.id);
   const agenda = getDiplomaticAgenda(nation.id);
   const outcome = getDiplomaticAgendaOutcome(nation.id);
   const agendaPartner = getNation(agenda.partnerNationId);
@@ -6953,6 +6980,17 @@ function DiplomacyPanel({ game, relations, setRelations, setGame, notify, nation
     setGame((current) => ({ ...current, politicalPower: current.politicalPower - influenceCost }));
     setRelations((current) => current.map((country) => country.id === id ? { ...country, value: Math.min(100, country.value + 7) } : country));
     notify(name + '과의 관계가 개선되었습니다.');
+  };
+  const enactArmsPolicy = (policy: ReturnType<typeof getStageDiplomaticPolicies>[number]) => {
+    const id = getStrategicDecisionId(policy.id, policy.stageId);
+    if (completedDecisions.includes(id)) return notify('이미 시행한 군비·외교 정책입니다.');
+    if (policy.effects.treasury < 0 && game.treasury < Math.abs(policy.effects.treasury)) {
+      return notify(`이 정책에는 재정 ${Math.abs(policy.effects.treasury)}이 필요합니다.`);
+    }
+    onDecision(id, policy.title, policy.politicalCost, () => {
+      setGame((current) => applyStrategicPolicyReward(current, policy));
+      setRelations((current) => applyStrategicPolicyRelations(current, policy));
+    });
   };
   return (
     <div className="diplomacy-layout">
@@ -6990,6 +7028,41 @@ function DiplomacyPanel({ game, relations, setRelations, setGame, notify, nation
         <button className="summit-convene-button" type="button" disabled={!canConveneAgenda} onClick={conveneAgenda} title={agendaCompleted ? '이미 타결된 회담입니다.' : failedGate ? `${failedGate.label} 조건이 부족합니다.` : `${outcome.cost} 정치력으로 회담을 개최합니다.`}>
           {agendaCompleted ? <><CheckCircle2 size={15} /> 회담 타결 완료</> : <><Handshake size={15} /> {failedGate ? `${failedGate.label} 보완 필요` : '의제 확정 · 회담 개최'}<small>{outcome.cost} PP</small></>}
         </button>
+      </section>
+      <section className="deck-section arms-diplomacy-board">
+        <div className="deck-section-heading">
+          <div><span className="eyebrow">ARMS, ALLIANCES & AUTONOMY · {strategicStage.startYear}–{strategicStage.endYear}</span><h3>{strategicStage.label} 정책실</h3></div>
+          <em>{nation.shortName} · 산업 {armsProfile.industrialBase} · 과학 {armsProfile.scienceBase} · 수입의존 {armsProfile.importDependence}</em>
+        </div>
+        <div className="arms-diplomacy-context">
+          <div><strong>이 시대의 국제질서</strong><p>{strategicStage.order}</p></div>
+          <div><strong>국가 조달 원칙</strong><p>{armsProfile.historicalAnchor}</p></div>
+          <div><strong>결과 확인 시점</strong><p>자원은 즉시 변하고, 상호운용·자율성·제재 위험은 각 카드의 검증 연도 안에 다음 선택지와 조달 비용을 바꿉니다.</p></div>
+        </div>
+        <div className="arms-policy-grid">
+          {stagePolicies.map((policy) => {
+            const id = getStrategicDecisionId(policy.id, policy.stageId);
+            const completed = completedDecisions.includes(id);
+            const lacksTreasury = policy.effects.treasury < 0 && game.treasury < Math.abs(policy.effects.treasury);
+            const lacksPoliticalPower = game.politicalPower < policy.politicalCost;
+            return (
+              <article className={completed ? 'completed' : ''} key={policy.id}>
+                <header><span>{policy.route.toUpperCase()} · {policy.reviewYears}년 검증</span>{completed ? <CheckCircle2 size={14} /> : <Handshake size={14} />}</header>
+                <h4>{policy.title}</h4>
+                <p>{policy.summary}</p>
+                <div>{getPolicyEffectLabels(policy).map((effect) => <em className={effect.includes('-') ? 'cost' : ''} key={effect}>{effect}</em>)}</div>
+                <small>{policy.historicalBasis}</small>
+                <footer>
+                  <a href={policy.sourceUrl} target="_blank" rel="noreferrer"><BookOpen size={11} /> {policy.sourceLabel}</a>
+                  <button type="button" disabled={completed || lacksTreasury || lacksPoliticalPower} onClick={() => enactArmsPolicy(policy)}>
+                    {completed ? '시행 완료' : lacksTreasury ? '재정 부족' : lacksPoliticalPower ? '정치력 부족' : '정책 시행'}
+                    {!completed && <b>{policy.politicalCost} PP</b>}
+                  </button>
+                </footer>
+              </article>
+            );
+          })}
+        </div>
       </section>
     </div>
   );

@@ -11,6 +11,12 @@ import {
   equipmentNodes,
   getEquipmentNode,
 } from './equipment';
+import {
+  getEquipmentProcurementQuote,
+  getNationArmsProfile,
+  getStageWeaponPrograms,
+  getStrategicStage,
+} from './strategicArmsDiplomacy';
 import type {
   Division,
   EquipmentCategory,
@@ -29,6 +35,7 @@ interface EquipmentLabProps {
   production: ProductionLine[];
   divisions: Division[];
   weeklyResearchGain: number;
+  completedDecisions: string[];
   formatMoney: (value: number, options?: { signed?: boolean; exact?: boolean }) => string;
   onStartResearch: (nodeId: string) => void;
   onCreatePrototype: (baseNodeId: string, moduleIds: string[], name: string) => void;
@@ -70,6 +77,7 @@ export function EquipmentLab({
   production,
   divisions,
   weeklyResearchGain,
+  completedDecisions,
   formatMoney,
   onStartResearch,
   onCreatePrototype,
@@ -111,6 +119,25 @@ export function EquipmentLab({
       ?? development.fieldedByCategory[division.type === 'armor' ? 'armor' : 'infantry']
   ) === currentFieldedId).length;
   const activeCategoryProject = activeNode?.category === category ? activeNode : null;
+  const currentYear = 1942 + Math.floor(game.week / 52);
+  const strategicStage = getStrategicStage(currentYear);
+  const nationArmsProfile = getNationArmsProfile(nationId);
+  const stagePrograms = getStageWeaponPrograms(strategicStage.id);
+  const selectedProgram = stagePrograms.find((program) => program.category === category)!;
+  const selectedQuote = getEquipmentProcurementQuote(
+    nationId,
+    currentYear,
+    category,
+    Math.max(45, Math.round((currentFielded?.industrialCost ?? 80) * 1.2)),
+    completedDecisions,
+  );
+  const prototypeTreasuryCost = getEquipmentProcurementQuote(
+    nationId,
+    currentYear,
+    category,
+    Math.max(45, Math.round((preview?.industrialCost ?? 0) * 1.6)),
+    completedDecisions,
+  ).treasuryCost;
 
   const changeModule = (slot: EquipmentModuleSlot, moduleId: string) => {
     setSelectedModules((current) => ({ ...current, [slot]: moduleId }));
@@ -124,6 +151,40 @@ export function EquipmentLab({
           {activeNode ? <><FlaskConical size={14} /><span><strong>{activeNode.name}</strong><small>{Math.round(progressPercent)}% · {Math.ceil((activeNode.researchCost - development.progress) / weeklyResearchGain)}주 예상</small></span></> : <><Wrench size={14} /><span><strong>개발 슬롯 대기</strong><small>계보에서 다음 사업을 선택하십시오</small></span></>}
         </div>
       </div>
+
+      <section className="equipment-strategic-brief" aria-label={`${strategicStage.shortLabel} 국가 무기체계 전략`}>
+        <div className="equipment-capability-dossier">
+          <header><span>{strategicStage.shortLabel}</span><strong>국가 조달·산업 진단</strong></header>
+          <p>{nationArmsProfile.historicalAnchor}</p>
+          <div>
+            <span>산업<strong>{nationArmsProfile.industrialBase}</strong></span>
+            <span>과학<strong>{nationArmsProfile.scienceBase}</strong></span>
+            <span>수입 의존<strong>{nationArmsProfile.importDependence}</strong></span>
+            <span>제재 회복<strong>{nationArmsProfile.sanctionsResilience}</strong></span>
+          </div>
+          <aside>
+            <small>현재 권고 조달</small>
+            <strong>{selectedQuote.routeLabel} · 비용 ×{selectedQuote.multiplier.toFixed(2)}</strong>
+            <span>{selectedQuote.riskLabel} · 자율 {selectedQuote.autonomyEffect > 0 ? '+' : ''}{selectedQuote.autonomyEffect} · 상호운용 {selectedQuote.interoperabilityEffect > 0 ? '+' : ''}{selectedQuote.interoperabilityEffect}</span>
+          </aside>
+        </div>
+        <div className="equipment-stage-programs">
+          <header><div><span>8-DOMAIN PROGRAM BOARD</span><strong>{strategicStage.label}</strong></div><p>{strategicStage.pressure}</p></header>
+          <div>
+            {stagePrograms.map((program) => (
+              <button type="button" className={category === program.category ? 'active' : ''} aria-pressed={category === program.category} onClick={() => setCategory(program.category)} key={program.id}>
+                <i>{categoryIcons[program.category]}</i>
+                <span><small>{equipmentCategoryLabels[program.category]}</small><strong>{program.title}</strong></span>
+                <em>전력 +{program.capabilityGain}</em>
+              </button>
+            ))}
+          </div>
+          <footer>
+            <span><strong>{selectedProgram.title}</strong>{selectedProgram.summary}</span>
+            <a href={selectedProgram.sourceUrl} target="_blank" rel="noreferrer"><Link2 size={11} /> {selectedProgram.sourceLabel} 근거</a>
+          </footer>
+        </div>
+      </section>
 
       <section className="equipment-workflow" aria-label={`${equipmentCategoryLabels[category]} 장비 운용 흐름`}>
         <header>
@@ -179,7 +240,13 @@ export function EquipmentLab({
                 const active = development.activeProjectId === node.id;
                 const available = canResearchEquipment(node, development, nationId);
                 const fielded = currentFieldedId === node.id;
-                const adoptionCost = Math.max(30, Math.round(node.industrialCost * 1.2));
+                const adoptionCost = getEquipmentProcurementQuote(
+                  nationId,
+                  currentYear,
+                  node.category,
+                  Math.max(30, Math.round(node.industrialCost * 1.2)),
+                  completedDecisions,
+                ).treasuryCost;
                 return (
                   <article className={`equipment-node ${unlocked ? 'unlocked' : ''} ${active ? 'active' : ''} ${fielded ? 'fielded' : ''}`} key={node.id}>
                     <div className="equipment-node-flags"><span className={node.authenticity}>{authenticityLabels[node.authenticity]}</span><em>{node.year ?? '가상 연도'}</em></div>
@@ -222,7 +289,7 @@ export function EquipmentLab({
                 );
               })}
             </div>
-            <button className="build-prototype" disabled={!baseNode || moduleIds.length < 2 || development.prototypes.length >= 8 || game.politicalPower < 8 || game.treasury < Math.max(45, Math.round((preview?.industrialCost ?? 0) * 1.6))} onClick={() => baseNode && onCreatePrototype(baseNode.id, moduleIds, prototypeName)}><Plus size={14} /> 시제 장비 제작 · 8PP · {formatMoney(Math.max(45, Math.round((preview?.industrialCost ?? 0) * 1.6)))}</button>
+            <button className="build-prototype" disabled={!baseNode || moduleIds.length < 2 || development.prototypes.length >= 8 || game.politicalPower < 8 || game.treasury < prototypeTreasuryCost} onClick={() => baseNode && onCreatePrototype(baseNode.id, moduleIds, prototypeName)}><Plus size={14} /> 시제 장비 제작 · 8PP · {formatMoney(prototypeTreasuryCost)}</button>
             <small>최소 2개 모듈 · 최대 8개 시제품 보관 · 제작 시 재정과 정치력이 사용됩니다.</small>
           </div>
           <div className="prototype-preview">
