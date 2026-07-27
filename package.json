@@ -14,6 +14,7 @@
     "playtest:nations": "node scripts/run-multi-nation-century-playtest-2060.mjs",
     "playtest:possibilities": "node scripts/run-possibility-matrix-3000-2060.mjs",
     "playtest:arms-diplomacy": "node scripts/run-arms-diplomacy-stage-playtest.mjs",
+    "audit:civilization": "node scripts/audit-civilization-systems.mjs",
     "audit:possibilities": "node scripts/audit-possibility-remediation.mjs",
     "data:historical-roster": "node scripts/build-wikidata-roster.mjs",
     "data:later-era-roster": "node scripts/build-later-era-roster.mjs"

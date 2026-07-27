@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { achievementCategoryDestinations, achievementCategoryLabels } from './achievements';
 import type { AchievementDefinition, AchievementProgress } from './achievements';
+import type { CivilizationPath, CivilizationProgram } from './civilizationSystems';
 import { calculateProductionGains } from './engine';
 import { getEquipmentNode } from './equipment';
 import { GameIcon } from './GameIcon';
@@ -64,6 +65,7 @@ interface CommandDashboardProps {
   actions: UXAction[];
   publicHealth: PublicHealthState;
   nationalSimulation: NationalSimulationSnapshot;
+  completedDecisions: string[];
   weeklyIssue: WorldWeeklyIssue | null;
   weeklyUnread: boolean;
   resultsReviewed: boolean;
@@ -74,6 +76,7 @@ interface CommandDashboardProps {
   achievementProgress?: AchievementProgress;
   achievementTracked?: boolean;
   onNavigate: (tab: GameTab) => void;
+  onEnactCivilization: (program: CivilizationProgram, path: CivilizationPath) => void;
   onAction: (action: UXAction) => void;
   onOpenActionCenter: () => void;
   onOpenJournal: () => void;
@@ -111,6 +114,7 @@ export function CommandDashboard({
   actions,
   publicHealth,
   nationalSimulation,
+  completedDecisions,
   weeklyIssue,
   weeklyUnread,
   resultsReviewed,
@@ -121,6 +125,7 @@ export function CommandDashboard({
   achievementProgress,
   achievementTracked = false,
   onNavigate,
+  onEnactCivilization,
   onAction,
   onOpenActionCenter,
   onOpenJournal,
@@ -287,7 +292,17 @@ export function CommandDashboard({
         </section>
       )}
 
-      <NationalSimulationOverview snapshot={nationalSimulation} phase="war" onNavigate={onNavigate} />
+      <NationalSimulationOverview
+        snapshot={nationalSimulation}
+        phase="war"
+        year={1942 + Math.floor(game.week / 52)}
+        nationId={nation.id}
+        role={role}
+        game={game}
+        completedDecisions={completedDecisions}
+        onNavigate={onNavigate}
+        onEnactCivilization={onEnactCivilization}
+      />
 
       <div className="command-portal-grid">
         <section className="portal-card portal-inbox">

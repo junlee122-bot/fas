@@ -25,6 +25,7 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
+import type { CivilizationPath, CivilizationProgram } from './civilizationSystems';
 import {
   canAdoptGovernmentForm,
   canManageDynasticPolitics,
@@ -94,6 +95,7 @@ interface NationManagementPanelProps {
   territories: Territory[];
   relations: DiplomaticRelation[];
   nationalSimulation: NationalSimulationSnapshot;
+  completedDecisions: string[];
   worldlineTitle: string;
   readiness: TransitionReadiness;
   formatMoney: (value: number, options?: { signed?: boolean; exact?: boolean }) => string;
@@ -116,6 +118,7 @@ interface NationManagementPanelProps {
   periodAdvanceRemaining: number;
   onCancelPeriodAdvance: () => void;
   onNavigate: (tab: GameTab) => void;
+  onEnactCivilization: (program: CivilizationProgram, path: CivilizationPath) => void;
   onNextWeek: () => void;
 }
 
@@ -148,6 +151,7 @@ export function NationManagementPanel({
   territories,
   relations,
   nationalSimulation,
+  completedDecisions,
   worldlineTitle,
   readiness,
   formatMoney,
@@ -170,6 +174,7 @@ export function NationManagementPanel({
   periodAdvanceRemaining,
   onCancelPeriodAdvance,
   onNavigate,
+  onEnactCivilization,
   onNextWeek,
 }: NationManagementPanelProps) {
   const [selectedRecipientId, setSelectedRecipientId] = useState('');
@@ -371,7 +376,17 @@ export function NationManagementPanel({
         </div>
       </section>
 
-      <NationalSimulationOverview snapshot={nationalSimulation} phase="nation" onNavigate={onNavigate} />
+      <NationalSimulationOverview
+        snapshot={nationalSimulation}
+        phase="nation"
+        year={1942 + Math.floor(game.week / 52)}
+        nationId={nation.id}
+        role={role}
+        game={game}
+        completedDecisions={completedDecisions}
+        onNavigate={onNavigate}
+        onEnactCivilization={onEnactCivilization}
+      />
 
       <section className="nation-surface continuity-command-board">
         <header>

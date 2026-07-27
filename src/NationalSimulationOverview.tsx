@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   ArrowRight,
+  Blocks,
   Building2,
   CircleDollarSign,
   Gauge,
@@ -11,16 +12,24 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
+import { CivilizationPortfolio } from './CivilizationPortfolio';
+import type { CivilizationPath, CivilizationProgram } from './civilizationSystems';
 import type { CampaignPhase } from './nationManagement';
 import type { NationalSimulationSnapshot, SimulationStatus } from './nationalSimulation';
-import type { GameTab } from './types';
+import type { CareerRole, GameState, GameTab, NationId } from './types';
 
-type SimulationLayer = 'population' | 'power' | 'market' | 'institutions';
+type SimulationLayer = 'population' | 'power' | 'market' | 'institutions' | 'portfolio';
 
 interface NationalSimulationOverviewProps {
   snapshot: NationalSimulationSnapshot;
   phase: CampaignPhase;
+  year: number;
+  nationId: NationId;
+  role: CareerRole;
+  game: GameState;
+  completedDecisions: string[];
   onNavigate: (tab: GameTab) => void;
+  onEnactCivilization: (program: CivilizationProgram, path: CivilizationPath) => void;
 }
 
 const statusLabels: Record<SimulationStatus, string> = {
@@ -39,7 +48,17 @@ function Meter({ value, tone = 'neutral' }: { value: number; tone?: 'neutral' | 
   return <span className={`simulation-meter ${tone}`}><i style={{ width: `${Math.max(0, Math.min(100, value))}%` }} /></span>;
 }
 
-export function NationalSimulationOverview({ snapshot, phase, onNavigate }: NationalSimulationOverviewProps) {
+export function NationalSimulationOverview({
+  snapshot,
+  phase,
+  year,
+  nationId,
+  role,
+  game,
+  completedDecisions,
+  onNavigate,
+  onEnactCivilization,
+}: NationalSimulationOverviewProps) {
   const [layer, setLayer] = useState<SimulationLayer>('population');
   const capacityRatio = Math.round((snapshot.administrativeCapacityUsed / Math.max(1, snapshot.administrativeCapacity)) * 100);
   const criticalGoods = snapshot.goods.filter((good) => good.status === 'critical' || good.status === 'strained').length;
@@ -51,6 +70,7 @@ export function NationalSimulationOverview({ snapshot, phase, onNavigate }: Nati
     { id: 'power', icon: Scale, label: '권력집단', summary: `반대파 영향력 ${Math.round(oppositionClout)}%` },
     { id: 'market', icon: CircleDollarSign, label: '국가 시장', summary: `공급 압박 ${criticalGoods}개 품목` },
     { id: 'institutions', icon: Landmark, label: '법과 제도', summary: `확대·집행 필요 ${weakInstitutions}개` },
+    { id: 'portfolio', icon: Blocks, label: '문명 포트폴리오', summary: '10개 생활·산업 체계' },
   ];
 
   return (
@@ -152,6 +172,18 @@ export function NationalSimulationOverview({ snapshot, phase, onNavigate }: Nati
               </button>
             ))}
           </div>
+        )}
+
+        {layer === 'portfolio' && (
+          <CivilizationPortfolio
+            year={year}
+            nationId={nationId}
+            role={role}
+            game={game}
+            snapshot={snapshot}
+            completedDecisions={completedDecisions}
+            onEnact={onEnactCivilization}
+          />
         )}
       </div>
 

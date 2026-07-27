@@ -135,6 +135,21 @@ import {
   getStrategicDecisionId,
   getStrategicStage,
 } from './strategicArmsDiplomacy';
+import {
+  applyCivilizationEconomyEffects,
+  applyCivilizationNationEffects,
+  applyCivilizationPublicHealthEffects,
+  civilizationDomainDefinitions,
+  getCivilizationDecisionPrefix,
+  getCivilizationEffectLabels,
+  getCivilizationPaths,
+  getCivilizationProgram,
+  getCivilizationReviewedMarker,
+  getCivilizationReviewMarker,
+  parseCivilizationReviewMarker,
+  type CivilizationPath,
+  type CivilizationProgram,
+} from './civilizationSystems';
 import { CouncilEventModal } from './CouncilEventModal';
 import { councilEvents, selectNextCouncilEvent, strategicPolicies } from './choices';
 import { forecastBattle, resolveBattle } from './combat';
@@ -1383,6 +1398,105 @@ export function App() {
   const addEvent = useCallback((title: string, detail: string, tone: WarEvent['tone'], week: number, trace?: Partial<WarEventTrace>) => {
     setEvents((current) => [{ id: Date.now() + Math.random(), week, title, detail, tone, trace: createWarEventTrace(title, detail, tone, trace) }, ...current].slice(0, 120));
   }, []);
+
+  useEffect(() => {
+    const dueReviews = completedDecisions
+      .flatMap((decisionId) => {
+        const schedule = parseCivilizationReviewMarker(decisionId);
+        return schedule ? [schedule] : [];
+      })
+      .filter((schedule) => schedule.dueWeek <= game.week)
+      .filter((schedule) => !completedDecisions.includes(getCivilizationReviewedMarker(schedule)));
+    if (dueReviews.length === 0) return;
+
+    setCompletedDecisions((current) => [
+      ...current,
+      ...dueReviews.map(getCivilizationReviewedMarker),
+    ]);
+
+    dueReviews.forEach((schedule) => {
+      const program = getCivilizationProgram(schedule.programId);
+      if (!program) return;
+      const path = getCivilizationPaths(program, playerNation.id, careerRole)
+        .find((candidate) => candidate.approachId === schedule.approachId);
+      if (!path) return;
+      const domain = civilizationDomainDefinitions[program.domainId];
+      const deliveryCapacity = (
+        game.stability
+        + economy.publicConfidence
+        + nationManagement.institutionalCapacity
+        + Math.max(0, 100 - nationManagement.unrest)
+        + Math.max(0, 100 - economy.inflation)
+      ) / 5;
+      const actualEffectiveness = Math.max(0, Math.min(140, Math.round(path.effectiveness * 0.7 + deliveryCapacity * 0.3)));
+      const variance = actualEffectiveness - path.effectiveness;
+      const comparisonStatus = variance >= 5 ? 'better' : variance >= -5 ? 'matched' : 'worse';
+      const tone: WarEvent['tone'] = comparisonStatus === 'better' ? 'good' : comparisonStatus === 'worse' ? 'bad' : 'neutral';
+
+      if (comparisonStatus === 'better') {
+        setGame((current) => applyGameDelta(current, { stability: 1, politicalPower: 1 }));
+        setEconomy((current) => ({ ...current, publicConfidence: Math.min(100, current.publicConfidence + 1) }));
+      } else if (comparisonStatus === 'worse') {
+        setGame((current) => applyGameDelta(current, { politicalPower: -1 }));
+        setEconomy((current) => ({ ...current, publicConfidence: Math.max(0, current.publicConfidence - 1) }));
+        setNationManagement((current) => ({ ...current, unrest: Math.min(100, current.unrest + 1) }));
+      } else {
+        setEconomy((current) => ({ ...current, publicConfidence: Math.min(100, current.publicConfidence + 0.5) }));
+      }
+
+      addEvent(
+        `제도 검증 · ${domain.shortLabel} — ${path.label}`,
+        `${program.title}의 ${path.reviewWeeks}주 1차 검증이 끝났습니다. 예상 실효 ${path.effectiveness}%에 대해 실제 집행 실효는 ${actualEffectiveness}%로 평가됐습니다.`,
+        tone,
+        game.week,
+        {
+          domain: 'management',
+          decision: `${program.title} · ${path.label}`,
+          trigger: `제 ${schedule.dueWeek + 1}주 예정 검증 도래`,
+          factors: [
+            `국가 안정도 ${Math.round(game.stability)}/100`,
+            `경제 신뢰 ${Math.round(economy.publicConfidence)}/100 · 물가 ${economy.inflation.toFixed(1)}%`,
+            `제도 역량 ${Math.round(nationManagement.institutionalCapacity)}/100`,
+            `사회 불안 ${Math.round(nationManagement.unrest)}/100`,
+          ],
+          effects: [
+            { label: '실제 집행 실효', value: `${actualEffectiveness}%`, tone: comparisonStatus === 'worse' ? 'negative' : 'positive' },
+            { label: '예상 대비', value: `${variance > 0 ? '+' : ''}${variance}%p`, tone: comparisonStatus === 'better' ? 'positive' : comparisonStatus === 'worse' ? 'negative' : 'neutral' },
+          ],
+          comparisons: [{
+            label: `${domain.shortLabel} 제도 집행`,
+            expected: `${path.effectiveness}%`,
+            actual: `${actualEffectiveness}%`,
+            status: comparisonStatus,
+            explanation: comparisonStatus === 'better'
+              ? '안정·신뢰·제도역량이 예상보다 강해 집행 효과가 확대됐습니다.'
+              : comparisonStatus === 'worse'
+                ? '물가·불안 또는 부족한 제도역량이 정책 전달을 약화했습니다.'
+                : '현재 국가역량이 계획 범위 안에서 정책을 전달했습니다.',
+          }],
+          ongoing: [
+            `다음 시대 ${domain.label} 사업의 출발 조건에 누적`,
+            `구조적 위험 계속 감시: ${path.risk}`,
+          ],
+          nextActions: comparisonStatus === 'worse'
+            ? ['제도역량과 경제 신뢰 회복', `${domain.label} 수혜집단과 재협상`, '진행 결과에서 다음 결산 비교']
+            : [`${domain.label} 성과를 인접 분야로 확산`, '다음 시대 포트폴리오 재원 비축', '세계 주보에서 국제 반응 확인'],
+          certainty: 'confirmed',
+        },
+      );
+    });
+  }, [
+    addEvent,
+    careerRole,
+    completedDecisions,
+    economy.inflation,
+    economy.publicConfidence,
+    game.stability,
+    game.week,
+    nationManagement.institutionalCapacity,
+    nationManagement.unrest,
+    playerNation.id,
+  ]);
 
   useEffect(() => {
     if (showBriefing || showTutorial || campaignOutcome || pendingWorldFlashpointId || pendingCoupIncident || pendingCouncilEventId || pendingAchievementId) return;
@@ -3864,6 +3978,95 @@ export function App() {
     notify(title + ' 시행 완료');
   };
 
+  const enactCivilizationProgram = (program: CivilizationProgram, path: CivilizationPath) => {
+    const domain = civilizationDomainDefinitions[program.domainId];
+    const programAlreadyCompleted = completedDecisions.some((decisionId) => decisionId.startsWith(getCivilizationDecisionPrefix(program.id)));
+    if (programAlreadyCompleted) {
+      notify(`${domain.shortLabel} 분야는 이미 이번 시대의 경로를 채택했습니다.`);
+      return;
+    }
+    if (game.politicalPower < path.politicalCost) {
+      notify(`정치력이 ${path.politicalCost - game.politicalPower} 부족합니다.`);
+      return;
+    }
+    if (game.treasury < path.treasuryCost) {
+      notify(`국고가 ${formatGameMoney(path.treasuryCost - game.treasury)} 부족합니다.`);
+      return;
+    }
+
+    const gameDelta: Partial<Record<keyof GameState, number>> = {
+      ...path.effects.game,
+      politicalPower: (path.effects.game.politicalPower ?? 0) - path.politicalCost,
+      treasury: (path.effects.game.treasury ?? 0) - path.treasuryCost,
+    };
+    setGame((current) => applyGameDelta(current, gameDelta));
+    setEconomy((current) => applyCivilizationEconomyEffects(current, path));
+    setNationManagement((current) => applyCivilizationNationEffects(current, path));
+    setPublicHealth((current) => applyCivilizationPublicHealthEffects(current, path));
+    if (path.effects.researchProgress > 0) {
+      setResearch((current) => current.map((project) => (
+        project.active && !project.complete
+          ? {
+              ...project,
+              progress: Math.min(project.duration, project.progress + path.effects.researchProgress),
+              complete: project.progress + path.effects.researchProgress >= project.duration,
+            }
+          : project
+      )));
+    }
+    if (path.effects.relations !== 0) {
+      setRelations((current) => current.map((relation) => ({
+        ...relation,
+        value: Math.max(0, Math.min(100, relation.value + path.effects.relations)),
+      })));
+    }
+    setCompletedDecisions((current) => [
+      ...current,
+      path.id,
+      getCivilizationReviewMarker(path, game.week + path.reviewWeeks),
+    ]);
+
+    const effectLabels = getCivilizationEffectLabels(path, 8);
+    addEvent(
+      `국가체계 결정 · ${domain.shortLabel} — ${path.label}`,
+      `${program.title}에서 ${path.label} 경로를 채택했습니다. ${path.beneficiary}이(가) 우선 수혜를 받으며, ${path.reviewWeeks}주 뒤 첫 제도 검증이 이뤄집니다.`,
+      path.effectiveness >= 85 ? 'good' : 'neutral',
+      game.week,
+      {
+        domain: 'management',
+        decision: `${program.title} · ${path.label}`,
+        trigger: `${campaignYear}년 ${playerNation.shortName} · ${careerRole.title} · ${path.authorityLabel}`,
+        factors: [
+          `역사적 기준점: ${program.historicalBasis}`,
+          `주요 수혜: ${path.beneficiary}`,
+          `구조적 위험: ${path.risk}`,
+          `국가별·보직별 예상 실효 ${path.effectiveness}%`,
+        ],
+        effects: [
+          { label: '정치 비용', value: `−${path.politicalCost}`, tone: 'negative' },
+          { label: '재정 비용', value: formatGameMoney(-path.treasuryCost, { signed: true }), tone: 'negative' },
+          ...effectLabels.map((effect) => ({
+            label: effect.label,
+            value: `${effect.value > 0 ? '+' : ''}${effect.value}`,
+            tone: effect.favorable ? 'positive' as const : 'negative' as const,
+          })),
+        ],
+        ongoing: [
+          `${path.reviewWeeks}주 뒤 1차 성과 검증`,
+          `${domain.label} 지표와 시장·권력집단 반응에 누적`,
+          `위험 감시: ${path.risk}`,
+        ],
+        nextActions: [
+          `${domain.label} 분야의 다음 시대 사업을 위한 집행역량 확보`,
+          '진행 결과에서 예상 효과와 실제 결과 비교',
+          '세계 주보에서 국제 파급과 타국 반응 확인',
+        ],
+        certainty: 'developing',
+      },
+    );
+    notify(`${domain.shortLabel} 정책 채택 · ${path.reviewWeeks}주 뒤 첫 검증`);
+  };
+
   const toggleResearch = (id: string) => {
     const activeCount = research.filter((project) => project.active).length;
     const project = research.find((item) => item.id === id);
@@ -5730,6 +5933,7 @@ export function App() {
                   actions={uxActions}
                   publicHealth={publicHealthView}
                   nationalSimulation={nationalSimulation}
+                  completedDecisions={completedDecisions}
                   weeklyIssue={latestWorldWeeklyIssue}
                   weeklyUnread={hasUnreadWorldWeekly}
                   resultsReviewed={game.week === 0 || lastReviewedJournalWeek >= game.week}
@@ -5740,6 +5944,7 @@ export function App() {
                   achievementProgress={activeAchievement ? achievementProgress[activeAchievement.id] : undefined}
                   achievementTracked={Boolean(activeAchievement && trackedAchievementId === activeAchievement.id)}
                   onNavigate={openGameTab}
+                  onEnactCivilization={enactCivilizationProgram}
                   onAction={navigateFromActionCenter}
                   onOpenActionCenter={() => setShowActionCenter(true)}
                   onOpenJournal={openWarJournal}
@@ -5791,6 +5996,7 @@ export function App() {
                   territories={territories}
                   relations={relations}
                   nationalSimulation={nationalSimulation}
+                  completedDecisions={completedDecisions}
                   worldlineTitle={worldline.title}
                   readiness={transitionReadiness}
                   formatMoney={formatGameMoney}
@@ -5813,6 +6019,7 @@ export function App() {
                   periodAdvanceRemaining={periodAdvanceRemaining}
                   onCancelPeriodAdvance={() => setPeriodAdvanceRemaining(0)}
                   onNavigate={setActiveTab}
+                  onEnactCivilization={enactCivilizationProgram}
                   onNextWeek={advanceWeek}
                 />
               </Suspense>
