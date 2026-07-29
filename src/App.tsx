@@ -118,6 +118,14 @@ import {
 } from './campaign';
 import { CampaignSetup } from './CampaignSetup';
 import { CommandDashboard } from './CommandDashboard';
+import {
+  getNationalProgram,
+  getNationalProgramMilestoneMarker,
+  getNationalProgramPulse,
+  getNationalProgramStartedWeek,
+  getNationalProgramStartMarker,
+  nationalProgramToneMeta,
+} from './nationalPrograms';
 import { CivilianCareerPanel } from './CivilianCareerPanel';
 import { MapControlCenter } from './MapControlCenter';
 import { GameIcon } from './GameIcon';
@@ -2001,6 +2009,14 @@ export function App() {
       return;
     }
     const nextWeek = game.week + 1;
+    const activeNationalProgram = getNationalProgram(playerNation, career.alternatePathId);
+    const nationalProgramStartedWeek = getNationalProgramStartedWeek(career.alternatePathId, completedDecisions);
+    const nationalProgramPulse = getNationalProgramPulse(
+      activeNationalProgram,
+      nationalProgramStartedWeek,
+      nextWeek,
+      completedDecisions,
+    );
     if (career.civilian && !career.civilian.enteredOfficeRoleId) {
       const nextCivilian = advanceCivilianCareerWeek(career.civilian);
       setCareer((current) => ({ ...current, civilian: nextCivilian }));
@@ -2254,20 +2270,57 @@ export function App() {
       ...line,
       efficiency: Math.min(100, line.efficiency + (line.assigned > 0 ? 1 : 0) + (line.id === procurementFocusId ? 1 : 0) + (delegatedDepartments.has('armaments') ? 1 : 0)),
     })));
-    setGame((current) => applyGameDelta({
-      ...current,
-      week: current.week + 1,
-      manpower: current.manpower + 18 + (scienceAdvisor?.delegated && scienceAdvisor.discipline === 'medicine' ? 6 : 0),
-      politicalPower: Math.min(200, current.politicalPower + 3 + (delegatedDepartments.has('political') ? 1 : 0) + (scienceAdvisor?.delegated && scienceAdvisor.discipline === 'social-science' ? 1 : 0)),
-      fuel: Math.max(0, Math.min(200, current.fuel + 8 - current.factories * 0.18 - (supplyPolicy === 'frontline' ? 2 : 0))),
-      steel: Math.min(240, current.steel + 9),
-      commandPoints: Math.min(100, current.commandPoints + 6 + (delegatedDepartments.has('operations') ? 2 : 0)),
-      treasury: current.treasury,
-      intelNetwork: Math.min(100, current.intelNetwork + (scienceAdvisor?.delegated && scienceAdvisor.discipline === 'intelligence' ? 1 : 0)),
-      airPower: Math.min(100, current.airPower + (nextWeek % 4 === 0 ? 1 : 0)),
-      navalPower: Math.max(20, Math.min(100, current.navalPower + (nextWeek % 3 === 0 ? 1 : 0))),
-      enemyPressure: Math.min(100, current.enemyPressure + (nextWeek % 4 === 0 ? 2 : 0)),
-    }, economyResult.gameDelta));
+    setGame((current) => applyGameDelta(
+      applyGameDelta({
+        ...current,
+        week: current.week + 1,
+        manpower: current.manpower + 18 + (scienceAdvisor?.delegated && scienceAdvisor.discipline === 'medicine' ? 6 : 0),
+        politicalPower: Math.min(200, current.politicalPower + 3 + (delegatedDepartments.has('political') ? 1 : 0) + (scienceAdvisor?.delegated && scienceAdvisor.discipline === 'social-science' ? 1 : 0)),
+        fuel: Math.max(0, Math.min(200, current.fuel + 8 - current.factories * 0.18 - (supplyPolicy === 'frontline' ? 2 : 0))),
+        steel: Math.min(240, current.steel + 9),
+        commandPoints: Math.min(100, current.commandPoints + 6 + (delegatedDepartments.has('operations') ? 2 : 0)),
+        treasury: current.treasury,
+        intelNetwork: Math.min(100, current.intelNetwork + (scienceAdvisor?.delegated && scienceAdvisor.discipline === 'intelligence' ? 1 : 0)),
+        airPower: Math.min(100, current.airPower + (nextWeek % 4 === 0 ? 1 : 0)),
+        navalPower: Math.max(20, Math.min(100, current.navalPower + (nextWeek % 3 === 0 ? 1 : 0))),
+        enemyPressure: Math.min(100, current.enemyPressure + (nextWeek % 4 === 0 ? 2 : 0)),
+      }, economyResult.gameDelta),
+      nationalProgramPulse.gameDelta,
+    ));
+    if (nationalProgramPulse.relationDelta !== 0) {
+      setRelations((current) => current.map((relation) => ({
+        ...relation,
+        value: Math.max(0, Math.min(100, relation.value + nationalProgramPulse.relationDelta)),
+      })));
+    }
+    if (activeNationalProgram && nationalProgramPulse.milestone) {
+      const milestone = nationalProgramPulse.milestone;
+      setCompletedDecisions((current) => Array.from(new Set([
+        ...current,
+        getNationalProgramMilestoneMarker(activeNationalProgram.id, milestone.week),
+      ])));
+      addEvent(
+        `국가 프로그램 이정표 — ${milestone.title}`,
+        `${activeNationalProgram.title} ${milestone.week}주차 검증을 통과했습니다. ${milestone.detail} 확정 보상: ${milestone.reward}.`,
+        activeNationalProgram.tone === 'hardline' && milestone.week === 26 ? 'neutral' : 'good',
+        nextWeek,
+        {
+          domain: 'management',
+          decision: `${activeNationalProgram.title} 노선을 ${milestone.week}주 동안 유지해 ‘${milestone.title}’ 단계까지 집행했습니다.`,
+          trigger: `국가 프로그램 시작 뒤 ${milestone.week}주가 경과했습니다.`,
+          factors: [
+            nationalProgramToneMeta[activeNationalProgram.tone].cadence,
+            nationalProgramToneMeta[activeNationalProgram.tone].tradeoff,
+            `채택 노선: ${activeNationalProgram.summary}`,
+          ],
+          effects: [{ label: `${milestone.week}주 보상`, value: milestone.reward, tone: activeNationalProgram.tone === 'hardline' && milestone.week === 26 ? 'neutral' : 'positive' }],
+          ongoing: [milestone.week < 26 ? `다음 이정표까지 같은 노선의 주간 비용과 보너스가 계속됩니다.` : '상설 프로그램으로 전환되어 4주 주기 효과가 계속 적용됩니다.'],
+          nextActions: [milestone.week < 26 ? '지휘 본부에서 다음 검토 시점과 장기 비용을 확인하십시오.' : '노선을 유지하거나 정치력을 사용해 새로운 국가 프로그램으로 전환할 수 있습니다.'],
+          certainty: 'confirmed',
+        },
+      );
+      notify(`${activeNationalProgram.title}: ${milestone.title} 달성`);
+    }
     setPublicHealth(publicHealthResult.state);
     setEconomy(economyResult.state);
     if (economyResult.currencyTransition) {
@@ -2511,7 +2564,7 @@ export function App() {
       ],
       certainty: 'confirmed',
     });
-  }, [activeTheater, addEvent, advanceNationWeek, battleStance, campaignPhase, career.civilian, career.experience, career.nationId, careerRole.tier, commanderDevelopment, completedDecisions, delegatedDepartments, developmentFocusId, divisions, doctrine, economy, economyAdvisorBonus, economyForecast.netTreasuryChange, effectiveCommanders, effectiveDivisions, enemyFaction, equipmentDevelopment, formatGameMoney, game, hasClandestineIncident, historyTrajectory.dominantForce, notify, orders, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, playerFaction, playerNation.id, playerNation.shortName, policyAttackBonus, policyDefenseBonus, policyProductionMultiplier, policySupplyRecovery, priorityDivisionId, procurementFocusId, production, projectionActiveResearch.length, projectionFuelDelta, projectionProductionTotal, projectionResearchGain, publicHealth, publicHealthContext, research, resolvedCouncilChoices, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisor, scienceAdvisorBonus, staffCandidates, staffWeeklyCost, supplyPolicy, territories, worldline]);
+  }, [activeTheater, addEvent, advanceNationWeek, battleStance, campaignPhase, career.alternatePathId, career.civilian, career.experience, career.nationId, careerRole.tier, commanderDevelopment, completedDecisions, delegatedDepartments, developmentFocusId, divisions, doctrine, economy, economyAdvisorBonus, economyForecast.netTreasuryChange, effectiveCommanders, effectiveDivisions, enemyFaction, equipmentDevelopment, formatGameMoney, game, hasClandestineIncident, historyTrajectory.dominantForce, notify, orders, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, playerFaction, playerNation.id, playerNation.shortName, policyAttackBonus, policyDefenseBonus, policyProductionMultiplier, policySupplyRecovery, priorityDivisionId, procurementFocusId, production, projectionActiveResearch.length, projectionFuelDelta, projectionProductionTotal, projectionResearchGain, publicHealth, publicHealthContext, research, resolvedCouncilChoices, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisor, scienceAdvisorBonus, staffCandidates, staffWeeklyCost, supplyPolicy, territories, worldline]);
 
   useEffect(() => {
     if (speed === 0 || pendingWorldFlashpointId || pendingCoupIncident || hasClandestineIncident || showBriefing || showCareerMarket || showWorldHistory || showWorldWeekly || showTutorial) return;
@@ -5161,6 +5214,56 @@ export function App() {
     notify(`${policy.title} 원칙이 현재 행동 궤적에 적용됩니다.${isSwitch ? ` 정치력 ${transitionCost}를 사용했습니다.` : ''}`);
   };
 
+  const selectNationalProgram = (programId: string) => {
+    const program = playerNation.paths.find((path) => path.id === programId);
+    if (!program || career.alternatePathId === program.id) return;
+    const previous = getNationalProgram(playerNation, career.alternatePathId);
+    const politicalCost = previous ? 14 : 8;
+    if (game.politicalPower < politicalCost) {
+      notify(`국가 프로그램 ${previous ? '전환' : '채택'}에는 정치력 ${politicalCost}가 필요합니다.`);
+      return;
+    }
+    const immediateDelta: Partial<Record<keyof GameState, number>> = program.tone === 'reform'
+      ? { politicalPower: -politicalCost, stability: 2 }
+      : program.tone === 'hardline'
+        ? { politicalPower: -politicalCost, commandPoints: 5, stability: -1 }
+        : { politicalPower: -politicalCost, intelNetwork: 3 };
+    setCareer((current) => ({ ...current, alternatePathId: program.id }));
+    setGame((current) => applyGameDelta(current, immediateDelta));
+    if (program.tone === 'international') {
+      setRelations((current) => current.map((relation) => ({
+        ...relation,
+        value: Math.min(100, relation.value + 2),
+      })));
+    }
+    setCompletedDecisions((current) => Array.from(new Set([
+      ...current,
+      getNationalProgramStartMarker(program.id, game.week),
+      ...(previous ? [`national-program:${previous.id}:ended:${game.week}`] : []),
+    ])));
+    addEvent(
+      `${previous ? '국가 프로그램 전환' : '국가 프로그램 채택'} — ${program.title}`,
+      `${previous ? `${previous.title}의 누적 성과를 역사 기록에 남기고 새 노선으로 전환했습니다. ` : ''}${program.summary} ${nationalProgramToneMeta[program.tone].tradeoff}`,
+      previous ? 'neutral' : 'good',
+      game.week,
+      {
+        domain: 'management',
+        decision: `${playerNation.shortName}의 26주 장기 의제로 ‘${program.title}’을(를) ${previous ? '새로 선택' : '채택'}했습니다.`,
+        trigger: previous ? `기존 ${previous.title} 노선을 중단하고 정치력 ${politicalCost}를 사용했습니다.` : `국가 장기 노선이 비어 있어 정치력 ${politicalCost}를 사용했습니다.`,
+        factors: [program.summary, program.effect, nationalProgramToneMeta[program.tone].cadence],
+        effects: Object.entries(immediateDelta).map(([key, value]) => ({
+          label: key,
+          value: `${Number(value) >= 0 ? '+' : ''}${value}`,
+          tone: Number(value) >= 0 ? 'positive' : 'negative',
+        })),
+        ongoing: ['6·13·26주에 단계별 검증과 보상이 발생합니다.', nationalProgramToneMeta[program.tone].tradeoff],
+        nextActions: ['지휘 본부의 국가 프로그램 카드에서 다음 검토 시점과 누적 진척을 확인하십시오.'],
+        certainty: 'confirmed',
+      },
+    );
+    notify(`${program.title} 국가 프로그램을 시작했습니다.`);
+  };
+
   const resolveCouncilChoice = (choiceId: string) => {
     const councilEvent = councilEvents.find((event) => event.id === pendingCouncilEventId);
     const choice = councilEvent?.choices.find((item) => item.id === choiceId);
@@ -6179,6 +6282,7 @@ export function App() {
                   achievementTracked={Boolean(activeAchievement && trackedAchievementId === activeAchievement.id)}
                   onNavigate={openGameTab}
                   onEnactCivilization={enactCivilizationProgram}
+                  onSelectNationalProgram={selectNationalProgram}
                   onAction={navigateFromActionCenter}
                   onOpenActionCenter={() => setShowActionCenter(true)}
                   onOpenJournal={openWarJournal}

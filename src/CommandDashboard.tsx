@@ -15,6 +15,7 @@ import { calculateProductionGains } from './engine';
 import { getEquipmentNode } from './equipment';
 import { GameIcon } from './GameIcon';
 import { KoreaCommandCenter } from './KoreaCommandCenter';
+import { NationalProgramBoard } from './NationalProgramBoard';
 import { NationFlag } from './NationFlag';
 import { NationalSimulationOverview } from './NationalSimulationOverview';
 import type { NationalSimulationSnapshot } from './nationalSimulation';
@@ -77,6 +78,7 @@ interface CommandDashboardProps {
   achievementTracked?: boolean;
   onNavigate: (tab: GameTab) => void;
   onEnactCivilization: (program: CivilizationProgram, path: CivilizationPath) => void;
+  onSelectNationalProgram: (programId: string) => void;
   onAction: (action: UXAction) => void;
   onOpenActionCenter: () => void;
   onOpenJournal: () => void;
@@ -126,6 +128,7 @@ export function CommandDashboard({
   achievementTracked = false,
   onNavigate,
   onEnactCivilization,
+  onSelectNationalProgram,
   onAction,
   onOpenActionCenter,
   onOpenJournal,
@@ -247,6 +250,15 @@ export function CommandDashboard({
         </span>
         <b>{publicHealth.activeOutbreak ? '위기 대응' : '대비 본부'}<ChevronRight size={15} /></b>
       </button>
+
+      <NationalProgramBoard
+        nation={nation}
+        activeProgramId={career.alternatePathId}
+        completedDecisions={completedDecisions}
+        currentWeek={game.week}
+        politicalPower={game.politicalPower}
+        onSelect={onSelectNationalProgram}
+      />
 
       <section className={`weekly-command-briefing ${weeklyCycle.primaryDestination === 'briefing' ? 'unread' : ''}`} data-tour="world-weekly" aria-labelledby="weekly-command-briefing-title">
         <header>

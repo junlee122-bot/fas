@@ -31,7 +31,7 @@ function impactRows(nation: PossibilityNationAggregate) {
 }
 
 function createOverviewMarkdown(run: PossibilityMatrixRun, prefix: string) {
-  return `# IRON DOMINION 국가별 3,000개 가능세계 조합 플레이테스트
+  return `# IRON DOMINION 국가별 ${formatNumber(run.sessionsPerNation)}개 가능세계 조합 플레이테스트
 
 ## 실행 범위
 
@@ -68,7 +68,7 @@ ${findingMarkdown(run)}
 }
 
 function createNationMarkdown(nation: PossibilityNationAggregate) {
-  return `# ${nation.nationName} 3,000개 가능세계 조합 결과
+  return `# ${nation.nationName} ${formatNumber(nation.sessions)}개 가능세계 조합 결과
 
 - 고유 조합: ${formatNumber(nation.uniqueCombinations)} / ${formatNumber(nation.sessions)}
 - 고유 미래 경로: ${formatNumber(nation.uniqueFuturePaths)}

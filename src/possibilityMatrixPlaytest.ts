@@ -42,6 +42,7 @@ export interface PossibilityMatrixSession {
   roleTier: number;
   roleBranch: string;
   scenario: CenturyScenarioBlueprint;
+  nationalProgramId: string;
   transitionYear: number;
   eventChoices: number;
   agendaDecisions: number;
@@ -161,6 +162,7 @@ const dimensions: Array<keyof CenturyScenarioBlueprint> = [
   'transitionApproach',
   'agendaChoice',
   'crisisApproach',
+  'nationalProgramIndex',
   'economicModel',
   'diplomaticPosture',
   'technologyPosture',
@@ -279,6 +281,7 @@ export function runPossibilityMatrixSession(
   const role = roles[nationScenarioId % roles.length];
   const development = getNationDevelopmentProfile(nationId);
   const scenario = createCenturyScenarioBlueprint(nationId, nationScenarioId);
+  const nationalProgram = nation.paths[scenario.nationalProgramIndex];
   const structure = development.structure;
   const transitionYear = getTransitionYear(nationId, scenario);
   let state: PossibilityState = {
@@ -292,6 +295,16 @@ export function runPossibilityMatrixSession(
     sustainability: 24,
     multipolarity: 38,
   };
+  if (nationalProgram.tone === 'reform') {
+    state.rights = clamp(state.rights + 3);
+    state.mandate = clamp(state.mandate + 2);
+  } else if (nationalProgram.tone === 'hardline') {
+    state.security = clamp(state.security + 4);
+    state.unrest = clamp(state.unrest + 2);
+  } else {
+    state.multipolarity = clamp(state.multipolarity + 4);
+    state.prosperity = clamp(state.prosperity + 2);
+  }
   let crisisAttempts = 0;
   let successfulRuptures = 0;
   let conflicts = 0;
@@ -339,9 +352,14 @@ export function runPossibilityMatrixSession(
     const doctrineRights = scenario.doctrine === 'coalition' ? .8 : scenario.doctrine === 'maneuver' ? -.25 : .2;
     const doctrineSecurity = scenario.doctrine === 'maneuver' ? 1.1 : scenario.doctrine === 'methodical' ? .65 : .25;
     const doctrineSustainability = scenario.doctrine === 'methodical' ? .55 : 0;
-    const worldRights = scenario.worldVariant === 1 ? 1.15 : scenario.worldVariant === 0 ? -.35 : .35;
-    const worldSecurity = scenario.worldVariant === 0 ? 1.15 : scenario.worldVariant === 1 ? .25 : -.3;
-    const worldTechnology = scenario.worldVariant === 2 ? 1.15 : scenario.worldVariant === 1 ? .2 : .45;
+    // World variants are structural environments rather than cosmetic event rerolls:
+    // 0 = securitized blocs, 1 = rights-led internationalism, 2 = frontier technology race.
+    const worldRights = scenario.worldVariant === 1 ? 1.5 : scenario.worldVariant === 0 ? -.8 : .25;
+    const worldSecurity = scenario.worldVariant === 0 ? 1.5 : scenario.worldVariant === 1 ? .2 : -.45;
+    const worldTechnology = scenario.worldVariant === 2 ? 1.5 : scenario.worldVariant === 1 ? .2 : .35;
+    const worldProsperity = scenario.worldVariant === 2 ? 1.2 : scenario.worldVariant === 1 ? .65 : .2;
+    const worldSustainability = scenario.worldVariant === 1 ? .8 : scenario.worldVariant === 2 ? .25 : -.4;
+    const worldUnrest = scenario.worldVariant === 0 ? .8 : scenario.worldVariant === 1 ? -.6 : .25;
     const crisisRights = scenario.crisisApproach === 'constitutional' ? .5 : scenario.crisisApproach === 'command' ? -.35 : .1;
     const crisisSecurity = scenario.crisisApproach === 'command' ? .65 : scenario.crisisApproach === 'counter-intelligence' ? .5 : .1;
     const crisisMandate = scenario.crisisApproach === 'negotiation' ? .45 : scenario.crisisApproach === 'constitutional' ? .3 : -.05;
@@ -377,13 +395,20 @@ export function runPossibilityMatrixSession(
     const profileMultipolarity = scenario.profile === 'opportunist' ? .75
       : scenario.profile === 'guided' ? .2
         : 0;
+    const programProsperity = nationalProgram.tone === 'international' ? .8 : nationalProgram.tone === 'hardline' ? .45 : .25;
+    const programRights = nationalProgram.tone === 'reform' ? 1.15 : nationalProgram.tone === 'hardline' ? -.8 : .35;
+    const programSecurity = nationalProgram.tone === 'hardline' ? 1.25 : nationalProgram.tone === 'international' ? .35 : -.1;
+    const programSustainability = nationalProgram.tone === 'reform' ? .35 : nationalProgram.tone === 'hardline' ? -.2 : .25;
+    const programMultipolarity = nationalProgram.tone === 'international' ? 1.2 : nationalProgram.tone === 'hardline' ? -.3 : .2;
+    const programMandate = nationalProgram.tone === 'reform' ? .55 : nationalProgram.tone === 'hardline' ? -.2 : .35;
+    const programUnrest = nationalProgram.tone === 'hardline' ? 1.1 : nationalProgram.tone === 'reform' ? -.65 : -.2;
 
-    state.prosperity = clamp(state.prosperity + (economicGain + profileProsperity) * years / 8 - instabilityPressure * .025);
+    state.prosperity = clamp(state.prosperity + (economicGain + worldProsperity + profileProsperity + programProsperity) * years / 8 - instabilityPressure * .025);
     state.technology = clamp(state.technology + (technologyGain + worldTechnology + profileTechnology) * years / 8);
-    state.rights = clamp(state.rights + (rightsGain + doctrineRights + worldRights + crisisRights + profileRights) * years / 9 + rightsPressure * .035 - (scenario.economicModel === 'security' ? .8 : 0));
-    state.security = clamp(state.security + (securityGain + doctrineSecurity + worldSecurity + crisisSecurity + profileSecurity) * years / 10 + deterrencePressure * .035 - instabilityPressure * .018);
-    state.sustainability = clamp(state.sustainability + (sustainabilityGain + doctrineSustainability + profileSustainability) * years / 9 - climateLoad);
-    state.multipolarity = clamp(state.multipolarity + multipolarityPressure * .04 + profileMultipolarity + (scenario.diplomaticPosture === 'multilateral' ? 1.2 : scenario.diplomaticPosture === 'revisionist' ? .6 : .25));
+    state.rights = clamp(state.rights + (rightsGain + doctrineRights + worldRights + crisisRights + profileRights + programRights) * years / 9 + rightsPressure * .035 - (scenario.economicModel === 'security' ? .8 : 0));
+    state.security = clamp(state.security + (securityGain + doctrineSecurity + worldSecurity + crisisSecurity + profileSecurity + programSecurity) * years / 10 + deterrencePressure * .035 - instabilityPressure * .018);
+    state.sustainability = clamp(state.sustainability + (sustainabilityGain + worldSustainability + doctrineSustainability + profileSustainability + programSustainability) * years / 9 - climateLoad);
+    state.multipolarity = clamp(state.multipolarity + multipolarityPressure * .04 + profileMultipolarity + programMultipolarity + (scenario.diplomaticPosture === 'multilateral' ? 1.2 : scenario.diplomaticPosture === 'revisionist' ? .6 : .25));
 
     const inequalityPressure = scenario.economicModel === 'open-market' ? 5 : scenario.economicModel === 'industrial' ? 3 : scenario.economicModel === 'welfare' ? -4 : 1;
     const structuralTarget = structure.baseUnrest
@@ -394,6 +419,8 @@ export function runPossibilityMatrixSession(
       + Math.max(0, 45 - state.prosperity) * .22
       + Math.max(0, 38 - state.sustainability) * .12
       + profileUnrest
+      + programUnrest
+      + worldUnrest
       - Math.max(0, state.rights - 45) * .12
       - (scenario.agendaChoice === 'bargain' ? 3 : scenario.agendaChoice === 'invest' ? 2 : -2);
     state.unrest = clamp(state.unrest * .55 + structuralTarget * .45 + randomShock);
@@ -453,6 +480,7 @@ export function runPossibilityMatrixSession(
       + (scenario.agendaChoice === 'bargain' ? 2 : scenario.agendaChoice === 'invest' ? 1 : -.8)
       + crisisMandate
       + profileMandate
+      + programMandate
       + (winsThisEra - Math.max(0, electionsThisEra - winsThisEra)) * .8
       - successfulThisEra * 8
       - outbreaksThisEra * .7
@@ -473,7 +501,7 @@ export function runPossibilityMatrixSession(
       - sustainablePenalty,
     );
     state.nationalScore = clamp(state.nationalScore * .52 + targetScore * .48);
-    pathFragments.push(`${era}:${fingerprint(selectedVariants.map((variant) => variant.id).join('|'))}:${Math.round(state.nationalScore / 5)}:${successfulThisEra}`);
+    pathFragments.push(`${era}:${nationalProgram.id}:${fingerprint(selectedVariants.map((variant) => variant.id).join('|'))}:${Math.round(state.nationalScore / 5)}:${successfulThisEra}`);
     eraSnapshots.push({
       ...Object.fromEntries(Object.entries(state).map(([key, value]) => [key, round(value)])) as unknown as PossibilityState,
       era,
@@ -502,6 +530,7 @@ export function runPossibilityMatrixSession(
     governmentPath,
     economicPath,
     scenario.futurePriority,
+    nationalProgram.id,
     stabilityEnding,
     development.endingTags[(scenario.combinationCode + successfulRuptures) % development.endingTags.length],
   ].join(':');
@@ -519,6 +548,7 @@ export function runPossibilityMatrixSession(
     roleTier: role.tier,
     roleBranch: role.branch,
     scenario,
+    nationalProgramId: nationalProgram.id,
     transitionYear,
     eventChoices,
     agendaDecisions,
@@ -647,11 +677,11 @@ function buildFindings(run: Omit<PossibilityMatrixRun, 'findings'>): Possibility
     {
       priority: nationsWithCombinationGaps.length > 0 ? 'P0' : 'P2',
       id: 'combination-coverage',
-      title: nationsWithCombinationGaps.length > 0 ? '국가별 정책 조합이 요청 표본보다 적습니다' : '개선됨 · 모든 국가가 3,000개의 서로 다른 정책 조합을 사용합니다',
+      title: nationsWithCombinationGaps.length > 0 ? '국가별 정책 조합이 요청 표본보다 적습니다' : `개선됨 · 모든 국가가 ${run.sessionsPerNation.toLocaleString('ko-KR')}개의 서로 다른 정책 조합을 사용합니다`,
       evidence: nationsWithCombinationGaps.length > 0
         ? nationsWithCombinationGaps.map((nation) => `${nation.nationId} ${nation.uniqueCombinations}/${run.sessionsPerNation}`).join(' · ')
         : `${Object.keys(run.byNation).length}개 국가 모두 조합 중복 0건, 전체 고유 조합 ${run.uniqueCombinations.toLocaleString('ko-KR')}개입니다.`,
-      recommendation: nationsWithCombinationGaps.length > 0 ? '혼합 기수 시나리오 공간을 넓히고 조합 중복을 빌드 실패로 처리합니다.' : '4,320개 조합 용량을 보존하고 새 정책 축을 추가할 때 고유성 테스트를 유지합니다.',
+      recommendation: nationsWithCombinationGaps.length > 0 ? '혼합 기수 시나리오 공간을 넓히고 조합 중복을 빌드 실패로 처리합니다.' : '12,960개 조합 용량을 보존하고 새 정책 축을 추가할 때 고유성 테스트를 유지합니다.',
     },
     {
       priority: highCollision.length > 0 ? 'P1' : 'P2',
@@ -659,7 +689,7 @@ function buildFindings(run: Omit<PossibilityMatrixRun, 'findings'>): Possibility
       title: highCollision.length > 0 ? '서로 다른 선택이 같은 미래 지문으로 수렴합니다' : '개선됨 · 선택 조합이 서로 다른 장기 미래 지문으로 이어집니다',
       evidence: highCollision.length > 0
         ? highCollision.map((nation) => `${nation.nationId} ${nation.futurePathCollisionRate}%`).join(' · ')
-        : `39,000개 경력의 미래 경로 충돌률은 ${run.futurePathCollisionRate}%입니다.`,
+        : `${run.totalSessions.toLocaleString('ko-KR')}개 경력의 미래 경로 충돌률은 ${run.futurePathCollisionRate}%입니다.`,
       recommendation: highCollision.length > 0 ? '시대별 사건 선택과 국가 의제·위기 결과를 미래 지문에 더 포함합니다.' : '결말 문구와 주간 결과 설명에서도 동일한 경로 지문을 노출해 선택의 인과를 설명합니다.',
     },
     {
@@ -702,7 +732,7 @@ export function aggregatePossibilityMatrixSessions(
   const averageScores = nationValues.map((nation) => nation.averageNationalScore);
   const withoutFindings = {
     generatedAt: new Date().toISOString(),
-    methodology: `${nations.length} nations × ${sessionsPerNation.toLocaleString('en-US')} unique mixed-radix policy combinations from 1942 to 2060. Every career resolves the full ${worldHistoryEvents.length}-event historical/future atlas through one of three variants, twelve era checkpoints, country transition rules, structural unrest, crisis, election, conflict, public-health and technology consequences.`,
+    methodology: `${nations.length} nations × ${sessionsPerNation.toLocaleString('en-US')} unique mixed-radix policy combinations from 1942 to 2060. Every career resolves one of three nation-specific 26-week strategic programs, the full ${worldHistoryEvents.length}-event historical/future atlas through one of three variants, twelve era checkpoints, country transition rules, structural unrest, crisis, election, conflict, public-health and technology consequences.`,
     sessionsPerNation,
     totalSessions: sessions.length,
     totalHistoricalEventChoices: sessions.reduce((sum, session) => sum + session.eventChoices, 0),

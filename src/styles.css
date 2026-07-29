@@ -692,6 +692,103 @@
 .portal-health-pulse em { margin-top: 4px; font: 500 9px var(--font-data); font-style: normal; color: #84938c; }
 .portal-health-pulse > b { display: flex; align-items: center; gap: 4px; font-size: 9px; color: currentColor; white-space: nowrap; }
 
+.national-program-board {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 17px;
+  border: 1px solid rgba(198,168,107,.34);
+  background:
+    radial-gradient(circle at 91% -12%,rgba(198,168,107,.17),transparent 34%),
+    linear-gradient(135deg,rgba(24,31,27,.98),rgba(11,16,14,.98));
+  box-shadow: inset 3px 0 rgba(198,168,107,.68),0 16px 38px rgba(0,0,0,.2);
+}
+.national-program-board::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .19;
+  background:
+    linear-gradient(90deg,rgba(8,13,11,.48),rgba(8,13,11,.86) 26%,rgba(8,13,11,.9) 74%,rgba(8,13,11,.42)),
+    linear-gradient(0deg,rgba(8,13,11,.82),rgba(8,13,11,.12) 58%,rgba(8,13,11,.54)),
+    url('./assets/national-program-era-panorama.png') center 54% / cover no-repeat;
+  filter: saturate(.72) contrast(1.08);
+  transform: scale(1.015);
+}
+.national-program-board::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .2;
+  background-image:
+    linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);
+  background-size: 28px 28px;
+}
+.national-program-board > * { position: relative; z-index: 1; }
+.national-program-board.tone-reform { box-shadow: inset 3px 0 #739b82,0 16px 38px rgba(0,0,0,.2); }
+.national-program-board.tone-hardline { box-shadow: inset 3px 0 #ae6658,0 16px 38px rgba(0,0,0,.2); }
+.national-program-board.tone-international { box-shadow: inset 3px 0 #648eaa,0 16px 38px rgba(0,0,0,.2); }
+.national-program-board > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.national-program-board > header > div { min-width: 0; }
+.national-program-board h3 { margin: 4px 0; font: 500 18px var(--font-display); color: #ebe8de; }
+.national-program-board header p { max-width: 900px; margin: 0; font: 500 9px/1.6 var(--font-data); color: #89958e; }
+.national-program-clock { min-width: 112px; display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 2px 8px; padding: 9px 11px; color: #c8ad69; border: 1px solid rgba(198,168,107,.25); background: rgba(198,168,107,.05); }
+.national-program-clock svg { grid-row: 1 / span 2; }
+.national-program-clock small { font: 600 7px var(--font-data); color: #7f8c84; }
+.national-program-clock strong { font: 700 10px var(--font-data); color: #d7c080; }
+.national-program-unset { padding: 7px 9px; font: 700 8px var(--font-data); color: #cfb36d; border: 1px solid rgba(198,168,107,.3); }
+.national-program-progress { display: grid; gap: 5px; }
+.national-program-progress > span { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.national-program-progress small { font: 700 8px var(--font-data); color: #95a49b; letter-spacing: .04em; }
+.national-program-progress strong { font: 700 11px var(--font-data); color: #e1cb91; }
+.national-program-progress > i { height: 6px; overflow: hidden; background: rgba(255,255,255,.055); }
+.national-program-progress > i > b { display: block; height: 100%; background: linear-gradient(90deg,#806c3d,#d2b66f); box-shadow: 0 0 12px rgba(198,168,107,.24); transition: width .3s ease; }
+.national-program-progress > em { font: 500 8px/1.5 var(--font-data); font-style: normal; color: #7b8881; }
+.national-program-options { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+.national-program-options > button { min-width: 0; min-height: 134px; display: grid; grid-template-columns: 28px minmax(0,1fr) 14px; align-content: start; gap: 8px; padding: 12px; text-align: left; color: #87948d; border: 1px solid rgba(255,255,255,.07); background: rgba(255,255,255,.015); cursor: pointer; transition: border-color .18s ease,background .18s ease,transform .18s ease; }
+.national-program-options > button:hover { transform: translateY(-1px); border-color: rgba(198,168,107,.42); background: rgba(198,168,107,.055); }
+.national-program-options > button.selected { border-color: rgba(198,168,107,.53); background: linear-gradient(145deg,rgba(198,168,107,.11),rgba(198,168,107,.03)); box-shadow: inset 0 2px #c5a65f; }
+.national-program-options > button.tone-reform.selected { border-color: rgba(110,157,127,.52); box-shadow: inset 0 2px #739b82; }
+.national-program-options > button.tone-hardline.selected { border-color: rgba(184,86,67,.52); box-shadow: inset 0 2px #ae6658; }
+.national-program-options > button.tone-international.selected { border-color: rgba(96,143,173,.52); box-shadow: inset 0 2px #648eaa; }
+.national-program-options > button > i { width: 27px; height: 27px; display: grid; place-items: center; color: #b49c64; border: 1px solid rgba(198,168,107,.2); background: rgba(198,168,107,.05); }
+.national-program-options > button > span { min-width: 0; display: grid; gap: 4px; }
+.national-program-options small { font: 700 7px var(--font-data); color: #8e9a93; letter-spacing: .05em; }
+.national-program-options strong { overflow: hidden; font-size: 11px; color: #d7ddd8; text-overflow: ellipsis; white-space: nowrap; }
+.national-program-options em { min-height: 44px; font: 500 8px/1.5 var(--font-data); font-style: normal; color: #77837d; }
+.national-program-options b { font: 700 8px var(--font-data); color: #bea667; }
+.national-program-options > button > svg { margin-top: 5px; color: #637069; }
+.national-program-milestones { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }
+.national-program-milestones article { min-width: 0; display: grid; grid-template-columns: 30px minmax(0,1fr); align-items: center; gap: 9px; padding: 9px; border: 1px solid rgba(255,255,255,.055); background: rgba(0,0,0,.11); }
+.national-program-milestones article > span { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; font: 700 8px var(--font-data); color: #857c64; border: 1px solid rgba(198,168,107,.2); }
+.national-program-milestones article.complete { border-color: rgba(110,157,127,.24); background: rgba(110,157,127,.04); }
+.national-program-milestones article.complete > span { color: #8fba9c; border-color: rgba(110,157,127,.38); }
+.national-program-milestones article > div { min-width: 0; display: grid; gap: 2px; }
+.national-program-milestones small { font: 600 7px var(--font-data); color: #68756e; }
+.national-program-milestones strong { overflow: hidden; font-size: 9px; color: #b9c1bc; text-overflow: ellipsis; white-space: nowrap; }
+.national-program-milestones em { overflow: hidden; font: 600 7px var(--font-data); font-style: normal; color: #9a875b; text-overflow: ellipsis; white-space: nowrap; }
+.national-program-board > footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #76827c; font: 500 8px/1.5 var(--font-data); }
+.national-program-board > footer b { color: #9d895a; }
+.national-program-board > footer b.warning { color: #c47767; }
+
+@media (max-width: 1050px) {
+  .national-program-options { grid-template-columns: 1fr; }
+  .national-program-options > button { min-height: 0; }
+  .national-program-milestones { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 620px) {
+  .national-program-board { padding: 13px; }
+  .national-program-board > header { display: grid; }
+  .national-program-clock { width: 100%; }
+  .national-program-board > footer { align-items: flex-start; flex-direction: column; }
+}
+
 .public-health-center { width: min(1500px, 100%); min-width: 960px; display: grid; gap: 14px; margin: 0 auto; padding-bottom: 28px; }
 .health-command-hero {
   min-height: 190px;

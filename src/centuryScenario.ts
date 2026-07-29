@@ -24,6 +24,7 @@ export interface CenturyScenarioBlueprint {
   transitionApproach: CenturyTransitionApproach;
   agendaChoice: NationAgendaChoiceId;
   crisisApproach: CenturyCrisisApproach;
+  nationalProgramIndex: 0 | 1 | 2;
   economicModel: CenturyEconomicModel;
   diplomaticPosture: CenturyDiplomaticPosture;
   technologyPosture: CenturyTechnologyPosture;
@@ -35,7 +36,7 @@ export interface CenturyScenarioBlueprint {
   budgetPriority: NationBudgetDomain;
 }
 
-export const CENTURY_SCENARIO_COMBINATION_CAPACITY = 4_320;
+export const CENTURY_SCENARIO_COMBINATION_CAPACITY = 12_960;
 
 const profiles: CenturyBehaviorProfile[] = ['guided', 'rushed', 'military', 'state-builder', 'completionist', 'opportunist'];
 const doctrines: CenturyDoctrine[] = ['coalition', 'methodical', 'maneuver'];
@@ -43,6 +44,7 @@ const strategies: NationStrategyId[] = ['reconstruction-state', 'social-contract
 const transitionApproaches: CenturyTransitionApproach[] = ['accelerated', 'readiness', 'negotiated', 'protracted'];
 const agendaChoices: NationAgendaChoiceId[] = ['bargain', 'invest', 'enforce'];
 const crisisApproaches: CenturyCrisisApproach[] = ['constitutional', 'negotiation', 'command', 'counter-intelligence'];
+const nationalProgramIndices = [0, 1, 2] as const;
 const economicModels: CenturyEconomicModel[] = ['reconstruction', 'welfare', 'industrial', 'open-market', 'security'];
 const diplomaticPostures: CenturyDiplomaticPosture[] = ['alliance', 'nonaligned', 'regional', 'multilateral', 'revisionist'];
 const technologyPostures: CenturyTechnologyPosture[] = ['civilian', 'military', 'balanced', 'frontier'];
@@ -68,7 +70,7 @@ function stableHash(value: string) {
   return hash >>> 0;
 }
 
-function takeDigit<T>(values: T[], cursor: { value: number }) {
+function takeDigit<T>(values: readonly T[], cursor: { value: number }) {
   const result = values[cursor.value % values.length];
   cursor.value = Math.floor(cursor.value / values.length);
   return result;
@@ -79,8 +81,8 @@ function independentPick<T>(values: T[], scenarioId: number, nationId: NationId,
 }
 
 /**
- * The first six dimensions form a 4,320-cell mixed-radix space. Multiplication by 187 is a
- * bijection modulo 4,320, so every scenario from 0 through 4,319 has a genuinely different
+ * The first seven dimensions form a 12,960-cell mixed-radix space. Multiplication by 187 is a
+ * bijection modulo 12,960, so every scenario from 0 through 12,959 has a genuinely different
  * policy/leadership combination instead of merely receiving a different random seed.
  */
 export function createCenturyScenarioBlueprint(nationId: NationId, scenarioId: number): CenturyScenarioBlueprint {
@@ -94,6 +96,7 @@ export function createCenturyScenarioBlueprint(nationId: NationId, scenarioId: n
   const transitionApproach = takeDigit(transitionApproaches, cursor);
   const agendaChoice = takeDigit(agendaChoices, cursor);
   const crisisApproach = takeDigit(crisisApproaches, cursor);
+  const nationalProgramIndex = takeDigit(nationalProgramIndices, cursor);
   const economicModel = independentPick(economicModels, scenarioId, nationId, 'economy', combinationCode);
   const diplomaticPosture = independentPick(diplomaticPostures, scenarioId, nationId, 'diplomacy', combinationCode);
   const technologyPosture = independentPick(technologyPostures, scenarioId, nationId, 'technology', combinationCode);
@@ -109,6 +112,7 @@ export function createCenturyScenarioBlueprint(nationId: NationId, scenarioId: n
     transitionApproach,
     agendaChoice,
     crisisApproach,
+    `program-${nationalProgramIndex}`,
     economicModel,
     diplomaticPosture,
     technologyPosture,
@@ -128,6 +132,7 @@ export function createCenturyScenarioBlueprint(nationId: NationId, scenarioId: n
     transitionApproach,
     agendaChoice,
     crisisApproach,
+    nationalProgramIndex,
     economicModel,
     diplomaticPosture,
     technologyPosture,

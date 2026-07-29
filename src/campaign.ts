@@ -27,6 +27,7 @@ export const nations: NationProfile[] = [
     paths: [
       { id: 'commonwealth-federation', title: '코먼웰스 연방', summary: '식민지에 동등한 전시 의결권을 부여해 자발적 연합을 만듭니다.', effect: '안정도 +8 · 인력 +180K', tone: 'reform' },
       { id: 'imperial-arsenal', title: '제국 병기창', summary: '제국 전역의 산업과 수송망을 런던 지휘 아래 집중합니다.', effect: '군수 공장 +5 · 정치력 -12', tone: 'hardline' },
+      { id: 'atlantic-social-compact', title: '대서양 사회계약', summary: '전시 동원과 보편 복지·과학투자를 묶어 영연방 전체의 전후 재건 협약을 준비합니다.', effect: '동맹 관계 +9 · 연구 진척 +8', tone: 'international' },
     ],
   },
   {
@@ -37,6 +38,7 @@ export const nations: NationProfile[] = [
     paths: [
       { id: 'arsenal-democracies', title: '민주주의 병기창', summary: '원조를 조건 없이 확대해 전후 다자 질서의 기반을 만듭니다.', effect: '동맹 관계 +12 · 재정 -180M', tone: 'international' },
       { id: 'pacific-first', title: '태평양 우선', summary: '유럽보다 아시아 해방과 해양 패권에 국력을 집중합니다.', effect: '해상 통제 +12 · 공중 우세 +8', tone: 'hardline' },
+      { id: 'gi-citizen-republic', title: '시민군 공화국', summary: '동원 병력의 교육·주택·참정권을 전후 시민계약으로 보장해 군수 호황을 사회적 기반으로 전환합니다.', effect: '안정도 +8 · 기술 +6', tone: 'reform' },
     ],
   },
   {
@@ -47,6 +49,7 @@ export const nations: NationProfile[] = [
     paths: [
       { id: 'officers-compact', title: '장교단 협약', summary: '현장 지휘관에게 작전 자율성을 보장하고 숙청의 시대를 끝냅니다.', effect: '지휘 점수 +18 · 안정도 +5', tone: 'reform' },
       { id: 'permanent-mobilization', title: '영구 총동원', summary: '모든 산업과 행정을 전선의 요구에 종속시킵니다.', effect: '인력 +260K · 전쟁 지지도 -6', tone: 'hardline' },
+      { id: 'eurasian-science-compact', title: '유라시아 과학협약', summary: '연합국 원조·과학자 교류·전후 공동개발을 제도화해 폐쇄적 군수경제를 국제 연구망으로 돌립니다.', effect: '연구 진척 +10 · 동맹 관계 +7', tone: 'international' },
     ],
   },
   {
@@ -57,6 +60,7 @@ export const nations: NationProfile[] = [
     paths: [
       { id: 'generals-directorate', title: '장군단 국가관리', summary: '당 조직을 배제하고 전문 관료와 군부가 국가를 인수합니다.', effect: '지휘 점수 +16 · 안정도 -5', tone: 'reform' },
       { id: 'fortress-europe', title: '유럽 요새화', summary: '팽창을 멈추고 점령지를 경제·방위 공동체로 재조직합니다.', effect: '보급 +12 · 적 압력 -8', tone: 'hardline' },
+      { id: 'european-reconciliation', title: '유럽 화해공동체', summary: '침략전쟁을 끝내고 배상·지방자치·공동산업 감독을 받아들이는 조건부 유럽 평화를 제안합니다.', effect: '안정도 +6 · 동맹 관계 +11', tone: 'international' },
     ],
   },
   {
@@ -67,6 +71,7 @@ export const nations: NationProfile[] = [
     paths: [
       { id: 'asian-conference', title: '아시아 자치회의', summary: '점령 행정을 해체하고 지역 정부들과 조건부 동맹을 맺습니다.', effect: '안정도 +7 · 정보망 +10', tone: 'reform' },
       { id: 'decisive-battle', title: '결전국가', summary: '모든 자원과 함대를 단 한 번의 해상 결전에 걸도록 재편합니다.', effect: '해상 통제 +16 · 연료 -18K', tone: 'hardline' },
+      { id: 'pacific-trade-federation', title: '태평양 통상연방', summary: '군정과 강제조달을 폐지하고 항만·통화·식량 협정을 통해 아시아 국가들과 상호의존 질서를 만듭니다.', effect: '재정 +90M · 동맹 관계 +8', tone: 'international' },
     ],
   },
   {
@@ -77,6 +82,7 @@ export const nations: NationProfile[] = [
     paths: [
       { id: 'united-republic', title: '연합공화국', summary: '군벌과 경쟁 정파를 지방정부로 인정하는 연방 헌정을 제안합니다.', effect: '안정도 +12 · 정치력 -10', tone: 'reform' },
       { id: 'national-reconstruction', title: '국가재건위원회', summary: '전시 관료와 군이 산업·토지·징병을 중앙에서 직접 관리합니다.', effect: '군수 공장 +4 · 인력 +160K', tone: 'hardline' },
+      { id: 'asian-reconstruction-bank', title: '아시아 재건은행', summary: '전시 수송로와 지역 금융을 연합국·주변 독립운동과 공동 관리해 전후 재건의 주도권을 확보합니다.', effect: '재정 +110M · 동맹 관계 +9', tone: 'international' },
     ],
   },
   {
@@ -87,6 +93,7 @@ export const nations: NationProfile[] = [
     paths: [
       { id: 'dominion-now', title: '즉시 자치령', summary: '참전을 조건으로 전시 내각과 독립 후 헌법제정을 요구합니다.', effect: '전쟁 지지도 +10 · 정치력 +18', tone: 'reform' },
       { id: 'indian-national-army', title: '독립 국민군', summary: '제국 지휘에서 이탈해 독자적인 아시아 해방 전선을 선포합니다.', effect: '인력 +220K · 동맹 관계 재편', tone: 'hardline' },
+      { id: 'nonaligned-development-union', title: '비동맹 개발연합', summary: '식민지·피식민 사회의 식량·산업·외교 협력을 묶어 어느 강대국에도 종속되지 않는 독립 블록을 준비합니다.', effect: '정치력 +12 · 재정 +80M', tone: 'international' },
     ],
   },
   {
@@ -97,6 +104,7 @@ export const nations: NationProfile[] = [
     paths: [
       { id: 'fourth-republic', title: '새 공화국 헌장', summary: '해방 이전에 여성 참정권과 식민지 대표권을 포함한 헌장을 공표합니다.', effect: '안정도 +10 · 동맹 관계 +8', tone: 'reform' },
       { id: 'french-union', title: '프랑스 연합', summary: '식민지를 자치 회원국으로 바꾸고 공동 방위체계를 수립합니다.', effect: '인력 +120K · 정치력 +10', tone: 'international' },
+      { id: 'republican-planning-office', title: '공화국 계획국', summary: '레지스탕스·기술관료·노동조직을 중앙 계획국에 결집해 해방 즉시 기간산업과 배급을 장악합니다.', effect: '군수 공장 +4 · 재정 -70M', tone: 'hardline' },
     ],
   },
   {
@@ -107,6 +115,7 @@ export const nations: NationProfile[] = [
     paths: [
       { id: 'royal-coup', title: '왕실 비상정부', summary: '군과 왕실이 당 지도부를 축출하고 조건부 휴전을 모색합니다.', effect: '안정도 +9 · 추축 관계 -18', tone: 'reform' },
       { id: 'mediterranean-league', title: '지중해 연맹', summary: '발칸·튀르키예·북아프리카와 독자적인 지역권을 구축합니다.', effect: '해상 통제 +10 · 정치력 +14', tone: 'international' },
+      { id: 'productive-republic', title: '생산 공화국', summary: '왕실·당·대기업의 특권을 전시 생산평의회 아래 두고 노동·기술관료 중심의 국가 재편을 추진합니다.', effect: '군수 공장 +3 · 안정도 -3', tone: 'hardline' },
     ],
   },
   {
@@ -117,6 +126,7 @@ export const nations: NationProfile[] = [
     paths: [
       { id: 'korean-republic-charter', title: '민주공화국 건국헌장', summary: '임시정부의 법통과 국내 대표회의를 결합해 광복 즉시 총선거를 준비합니다.', effect: '안정도 +10 · 정치력 +12', tone: 'reform' },
       { id: 'northeast-asian-federation', title: '동북아 독립연대', summary: '중국·만주·일본의 반전 세력과 식민지 해방 공동전선을 조직합니다.', effect: '정보망 +12 · 동맹 관계 +8', tone: 'international' },
+      { id: 'self-reliant-defense-state', title: '자주국방 산업국', summary: '광복군 간부·기술자·국내 산업망을 결합해 해방 직후 치안·군수·통신을 독자적으로 인수합니다.', effect: '지휘 점수 +12 · 군수 공장 +2', tone: 'hardline' },
     ],
   },
   {
@@ -127,6 +137,7 @@ export const nations: NationProfile[] = [
     paths: [
       { id: 'broad-independence-front', title: '전민족 독립전선', summary: '이념보다 독립을 우선해 종교·지역·정파 대표를 임시의회에 참여시킵니다.', effect: '안정도 +11 · 인력 +140K', tone: 'reform' },
       { id: 'indochina-federation', title: '인도차이나 연방회의', summary: '라오스·캄보디아 독립조직과 동등한 연방·방위 협약을 제안합니다.', effect: '정치력 +14 · 동맹 관계 +10', tone: 'international' },
+      { id: 'land-literacy-mobilization', title: '토지·문해 총동원', summary: '해방구의 토지조정·문해교육·식량징발을 하나의 전시 행정으로 묶어 장기 항전 능력을 만듭니다.', effect: '인력 +170K · 안정도 -2', tone: 'hardline' },
     ],
   },
   {
@@ -137,6 +148,7 @@ export const nations: NationProfile[] = [
     paths: [
       { id: 'youth-republic', title: '청년 공화국', summary: '협력기관을 독립 준비위원회로 전환하고 지역 대표가 참여하는 공화국을 선언합니다.', effect: '전쟁 지지도 +10 · 안정도 +7', tone: 'reform' },
       { id: 'nusantara-commonwealth', title: '누산타라 공동체', summary: '군도의 지방 자치와 공동 해양방위를 결합한 연합국가를 설계합니다.', effect: '해상 통제 +9 · 정치력 +13', tone: 'international' },
+      { id: 'archipelago-development-board', title: '군도 국가개발국', summary: '철도·항만·청년조직을 중앙 개발국에 편입해 독립선언이 군도 전역의 행정력으로 이어지게 합니다.', effect: '군수 공장 +3 · 정보망 +6', tone: 'hardline' },
     ],
   },
   {
@@ -147,6 +159,7 @@ export const nations: NationProfile[] = [
     paths: [
       { id: 'resistance-congress', title: '저항 국민회의', summary: '지역 게릴라·농민조직·망명정부 대표를 묶어 해방 전 임시의회를 구성합니다.', effect: '안정도 +10 · 정보망 +7', tone: 'reform' },
       { id: 'pacific-republic-pact', title: '태평양 공화국 협약', summary: '미국 의존을 줄이고 아시아 독립국들과 상호 방위·통상 협약을 맺습니다.', effect: '정치력 +15 · 동맹 관계 +9', tone: 'international' },
+      { id: 'liberation-defense-authority', title: '해방 방위청', summary: '섬별 게릴라·잠수함 보급·민간 행정을 단일 방위청으로 통합해 상륙 이전부터 국가 기능을 회복합니다.', effect: '지휘 점수 +10 · 보급 +9', tone: 'hardline' },
     ],
   },
 ];
