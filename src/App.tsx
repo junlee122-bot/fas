@@ -122,6 +122,7 @@ import {
   getNationalProgram,
   getNationalProgramMilestoneMarker,
   getNationalProgramPulse,
+  getNationalProgramReviewMarker,
   getNationalProgramStartedWeek,
   getNationalProgramStartMarker,
   nationalProgramToneMeta,
@@ -2314,12 +2315,46 @@ export function App() {
             `채택 노선: ${activeNationalProgram.summary}`,
           ],
           effects: [{ label: `${milestone.week}주 보상`, value: milestone.reward, tone: activeNationalProgram.tone === 'hardline' && milestone.week === 26 ? 'neutral' : 'positive' }],
-          ongoing: [milestone.week < 26 ? `다음 이정표까지 같은 노선의 주간 비용과 보너스가 계속됩니다.` : '상설 프로그램으로 전환되어 4주 주기 효과가 계속 적용됩니다.'],
+          ongoing: [milestone.week < 26 ? `다음 이정표까지 같은 노선의 주간 비용과 보너스가 계속됩니다.` : '상설 프로그램으로 전환되며 4주 주기 효과와 13주 정기감사가 함께 적용됩니다.'],
           nextActions: [milestone.week < 26 ? '지휘 본부에서 다음 검토 시점과 장기 비용을 확인하십시오.' : '노선을 유지하거나 정치력을 사용해 새로운 국가 프로그램으로 전환할 수 있습니다.'],
           certainty: 'confirmed',
         },
       );
       notify(`${activeNationalProgram.title}: ${milestone.title} 달성`);
+    }
+    if (activeNationalProgram && nationalProgramPulse.review) {
+      const review = nationalProgramPulse.review;
+      setCompletedDecisions((current) => Array.from(new Set([
+        ...current,
+        getNationalProgramReviewMarker(activeNationalProgram.id, review.week),
+      ])));
+      addEvent(
+        `국가 프로그램 정기감사 — ${review.title}`,
+        `${activeNationalProgram.title} 상설 운영 ${review.cycle}기 평가가 끝났습니다. ${review.detail} 확정 결과: ${review.reward}.`,
+        activeNationalProgram.tone === 'hardline' ? 'neutral' : 'good',
+        nextWeek,
+        {
+          domain: 'management',
+          decision: `${activeNationalProgram.title} 노선을 폐기하지 않고 상설 기관으로 유지했습니다.`,
+          trigger: `26주 제도화 이후 ${review.week}주차 정기감사 시점에 도달했습니다.`,
+          factors: [
+            nationalProgramToneMeta[activeNationalProgram.tone].cadence,
+            nationalProgramToneMeta[activeNationalProgram.tone].tradeoff,
+            review.warning,
+          ],
+          effects: [{ label: `${review.cycle}기 감사 결과`, value: review.reward, tone: activeNationalProgram.tone === 'hardline' ? 'neutral' : 'positive' }],
+          ongoing: [
+            '다음 13주 동안 같은 집행 방식과 비용 구조가 이어집니다.',
+            review.warning,
+          ],
+          nextActions: [
+            '국가 운영 화면에서 다음 감사까지 남은 주와 누적 부담을 확인하십시오.',
+            '부작용이 커졌다면 정치력을 사용해 다른 국가 프로그램으로 전환할 수 있습니다.',
+          ],
+          certainty: 'confirmed',
+        },
+      );
+      notify(`${activeNationalProgram.title}: ${review.title} 완료`);
     }
     setPublicHealth(publicHealthResult.state);
     setEconomy(economyResult.state);
@@ -6687,7 +6722,23 @@ export function App() {
           onClose={() => setPendingBattleReportId(null)}
         />
       )}
-      {showJournal && <WarJournal events={events} onClose={() => setShowJournal(false)} />}
+      {showJournal && (
+        <WarJournal
+          events={events}
+          worldline={{
+            code: worldline.code,
+            outcomeId: worldline.outcomeId,
+            legacySignature: worldline.legacySignature,
+            title: worldline.title,
+            summary: worldline.summary,
+            divergenceCount: worldline.divergenceCount,
+            dominantForce: historyForceLabels[historyTrajectory.dominantForce],
+            secondaryForce: historyForceLabels[historyTrajectory.secondaryForce],
+            programTitle: playerNation.paths.find((program) => program.id === career.alternatePathId)?.title ?? '아직 채택하지 않음',
+          }}
+          onClose={() => setShowJournal(false)}
+        />
+      )}
       {showStatusOverview && !showBriefing && !campaignOutcome && !pendingWorldFlashpoint && !pendingCoupIncident && !showPoliticalCrisis && !pendingCouncilEvent && !pendingBattleReport && (
         <StatusOverview
           nationName={playerNation.shortName}

@@ -4,6 +4,7 @@ import {
   type CenturyScenarioBlueprint,
 } from './centuryScenario';
 import { getNationDevelopmentProfile } from './nationDevelopment';
+import { evaluateOutcomeGuardrails } from './possibilityOutcomeGuardrails';
 import type { NationId } from './types';
 import { worldHistoryEvents, type WorldMetric } from './worldHistory';
 
@@ -33,6 +34,8 @@ export interface PossibilityEraSnapshot extends PossibilityState {
   conflicts: number;
   outbreaks: number;
   elections: number;
+  recoveryInterventions: number;
+  overextensionCrises: number;
 }
 
 export interface PossibilityMatrixSession {
@@ -52,6 +55,8 @@ export interface PossibilityMatrixSession {
   outbreaks: number;
   elections: number;
   electionWins: number;
+  recoveryInterventions: number;
+  overextensionCrises: number;
   finalNationalScore: number;
   finalMandate: number;
   finalUnrest: number;
@@ -107,6 +112,8 @@ export interface PossibilityNationAggregate {
   averageSecurity: number;
   averageSustainability: number;
   averageCrisisAttempts: number;
+  averageRecoveryInterventions: number;
+  averageOverextensionCrises: number;
   successfulRuptureRate: number;
   averageConflicts: number;
   averageOutbreaks: number;
@@ -311,6 +318,8 @@ export function runPossibilityMatrixSession(
   let outbreaks = 0;
   let elections = 0;
   let electionWins = 0;
+  let recoveryInterventions = 0;
+  let overextensionCrises = 0;
   let eventChoices = 0;
   let agendaDecisions = 0;
   const pathFragments: string[] = [];
@@ -425,6 +434,50 @@ export function runPossibilityMatrixSession(
       - (scenario.agendaChoice === 'bargain' ? 3 : scenario.agendaChoice === 'invest' ? 2 : -2);
     state.unrest = clamp(state.unrest * .55 + structuralTarget * .45 + randomShock);
 
+    // Weak states can recover through institutions, bargaining and external cooperation.
+    // This is a player-built route rather than a nation-specific handicap.
+    const recoveryCapability = (nationalProgram.tone === 'reform' ? 7 : nationalProgram.tone === 'international' ? 6 : 2)
+      + (scenario.crisisApproach === 'negotiation' ? 5 : scenario.crisisApproach === 'constitutional' ? 4 : scenario.crisisApproach === 'counter-intelligence' ? 2 : 1)
+      + (scenario.agendaChoice === 'bargain' ? 4 : scenario.agendaChoice === 'invest' ? 3 : 0)
+      + (scenario.profile === 'state-builder' ? 3 : scenario.profile === 'guided' ? 2 : scenario.profile === 'completionist' ? 1 : 0);
+    const recoveryPressure = Math.max(0, state.unrest - 32) * 1.15
+      + Math.max(0, 48 - state.mandate) * .8
+      + Math.max(0, 50 - state.nationalScore) * .85;
+    const recoveryChance = clamp(recoveryPressure + recoveryCapability * 1.25 - 11, 0, 78);
+    const recoveryThisEra = recoveryPressure > 0
+      && stableUnit(`${nationId}:${nationScenarioId}:${era}:institutional-recovery`) * 100 < recoveryChance
+      ? 1
+      : 0;
+    if (recoveryThisEra) {
+      const recoveryStrength = 2.5 + recoveryCapability * .2;
+      recoveryInterventions += 1;
+      state.unrest = clamp(state.unrest - recoveryStrength);
+      state.mandate = clamp(state.mandate + 1.8 + recoveryCapability * .12);
+      state.prosperity = clamp(state.prosperity + (nationalProgram.tone === 'international' ? 1.4 : nationalProgram.tone === 'reform' ? .9 : .35));
+    }
+
+    // Successful powers accumulate their own failure pressure. Aggressive security,
+    // open-market and revisionist routes can overreach even from a strong baseline.
+    const overextensionExposure = Math.max(0, state.nationalScore - 60) * .9
+      + Math.max(0, state.prosperity - 68) * .5
+      + Math.max(0, state.security - 72) * .45
+      + (scenario.warPosture === 'aggressive' ? 5 : scenario.warPosture === 'cautious' ? -3 : 0)
+      + (scenario.economicModel === 'open-market' ? 4 : scenario.economicModel === 'welfare' ? -3 : 0)
+      + (scenario.diplomaticPosture === 'revisionist' ? 4 : scenario.diplomaticPosture === 'multilateral' ? -2 : 0)
+      + (nationalProgram.tone === 'hardline' ? 3 : nationalProgram.tone === 'reform' ? -2 : 0);
+    const overextensionChance = clamp(overextensionExposure * 1.1 - 6, 0, 65);
+    const overextensionThisEra = overextensionExposure > 0
+      && stableUnit(`${nationId}:${nationScenarioId}:${era}:overextension`) * 100 < overextensionChance
+      ? 1
+      : 0;
+    if (overextensionThisEra) {
+      overextensionCrises += 1;
+      state.unrest = clamp(state.unrest + 4.2);
+      state.mandate = clamp(state.mandate - 3.2);
+      state.rights = clamp(state.rights - (scenario.crisisApproach === 'constitutional' ? .4 : 1.2));
+      state.sustainability = clamp(state.sustainability - 1.8);
+    }
+
     const risk = clamp(
       18
       + state.unrest * .72
@@ -501,7 +554,7 @@ export function runPossibilityMatrixSession(
       - sustainablePenalty,
     );
     state.nationalScore = clamp(state.nationalScore * .52 + targetScore * .48);
-    pathFragments.push(`${era}:${nationalProgram.id}:${fingerprint(selectedVariants.map((variant) => variant.id).join('|'))}:${Math.round(state.nationalScore / 5)}:${successfulThisEra}`);
+    pathFragments.push(`${era}:${nationalProgram.id}:${fingerprint(selectedVariants.map((variant) => variant.id).join('|'))}:${Math.round(state.nationalScore / 5)}:${successfulThisEra}:${recoveryThisEra}:${overextensionThisEra}`);
     eraSnapshots.push({
       ...Object.fromEntries(Object.entries(state).map(([key, value]) => [key, round(value)])) as unknown as PossibilityState,
       era,
@@ -513,6 +566,8 @@ export function runPossibilityMatrixSession(
       conflicts: conflictsThisEra,
       outbreaks: outbreaksThisEra,
       elections: electionsThisEra,
+      recoveryInterventions: recoveryThisEra,
+      overextensionCrises: overextensionThisEra,
     });
   });
 
@@ -521,10 +576,21 @@ export function runPossibilityMatrixSession(
   const economicPath = economicPathFor(state, scenario);
   const fragileTransition = ['liberation', 'decolonization', 'civil-settlement'].includes(development.transition.archetype);
   const viabilityThreshold = fragileTransition ? 35 : 39;
+  const overextensionBreakdown = overextensionCrises >= 3
+    && (state.unrest >= 44 || (state.sustainability < 38 && state.rights < 42));
   const viable = state.nationalScore >= viabilityThreshold
     && state.unrest < (fragileTransition ? 72 : 68)
-    && successfulRuptures < (fragileTransition ? 4 : 3);
+    && successfulRuptures < (fragileTransition ? 4 : 3)
+    && !overextensionBreakdown;
   const stabilityEnding = !viable ? 'systemic-breakdown' : state.unrest <= 24 ? 'durable-settlement' : state.unrest <= 48 ? 'contested-settlement' : 'fragile-settlement';
+  const socialSettlement = state.rights >= 68 ? 'rights-entrenched' : state.rights >= 48 ? 'rights-negotiated' : 'rights-restricted';
+  const developmentBand = state.prosperity >= 72 && state.technology >= 72 ? 'advanced-abundance' : state.prosperity >= 52 ? 'uneven-development' : 'development-deficit';
+  const planetaryBand = state.sustainability >= 60 ? 'planetary-transition' : state.sustainability >= 40 ? 'managed-ecology' : 'ecological-debt';
+  const institutionalMemory = recoveryInterventions >= overextensionCrises + 2
+    ? 'recovery-state'
+    : overextensionCrises >= recoveryInterventions + 2
+      ? 'overextended-state'
+      : 'contested-adaptation';
   const finalEndingId = [
     worldOrder,
     governmentPath,
@@ -532,6 +598,10 @@ export function runPossibilityMatrixSession(
     scenario.futurePriority,
     nationalProgram.id,
     stabilityEnding,
+    socialSettlement,
+    developmentBand,
+    planetaryBand,
+    institutionalMemory,
     development.endingTags[(scenario.combinationCode + successfulRuptures) % development.endingTags.length],
   ].join(':');
   const futurePathCode = fingerprint([
@@ -558,6 +628,8 @@ export function runPossibilityMatrixSession(
     outbreaks,
     elections,
     electionWins,
+    recoveryInterventions,
+    overextensionCrises,
     finalNationalScore: round(state.nationalScore),
     finalMandate: round(state.mandate),
     finalUnrest: round(state.unrest),
@@ -643,6 +715,8 @@ function aggregateNation(nationId: NationId, sessions: PossibilityMatrixSession[
     averageSecurity: round(average(sessions.map((session) => session.finalSecurity))),
     averageSustainability: round(average(sessions.map((session) => session.finalSustainability))),
     averageCrisisAttempts: round(average(sessions.map((session) => session.crisisAttempts))),
+    averageRecoveryInterventions: round(average(sessions.map((session) => session.recoveryInterventions))),
+    averageOverextensionCrises: round(average(sessions.map((session) => session.overextensionCrises))),
     successfulRuptureRate: rate(sessions.filter((session) => session.successfulRuptures > 0).length, sessions.length),
     averageConflicts: round(average(sessions.map((session) => session.conflicts))),
     averageOutbreaks: round(average(sessions.map((session) => session.outbreaks))),
@@ -657,6 +731,7 @@ function buildFindings(run: Omit<PossibilityMatrixRun, 'findings'>): Possibility
   const nationsWithCombinationGaps = Object.values(run.byNation).filter((nation) => nation.uniqueCombinations < run.sessionsPerNation);
   const lowViability = Object.values(run.byNation).filter((nation) => nation.viableRate < 70);
   const highCollision = Object.values(run.byNation).filter((nation) => nation.futurePathCollisionRate > 1);
+  const outcomeGuardrailViolations = evaluateOutcomeGuardrails(run.byNation);
   const weakDimensions = Object.values(run.byNation).flatMap((nation) =>
     nation.dimensionImpacts.filter((impact) =>
       Math.max(
@@ -706,6 +781,17 @@ function buildFindings(run: Omit<PossibilityMatrixRun, 'findings'>): Possibility
           : '국가별 난이도는 유지하되 10·90분위 결과 범위를 회귀 테스트로 고정합니다.',
     },
     {
+      priority: outcomeGuardrailViolations.length > 0 ? 'P1' : 'P2',
+      id: 'outcome-distribution-regression',
+      title: outcomeGuardrailViolations.length > 0 ? '국가별 결과 분포가 검증 범위를 벗어났습니다' : '개선됨 · 국가별 10·90분위와 생존 범위가 회귀 기준 안에 있습니다',
+      evidence: outcomeGuardrailViolations.length > 0
+        ? outcomeGuardrailViolations.join(' · ')
+        : '13개 국가의 하위 10%, 상위 10%, 생존 비율을 각각 검증해 지나친 평준화와 일방적 붕괴를 함께 차단했습니다.',
+      recommendation: outcomeGuardrailViolations.length > 0
+        ? '국가 고유 보너스를 직접 바꾸기보다 회복 수단·과잉확장 압력·구조 불안의 상호작용을 다시 조정합니다.'
+        : '새 사건·정책 축을 추가한 뒤 동일한 국가별 분포 검사를 다시 실행합니다.',
+    },
+    {
       priority: weakDimensions.length > 0 ? 'P1' : 'P2',
       id: 'choice-consequence-sensitivity',
       title: weakDimensions.length > 0 ? '일부 선택 축이 장기 결과에 거의 영향을 주지 않습니다' : '개선됨 · 모든 주요 선택 축이 적어도 하나의 장기 결과를 변화시킵니다',
@@ -732,7 +818,7 @@ export function aggregatePossibilityMatrixSessions(
   const averageScores = nationValues.map((nation) => nation.averageNationalScore);
   const withoutFindings = {
     generatedAt: new Date().toISOString(),
-    methodology: `${nations.length} nations × ${sessionsPerNation.toLocaleString('en-US')} unique mixed-radix policy combinations from 1942 to 2060. Every career resolves one of three nation-specific 26-week strategic programs, the full ${worldHistoryEvents.length}-event historical/future atlas through one of three variants, twelve era checkpoints, country transition rules, structural unrest, crisis, election, conflict, public-health and technology consequences.`,
+    methodology: `${nations.length} nations × ${sessionsPerNation.toLocaleString('en-US')} unique mixed-radix policy combinations from 1942 to 2060. Every career resolves one of three nation-specific 26-week strategic programs and recurring institutional reviews, the full ${worldHistoryEvents.length}-event historical/future atlas through one of three variants, twelve era checkpoints, country transition rules, player-built recovery capacity, power overextension, structural unrest, crisis, election, conflict, public-health and technology consequences.`,
     sessionsPerNation,
     totalSessions: sessions.length,
     totalHistoricalEventChoices: sessions.reduce((sum, session) => sum + session.eventChoices, 0),

@@ -16,7 +16,7 @@ const formatNumber = (value: number) => value.toLocaleString('ko-KR');
 const percent = (value: number) => `${value.toFixed(1)}%`;
 
 function nationRows(run: PossibilityMatrixRun) {
-  return Object.values(run.byNation).map((nation) => `| ${nation.nationName} (\`${nation.nationId}\`) | ${formatNumber(nation.sessions)} | ${formatNumber(nation.uniqueCombinations)} | ${formatNumber(nation.uniqueFuturePaths)} | ${nation.averageTransitionYear.toFixed(1)} | ${nation.averageNationalScore.toFixed(1)} (${nation.nationalScoreP10.toFixed(1)}–${nation.nationalScoreP90.toFixed(1)}) | ${nation.averageUnrest.toFixed(1)} | ${percent(nation.viableRate)} | ${nation.averageCrisisAttempts.toFixed(1)} | ${nation.uniqueEndings} |`).join('\n');
+  return Object.values(run.byNation).map((nation) => `| ${nation.nationName} (\`${nation.nationId}\`) | ${formatNumber(nation.sessions)} | ${formatNumber(nation.uniqueCombinations)} | ${formatNumber(nation.uniqueFuturePaths)} | ${nation.averageTransitionYear.toFixed(1)} | ${nation.averageNationalScore.toFixed(1)} (${nation.nationalScoreP10.toFixed(1)}–${nation.nationalScoreP90.toFixed(1)}) | ${nation.averageUnrest.toFixed(1)} | ${percent(nation.viableRate)} | ${nation.averageRecoveryInterventions.toFixed(1)} / ${nation.averageOverextensionCrises.toFixed(1)} | ${nation.uniqueEndings} |`).join('\n');
 }
 
 function findingMarkdown(run: PossibilityMatrixRun) {
@@ -49,13 +49,22 @@ function createOverviewMarkdown(run: PossibilityMatrixRun, prefix: string) {
 
 ## 국가별 결과
 
-| 국가 | 경력 | 고유 조합 | 고유 미래 | 평균 전환 연도 | 국가 점수 평균 (10–90분위) | 불안 | 생존 | 위기 시도 | 결말 |
+| 국가 | 경력 | 고유 조합 | 고유 미래 | 평균 전환 연도 | 국가 점수 평균 (10–90분위) | 불안 | 생존 | 회복 / 과잉확장 | 결말 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 ${nationRows(run)}
 
 ## 발견 및 개선 판단
 
 ${findingMarkdown(run)}
+
+## 이번 보완에서 실제로 바뀐 구조
+
+- **26주 뒤에도 끝나지 않는 국가 프로그램**: 6·13·26주 이정표 뒤 13주마다 성과감사·정책 피로·동맹 분담 재협상이 발생합니다.
+- **선택 기반 회복 경로**: 개혁·협상·사회적 투자·국제 연대의 조합이 불안과 낮은 정통성을 회복하는 능력으로 계산됩니다.
+- **강국의 과잉확장 경로**: 공격적 전쟁·수정주의 외교·시장 집중·강경 프로그램이 번영과 안보가 높은 국가에도 별도의 붕괴 압력을 만듭니다.
+- **더 구체적인 결말**: 정부·경제·국제질서뿐 아니라 권리 정착, 발전 수준, 생태 부채, 회복/과잉확장 기억을 결말 분류에 포함합니다.
+- **국가별 회귀 잠금**: 13개 국가 각각의 국가 점수 10·90분위와 생존 비율을 검사해 지나친 평준화와 일방적 붕괴를 동시에 경고합니다.
+- **플레이 화면의 인과 추적**: 진행 결과 분석실에서 현재 세계선 코드, 결말 ID, 국가 프로그램, 지배·차순위 역사동력과 누적 분기를 함께 확인합니다.
 
 ## 산출물
 
@@ -81,6 +90,7 @@ function createNationMarkdown(nation: PossibilityNationAggregate) {
 - 번영 ${nation.averageProsperity.toFixed(1)} · 기술 ${nation.averageTechnology.toFixed(1)} · 권리 ${nation.averageRights.toFixed(1)}
 - 안보 ${nation.averageSecurity.toFixed(1)} · 지속가능성 ${nation.averageSustainability.toFixed(1)}
 - 정치 위기 평균 ${nation.averageCrisisAttempts.toFixed(1)}회 · 체제 단절 경험 ${percent(nation.successfulRuptureRate)}
+- 제도적 회복 평균 ${nation.averageRecoveryInterventions.toFixed(1)}회 · 과잉확장 위기 평균 ${nation.averageOverextensionCrises.toFixed(1)}회
 - 분쟁 평균 ${nation.averageConflicts.toFixed(1)}회 · 감염병 평균 ${nation.averageOutbreaks.toFixed(1)}회
 - 선거 평균 ${nation.averageElections.toFixed(1)}회 · 사용자 진영 승률 ${percent(nation.electionWinRate)}
 

@@ -1,11 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowRight, Check, ChevronDown, CircleDot, Minus, Radio, Search, TrendingDown, TrendingUp, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, ChevronDown, CircleDot, Fingerprint, Minus, Radio, Search, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { categorizeWarEvent, filterWarEvents, getWarEventTrace, summarizeJournalComparisons, summarizeJournalProgress } from './journal';
 import type { JournalFilter } from './journal';
 import type { WarEvent } from './types';
 
 interface WarJournalProps {
   events: WarEvent[];
+  worldline: {
+    code: string;
+    outcomeId: string;
+    legacySignature: string;
+    title: string;
+    summary: string;
+    divergenceCount: number;
+    dominantForce: string;
+    secondaryForce: string;
+    programTitle: string;
+  };
   onClose: () => void;
 }
 
@@ -26,7 +37,7 @@ function formatJournalDate(week: number) {
   return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(date);
 }
 
-export function WarJournal({ events, onClose }: WarJournalProps) {
+export function WarJournal({ events, worldline, onClose }: WarJournalProps) {
   const [activeFilter, setActiveFilter] = useState<JournalFilter>('all');
   const [query, setQuery] = useState('');
   const [openId, setOpenId] = useState<number | null>(events[0]?.id ?? null);
@@ -73,6 +84,24 @@ export function WarJournal({ events, onClose }: WarJournalProps) {
           <div className="positive"><span>유리한 결과</span><strong>{latestGood}</strong><small>확정 전문</small></div>
           <div className="negative"><span>불리한 결과</span><strong>{latestBad}</strong><small>대응 필요</small></div>
           <div><span>전체 변화</span><strong>{latestEvents.length}</strong><small>같은 주에 해결</small></div>
+        </section>
+        <section className="journal-worldline-fingerprint" aria-label="현재 세계선 지문">
+          <Fingerprint size={20} />
+          <div>
+            <header>
+              <span>CURRENT WORLDLINE · {worldline.code}</span>
+              <b title={worldline.outcomeId}>{worldline.outcomeId}</b>
+            </header>
+            <strong>{worldline.title}</strong>
+            <p>{worldline.summary}</p>
+            <ul aria-label="세계선 구성 원인">
+              <li><small>국가 프로그램</small>{worldline.programTitle}</li>
+              <li><small>지배 역사동력</small>{worldline.dominantForce}</li>
+              <li><small>차순위 동력</small>{worldline.secondaryForce}</li>
+              <li><small>분기 횟수</small>{worldline.divergenceCount}회</li>
+            </ul>
+            <em title={worldline.legacySignature}>보직·국가 프로그램·결정·국가계획이 바뀔 때 이 지문과 결말 후보가 즉시 다시 계산됩니다.</em>
+          </div>
         </section>
         {comparisonSummary.total > 0 && (
           <section className="journal-comparison-brief" aria-label="최근 결산 예상 정확도">

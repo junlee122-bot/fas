@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronRight, Clock3, Globe2, Landmark, Shield } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ClipboardCheck, Clock3, Globe2, Landmark, Shield } from 'lucide-react';
 import {
   getNationalProgramProgress,
   nationalProgramToneMeta,
@@ -37,14 +37,16 @@ export function NationalProgramBoard({
           <span className="eyebrow">NATIONAL PROGRAM · 26-WEEK JOURNAL</span>
           <h3 id="national-program-title">{active ? active.program.title : `${nation.shortName}의 장기 전략을 선택하십시오`}</h3>
           <p>{active
-            ? `${active.program.summary} 선택은 매주 누적되고 6·13·26주에 검증됩니다.`
+            ? `${active.program.summary} 선택은 매주 누적되고 6·13·26주 검증 뒤 13주마다 성과감사를 받습니다.`
             : '세 노선은 즉시 보너스가 아니라 서로 다른 비용·기관·후속 사건을 만드는 중기 국가 의제입니다.'}</p>
         </div>
         {active ? (
           <span className="national-program-clock">
             <Clock3 size={17} />
-            <small>다음 검토</small>
-            <strong>{active.nextMilestone ? `${Math.max(0, active.nextMilestone.week - active.elapsedWeeks)}주 후` : '상설 운영'}</strong>
+            <small>{active.nextMilestone ? '다음 이정표' : '다음 정기감사'}</small>
+            <strong>{active.nextMilestone
+              ? `${Math.max(0, active.nextMilestone.week - active.elapsedWeeks)}주 후`
+              : `${active.weeksUntilReview}주 후`}</strong>
           </span>
         ) : <span className="national-program-unset">미결정</span>}
       </header>
@@ -96,8 +98,20 @@ export function NationalProgramBoard({
         </div>
       )}
 
+      {active?.phase === 'institutional' && (
+        <aside className="national-program-institutional" aria-label="상설 국가 프로그램 감사 일정">
+          <ClipboardCheck size={18} />
+          <span>
+            <small>INSTITUTIONAL REVIEW · 상설 운영 {active.reviewCount + 1}기</small>
+            <strong>13주 성과감사와 노선별 부작용 검증</strong>
+            <em>{active.weeksUntilReview}주 뒤 제{active.reviewCount + 1}차 감사 · {nationalProgramToneMeta[active.program.tone].tradeoff}</em>
+          </span>
+          <b>W{active.nextReviewWeek}</b>
+        </aside>
+      )}
+
       <footer>
-        <span>{active ? `노선 전환에는 정치력 14가 들고 기존 성과는 역사 기록에 남습니다.` : `최초 채택 비용 정치력 8 · 현재 ${politicalPower}`}</span>
+        <span>{active ? `노선 전환에는 정치력 14가 들고 기존 이정표·감사 결과는 역사 기록에 남습니다.` : `최초 채택 비용 정치력 8 · 현재 ${politicalPower}`}</span>
         {!active && <b>FM식 장기 계획 · 문명식 이정표 · 저널식 후속 사건</b>}
         {active && politicalPower < selectionCost && <b className="warning">전환 정치력 부족</b>}
       </footer>

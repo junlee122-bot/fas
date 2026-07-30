@@ -14,14 +14,28 @@ export interface NationalProgramProgress {
   startedWeek: number;
   elapsedWeeks: number;
   progress: number;
+  phase: 'implementation' | 'institutional';
   milestones: NationalProgramMilestone[];
   nextMilestone: NationalProgramMilestone | null;
+  reviewCount: number;
+  nextReviewWeek: number;
+  weeksUntilReview: number;
+}
+
+export interface NationalProgramReview {
+  week: number;
+  cycle: number;
+  title: string;
+  detail: string;
+  reward: string;
+  warning: string;
 }
 
 export interface NationalProgramPulse {
   gameDelta: Partial<Record<keyof GameState, number>>;
   relationDelta: number;
   milestone: NationalProgramMilestone | null;
+  review: NationalProgramReview | null;
 }
 
 const milestonesByTone: Record<NationalProgramTone, NationalProgramMilestone[]> = {
@@ -74,6 +88,42 @@ export const getNationalProgramStartMarker = (programId: string, week: number) =
 export const getNationalProgramMilestoneMarker = (programId: string, week: number) =>
   `national-program:${programId}:milestone:${week}`;
 
+export const getNationalProgramReviewMarker = (programId: string, week: number) =>
+  `national-program:${programId}:review:${week}`;
+
+function getInstitutionalReview(program: AlternatePath, elapsedWeeks: number): NationalProgramReview | null {
+  if (elapsedWeeks < 39 || (elapsedWeeks - 26) % 13 !== 0) return null;
+  const cycle = Math.floor((elapsedWeeks - 26) / 13);
+  if (program.tone === 'reform') {
+    return {
+      week: elapsedWeeks,
+      cycle,
+      title: `제도 접근성 감사 ${cycle}기`,
+      detail: '새 제도가 실제 수혜집단과 지방 조직까지 도달했는지 독립 감사를 실시합니다.',
+      reward: '안정도 +1 · 정치력 +2 · 국고 -8M',
+      warning: '감사·권리 보장 비용이 계속 발생합니다.',
+    };
+  }
+  if (program.tone === 'hardline') {
+    return {
+      week: elapsedWeeks,
+      cycle,
+      title: `동원 피로도 검열 ${cycle}기`,
+      detail: '집중 동원으로 얻은 생산성과 지휘력을 유지하면서 누적된 조직 피로를 점검합니다.',
+      reward: '지휘 점수 +4 · 전쟁 지지 +2 · 안정도 -2',
+      warning: '성과를 유지할수록 사회적 반작용이 커집니다.',
+    };
+  }
+  return {
+    week: elapsedWeeks,
+    cycle,
+    title: `공동기구 분담 협상 ${cycle}기`,
+    detail: '동맹국의 분담금·시장 접근·정보 공유 조건을 다시 협상합니다.',
+    reward: '국고 +25M · 정보망 +2 · 대외관계 +2',
+    warning: '상대국의 이해를 조정하지 않으면 공동기구가 느슨해집니다.',
+  };
+}
+
 export function getNationalProgramStartedWeek(programId: string | null, decisions: string[]) {
   if (!programId) return null;
   const prefix = `national-program:${programId}:started:`;
@@ -94,13 +144,22 @@ export function getNationalProgramProgress(
   if (!program || startedWeek === null) return null;
   const elapsedWeeks = Math.max(0, currentWeek - startedWeek);
   const milestones = milestonesByTone[program.tone];
+  const phase = elapsedWeeks >= 26 ? 'institutional' : 'implementation';
+  const reviewCount = elapsedWeeks < 39 ? 0 : Math.floor((elapsedWeeks - 26) / 13);
+  const nextReviewElapsedWeek = elapsedWeeks < 26
+    ? 26
+    : 26 + (Math.floor((elapsedWeeks - 26) / 13) + 1) * 13;
   return {
     program,
     startedWeek,
     elapsedWeeks,
     progress: Math.min(100, Math.round(elapsedWeeks / 26 * 100)),
+    phase,
     milestones,
     nextMilestone: milestones.find((milestone) => milestone.week > elapsedWeeks) ?? null,
+    reviewCount,
+    nextReviewWeek: startedWeek + nextReviewElapsedWeek,
+    weeksUntilReview: Math.max(0, nextReviewElapsedWeek - elapsedWeeks),
   };
 }
 
@@ -110,13 +169,17 @@ export function getNationalProgramPulse(
   nextWeek: number,
   decisions: string[],
 ): NationalProgramPulse {
-  if (!program || startedWeek === null) return { gameDelta: {}, relationDelta: 0, milestone: null };
+  if (!program || startedWeek === null) return { gameDelta: {}, relationDelta: 0, milestone: null, review: null };
   const elapsedWeeks = nextWeek - startedWeek;
   const cadence = elapsedWeeks > 0 && elapsedWeeks % 4 === 0;
   const milestone = milestonesByTone[program.tone].find((candidate) => (
     candidate.week === elapsedWeeks
     && !decisions.includes(getNationalProgramMilestoneMarker(program.id, candidate.week))
   )) ?? null;
+  const candidateReview = getInstitutionalReview(program, elapsedWeeks);
+  const review = candidateReview && !decisions.includes(getNationalProgramReviewMarker(program.id, candidateReview.week))
+    ? candidateReview
+    : null;
   const gameDelta: Partial<Record<keyof GameState, number>> = cadence
     ? program.tone === 'reform'
       ? { politicalPower: 1, treasury: -5 }
@@ -143,10 +206,30 @@ export function getNationalProgramPulse(
       ? { victoryScore: (gameDelta.victoryScore ?? 0) + 5, stability: (gameDelta.stability ?? 0) - 3 }
       : { victoryScore: (gameDelta.victoryScore ?? 0) + 4, politicalPower: (gameDelta.politicalPower ?? 0) + (program.tone === 'reform' ? 6 : 0) });
   }
+  if (review) {
+    Object.assign(gameDelta, program.tone === 'reform'
+      ? {
+          stability: (gameDelta.stability ?? 0) + 1,
+          politicalPower: (gameDelta.politicalPower ?? 0) + 2,
+          treasury: (gameDelta.treasury ?? 0) - 8,
+        }
+      : program.tone === 'hardline'
+        ? {
+            commandPoints: (gameDelta.commandPoints ?? 0) + 4,
+            warSupport: (gameDelta.warSupport ?? 0) + 2,
+            stability: (gameDelta.stability ?? 0) - 2,
+          }
+        : {
+            treasury: (gameDelta.treasury ?? 0) + 25,
+            intelNetwork: (gameDelta.intelNetwork ?? 0) + 2,
+          });
+  }
   return {
     gameDelta,
-    relationDelta: milestone && program.tone === 'international' ? milestone.week === 26 ? 5 : milestone.week === 13 ? 3 : 0 : 0,
+    relationDelta: (milestone && program.tone === 'international' ? milestone.week === 26 ? 5 : milestone.week === 13 ? 3 : 0 : 0)
+      + (review && program.tone === 'international' ? 2 : 0),
     milestone,
+    review,
   };
 }
 
