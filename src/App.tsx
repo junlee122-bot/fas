@@ -299,6 +299,69 @@ import {
   setSuccessionLaw,
 } from './dynasticPolitics';
 import type { DynasticActionResult, GovernmentFormId, NobleRankId, SuccessionLawId } from './dynasticPolitics';
+import {
+  beginPersonalRelationship,
+  chooseFamilyPlan,
+  configurePersonalIdentity,
+  formalizePersonalUnion,
+  getPersonalRelationshipCandidates,
+  reformFamilyLaw,
+  resolvePersonalLifeAction,
+} from './personalLife';
+import type {
+  FamilyLawId,
+  FamilyPlanId,
+  PersonalIdentityProfile,
+  PersonalLifeActionId,
+  PersonalLifeActionResult,
+  PersonalLifeContext,
+  RelationshipVisibility,
+  UnionForm,
+} from './personalLife';
+import {
+  advanceMediaRelationsWeek,
+  reformMediaLaw,
+  requestPressInterview,
+  resolveExposureIncident,
+  respondToInterview,
+} from './mediaRelations';
+import type {
+  ExposureResponseId,
+  InterviewResponseId,
+  MediaActionResult,
+  MediaLawId,
+  MediaRelationsContext,
+  MediaTopicId,
+} from './mediaRelations';
+import {
+  advancePowerNetworkWeek,
+  makeBlocPromise,
+  manageRival,
+  resolvePowerOpportunity,
+  selectLegacyPath,
+  setLeadershipPrinciples,
+} from './powerNetwork';
+import type {
+  LeadershipPrincipleId,
+  LegacyPathId,
+  OpportunityChoiceId,
+  PowerBlocId,
+  PowerNetworkActionResult,
+  PowerNetworkContext,
+  RivalActionId,
+} from './powerNetwork';
+import {
+  advanceStrategicSagaWeek,
+  chooseSagaApproach,
+  commitSagaReserve,
+  startStrategicSaga,
+} from './strategicSaga';
+import type {
+  SagaActionResult,
+  SagaApproachId,
+  SagaChampion,
+  StrategicSagaContext,
+} from './strategicSaga';
 import { applyElectionCampaignAction, launchReferendum } from './electoralPolitics';
 import type { ElectionCampaignActionId, ElectoralActionResult, ElectoralContext, ReferendumTopicId } from './electoralPolitics';
 import {
@@ -1939,6 +2002,11 @@ export function App() {
       nextActions: ['국가 운영 화면에서 다음 주 예산과 발전 노선을 재검토하십시오.'],
       certainty: 'confirmed',
     }));
+    if (result.report.events.some((event) => event.id.startsWith('saga-act-') || event.id.startsWith('saga-setback-'))) {
+      setSpeed(0);
+      setPeriodAdvanceRemaining(0);
+      notify('전략 서사의 새 막이 열렸습니다. 국가 운영에서 대응 원칙을 선택하십시오.');
+    }
     if (result.report.events.length > 0 || breakthroughs.length > 0 || newlyAvailableResearch.length > 0 || publicHealthResult.events.length > 0) {
       setPeriodAdvanceRemaining(0);
     }
@@ -2040,6 +2108,154 @@ export function App() {
       staffWeeklyCost,
       economyAdvisorBonus,
     });
+    const warMediaEffects = advanceMediaRelationsWeek(nationManagement.mediaRelations, {
+      week: nextWeek,
+      year: 1942 + Math.floor(nextWeek / 52),
+      role: careerRole,
+      politicalPower: game.politicalPower,
+      treasury: game.treasury,
+      stability: game.stability,
+      legitimacy: nationManagement.legitimacy,
+      unrest: nationManagement.unrest,
+      education: nationManagement.education,
+      institutionalCapacity: nationManagement.institutionalCapacity,
+      inflation: economy.inflation,
+      publicConfidence: economy.publicConfidence,
+      intelNetwork: game.intelNetwork,
+      governmentFormId: nationManagement.dynasty.formId,
+      strategyId: nationManagement.strategyId,
+      activeElection: Boolean(nationManagement.electoral.activeCampaign),
+      personalLife: nationManagement.personalLife,
+    });
+    const warPowerEffects = advancePowerNetworkWeek(nationManagement.powerNetwork, {
+      week: nextWeek,
+      year: 1942 + Math.floor(nextWeek / 52),
+      phase: 'war',
+      nationId: playerNation.id,
+      role: careerRole,
+      strategyId: nationManagement.strategyId,
+      budget: nationManagement.budget,
+      politicalPower: game.politicalPower,
+      treasury: game.treasury,
+      stability: game.stability,
+      warSupport: game.warSupport,
+      enemyPressure: game.enemyPressure,
+      intelNetwork: game.intelNetwork,
+      legitimacy: nationManagement.legitimacy,
+      unrest: nationManagement.unrest,
+      welfare: nationManagement.welfare,
+      education: nationManagement.education,
+      employment: nationManagement.employment,
+      civilianIndustry: nationManagement.civilianIndustry,
+      institutionalCapacity: nationManagement.institutionalCapacity,
+      inequality: nationManagement.inequality,
+      relativeCompetitiveness: nationManagement.relativeCompetitiveness,
+      relationAverage,
+      inflation: economy.inflation,
+      publicConfidence: economy.publicConfidence,
+      mediaFreedom: warMediaEffects.state.freedom,
+      pressTrust: warMediaEffects.state.pressTrust,
+      activeElection: Boolean(nationManagement.electoral.activeCampaign),
+    });
+    const warSagaEffects = advanceStrategicSagaWeek(nationManagement.strategicSaga, {
+      week: nextWeek,
+      year: 1942 + Math.floor(nextWeek / 52),
+      phase: 'war',
+      nationId: playerNation.id,
+      role: careerRole,
+      politicalPower: game.politicalPower,
+      treasury: game.treasury,
+      stability: game.stability,
+      warSupport: game.warSupport,
+      enemyPressure: game.enemyPressure,
+      intelNetwork: game.intelNetwork,
+      legitimacy: nationManagement.legitimacy,
+      unrest: nationManagement.unrest,
+      education: nationManagement.education,
+      civilianIndustry: nationManagement.civilianIndustry,
+      institutionalCapacity: nationManagement.institutionalCapacity,
+      relativeCompetitiveness: nationManagement.relativeCompetitiveness,
+      relationAverage,
+      publicConfidence: economy.publicConfidence,
+      inflation: economy.inflation,
+      completedResearch: research.filter((project) => project.complete).length,
+      publicHealthPressure: publicHealth.activeOutbreak
+        ? Math.max(publicHealth.activeOutbreak.hospitalLoad, publicHealth.activeOutbreak.weeklyCases / 10_000)
+        : publicHealth.outbreakPressure * .12,
+      coalitionSupport: nationManagement.powerNetwork.blocs.reduce((sum, bloc) => sum + bloc.support, 0) / Math.max(1, nationManagement.powerNetwork.blocs.length),
+      promiseReliability: nationManagement.powerNetwork.promiseReliability,
+    });
+    setNationManagement((current) => ({
+      ...current,
+      mediaRelations: warMediaEffects.state,
+      personalLife: warMediaEffects.personalLife,
+      powerNetwork: warPowerEffects.state,
+      strategicSaga: warSagaEffects.state,
+      legitimacy: Math.max(0, Math.min(100, current.legitimacy + warMediaEffects.legitimacy + warPowerEffects.legitimacy + warSagaEffects.legitimacy)),
+      unrest: Math.max(0, Math.min(100, current.unrest + warMediaEffects.unrest + warPowerEffects.unrest + warSagaEffects.unrest)),
+    }));
+    if (warMediaEffects.stability !== 0) setGame((current) => applyGameDelta(current, { stability: warMediaEffects.stability }));
+    if (warPowerEffects.stability !== 0 || warPowerEffects.politicalPower !== 0 || warPowerEffects.treasury !== 0) setGame((current) => applyGameDelta(current, { stability: warPowerEffects.stability, politicalPower: warPowerEffects.politicalPower, treasury: warPowerEffects.treasury }));
+    if (warSagaEffects.stability !== 0 || warSagaEffects.politicalPower !== 0 || warSagaEffects.treasury !== 0) setGame((current) => applyGameDelta(current, { stability: warSagaEffects.stability, politicalPower: warSagaEffects.politicalPower, treasury: warSagaEffects.treasury }));
+    if (warMediaEffects.publicConfidence !== 0) setEconomy((current) => ({
+      ...current,
+      publicConfidence: Math.max(0, Math.min(100, current.publicConfidence + warMediaEffects.publicConfidence)),
+    }));
+    if (warPowerEffects.publicConfidence !== 0) setEconomy((current) => ({
+      ...current,
+      publicConfidence: Math.max(0, Math.min(100, current.publicConfidence + warPowerEffects.publicConfidence)),
+    }));
+    if (warSagaEffects.publicConfidence !== 0) setEconomy((current) => ({
+      ...current,
+      publicConfidence: Math.max(0, Math.min(100, current.publicConfidence + warSagaEffects.publicConfidence)),
+    }));
+    warMediaEffects.events.forEach((event) => addEvent(event.title, event.detail, event.tone, nextWeek, {
+      domain: 'management',
+      trigger: event.cause,
+      decision: '언론 편집국과 경쟁 집단이 현재 보직·여론·개인정보 공개 경계를 평가했습니다.',
+      factors: [`언론법 ${warMediaEffects.state.lawId}`, `언론 자유 ${Math.round(warMediaEffects.state.freedom)}`, `보직 ${careerRole.title}`],
+      effects: [{ label: '후속 상태', value: event.consequence, tone: event.tone === 'bad' ? 'negative' : 'neutral' }],
+      ongoing: [warMediaEffects.note],
+      nextActions: ['전후 설계 화면의 전시 언론 데스크에서 인터뷰 답변 또는 폭로 대응을 선택하십시오.'],
+      certainty: event.id.includes('exposure') ? 'developing' : 'confirmed',
+    }));
+    if (warMediaEffects.events.some((event) => event.id.includes('interview-request') || event.id.includes('exposure-open'))) {
+      setSpeed(0);
+      notify('새 언론 요청 또는 사생활 제보가 도착했습니다. 전후 설계의 전시 언론 데스크에서 확인하십시오.');
+    }
+    warPowerEffects.events.forEach((event) => addEvent(event.title, event.detail, event.tone, nextWeek, {
+      domain: 'management',
+      trigger: event.cause,
+      decision: '전시 지도부의 공약·세력 관계·경쟁자·장기 유산이 한 주 진행됐습니다.',
+      factors: [`연정 지지와 공약 신뢰`, `경쟁자 ${warPowerEffects.state.rival.name} 압력 ${Math.round(warPowerEffects.state.rival.pressure)}`, `보직 ${careerRole.title}`],
+      effects: [{ label: '후속 상태', value: event.consequence, tone: event.tone === 'bad' ? 'negative' : event.tone === 'good' ? 'positive' : 'neutral' }],
+      ongoing: [warPowerEffects.note],
+      nextActions: ['전후 설계의 전시 권력 생태계에서 공약·기회·경쟁자 대응을 선택하십시오.'],
+      certainty: 'confirmed',
+    }));
+    if (warPowerEffects.events.some((event) => event.id.includes('opportunity-open') || event.id.includes('promise-broken') || event.id.includes('rival-move'))) {
+      setSpeed(0);
+      notify('권력 생태계에 새로운 결재·공약 위기·경쟁자 행동이 발생했습니다. 전후 설계 화면에서 확인하십시오.');
+    }
+    warSagaEffects.events.forEach((event) => addEvent(event.title, event.detail, event.tone, nextWeek, {
+      domain: 'management',
+      trigger: event.cause,
+      decision: '담당 참모, 대응 원칙, 투입 자원과 누적 압력이 함께 국면을 움직였습니다.',
+      factors: [
+        `진행 국면 ${warSagaEffects.state.active?.definitionId ?? '완결 또는 제안 단계'}`,
+        `정치력 ${Math.round(game.politicalPower)} · 국고 ${formatGameMoney(game.treasury)}`,
+        `공약 신뢰 ${Math.round(nationManagement.powerNetwork.promiseReliability)}`,
+      ],
+      effects: [{ label: '시대 유산', value: event.consequence, tone: event.tone === 'bad' ? 'negative' : event.tone === 'good' ? 'positive' : 'neutral' }],
+      ongoing: ['후퇴해도 게임은 끝나지 않으며 제도적 상처와 전환점이 최종 결말과 다음 시대에 남습니다.'],
+      nextActions: [warSagaEffects.requiresDecision ? '전후 설계의 전략 서사에서 다음 막의 대응 원칙을 선택하십시오.' : '전략 서사에서 진행도·압력·기세를 확인하십시오.'],
+      certainty: 'developing',
+    }));
+    if (warSagaEffects.requiresDecision) {
+      setSpeed(0);
+      setPeriodAdvanceRemaining(0);
+      notify('전략 서사의 새 막이 열렸습니다. 전후 설계에서 대응 원칙을 선택하십시오.');
+    }
     setCommanderDevelopment((current) => recoverCommanderFatigue(current));
 
     if (currentOrder) {
@@ -2599,7 +2815,7 @@ export function App() {
       ],
       certainty: 'confirmed',
     });
-  }, [activeTheater, addEvent, advanceNationWeek, battleStance, campaignPhase, career.alternatePathId, career.civilian, career.experience, career.nationId, careerRole.tier, commanderDevelopment, completedDecisions, delegatedDepartments, developmentFocusId, divisions, doctrine, economy, economyAdvisorBonus, economyForecast.netTreasuryChange, effectiveCommanders, effectiveDivisions, enemyFaction, equipmentDevelopment, formatGameMoney, game, hasClandestineIncident, historyTrajectory.dominantForce, notify, orders, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, playerFaction, playerNation.id, playerNation.shortName, policyAttackBonus, policyDefenseBonus, policyProductionMultiplier, policySupplyRecovery, priorityDivisionId, procurementFocusId, production, projectionActiveResearch.length, projectionFuelDelta, projectionProductionTotal, projectionResearchGain, publicHealth, publicHealthContext, research, resolvedCouncilChoices, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisor, scienceAdvisorBonus, staffCandidates, staffWeeklyCost, supplyPolicy, territories, worldline]);
+  }, [activeTheater, addEvent, advanceNationWeek, battleStance, campaignPhase, career.alternatePathId, career.civilian, career.experience, career.nationId, careerRole, commanderDevelopment, completedDecisions, delegatedDepartments, developmentFocusId, divisions, doctrine, economy, economyAdvisorBonus, economyForecast.netTreasuryChange, effectiveCommanders, effectiveDivisions, enemyFaction, equipmentDevelopment, formatGameMoney, game, hasClandestineIncident, historyTrajectory.dominantForce, nationManagement, notify, orders, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, playerFaction, playerNation.id, playerNation.shortName, policyAttackBonus, policyDefenseBonus, policyProductionMultiplier, policySupplyRecovery, priorityDivisionId, procurementFocusId, production, projectionActiveResearch.length, projectionFuelDelta, projectionProductionTotal, projectionResearchGain, publicHealth, publicHealthContext, research, resolvedCouncilChoices, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisor, scienceAdvisorBonus, staffCandidates, staffWeeklyCost, supplyPolicy, territories, worldline]);
 
   useEffect(() => {
     if (speed === 0 || pendingWorldFlashpointId || pendingCoupIncident || hasClandestineIncident || showBriefing || showCareerMarket || showWorldHistory || showWorldWeekly || showTutorial) return;
@@ -2692,6 +2908,12 @@ export function App() {
         institutionalCapacity: Math.max(0, Math.min(100, nextState.institutionalCapacity + Math.round(koreaLiberationReadiness.score / 18))),
       };
     }
+    nextState = {
+      ...nextState,
+      personalLife: nationManagement.personalLife,
+      mediaRelations: nationManagement.mediaRelations,
+      powerNetwork: nationManagement.powerNetwork,
+    };
     setCampaignPhase('nation');
     setNationManagement(nextState);
     setPeriodAdvanceRemaining(0);
@@ -2763,7 +2985,7 @@ export function App() {
       },
     );
     notify(`${reason === 'victory' ? '승전국의 전후 국가 운영' : '협상 종전 뒤 국가 운영'}을 시작합니다. 새 직함: ${nextRoleTitle}`);
-  }, [addEvent, careerRole, economy, formatGameMoney, game, koreaLiberationReadiness, notify, playerFaction, playerNation.id, playerNation.shortName, playerNation.status, research, staffAuthority.managedDepartments, transitionReadiness]);
+  }, [addEvent, careerRole, economy, formatGameMoney, game, koreaLiberationReadiness, nationManagement.mediaRelations, nationManagement.personalLife, nationManagement.powerNetwork, notify, playerFaction, playerNation.id, playerNation.shortName, playerNation.status, research, staffAuthority.managedDepartments, transitionReadiness]);
 
   const changeNationBudget = (domain: NationBudgetDomain, delta: -5 | 5) => {
     setNationManagement((current) => rebalanceNationBudget(current, domain, delta));
@@ -2993,6 +3215,370 @@ export function App() {
       return;
     }
     applyDynasticActionResult(result);
+  };
+
+  const personalLifeContext = useCallback((): PersonalLifeContext => ({
+    week: game.week,
+    year: 1942 + Math.floor(game.week / 52),
+    politicalPower: game.politicalPower,
+    treasury: game.treasury,
+    stability: game.stability,
+    legitimacy: nationManagement.legitimacy,
+    education: nationManagement.education,
+    institutionalCapacity: nationManagement.institutionalCapacity,
+    role: displayedCareerRole,
+  }), [displayedCareerRole, game.politicalPower, game.stability, game.treasury, game.week, nationManagement.education, nationManagement.institutionalCapacity, nationManagement.legitimacy]);
+
+  const applyPersonalLifeActionResult = useCallback((result: PersonalLifeActionResult) => {
+    setNationManagement((current) => ({
+      ...current,
+      personalLife: result.state,
+      legitimacy: Math.max(0, Math.min(100, current.legitimacy + result.legitimacyDelta)),
+      unrest: Math.max(0, Math.min(100, current.unrest + result.unrestDelta)),
+    }));
+    setGame((current) => applyGameDelta(current, {
+      politicalPower: result.politicalPowerDelta,
+      treasury: result.treasuryDelta,
+      stability: result.stabilityDelta,
+    }));
+    if (result.relationDelta) {
+      setRelations((current) => current.map((relation) => relation.id === result.relationDelta?.nationId ? {
+        ...relation,
+        value: Math.max(0, Math.min(100, relation.value + (result.relationDelta?.value ?? 0))),
+      } : relation));
+    }
+    addEvent(result.title, result.detail, result.unrestDelta > 1 || result.legitimacyDelta < 0 ? 'bad' : result.legitimacyDelta > 0 || result.stabilityDelta > 0 ? 'good' : 'neutral', game.week, {
+      domain: 'management',
+      decision: result.title,
+      trigger: '개인·가족 화면에서 관계, 가족법 또는 사생활 결정을 내렸습니다.',
+      factors: [
+        `현재 보직: ${displayedCareerRole.title}`,
+        `시대: ${1942 + Math.floor(game.week / 52)}년`,
+        `가족법: ${result.state.familyLawId}`,
+      ],
+      effects: [
+        { label: '정치력', value: `${result.politicalPowerDelta}`, tone: result.politicalPowerDelta < 0 ? 'negative' : 'neutral' },
+        { label: '국고', value: formatGameMoney(result.treasuryDelta, { signed: true }), tone: result.treasuryDelta < 0 ? 'negative' : 'neutral' },
+        { label: '정통성', value: `${result.legitimacyDelta >= 0 ? '+' : ''}${result.legitimacyDelta}`, tone: result.legitimacyDelta >= 0 ? 'positive' : 'negative' },
+        { label: '사회 불안', value: `${result.unrestDelta >= 0 ? '+' : ''}${result.unrestDelta}`, tone: result.unrestDelta > 0 ? 'negative' : 'positive' },
+      ],
+      ongoing: ['유대·신뢰·긴장·관계 노출·가구 비용은 이후 매주 국가 결산에 반영됩니다.'],
+      nextActions: ['개인·가족 화면에서 관계 상태와 법적 보호를 확인하십시오.', '법적 보호가 부족하면 가족법 개혁 또는 사생활 보호를 검토하십시오.'],
+      certainty: 'confirmed',
+    });
+    notify(result.detail);
+  }, [addEvent, displayedCareerRole.title, formatGameMoney, game.week, notify]);
+
+  const configurePersonalLife = (profile: Omit<PersonalIdentityProfile, 'configured'>) => {
+    const next = configurePersonalIdentity(nationManagement.personalLife, profile, game.week);
+    if (next === nationManagement.personalLife) {
+      notify('진행 중인 관계가 있을 때는 핵심 관계 프로필을 다시 설정할 수 없습니다. 호칭과 경계는 관계 행동으로 조정하십시오.');
+      return;
+    }
+    setNationManagement((current) => ({ ...current, personalLife: next }));
+    addEvent('개인 관계 프로필 설정', '성별 정체성·성적 지향·배우자 호칭·관계 경계를 설정했습니다. 이 정보는 관계 후보와 서술을 결정하며 능력치 우열을 만들지 않습니다.', 'neutral', game.week);
+    notify('개인 관계 원칙을 저장했습니다. 이제 관계 후보를 검토할 수 있습니다.');
+  };
+
+  const relationshipCountries = () => [
+    { id: playerNation.id, name: playerNation.shortName, relationValue: 70 },
+    ...relations.map((relation) => ({ id: relation.id, name: relation.name, relationValue: relation.value })),
+  ];
+
+  const startPersonalRelationship = (candidateId: string) => {
+    const candidate = getPersonalRelationshipCandidates(nationManagement.personalLife, relationshipCountries()).find((item) => item.id === candidateId);
+    if (!candidate) return notify('현재 관계 원칙과 맞는 후보를 찾을 수 없습니다.');
+    const result = beginPersonalRelationship(nationManagement.personalLife, candidate, personalLifeContext());
+    if (!result) return notify('교제 시작에는 관계 프로필·정치력 4·국고 8M과 현재 독신 상태가 필요합니다.');
+    applyPersonalLifeActionResult(result);
+  };
+
+  const formalizeRelationship = (unionForm: UnionForm, visibility: RelationshipVisibility) => {
+    const result = formalizePersonalUnion(nationManagement.personalLife, unionForm, visibility, personalLifeContext());
+    if (!result) return notify('유대·신뢰, 가족법, 정치력과 국고 조건을 확인하십시오. 동성 법률혼에는 혼인평등법이 필요합니다.');
+    applyPersonalLifeActionResult(result);
+  };
+
+  const changeFamilyLaw = (lawId: FamilyLawId) => {
+    const result = reformFamilyLaw(nationManagement.personalLife, lawId, personalLifeContext());
+    if (!result) return notify('가족법 개정에는 권한, 정치력, 국고, 교육·제도 역량과 정통성 조건이 필요합니다.');
+    applyPersonalLifeActionResult(result);
+  };
+
+  const takePersonalLifeAction = (actionId: PersonalLifeActionId) => {
+    const result = resolvePersonalLifeAction(nationManagement.personalLife, actionId, personalLifeContext());
+    if (!result) return notify('현재 관계 또는 필요한 정치력·국고 조건을 확인하십시오.');
+    applyPersonalLifeActionResult(result);
+  };
+
+  const changeFamilyPlan = (familyPlanId: FamilyPlanId) => {
+    const result = chooseFamilyPlan(nationManagement.personalLife, familyPlanId, personalLifeContext());
+    if (!result) return notify('먼저 관계를 공식화하십시오. 공동 입양에는 시민결합법 이상의 법적 보호가 필요합니다.');
+    applyPersonalLifeActionResult(result);
+  };
+
+  const mediaRelationsContext = useCallback((): MediaRelationsContext => ({
+    week: game.week,
+    year: 1942 + Math.floor(game.week / 52),
+    role: displayedCareerRole,
+    politicalPower: game.politicalPower,
+    treasury: game.treasury,
+    stability: game.stability,
+    legitimacy: nationManagement.legitimacy,
+    unrest: nationManagement.unrest,
+    education: nationManagement.education,
+    institutionalCapacity: nationManagement.institutionalCapacity,
+    inflation: economy.inflation,
+    publicConfidence: economy.publicConfidence,
+    intelNetwork: game.intelNetwork,
+    governmentFormId: nationManagement.dynasty.formId,
+    strategyId: nationManagement.strategyId,
+    activeElection: Boolean(nationManagement.electoral.activeCampaign),
+    personalLife: nationManagement.personalLife,
+  }), [displayedCareerRole, economy.inflation, economy.publicConfidence, game.intelNetwork, game.politicalPower, game.stability, game.treasury, game.week, nationManagement.dynasty.formId, nationManagement.education, nationManagement.electoral.activeCampaign, nationManagement.institutionalCapacity, nationManagement.legitimacy, nationManagement.personalLife, nationManagement.strategyId, nationManagement.unrest]);
+
+  const applyMediaActionResult = useCallback((result: MediaActionResult) => {
+    setNationManagement((current) => ({
+      ...current,
+      mediaRelations: result.state,
+      personalLife: result.personalLife,
+      legitimacy: Math.max(0, Math.min(100, current.legitimacy + result.legitimacyDelta)),
+      unrest: Math.max(0, Math.min(100, current.unrest + result.unrestDelta)),
+    }));
+    setGame((current) => applyGameDelta(current, {
+      politicalPower: result.politicalPowerDelta,
+      treasury: result.treasuryDelta,
+      stability: result.stabilityDelta,
+    }));
+    setEconomy((current) => ({
+      ...current,
+      publicConfidence: Math.max(0, Math.min(100, current.publicConfidence + result.publicConfidenceDelta)),
+    }));
+    addEvent(result.title, result.detail, result.legitimacyDelta < 0 || result.unrestDelta > 2 ? 'bad' : result.legitimacyDelta > 1 || result.publicConfidenceDelta > 2 ? 'good' : 'neutral', game.week, {
+      domain: 'management',
+      decision: result.title,
+      trigger: '언론법·편집국 의제·공적 지위·경쟁 집단·개인정보 공개 경계가 함께 작동했습니다.',
+      factors: [
+        `현재 보직: ${displayedCareerRole.title}`,
+        `언론법: ${result.state.lawId}`,
+        `언론 자유 ${Math.round(result.state.freedom)} · 신뢰 ${Math.round(result.state.pressTrust)} · 적대 ${Math.round(result.state.hostility)}`,
+      ],
+      effects: [
+        { label: '정치력', value: `${result.politicalPowerDelta}`, tone: result.politicalPowerDelta < 0 ? 'negative' : 'neutral' },
+        { label: '정통성', value: `${result.legitimacyDelta >= 0 ? '+' : ''}${result.legitimacyDelta}`, tone: result.legitimacyDelta >= 0 ? 'positive' : 'negative' },
+        { label: '사회 불안', value: `${result.unrestDelta >= 0 ? '+' : ''}${result.unrestDelta}`, tone: result.unrestDelta > 0 ? 'negative' : 'positive' },
+        { label: '국민 신뢰', value: `${result.publicConfidenceDelta >= 0 ? '+' : ''}${result.publicConfidenceDelta}`, tone: result.publicConfidenceDelta >= 0 ? 'positive' : 'negative' },
+      ],
+      ongoing: ['답변·거절·폭로 대응은 언론 신뢰, 다음 인터뷰 접근성, 경쟁자의 공격 강도와 주간 기사에 계속 반영됩니다.'],
+      nextActions: ['국가 운영의 언론·평판 상황실에서 대기 인터뷰와 폭로 사건의 후속 상태를 확인하십시오.'],
+      certainty: 'confirmed',
+    });
+    notify(result.detail);
+  }, [addEvent, displayedCareerRole.title, game.week, notify]);
+
+  const changeMediaLaw = (lawId: MediaLawId) => {
+    const result = reformMediaLaw(nationManagement.mediaRelations, lawId, mediaRelationsContext());
+    if (!result) return notify('언론법 개정에는 보직 권한, 정치력·국고, 교육·제도 역량과 정통성 조건이 필요합니다.');
+    applyMediaActionResult(result);
+  };
+
+  const requestMediaInterview = (topicId: MediaTopicId) => {
+    const result = requestPressInterview(nationManagement.mediaRelations, topicId, mediaRelationsContext());
+    if (!result) return notify('진행 중인 인터뷰가 없어야 하며, 독립 인터뷰를 허용하는 언론법·언론 접근 25·정치력 2가 필요합니다.');
+    applyMediaActionResult(result);
+  };
+
+  const answerMediaInterview = (responseId: InterviewResponseId) => {
+    const result = respondToInterview(nationManagement.mediaRelations, responseId, mediaRelationsContext());
+    if (!result) return notify('현재 답변할 인터뷰 요청이 없습니다.');
+    applyMediaActionResult(result);
+  };
+
+  const answerExposureIncident = (responseId: ExposureResponseId) => {
+    const result = resolveExposureIncident(nationManagement.mediaRelations, responseId, mediaRelationsContext());
+    if (!result) return notify('현재 대응 가능한 폭로가 없거나, 선택한 대응의 제도·자원 조건을 충족하지 못했습니다.');
+    applyMediaActionResult(result);
+  };
+
+  const powerNetworkContext = useCallback((): PowerNetworkContext => ({
+    week: game.week,
+    year: 1942 + Math.floor(game.week / 52),
+    phase: campaignPhase,
+    nationId: playerNation.id,
+    role: displayedCareerRole,
+    strategyId: nationManagement.strategyId,
+    budget: nationManagement.budget,
+    politicalPower: game.politicalPower,
+    treasury: game.treasury,
+    stability: game.stability,
+    warSupport: game.warSupport,
+    enemyPressure: game.enemyPressure,
+    intelNetwork: game.intelNetwork,
+    legitimacy: nationManagement.legitimacy,
+    unrest: nationManagement.unrest,
+    welfare: nationManagement.welfare,
+    education: nationManagement.education,
+    employment: nationManagement.employment,
+    civilianIndustry: nationManagement.civilianIndustry,
+    institutionalCapacity: nationManagement.institutionalCapacity,
+    inequality: nationManagement.inequality,
+    relativeCompetitiveness: nationManagement.relativeCompetitiveness,
+    relationAverage,
+    inflation: economy.inflation,
+    publicConfidence: economy.publicConfidence,
+    mediaFreedom: nationManagement.mediaRelations.freedom,
+    pressTrust: nationManagement.mediaRelations.pressTrust,
+    activeElection: Boolean(nationManagement.electoral.activeCampaign),
+  }), [campaignPhase, displayedCareerRole, economy.inflation, economy.publicConfidence, game.enemyPressure, game.intelNetwork, game.politicalPower, game.stability, game.treasury, game.warSupport, game.week, nationManagement.budget, nationManagement.civilianIndustry, nationManagement.education, nationManagement.electoral.activeCampaign, nationManagement.employment, nationManagement.inequality, nationManagement.institutionalCapacity, nationManagement.legitimacy, nationManagement.mediaRelations.freedom, nationManagement.mediaRelations.pressTrust, nationManagement.relativeCompetitiveness, nationManagement.strategyId, nationManagement.unrest, nationManagement.welfare, playerNation.id, relationAverage]);
+
+  const applyPowerNetworkActionResult = useCallback((result: PowerNetworkActionResult) => {
+    setNationManagement((current) => ({
+      ...current,
+      powerNetwork: result.state,
+      legitimacy: Math.max(0, Math.min(100, current.legitimacy + result.legitimacyDelta)),
+      unrest: Math.max(0, Math.min(100, current.unrest + result.unrestDelta)),
+    }));
+    setGame((current) => applyGameDelta(current, {
+      politicalPower: result.politicalPowerDelta,
+      treasury: result.treasuryDelta,
+      stability: result.stabilityDelta,
+    }));
+    setEconomy((current) => ({
+      ...current,
+      publicConfidence: Math.max(0, Math.min(100, current.publicConfidence + result.publicConfidenceDelta)),
+    }));
+    const negative = result.legitimacyDelta < 0 || result.unrestDelta > 1 || result.publicConfidenceDelta < -1;
+    const positive = result.legitimacyDelta > 0 || result.unrestDelta < 0 || result.publicConfidenceDelta > 1;
+    addEvent(result.title, result.detail, negative ? 'bad' : positive ? 'good' : 'neutral', game.week, {
+      domain: 'management',
+      decision: result.title,
+      trigger: '보이는 세력의 지지·불만·동원, 공약 신뢰와 경쟁자의 지렛대가 함께 작동했습니다.',
+      factors: [
+        `현재 보직: ${displayedCareerRole.title} · ${displayedCareerRole.tier}급`,
+        `연정 공약 신뢰 ${Math.round(result.state.promiseReliability)}`,
+        `경쟁자 압력 ${Math.round(result.state.rival.pressure)} · 존중 ${Math.round(result.state.rival.respect)} · 지렛대 ${Math.round(result.state.rival.leverage)}`,
+      ],
+      effects: [
+        { label: '정치력', value: `${result.politicalPowerDelta >= 0 ? '+' : ''}${result.politicalPowerDelta}`, tone: result.politicalPowerDelta < 0 ? 'negative' : 'positive' },
+        { label: '국고', value: formatGameMoney(result.treasuryDelta, { signed: true }), tone: result.treasuryDelta < 0 ? 'negative' : 'positive' },
+        { label: '정통성', value: `${result.legitimacyDelta >= 0 ? '+' : ''}${result.legitimacyDelta}`, tone: result.legitimacyDelta < 0 ? 'negative' : 'positive' },
+        { label: '사회 불안', value: `${result.unrestDelta >= 0 ? '+' : ''}${result.unrestDelta}`, tone: result.unrestDelta > 0 ? 'negative' : 'positive' },
+      ],
+      ongoing: ['세력은 이번 결정을 기억하며 이후 지지, 동원, 공약 협상과 경쟁자의 13주 행동에 반영합니다.'],
+      nextActions: ['국가 운영의 권력 생태계에서 세력별 반응과 다음 공약·기회·경쟁자 행동을 확인하십시오.'],
+      certainty: 'confirmed',
+    });
+    notify(result.detail);
+  }, [addEvent, displayedCareerRole.tier, displayedCareerRole.title, formatGameMoney, game.week, notify]);
+
+  const changeLeadershipPrinciples = (principles: LeadershipPrincipleId[]) => {
+    const result = setLeadershipPrinciples(nationManagement.powerNetwork, principles, powerNetworkContext());
+    if (!result) return notify('서로 다른 원칙 세 가지와 정치력 4가 필요합니다. 현재와 같은 조합은 다시 선언할 수 없습니다.');
+    applyPowerNetworkActionResult(result);
+  };
+
+  const promisePowerBloc = (blocId: PowerBlocId) => {
+    const result = makeBlocPromise(nationManagement.powerNetwork, blocId, powerNetworkContext());
+    if (!result) return notify('동시에 하나의 공약만 관리할 수 있으며 정치력 3이 필요합니다.');
+    applyPowerNetworkActionResult(result);
+  };
+
+  const changeLegacyPath = (pathId: LegacyPathId) => {
+    const result = selectLegacyPath(nationManagement.powerNetwork, pathId, powerNetworkContext());
+    if (!result) return notify('장기 유산 전환에는 정치력 6과 이전 선언 이후 26주의 숙의 기간이 필요합니다.');
+    applyPowerNetworkActionResult(result);
+  };
+
+  const takeRivalAction = (actionId: RivalActionId) => {
+    const result = manageRival(nationManagement.powerNetwork, actionId, powerNetworkContext());
+    if (!result) return notify('보직 권한, 정치력·국고 또는 6주 행동 냉각기간을 확인하십시오.');
+    applyPowerNetworkActionResult(result);
+  };
+
+  const decidePowerOpportunity = (choiceId: OpportunityChoiceId) => {
+    const result = resolvePowerOpportunity(nationManagement.powerNetwork, choiceId, powerNetworkContext());
+    if (!result) return notify('현재 결재 가능한 정치적 기회가 없거나 선택에 필요한 정치력·국고가 부족합니다.');
+    applyPowerNetworkActionResult(result);
+    setPeriodAdvanceRemaining(0);
+  };
+
+  const strategicSagaContext = useCallback((): StrategicSagaContext => ({
+    week: game.week,
+    year: 1942 + Math.floor(game.week / 52),
+    phase: campaignPhase,
+    nationId: playerNation.id,
+    role: displayedCareerRole,
+    politicalPower: game.politicalPower,
+    treasury: game.treasury,
+    stability: game.stability,
+    warSupport: game.warSupport,
+    enemyPressure: game.enemyPressure,
+    intelNetwork: game.intelNetwork,
+    legitimacy: nationManagement.legitimacy,
+    unrest: nationManagement.unrest,
+    education: nationManagement.education,
+    civilianIndustry: nationManagement.civilianIndustry,
+    institutionalCapacity: nationManagement.institutionalCapacity,
+    relativeCompetitiveness: nationManagement.relativeCompetitiveness,
+    relationAverage,
+    publicConfidence: economy.publicConfidence,
+    inflation: economy.inflation,
+    completedResearch: research.filter((project) => project.complete).length,
+    publicHealthPressure: projectionPublicHealthPressure,
+    coalitionSupport: nationManagement.powerNetwork.blocs.reduce((sum, bloc) => sum + bloc.support, 0) / Math.max(1, nationManagement.powerNetwork.blocs.length),
+    promiseReliability: nationManagement.powerNetwork.promiseReliability,
+  }), [campaignPhase, displayedCareerRole, economy.inflation, economy.publicConfidence, game.enemyPressure, game.intelNetwork, game.politicalPower, game.stability, game.treasury, game.warSupport, game.week, nationManagement.civilianIndustry, nationManagement.education, nationManagement.institutionalCapacity, nationManagement.legitimacy, nationManagement.powerNetwork.blocs, nationManagement.powerNetwork.promiseReliability, nationManagement.relativeCompetitiveness, nationManagement.unrest, playerNation.id, projectionPublicHealthPressure, relationAverage, research]);
+
+  const applySagaActionResult = useCallback((result: SagaActionResult) => {
+    setNationManagement((current) => ({
+      ...current,
+      strategicSaga: result.state,
+      legitimacy: Math.max(0, Math.min(100, current.legitimacy + result.legitimacyDelta)),
+      unrest: Math.max(0, Math.min(100, current.unrest + result.unrestDelta)),
+    }));
+    setGame((current) => applyGameDelta(current, {
+      politicalPower: result.politicalPowerDelta,
+      treasury: result.treasuryDelta,
+      stability: result.stabilityDelta,
+    }));
+    if (result.publicConfidenceDelta !== 0) setEconomy((current) => ({
+      ...current,
+      publicConfidence: Math.max(0, Math.min(100, current.publicConfidence + result.publicConfidenceDelta)),
+    }));
+    addEvent(result.title, result.detail, result.legitimacyDelta < 0 || result.unrestDelta > 0 ? 'bad' : result.legitimacyDelta > 0 || result.publicConfidenceDelta > 0 ? 'good' : 'neutral', game.week, {
+      domain: 'management',
+      decision: result.title,
+      trigger: '현재 시대의 구조적 긴장, 책임 참모의 역량과 선택한 대응 원칙을 결합했습니다.',
+      factors: [
+        `현재 보직 ${displayedCareerRole.title} · 권한 ${displayedCareerRole.tier}급`,
+        `정치력 ${result.politicalPowerDelta >= 0 ? '+' : ''}${result.politicalPowerDelta} · 국고 ${formatGameMoney(result.treasuryDelta, { signed: true })}`,
+        `완결 유산 ${result.state.legacyMarks} · 제도 기억 ${result.state.institutionalMemory.length}`,
+      ],
+      effects: [
+        { label: '정당성', value: `${result.legitimacyDelta >= 0 ? '+' : ''}${result.legitimacyDelta}`, tone: result.legitimacyDelta < 0 ? 'negative' : 'positive' },
+        { label: '사회 불안', value: `${result.unrestDelta >= 0 ? '+' : ''}${result.unrestDelta}`, tone: result.unrestDelta > 0 ? 'negative' : 'positive' },
+      ],
+      ongoing: ['선택은 매주 진행도·압력·기세를 바꾸고, 각 막의 전환점과 후퇴는 최종 유산에 기록됩니다.'],
+      nextActions: ['전략 서사 카드에서 예상 주간 진척과 압력을 확인한 뒤 필요하면 예비자원을 투입하십시오.'],
+      certainty: 'confirmed',
+    });
+    notify(result.detail);
+    setPeriodAdvanceRemaining(0);
+  }, [addEvent, displayedCareerRole.tier, displayedCareerRole.title, formatGameMoney, game.week, notify]);
+
+  const launchStrategicSaga = (definitionId: string, champion: SagaChampion) => {
+    const result = startStrategicSaga(nationManagement.strategicSaga, definitionId, champion, strategicSagaContext());
+    applySagaActionResult(result);
+  };
+
+  const selectStrategicSagaApproach = (approachId: SagaApproachId) => {
+    const result = chooseSagaApproach(nationManagement.strategicSaga, approachId, strategicSagaContext());
+    applySagaActionResult(result);
+  };
+
+  const reinforceStrategicSaga = () => {
+    const result = commitSagaReserve(nationManagement.strategicSaga, strategicSagaContext());
+    applySagaActionResult(result);
   };
 
   const electoralContext = useCallback((): ElectoralContext => ({
@@ -6370,6 +6956,8 @@ export function App() {
                   relations={relations}
                   nationalSimulation={nationalSimulation}
                   completedDecisions={completedDecisions}
+                  completedResearch={research.filter((project) => project.complete).length}
+                  publicHealthPressure={projectionPublicHealthPressure}
                   worldlineTitle={worldline.title}
                   readiness={transitionReadiness}
                   formatMoney={formatGameMoney}
@@ -6384,6 +6972,24 @@ export function App() {
                   onRevokeTitle={revokeNobleTitle}
                   onArrangeMarriage={arrangeRoyalMarriage}
                   onSuccessionLawChange={changeSuccessionLaw}
+                  onConfigurePersonalLife={configurePersonalLife}
+                  onStartPersonalRelationship={startPersonalRelationship}
+                  onFormalizeRelationship={formalizeRelationship}
+                  onFamilyLawChange={changeFamilyLaw}
+                  onPersonalLifeAction={takePersonalLifeAction}
+                  onFamilyPlanChange={changeFamilyPlan}
+                  onMediaLawChange={changeMediaLaw}
+                  onRequestMediaInterview={requestMediaInterview}
+                  onAnswerMediaInterview={answerMediaInterview}
+                  onAnswerExposure={answerExposureIncident}
+                  onLeadershipPrinciplesChange={changeLeadershipPrinciples}
+                  onPowerBlocPromise={promisePowerBloc}
+                  onLegacyPathChange={changeLegacyPath}
+                  onRivalAction={takeRivalAction}
+                  onPowerOpportunityChoice={decidePowerOpportunity}
+                  onStrategicSagaStart={launchStrategicSaga}
+                  onStrategicSagaApproach={selectStrategicSagaApproach}
+                  onStrategicSagaReserve={reinforceStrategicSaga}
                   onElectionCampaignAction={runElectionCampaignAction}
                   onLaunchReferendum={proposeReferendum}
                   onLaunchStrategicOperation={launchPeacetimeStrategicOperation}

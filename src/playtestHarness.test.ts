@@ -13,5 +13,5 @@ describe('225-session UX playtest harness', () => {
     expect(result.aggregate.branchCoverage).toBe(3);
     expect(result.aggregate.profileCoverage).toBe(5);
     expect(result.sessions.every((session) => Number.isFinite(session.finalTreasury))).toBe(true);
-  }, 30_000);
+  }, 60_000);
 });

@@ -36,7 +36,8 @@ export interface CenturyScenarioBlueprint {
   budgetPriority: NationBudgetDomain;
 }
 
-export const CENTURY_SCENARIO_COMBINATION_CAPACITY = 12_960;
+export const CENTURY_SCENARIO_COMBINATION_CAPACITY = 77_760;
+export const CENTURY_SCENARIO_PREVIOUS_CAPACITY = 12_960;
 
 const profiles: CenturyBehaviorProfile[] = ['guided', 'rushed', 'military', 'state-builder', 'completionist', 'opportunist'];
 const doctrines: CenturyDoctrine[] = ['coalition', 'methodical', 'maneuver'];
@@ -45,6 +46,7 @@ const transitionApproaches: CenturyTransitionApproach[] = ['accelerated', 'readi
 const agendaChoices: NationAgendaChoiceId[] = ['bargain', 'invest', 'enforce'];
 const crisisApproaches: CenturyCrisisApproach[] = ['constitutional', 'negotiation', 'command', 'counter-intelligence'];
 const nationalProgramIndices = [0, 1, 2] as const;
+const budgetPriorities: NationBudgetDomain[] = ['reconstruction', 'welfare', 'education', 'industry', 'diplomacy', 'security'];
 const economicModels: CenturyEconomicModel[] = ['reconstruction', 'welfare', 'industrial', 'open-market', 'security'];
 const diplomaticPostures: CenturyDiplomaticPosture[] = ['alliance', 'nonaligned', 'regional', 'multilateral', 'revisionist'];
 const technologyPostures: CenturyTechnologyPosture[] = ['civilian', 'military', 'balanced', 'frontier'];
@@ -52,14 +54,6 @@ const publicHealthPostures: CenturyPublicHealthPosture[] = ['prevention', 'adapt
 const warPostures: CenturyWarPosture[] = ['aggressive', 'balanced', 'cautious'];
 const futurePriorities: CenturyFuturePriority[] = ['climate', 'space', 'digital', 'human-development', 'strategic-autonomy'];
 const electionStyles: CenturyElectionStyle[] = ['consensus', 'grassroots', 'media', 'machine'];
-
-const budgetByEconomy: Record<CenturyEconomicModel, NationBudgetDomain> = {
-  reconstruction: 'reconstruction',
-  welfare: 'welfare',
-  industrial: 'industry',
-  'open-market': 'diplomacy',
-  security: 'security',
-};
 
 function stableHash(value: string) {
   let hash = 2166136261;
@@ -81,9 +75,10 @@ function independentPick<T>(values: T[], scenarioId: number, nationId: NationId,
 }
 
 /**
- * The first seven dimensions form a 12,960-cell mixed-radix space. Multiplication by 187 is a
- * bijection modulo 12,960, so every scenario from 0 through 12,959 has a genuinely different
- * policy/leadership combination instead of merely receiving a different random seed.
+ * The first eight dimensions form a 77,760-cell mixed-radix space. Budget priority is deliberately
+ * independent from the economic model: a welfare economy can still privilege security, while an
+ * industrial economy can prioritize education or reconstruction. Multiplication by 187 is a
+ * bijection modulo 77,760, so the full capacity is exhausted before a combination repeats.
  */
 export function createCenturyScenarioBlueprint(nationId: NationId, scenarioId: number): CenturyScenarioBlueprint {
   if (!Number.isInteger(scenarioId) || scenarioId < 0) throw new Error(`invalid century scenario id: ${scenarioId}`);
@@ -97,6 +92,7 @@ export function createCenturyScenarioBlueprint(nationId: NationId, scenarioId: n
   const agendaChoice = takeDigit(agendaChoices, cursor);
   const crisisApproach = takeDigit(crisisApproaches, cursor);
   const nationalProgramIndex = takeDigit(nationalProgramIndices, cursor);
+  const budgetPriority = takeDigit(budgetPriorities, cursor);
   const economicModel = independentPick(economicModels, scenarioId, nationId, 'economy', combinationCode);
   const diplomaticPosture = independentPick(diplomaticPostures, scenarioId, nationId, 'diplomacy', combinationCode);
   const technologyPosture = independentPick(technologyPostures, scenarioId, nationId, 'technology', combinationCode);
@@ -113,6 +109,7 @@ export function createCenturyScenarioBlueprint(nationId: NationId, scenarioId: n
     agendaChoice,
     crisisApproach,
     `program-${nationalProgramIndex}`,
+    `budget-${budgetPriority}`,
     economicModel,
     diplomaticPosture,
     technologyPosture,
@@ -133,6 +130,7 @@ export function createCenturyScenarioBlueprint(nationId: NationId, scenarioId: n
     agendaChoice,
     crisisApproach,
     nationalProgramIndex,
+    budgetPriority,
     economicModel,
     diplomaticPosture,
     technologyPosture,
@@ -141,7 +139,6 @@ export function createCenturyScenarioBlueprint(nationId: NationId, scenarioId: n
     futurePriority,
     electionStyle,
     worldVariant,
-    budgetPriority: budgetByEconomy[economicModel],
   };
 }
 

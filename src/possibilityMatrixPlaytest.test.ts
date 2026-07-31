@@ -4,6 +4,7 @@ import {
   aggregatePossibilityMatrixSessions,
   runPossibilityMatrixSession,
 } from './possibilityMatrixPlaytest';
+import { CENTURY_SCENARIO_COMBINATION_CAPACITY } from './centuryScenario';
 import { worldHistoryEvents } from './worldHistory';
 
 describe('3,000-combination possibility matrix', () => {
@@ -30,6 +31,8 @@ describe('3,000-combination possibility matrix', () => {
     ));
     const run = aggregatePossibilityMatrixSessions(sessions, 2);
     expect(run.totalSessions).toBe(nations.length * 2);
+    expect(run.combinationCapacity).toBe(CENTURY_SCENARIO_COMBINATION_CAPACITY);
+    expect(run.capacityExpansion).toBeGreaterThanOrEqual(20_000);
     expect(run.uniqueCombinations).toBe(nations.length * 2);
     expect(run.futurePathCollisionRate).toBe(0);
     Object.values(run.byNation).forEach((nation) => expect(nation.uniqueCombinations).toBe(2));

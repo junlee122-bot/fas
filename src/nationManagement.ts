@@ -15,6 +15,30 @@ import {
   type DynasticPoliticsState,
 } from './dynasticPolitics';
 import {
+  advancePersonalLifeWeek,
+  createPersonalLifeState,
+  normalizePersonalLifeState,
+  type PersonalLifeState,
+} from './personalLife';
+import {
+  advanceMediaRelationsWeek,
+  createMediaRelationsState,
+  normalizeMediaRelationsState,
+  type MediaRelationsState,
+} from './mediaRelations';
+import {
+  advancePowerNetworkWeek,
+  createPowerNetworkState,
+  normalizePowerNetworkState,
+  type PowerNetworkState,
+} from './powerNetwork';
+import {
+  advanceStrategicSagaWeek,
+  createStrategicSagaState,
+  normalizeStrategicSagaState,
+  type StrategicSagaState,
+} from './strategicSaga';
+import {
   advanceNationalPlanWeek,
   advanceStrategicOperationWeek,
   createNationalPlanningState,
@@ -210,6 +234,10 @@ export interface NationManagementState {
   structuralPressure: NationStructuralPressure;
   agenda: NationAgendaState;
   dynasty: DynasticPoliticsState;
+  personalLife: PersonalLifeState;
+  mediaRelations: MediaRelationsState;
+  powerNetwork: PowerNetworkState;
+  strategicSaga: StrategicSagaState;
   electoral: ElectoralPoliticsState;
   strategicContinuity: StrategicContinuityState;
   nationalPlanning: NationalPlanningState;
@@ -598,6 +626,33 @@ export function createNationManagementState(
     },
     agenda: createNationAgendaState(nationId, game.week),
     dynasty: createDynasticPoliticsState(nationId),
+    personalLife: createPersonalLifeState(nationId),
+    mediaRelations: createMediaRelationsState(nationId, game.week),
+    powerNetwork: createPowerNetworkState(nationId, game.week, {
+      id: `default-${nationId}-leader`,
+      nationId,
+      title: '국가 지도부',
+      branch: 'politics',
+      tier: 3,
+      archetype: 'cabinet-minister',
+      scope: '국가 운영',
+      authority: 70,
+      expectation: '전시와 전후의 권력 연합을 유지합니다.',
+      historicalHolderId: 'institutional-office',
+      historicalHolderName: '기존 지도부',
+      historicalOffice: '국가 지도부',
+      historicalBasis: '저장 호환용 기본 보직',
+      coverIdentity: '공적 지도부',
+      replacementEffect: '사용자가 권력 연합을 재구성합니다.',
+    }, 'reconstruction-state'),
+    strategicSaga: createStrategicSagaState({
+      week: game.week,
+      year: 1942 + Math.floor(game.week / 52),
+      phase: 'war',
+      nationId,
+      completedResearch,
+      publicHealthPressure: 0,
+    }),
     electoral: createElectoralPoliticsState(nationId, game.week),
     strategicContinuity: createStrategicContinuityState(),
     nationalPlanning: createNationalPlanningState(),
@@ -701,6 +756,87 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
   const development = getNationDevelopmentProfile(state.nationId);
   const structure = development.structure;
   const dynasticEffects = getDynasticWeeklyEffects(state.dynasty);
+  const personalLifeEffects = advancePersonalLifeWeek(state.personalLife, {
+    week: context.week,
+    stability: context.game.stability,
+    publicHealthPressure: context.publicHealthPressure,
+    roleTier: context.role?.tier ?? 1,
+  });
+  const mediaEffects = advanceMediaRelationsWeek(state.mediaRelations, {
+    week: context.week,
+    year: 1942 + Math.floor(context.week / 52),
+    role: context.role ?? ({ tier: 1, branch: 'politics', title: '국가 지도자' } as CareerRole),
+    politicalPower: context.game.politicalPower,
+    treasury: context.game.treasury,
+    stability: context.game.stability,
+    legitimacy: state.legitimacy,
+    unrest: state.unrest,
+    education: state.education,
+    institutionalCapacity: state.institutionalCapacity,
+    inflation: context.economy.inflation,
+    publicConfidence: context.economy.publicConfidence,
+    intelNetwork: context.game.intelNetwork,
+    governmentFormId: state.dynasty.formId,
+    strategyId: state.strategyId,
+    activeElection: Boolean(state.electoral.activeCampaign),
+    personalLife: personalLifeEffects.state,
+  });
+  const powerEffects = advancePowerNetworkWeek(state.powerNetwork, {
+    week: context.week,
+    year: 1942 + Math.floor(context.week / 52),
+    phase: 'nation',
+    nationId: state.nationId,
+    role: context.role ?? ({ tier: 1, branch: 'politics', title: '국가 지도자' } as CareerRole),
+    strategyId: state.strategyId,
+    budget: state.budget,
+    politicalPower: context.game.politicalPower,
+    treasury: context.game.treasury,
+    stability: context.game.stability,
+    warSupport: context.game.warSupport,
+    enemyPressure: context.game.enemyPressure,
+    intelNetwork: context.game.intelNetwork,
+    legitimacy: state.legitimacy,
+    unrest: state.unrest,
+    welfare: state.welfare,
+    education: state.education,
+    employment: state.employment,
+    civilianIndustry: state.civilianIndustry,
+    institutionalCapacity: state.institutionalCapacity,
+    inequality: state.inequality,
+    relativeCompetitiveness: state.relativeCompetitiveness,
+    relationAverage: context.relationAverage,
+    inflation: context.economy.inflation,
+    publicConfidence: context.economy.publicConfidence,
+    mediaFreedom: mediaEffects.state.freedom,
+    pressTrust: mediaEffects.state.pressTrust,
+    activeElection: Boolean(state.electoral.activeCampaign),
+  });
+  const sagaEffects = advanceStrategicSagaWeek(state.strategicSaga, {
+    week: context.week,
+    year: 1942 + Math.floor(context.week / 52),
+    phase: 'nation',
+    nationId: state.nationId,
+    role: context.role ?? ({ tier: 1, branch: 'politics', title: '국가 지도자' } as CareerRole),
+    politicalPower: context.game.politicalPower,
+    treasury: context.game.treasury,
+    stability: context.game.stability,
+    warSupport: context.game.warSupport,
+    enemyPressure: context.game.enemyPressure,
+    intelNetwork: context.game.intelNetwork,
+    legitimacy: state.legitimacy,
+    unrest: state.unrest,
+    education: state.education,
+    civilianIndustry: state.civilianIndustry,
+    institutionalCapacity: state.institutionalCapacity,
+    relativeCompetitiveness: state.relativeCompetitiveness,
+    relationAverage: context.relationAverage,
+    publicConfidence: context.economy.publicConfidence,
+    inflation: context.economy.inflation,
+    completedResearch: context.completedResearch,
+    publicHealthPressure: context.publicHealthPressure,
+    coalitionSupport: state.powerNetwork.blocs.reduce((sum, bloc) => sum + bloc.support, 0) / Math.max(1, state.powerNetwork.blocs.length),
+    promiseReliability: state.powerNetwork.promiseReliability,
+  });
   const strategy = strategyModifiers(state.strategyId);
   const investmentScale = state.spendingLevel / 100;
   const pressure = (domain: NationBudgetDomain) => state.budget[domain] * investmentScale;
@@ -723,7 +859,8 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     + Math.min(fiscalRevenue * 0.45, context.economy.debt * 0.0008)
     + context.publicHealthPressure * 0.08
     + Math.max(0, state.unrest - 55) * 0.08
-    + dynasticEffects.weeklyCost,
+    + dynasticEffects.weeklyCost
+    + personalLifeEffects.weeklyCost,
   );
   const fiscalBalance = round(fiscalRevenue - fiscalExpenditure);
   const debtChange = round(fiscalBalance < 0
@@ -828,8 +965,8 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     institutionalCapacity: clamp(state.institutionalCapacity + (education * 0.005 + diplomacy * 0.005 + security * 0.003) * (.7 + structure.administrativeEfficiency / 170) - Math.max(0, state.unrest - 60) * 0.005),
     tradeBalance: clamp(state.tradeBalance + diplomacy * 0.025 + industry * 0.018 + (structure.resourceBase - 50) * .0015 - state.spendingLevel * 0.004, -100, 100),
     inequality: clamp(state.inequality - welfare * 0.009 - Math.max(0, state.taxBurden - 45) * 0.004 + industry * 0.003),
-    unrest: clamp(state.unrest + (structuralPressure.targetUnrest - state.unrest) * .018 + dynasticEffects.unrest),
-    legitimacy: state.legitimacy,
+    unrest: clamp(state.unrest + (structuralPressure.targetUnrest - state.unrest) * .018 + dynasticEffects.unrest + personalLifeEffects.unrest + mediaEffects.unrest + powerEffects.unrest + sagaEffects.unrest),
+    legitimacy: clamp(state.legitimacy + sagaEffects.legitimacy),
     relativeCompetitiveness: clamp(state.relativeCompetitiveness + (competitivenessTarget - state.relativeCompetitiveness) * 0.018),
     institutionalAge: clamp(state.institutionalAge + (institutionalAgeTarget - state.institutionalAge) * 0.012),
     demographicPressure: clamp(state.demographicPressure + (demographicTarget - state.demographicPressure) * 0.01),
@@ -842,6 +979,10 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
       courtUnity: clamp(state.dynasty.courtUnity + (context.game.stability >= 65 ? 0.08 : -0.04) - Math.max(0, state.dynasty.estateBurden - 50) * 0.003),
       successionSecurity: clamp(state.dynasty.successionSecurity + (state.dynasty.successionLawId === 'unsettled' && getGovernmentForm(state.dynasty.formId).monarchy ? -0.05 : 0.03)),
     },
+    personalLife: mediaEffects.personalLife,
+    mediaRelations: mediaEffects.state,
+    powerNetwork: powerEffects.state,
+    strategicSaga: sagaEffects.state,
     electoral: state.electoral,
     strategicContinuity: state.strategicContinuity,
     nationalPlanning: state.nationalPlanning,
@@ -855,6 +996,10 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     - Math.max(0, next.unrest - 50) * 0.004
     - Math.max(0, context.economy.inflation - 8) * 0.008
     + dynasticEffects.legitimacy
+    + personalLifeEffects.legitimacy
+    + mediaEffects.legitimacy
+    + powerEffects.legitimacy
+    + sagaEffects.legitimacy
     + (state.strategyId === 'security-republic' ? -0.025 : 0.015),
   );
   const electoralResult = advanceElectoralPoliticsWeek(state.electoral, {
@@ -934,6 +1079,9 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     (next.legitimacy - state.legitimacy) * 0.18
       - Math.max(0, next.unrest - 65) * 0.01
       + electoralResult.stabilityDelta
+      + personalLifeEffects.stability
+      + mediaEffects.stability
+      + powerEffects.stability
       + (stabilityTarget - context.game.stability) * 0.025,
     2,
   );
@@ -955,6 +1103,9 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
       cause: `${development.transition.label} 이후에도 남은 ${openedAgenda.stakes}`,
       consequence: `${Math.max(0, openedAgenda.expiresWeek - context.week)}주 안에 대표협상·집중투자·중앙집행 가운데 하나를 선택해야 합니다.`,
     }] : []),
+    ...mediaEffects.events,
+    ...powerEffects.events,
+    ...sagaEffects.events,
     ...electoralResult.events,
     ...(strategicResult.event ? [{
       id: `strategic-${context.week}-${next.strategicContinuity.active?.id ?? next.strategicContinuity.history[0]?.id ?? 'review'}`,
@@ -984,6 +1135,10 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
       `구조적 불안 = ${next.structuralPressure.dominantDriver} 중심 목표 ${next.structuralPressure.targetUnrest.toFixed(1)} · 정책 완화 ${next.structuralPressure.policyRelief.toFixed(1)} · 최소 잔존 ${next.structuralPressure.floor}`,
       `후기 경쟁 = 상대경쟁력 ${next.relativeCompetitiveness.toFixed(1)} · 제도노후 ${next.institutionalAge.toFixed(1)} · 인구압력 ${next.demographicPressure.toFixed(1)} · 생태압력 ${next.ecologicalPressure.toFixed(1)} · 패권비용 ${next.hegemonyCost.toFixed(1)}`,
       ...(getGovernmentForm(state.dynasty.formId).monarchy ? [`왕실재정 = ${dynasticEffects.note} · 궁정 결속 ${Math.round(state.dynasty.courtUnity)} · 계승 안정 ${Math.round(state.dynasty.successionSecurity)}`] : []),
+      ...(state.personalLife.activeRelationship ? [`개인생활 = ${personalLifeEffects.note} · 주간 가구·경호비 ${personalLifeEffects.weeklyCost.toFixed(2)}M`] : []),
+      `언론환경 = ${mediaEffects.note}`,
+      `권력생태계 = ${powerEffects.note}`,
+      ...(next.strategicSaga.active ? [`시대 국면 = ${next.strategicSaga.active.definitionId} · 진척 ${Math.round(next.strategicSaga.active.progress)} · 압력 ${Math.round(next.strategicSaga.active.pressure)} · 후퇴 ${next.strategicSaga.active.setbacks}`] : []),
       ...(state.electoral.activeCampaign ? [`선거일정 = ${getElectionTypeName(state.electoral.activeCampaign.type)} · ${getCampaignStageName(state.electoral.activeCampaign.stage)} · 투표일까지 ${Math.max(0, state.electoral.activeCampaign.electionWeek - context.week)}주`] : []),
     ],
     effects: [
@@ -995,6 +1150,10 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
       ...(next.strategicContinuity.active ? [`전략작전 ${next.strategicContinuity.active.progressWeeks}주 진행 · 지도 위임을 다음 주까지 유지합니다.`] : []),
       ...(next.nationalPlanning.active ? [`국가계획 진척 ${next.nationalPlanning.active.progress.toFixed(0)}% · 다음 검증까지 ${Math.max(0, next.nationalPlanning.active.reviewWeek - context.week)}주`] : []),
       ...(getGovernmentForm(state.dynasty.formId).monarchy ? [`왕실 상태: 왕권 ${Math.round(next.dynasty.crownAuthority)} · 궁정 결속 ${Math.round(next.dynasty.courtUnity)} · 찬탈 위험 보정 +${dynasticEffects.coupRisk.toFixed(1)}`] : []),
+      ...(next.personalLife.activeRelationship ? [`개인 관계: ${personalLifeEffects.note}`] : []),
+      `언론·평판: ${mediaEffects.note}`,
+      `세력·공약·유산: ${powerEffects.note}`,
+      ...(next.strategicSaga.active ? [`전략 서사: ${next.strategicSaga.active.approachId ? `선택한 원칙 ${next.strategicSaga.active.approachId}로 진행 중` : '새 막의 대응 원칙 결재 필요'}`] : []),
     ],
     events,
   };
@@ -1004,9 +1163,9 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     report,
     gameDelta: {
       week: 1,
-      treasury: fiscalBalance,
-      stability: stabilityChange,
-      politicalPower: politicalPowerChange + electoralResult.politicalPowerDelta + (strategicResult.gameDelta.politicalPower ?? 0),
+      treasury: fiscalBalance + powerEffects.treasury + sagaEffects.treasury,
+      stability: stabilityChange + sagaEffects.stability,
+      politicalPower: politicalPowerChange + powerEffects.politicalPower + sagaEffects.politicalPower + electoralResult.politicalPowerDelta + (strategicResult.gameDelta.politicalPower ?? 0),
       enemyPressure: enemyPressureChange + (strategicResult.gameDelta.enemyPressure ?? 0),
       commandPoints: 1,
       intelNetwork: strategicResult.gameDelta.intelNetwork ?? 0,
@@ -1015,7 +1174,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     economyDelta: {
       debt: debtChange,
       inflation: inflationChange,
-      publicConfidence: round(projectedEconomy.publicConfidence - context.economy.publicConfidence, 2),
+      publicConfidence: round(projectedEconomy.publicConfidence - context.economy.publicConfidence + mediaEffects.publicConfidence + powerEffects.publicConfidence + sagaEffects.publicConfidence, 2),
     },
   };
 }
@@ -1041,6 +1200,26 @@ export function normalizeNationManagementState(value: unknown, fallback: NationM
       history: Array.isArray(candidate.agenda?.history) ? candidate.agenda.history.slice(0, 80) : [],
     },
     dynasty: normalizeDynasticPoliticsState(candidate.dynasty, fallback.nationId),
+    personalLife: normalizePersonalLifeState(candidate.personalLife, fallback.nationId),
+    mediaRelations: normalizeMediaRelationsState(candidate.mediaRelations, fallback.nationId, fallback.startedWeek),
+    powerNetwork: normalizePowerNetworkState(candidate.powerNetwork, fallback.nationId, fallback.startedWeek, {
+      id: `restored-${fallback.nationId}-leader`,
+      nationId: fallback.nationId,
+      title: '국가 지도부',
+      branch: 'politics',
+      tier: 3,
+      archetype: 'cabinet-minister',
+      scope: '국가 운영',
+      authority: 70,
+      expectation: '권력 연합을 유지합니다.',
+      historicalHolderId: 'institutional-office',
+      historicalHolderName: '기존 지도부',
+      historicalOffice: '국가 지도부',
+      historicalBasis: '저장 호환용 기본 보직',
+      coverIdentity: '공적 지도부',
+      replacementEffect: '사용자가 권력 연합을 재구성합니다.',
+    }, candidate.strategyId ?? fallback.strategyId),
+    strategicSaga: normalizeStrategicSagaState(candidate.strategicSaga, fallback.strategicSaga),
     electoral: normalizeElectoralPoliticsState(candidate.electoral, fallback.nationId, fallback.startedWeek),
     strategicContinuity: normalizeStrategicContinuityState(candidate.strategicContinuity),
     nationalPlanning: normalizeNationalPlanningState(candidate.nationalPlanning),

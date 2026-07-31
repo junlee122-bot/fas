@@ -12,9 +12,14 @@ import {
   Factory,
   GraduationCap,
   Handshake,
+  Heart,
   HeartHandshake,
+  Home,
   Landmark,
+  LockKeyhole,
+  Mic,
   Minus,
+  Newspaper,
   Plus,
   Scale,
   ScrollText,
@@ -23,6 +28,7 @@ import {
   TimerReset,
   TrendingDown,
   TrendingUp,
+  UserRound,
   Users,
 } from 'lucide-react';
 import type { CivilizationPath, CivilizationProgram } from './civilizationSystems';
@@ -43,8 +49,61 @@ import {
 import type { EconomyState } from './economy';
 import { ElectionSituationRoom } from './ElectionSituationRoom';
 import type { ElectionCampaignActionId, ReferendumTopicId } from './electoralPolitics';
+import {
+  canFormalizeUnion,
+  canReformFamilyLaw,
+  familyLawDefinitions,
+  familyPlanDefinitions,
+  getEraFamilyClimate,
+  getFamilyLaw,
+  getGenderLabel,
+  getOrientationLabel,
+  getPairKindLabel,
+  getPersonalRelationshipCandidates,
+  getUnionFormLabel,
+  getVisibilityLabel,
+  personalLifeActionDefinitions,
+  type FamilyLawId,
+  type FamilyPlanId,
+  type GenderIdentity,
+  type OrientationId,
+  type PartnerTermPreference,
+  type PersonalIdentityProfile,
+  type PersonalLifeActionId,
+  type PersonalLifeContext,
+  type RelationshipBoundary,
+  type RelationshipVisibility,
+  type UnionForm,
+} from './personalLife';
+import {
+  calculateDisclosureRisk,
+  canReformMediaLaw,
+  exposureResponseDefinitions,
+  getExposureStageLabel,
+  getMediaLaw,
+  interviewResponseDefinitions,
+  mediaLawDefinitions,
+  mediaTopicDefinitions,
+  previewInterviewResponse,
+  type ExposureResponseId,
+  type InterviewResponseId,
+  type MediaLawId,
+  type MediaRelationsContext,
+  type MediaTopicId,
+} from './mediaRelations';
 import { NationalSimulationOverview } from './NationalSimulationOverview';
 import type { NationalSimulationSnapshot } from './nationalSimulation';
+import { PowerNetworkBoard } from './PowerNetworkBoard';
+import { StrategicSagaBoard } from './StrategicSagaBoard';
+import type {
+  LeadershipPrincipleId,
+  LegacyPathId,
+  OpportunityChoiceId,
+  PowerBlocId,
+  PowerNetworkContext,
+  RivalActionId,
+} from './powerNetwork';
+import type { SagaApproachId, SagaChampion, StrategicSagaContext } from './strategicSaga';
 import {
   getAvailableStrategicOperations,
   nationalPlanDefinitions,
@@ -96,6 +155,8 @@ interface NationManagementPanelProps {
   relations: DiplomaticRelation[];
   nationalSimulation: NationalSimulationSnapshot;
   completedDecisions: string[];
+  completedResearch: number;
+  publicHealthPressure: number;
   worldlineTitle: string;
   readiness: TransitionReadiness;
   formatMoney: (value: number, options?: { signed?: boolean; exact?: boolean }) => string;
@@ -110,6 +171,24 @@ interface NationManagementPanelProps {
   onRevokeTitle: (grantId: string) => void;
   onArrangeMarriage: (nationId: string) => void;
   onSuccessionLawChange: (lawId: SuccessionLawId) => void;
+  onConfigurePersonalLife: (profile: Omit<PersonalIdentityProfile, 'configured'>) => void;
+  onStartPersonalRelationship: (candidateId: string) => void;
+  onFormalizeRelationship: (unionForm: UnionForm, visibility: RelationshipVisibility) => void;
+  onFamilyLawChange: (lawId: FamilyLawId) => void;
+  onPersonalLifeAction: (actionId: PersonalLifeActionId) => void;
+  onFamilyPlanChange: (familyPlanId: FamilyPlanId) => void;
+  onMediaLawChange: (lawId: MediaLawId) => void;
+  onRequestMediaInterview: (topicId: MediaTopicId) => void;
+  onAnswerMediaInterview: (responseId: InterviewResponseId) => void;
+  onAnswerExposure: (responseId: ExposureResponseId) => void;
+  onLeadershipPrinciplesChange: (principles: LeadershipPrincipleId[]) => void;
+  onPowerBlocPromise: (blocId: PowerBlocId) => void;
+  onLegacyPathChange: (pathId: LegacyPathId) => void;
+  onRivalAction: (actionId: RivalActionId) => void;
+  onPowerOpportunityChoice: (choiceId: OpportunityChoiceId) => void;
+  onStrategicSagaStart: (definitionId: string, champion: SagaChampion) => void;
+  onStrategicSagaApproach: (approachId: SagaApproachId) => void;
+  onStrategicSagaReserve: () => void;
   onElectionCampaignAction: (actionId: ElectionCampaignActionId, regionId: string | null) => void;
   onLaunchReferendum: (topicId: ReferendumTopicId) => void;
   onLaunchStrategicOperation: (operationId: string) => void;
@@ -152,6 +231,8 @@ export function NationManagementPanel({
   relations,
   nationalSimulation,
   completedDecisions,
+  completedResearch,
+  publicHealthPressure,
   worldlineTitle,
   readiness,
   formatMoney,
@@ -166,6 +247,24 @@ export function NationManagementPanel({
   onRevokeTitle,
   onArrangeMarriage,
   onSuccessionLawChange,
+  onConfigurePersonalLife,
+  onStartPersonalRelationship,
+  onFormalizeRelationship,
+  onFamilyLawChange,
+  onPersonalLifeAction,
+  onFamilyPlanChange,
+  onMediaLawChange,
+  onRequestMediaInterview,
+  onAnswerMediaInterview,
+  onAnswerExposure,
+  onLeadershipPrinciplesChange,
+  onPowerBlocPromise,
+  onLegacyPathChange,
+  onRivalAction,
+  onPowerOpportunityChoice,
+  onStrategicSagaStart,
+  onStrategicSagaApproach,
+  onStrategicSagaReserve,
   onElectionCampaignAction,
   onLaunchReferendum,
   onLaunchStrategicOperation,
@@ -181,6 +280,15 @@ export function NationManagementPanel({
   const [selectedDomainId, setSelectedDomainId] = useState('');
   const [selectedRankId, setSelectedRankId] = useState<NobleRankId>('baron');
   const [selectedMarriageNationId, setSelectedMarriageNationId] = useState('');
+  const [identityGender, setIdentityGender] = useState<GenderIdentity>(state.personalLife.profile.gender);
+  const [identityOrientation, setIdentityOrientation] = useState<OrientationId>(state.personalLife.profile.orientation);
+  const [partnerTerm, setPartnerTerm] = useState<PartnerTermPreference>(state.personalLife.profile.partnerTerm);
+  const [relationshipBoundary, setRelationshipBoundary] = useState<RelationshipBoundary>(state.personalLife.profile.boundary);
+  const [selectedPersonalCandidateId, setSelectedPersonalCandidateId] = useState('');
+  const [selectedUnionForm, setSelectedUnionForm] = useState<UnionForm>('marriage');
+  const [selectedRelationshipVisibility, setSelectedRelationshipVisibility] = useState<RelationshipVisibility>('private');
+  const [selectedFamilyPlanId, setSelectedFamilyPlanId] = useState<FamilyPlanId>('undecided');
+  const [selectedMediaTopicId, setSelectedMediaTopicId] = useState<MediaTopicId>('national-vision');
   const latestReport = state.reports[0] ?? null;
   const activeAgenda = getActiveNationAgenda(state);
   const transitionReasonLabel: Record<NationTransitionReason, string> = {
@@ -216,9 +324,108 @@ export function NationManagementPanel({
   const marriageCandidates = getMarriageCandidates(relations).filter((candidate) => !state.dynasty.marriages.some((marriage) => marriage.partnerNationId === candidate.nationId));
   const selectedMarriage = marriageCandidates.find((candidate) => candidate.nationId === selectedMarriageNationId) ?? marriageCandidates[0] ?? null;
   const currentYear = 1942 + Math.floor(game.week / 52);
+  const personalLifeContext: PersonalLifeContext = {
+    week: game.week,
+    year: currentYear,
+    politicalPower: game.politicalPower,
+    treasury: game.treasury,
+    stability: game.stability,
+    legitimacy: state.legitimacy,
+    education: state.education,
+    institutionalCapacity: state.institutionalCapacity,
+    role,
+  };
+  const personalCandidates = getPersonalRelationshipCandidates(state.personalLife, [
+    { id: nation.id, name: nation.shortName, relationValue: 70 },
+    ...relations.map((relation) => ({ id: relation.id, name: relation.name, relationValue: relation.value })),
+  ]);
+  const selectedPersonalCandidate = personalCandidates.find((candidate) => candidate.id === selectedPersonalCandidateId) ?? personalCandidates[0] ?? null;
+  const activePersonalRelationship = state.personalLife.activeRelationship;
+  const currentFamilyLaw = getFamilyLaw(state.personalLife.familyLawId);
+  const eraFamilyClimate = getEraFamilyClimate(currentYear);
+  const unionEligibility = canFormalizeUnion(state.personalLife, selectedUnionForm);
+  const mediaContext: MediaRelationsContext = {
+    week: game.week,
+    year: currentYear,
+    role,
+    politicalPower: game.politicalPower,
+    treasury: game.treasury,
+    stability: game.stability,
+    legitimacy: state.legitimacy,
+    unrest: state.unrest,
+    education: state.education,
+    institutionalCapacity: state.institutionalCapacity,
+    inflation: economy.inflation,
+    publicConfidence: economy.publicConfidence,
+    intelNetwork: game.intelNetwork,
+    governmentFormId: state.dynasty.formId,
+    strategyId: state.strategyId,
+    activeElection: Boolean(state.electoral.activeCampaign),
+    personalLife: state.personalLife,
+  };
+  const currentMediaLaw = getMediaLaw(state.mediaRelations.lawId);
+  const disclosureRisk = calculateDisclosureRisk(state.mediaRelations, mediaContext);
+  const pendingInterview = state.mediaRelations.pendingInterview;
+  const activeExposure = state.mediaRelations.activeExposure;
   const availableStrategicOperations = getAvailableStrategicOperations(state.strategicContinuity, role, currentYear);
   const activeStrategicDefinition = strategicOperationDefinitions.find((definition) => definition.id === state.strategicContinuity.active?.id) ?? null;
   const activePlanDefinition = nationalPlanDefinitions.find((definition) => definition.id === state.nationalPlanning.active?.id) ?? null;
+  const powerNetworkContext: PowerNetworkContext = {
+    week: game.week,
+    year: currentYear,
+    phase,
+    nationId: nation.id,
+    role,
+    strategyId: state.strategyId,
+    budget: state.budget,
+    politicalPower: game.politicalPower,
+    treasury: game.treasury,
+    stability: game.stability,
+    warSupport: game.warSupport,
+    enemyPressure: game.enemyPressure,
+    intelNetwork: game.intelNetwork,
+    legitimacy: state.legitimacy,
+    unrest: state.unrest,
+    welfare: state.welfare,
+    education: state.education,
+    employment: state.employment,
+    civilianIndustry: state.civilianIndustry,
+    institutionalCapacity: state.institutionalCapacity,
+    inequality: state.inequality,
+    relativeCompetitiveness: state.relativeCompetitiveness,
+    relationAverage: relations.length > 0 ? relations.reduce((sum, relation) => sum + relation.value, 0) / relations.length : 50,
+    inflation: economy.inflation,
+    publicConfidence: economy.publicConfidence,
+    mediaFreedom: state.mediaRelations.freedom,
+    pressTrust: state.mediaRelations.pressTrust,
+    activeElection: Boolean(state.electoral.activeCampaign),
+  };
+  const strategicSagaContext: StrategicSagaContext = {
+    week: game.week,
+    year: currentYear,
+    phase,
+    nationId: nation.id,
+    role,
+    politicalPower: game.politicalPower,
+    treasury: game.treasury,
+    stability: game.stability,
+    warSupport: game.warSupport,
+    enemyPressure: game.enemyPressure,
+    intelNetwork: game.intelNetwork,
+    legitimacy: state.legitimacy,
+    unrest: state.unrest,
+    education: state.education,
+    civilianIndustry: state.civilianIndustry,
+    institutionalCapacity: state.institutionalCapacity,
+    relativeCompetitiveness: state.relativeCompetitiveness,
+    relationAverage: relations.length > 0 ? relations.reduce((sum, relation) => sum + relation.value, 0) / relations.length : 50,
+    publicConfidence: economy.publicConfidence,
+    inflation: economy.inflation,
+    completedResearch,
+    publicHealthPressure,
+    coalitionSupport: state.powerNetwork.blocs.reduce((sum, bloc) => sum + bloc.support, 0) / Math.max(1, state.powerNetwork.blocs.length),
+    promiseReliability: state.powerNetwork.promiseReliability,
+  };
 
   if (phase === 'war') {
     const pillarRows = [
@@ -276,6 +483,65 @@ export function NationManagementPanel({
             </div>
           </section>
         </div>
+
+        <section className="nation-surface wartime-media-desk">
+          <header><div><span>전시 언론 데스크</span><h3>보직·소속 집단·사생활을 둘러싼 질문도 전쟁 중 계속됩니다</h3></div><small>{currentMediaLaw.name} · 자유 {Math.round(state.mediaRelations.freedom)}</small></header>
+          <div className="wartime-media-summary">
+            <article><Newspaper /><span>언론 신뢰</span><strong>{Math.round(state.mediaRelations.pressTrust)}</strong></article>
+            <article><Mic /><span>언론 접근</span><strong>{Math.round(state.mediaRelations.access)}</strong></article>
+            <article className={disclosureRisk.weeklyChance >= 8 ? 'warning' : ''}><LockKeyhole /><span>주간 폭로 가능성</span><strong>{disclosureRisk.weeklyChance.toFixed(1)}%</strong></article>
+          </div>
+          {!state.personalLife.profile.configured ? (
+            <div className="wartime-identity-setup">
+              <div><strong>먼저 개인 정보의 공개 기준을 정하십시오</strong><p>설정한 정체성이 능력치 페널티가 되지는 않습니다. 이후 경쟁자와 언론이 이를 알게 되는 경로와 법적 보호가 계산됩니다.</p></div>
+              <label>성별<select value={identityGender} onChange={(event) => setIdentityGender(event.target.value as GenderIdentity)}><option value="woman">여성</option><option value="man">남성</option><option value="nonbinary">논바이너리</option><option value="private">공개하지 않음</option></select></label>
+              <label>성적 지향<select value={identityOrientation} onChange={(event) => setIdentityOrientation(event.target.value as OrientationId)}><option value="heterosexual">이성애</option><option value="gay-lesbian">동성애</option><option value="bisexual">양성애</option><option value="pansexual">범성애</option><option value="asexual">무성애 스펙트럼</option><option value="private">공개하지 않음</option></select></label>
+              <button type="button" onClick={() => onConfigurePersonalLife({ gender: identityGender, orientation: identityOrientation, partnerTerm, boundary: relationshipBoundary })}>개인 정보 기준 저장</button>
+            </div>
+          ) : null}
+          {pendingInterview ? (
+            <div className="wartime-interview-request">
+              <div><span>{pendingInterview.outlet.name}</span><strong>{pendingInterview.format}</strong><b>제{pendingInterview.deadlineWeek + 1}주까지</b></div>
+              <blockquote>{pendingInterview.question}</blockquote>
+              <div>{interviewResponseDefinitions.map((response) => <button type="button" key={response.id} onClick={() => onAnswerMediaInterview(response.id)}><strong>{response.name}</strong><small>{previewInterviewResponse(pendingInterview, response.id, mediaContext).label}</small></button>)}</div>
+            </div>
+          ) : (
+            <div className="wartime-interview-pitch"><label>먼저 제안할 의제<select value={selectedMediaTopicId} onChange={(event) => setSelectedMediaTopicId(event.target.value as MediaTopicId)}>{mediaTopicDefinitions.map((topic) => <option key={topic.id} value={topic.id}>{topic.name}</option>)}</select></label><button type="button" disabled={!currentMediaLaw.independentInterviews || state.mediaRelations.access < 25 || game.politicalPower < 2} onClick={() => onRequestMediaInterview(selectedMediaTopicId)}>정치력 2 · 인터뷰 요청</button></div>
+          )}
+          {activeExposure && activeExposure.stage !== 'resolved' ? (
+            <div className="wartime-exposure-alert">
+              <div><span>{getExposureStageLabel(activeExposure.stage)}</span><strong>{activeExposure.subject}</strong><b>{activeExposure.outlet.name} · 증거 {activeExposure.evidenceQuality}</b></div>
+              <p>{activeExposure.instigator}가 {activeExposure.motive}을 위해 자료를 전달했습니다.</p>
+              <div>{exposureResponseDefinitions.map((response) => {
+                const disabled = response.id === 'independent-review' ? state.institutionalCapacity < 42 || game.treasury < 10 : response.id === 'legal-protection' ? state.personalLife.familyLawId === 'restrictive-code' || game.politicalPower < 5 || game.treasury < 6 : false;
+                return <button type="button" key={response.id} disabled={disabled} onClick={() => onAnswerExposure(response.id)}>{response.name}</button>;
+              })}</div>
+            </div>
+          ) : null}
+        </section>
+
+        <PowerNetworkBoard
+          compact
+          state={state.powerNetwork}
+          context={powerNetworkContext}
+          staff={staff}
+          formatMoney={formatMoney}
+          onPrinciplesChange={onLeadershipPrinciplesChange}
+          onPromise={onPowerBlocPromise}
+          onLegacyChange={onLegacyPathChange}
+          onRivalAction={onRivalAction}
+          onOpportunityChoice={onPowerOpportunityChoice}
+        />
+
+        <StrategicSagaBoard
+          compact
+          state={state.strategicSaga}
+          context={strategicSagaContext}
+          staff={staff}
+          onStart={onStrategicSagaStart}
+          onApproach={onStrategicSagaApproach}
+          onReserve={onStrategicSagaReserve}
+        />
 
         <section className="nation-surface transition-routes">
           <header><div><span>두 개의 종전 경로</span><h3>같은 나라, 다른 출발선</h3></div><small>{worldlineTitle}</small></header>
@@ -349,6 +615,27 @@ export function NationManagementPanel({
           <p className="continuity-empty-state">국가마다 다른 주기로 외교·지역·헌정·독립·사회경제 의제가 열립니다. 장기 진행은 의제나 위기가 생기면 자동으로 멈춥니다.</p>
         )}
       </section>
+
+      <PowerNetworkBoard
+        state={state.powerNetwork}
+        context={powerNetworkContext}
+        staff={staff}
+        formatMoney={formatMoney}
+        onPrinciplesChange={onLeadershipPrinciplesChange}
+        onPromise={onPowerBlocPromise}
+        onLegacyChange={onLegacyPathChange}
+        onRivalAction={onRivalAction}
+        onOpportunityChoice={onPowerOpportunityChoice}
+      />
+
+      <StrategicSagaBoard
+        state={state.strategicSaga}
+        context={strategicSagaContext}
+        staff={staff}
+        onStart={onStrategicSagaStart}
+        onApproach={onStrategicSagaApproach}
+        onReserve={onStrategicSagaReserve}
+      />
 
       <section className="nation-surface structural-pressure-board" aria-labelledby="structural-pressure-title">
         <header>
@@ -543,6 +830,238 @@ export function NationManagementPanel({
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="nation-surface personal-life-board">
+        <header>
+          <div><span>개인·가족·혼인</span><h3>한 사람의 삶도 세계선의 일부입니다</h3></div>
+          <small>{currentYear}년 · {currentFamilyLaw.name}</small>
+        </header>
+
+        <div className="personal-life-status-grid">
+          <article>
+            <UserRound />
+            <span>개인 프로필</span>
+            <strong>{state.personalLife.profile.configured ? `${getGenderLabel(state.personalLife.profile.gender)} · ${getOrientationLabel(state.personalLife.profile.orientation)}` : '설정 필요'}</strong>
+            <small>정체성은 능력치 우열을 만들지 않습니다.</small>
+          </article>
+          <article>
+            <Scale />
+            <span>법적 보호</span>
+            <strong>{currentFamilyLaw.principle}</strong>
+            <small>혼인 {currentFamilyLaw.sameGenderMarriage ? '평등' : '제한'} · 시민결합 {currentFamilyLaw.civilPartnership ? '허용' : '불허'}</small>
+          </article>
+          <article className={eraFamilyClimate.pressure >= 50 ? 'warning' : ''}>
+            <LockKeyhole />
+            <span>시대 환경</span>
+            <strong>{eraFamilyClimate.label}</strong>
+            <small>사회·제도 압력 {eraFamilyClimate.pressure}/100</small>
+          </article>
+          <article>
+            <Heart />
+            <span>현재 관계</span>
+            <strong>{activePersonalRelationship ? `${activePersonalRelationship.partnerTerm} · ${activePersonalRelationship.candidate.name}` : '독신·관계 없음'}</strong>
+            <small>{activePersonalRelationship ? `${getUnionFormLabel(activePersonalRelationship.unionForm)} · ${getVisibilityLabel(activePersonalRelationship.visibility)}` : '비혼으로 계속 플레이할 수 있습니다.'}</small>
+          </article>
+        </div>
+
+        <div className="personal-life-principles">
+          <div><strong>이 시대의 조건</strong><p>{eraFamilyClimate.detail}</p></div>
+          <div><strong>설계 원칙</strong><p>성적 지향 자체에는 페널티가 없습니다. 위험은 시대의 법, 관계 공개 범위, 국가의 제도 역량에서 발생하며 개혁으로 바꿀 수 있습니다.</p></div>
+        </div>
+
+        {!activePersonalRelationship ? (
+          <div className="personal-profile-editor">
+            <div className="personal-section-heading"><UserRound /><span><small>IDENTITY & BOUNDARIES</small><strong>{state.personalLife.profile.configured ? '관계 프로필 수정' : '먼저 나의 관계 원칙 설정'}</strong></span></div>
+            <div className="personal-profile-fields">
+              <label>성별 정체성<select value={identityGender} onChange={(event) => setIdentityGender(event.target.value as GenderIdentity)}>
+                <option value="woman">여성</option><option value="man">남성</option><option value="nonbinary">논바이너리</option><option value="private">공개하지 않음</option>
+              </select></label>
+              <label>성적 지향<select value={identityOrientation} onChange={(event) => setIdentityOrientation(event.target.value as OrientationId)}>
+                <option value="heterosexual">이성애</option><option value="gay-lesbian">동성애</option><option value="bisexual">양성애</option><option value="pansexual">범성애</option><option value="asexual">무성애 스펙트럼</option><option value="private">공개하지 않음·직접 선택</option>
+              </select></label>
+              <label>상대 호칭<select value={partnerTerm} onChange={(event) => setPartnerTerm(event.target.value as PartnerTermPreference)}>
+                <option value="auto">자동: 아내·남편·배우자</option><option value="wife">아내</option><option value="husband">남편</option><option value="spouse">배우자</option><option value="partner">동반자</option>
+              </select></label>
+              <label>관계 경계<select value={relationshipBoundary} onChange={(event) => setRelationshipBoundary(event.target.value as RelationshipBoundary)}>
+                <option value="exclusive">배타적 관계</option><option value="negotiated">합의형 관계</option><option value="companionate">동반자 관계</option><option value="private">사생활 비공개</option>
+              </select></label>
+            </div>
+            <button type="button" onClick={() => onConfigurePersonalLife({ gender: identityGender, orientation: identityOrientation, partnerTerm, boundary: relationshipBoundary })}>{state.personalLife.profile.configured ? '프로필 변경 저장' : '원칙 저장 · 후보 열기'}</button>
+          </div>
+        ) : null}
+
+        <div className="family-law-track">
+          <div className="personal-section-heading"><Scale /><span><small>FAMILY LAW</small><strong>가족법과 혼인평등</strong></span></div>
+          <div className="family-law-grid">
+            {familyLawDefinitions.map((law) => {
+              const active = law.id === state.personalLife.familyLawId;
+              const eligibility = canReformFamilyLaw(state.personalLife, law.id, personalLifeContext);
+              return (
+                <button type="button" key={law.id} className={active ? 'active' : ''} disabled={active || !eligibility.allowed} onClick={() => onFamilyLawChange(law.id)} title={active ? '현재 시행 중' : eligibility.reason}>
+                  <span>{law.principle}</span><strong>{law.name}</strong><p>{law.description}</p>
+                  <small>정치 {law.politicalCost} · 행정비 {formatMoney(law.treasuryCost)} · 교육 {law.requiredEducation} · 제도 {law.requiredInstitutions}</small>
+                  <em>{active ? '시행 중' : eligibility.allowed ? '법안 발의 가능' : eligibility.reason}</em>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {state.personalLife.profile.configured && !activePersonalRelationship ? (
+          <div className="relationship-market">
+            <div className="personal-section-heading"><Heart /><span><small>RELATIONSHIP NETWORK</small><strong>관계 후보 · {personalCandidates.length}명</strong></span></div>
+            <label>후보 선택<select value={selectedPersonalCandidate?.id ?? ''} onChange={(event) => setSelectedPersonalCandidateId(event.target.value)}>
+              {personalCandidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name} · {getGenderLabel(candidate.gender)} · {candidate.profession} · {candidate.nationName}</option>)}
+            </select></label>
+            {selectedPersonalCandidate ? (
+              <div className="relationship-candidate-card">
+                <div><span className="candidate-avatar"><UserRound /></span><span><strong>{selectedPersonalCandidate.name}</strong><small>{selectedPersonalCandidate.pronouns} · {getGenderLabel(selectedPersonalCandidate.gender)} · {selectedPersonalCandidate.orientation === 'bisexual' ? '양성애' : '범성애'}</small></span><b>{selectedPersonalCandidate.nationName}</b></div>
+                <p>{selectedPersonalCandidate.background}</p>
+                <dl><div><dt>직업</dt><dd>{selectedPersonalCandidate.profession}</dd></div><div><dt>관계 방식</dt><dd>{selectedPersonalCandidate.relationshipStyle}</dd></div><div><dt>가치</dt><dd>{selectedPersonalCandidate.values.join(' · ')}</dd></div><div><dt>공적 기반</dt><dd>{Math.round(selectedPersonalCandidate.publicStanding)}/100</dd></div></dl>
+                <small>가상 복합 인물 · 실존 인물의 확인되지 않은 사생활이나 성적 지향을 사용하지 않습니다.</small>
+              </div>
+            ) : <p className="personal-empty-state">현재 설정과 맞는 후보가 없습니다. 관계 프로필에서 지향 또는 공개 설정을 조정하십시오.</p>}
+            <button type="button" disabled={!selectedPersonalCandidate || game.politicalPower < 4 || game.treasury < 8} onClick={() => selectedPersonalCandidate && onStartPersonalRelationship(selectedPersonalCandidate.id)}>교제 시작 <small>정치 4 · {formatMoney(8)}</small></button>
+          </div>
+        ) : null}
+
+        {activePersonalRelationship ? (
+          <div className="active-relationship-board">
+            <div className="relationship-hero">
+              <span className="candidate-avatar"><Heart /></span>
+              <div><small>{getPairKindLabel(activePersonalRelationship.pairKind)} · {getVisibilityLabel(activePersonalRelationship.visibility)}</small><h4>{activePersonalRelationship.candidate.name}</h4><p>{activePersonalRelationship.candidate.profession} · {activePersonalRelationship.partnerTerm} · 함께한 시간 {activePersonalRelationship.weeksTogether}주</p></div>
+              <b>{getUnionFormLabel(activePersonalRelationship.unionForm)}</b>
+            </div>
+            <div className="relationship-metrics">
+              <article><span>유대</span><strong>{Math.round(activePersonalRelationship.bond)}</strong><MetricBar value={activePersonalRelationship.bond} /></article>
+              <article><span>신뢰</span><strong>{Math.round(activePersonalRelationship.trust)}</strong><MetricBar value={activePersonalRelationship.trust} /></article>
+              <article className={activePersonalRelationship.strain >= 65 ? 'warning' : ''}><span>긴장</span><strong>{Math.round(activePersonalRelationship.strain)}</strong><MetricBar value={activePersonalRelationship.strain} danger /></article>
+              <article className={activePersonalRelationship.exposure >= 65 ? 'warning' : ''}><span>노출</span><strong>{Math.round(activePersonalRelationship.exposure)}</strong><MetricBar value={activePersonalRelationship.exposure} danger /></article>
+              <article><span>법적 보호</span><strong>{activePersonalRelationship.legalRecognition === 'full' ? '완전' : activePersonalRelationship.legalRecognition === 'partial' ? '제한' : '없음'}</strong><small>{currentFamilyLaw.name}</small></article>
+            </div>
+
+            {activePersonalRelationship.stage === 'courtship' ? (
+              <div className="union-formalization">
+                <div className="personal-section-heading"><Home /><span><small>COMMITMENT</small><strong>관계 형태와 공개 범위 결정</strong></span></div>
+                <div className="union-form-fields">
+                  <label>관계 형태<select value={selectedUnionForm} onChange={(event) => setSelectedUnionForm(event.target.value as UnionForm)}><option value="marriage">법률혼</option><option value="civil-partnership">시민결합</option><option value="domestic-partnership">동거 동반자</option><option value="private-commitment">비공개 서약</option></select></label>
+                  <label>공개 범위<select value={selectedRelationshipVisibility} onChange={(event) => setSelectedRelationshipVisibility(event.target.value as RelationshipVisibility)}><option value="public">공개</option><option value="private">비공개</option><option value="secret">비밀</option></select></label>
+                </div>
+                <p className={unionEligibility.allowed ? 'union-eligible' : 'union-blocked'}>{unionEligibility.allowed ? `체결 가능 · ${unionEligibility.reason}` : `체결 불가 · ${unionEligibility.reason}`}</p>
+                <button type="button" disabled={!unionEligibility.allowed} onClick={() => onFormalizeRelationship(selectedUnionForm, selectedRelationshipVisibility)}>{getUnionFormLabel(selectedUnionForm)} 확정</button>
+              </div>
+            ) : (
+              <div className="family-plan-control">
+                <div className="personal-section-heading"><Home /><span><small>HOUSEHOLD</small><strong>가족 형태와 양육 계획</strong></span></div>
+                <label>가족 계획<select value={selectedFamilyPlanId} onChange={(event) => setSelectedFamilyPlanId(event.target.value as FamilyPlanId)}>{familyPlanDefinitions.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></label>
+                <p>{familyPlanDefinitions.find((plan) => plan.id === selectedFamilyPlanId)?.description}</p>
+                <button type="button" disabled={selectedFamilyPlanId === 'adoption' && !currentFamilyLaw.jointAdoption} onClick={() => onFamilyPlanChange(selectedFamilyPlanId)}>가족 계획 적용</button>
+                <small>현재: {familyPlanDefinitions.find((plan) => plan.id === activePersonalRelationship.familyPlan)?.name} · 부양 가족 {activePersonalRelationship.dependents}명</small>
+              </div>
+            )}
+
+            <div className="relationship-actions">
+              {personalLifeActionDefinitions.map((action) => <button type="button" key={action.id} className={action.id === 'separate' ? 'danger' : ''} onClick={() => onPersonalLifeAction(action.id)}><strong>{action.name}</strong><span>{action.description}</span><small>{action.cost}</small></button>)}
+            </div>
+          </div>
+        ) : null}
+
+        {state.personalLife.history.length > 0 ? (
+          <div className="personal-history-ledger"><h4>개인사 기록</h4>{state.personalLife.history.slice(0, 6).map((record) => <article key={record.id}><span><strong>{record.title}</strong><small>{record.detail}</small></span><b>제{record.week + 1}주</b></article>)}</div>
+        ) : null}
+      </section>
+
+      <section className="nation-surface media-relations-board">
+        <header>
+          <div><span>언론·평판 상황실</span><h3>질문을 피하는 것이 아니라, 누가 서사를 만드는지 관리합니다</h3></div>
+          <small>{currentYear}년 · {currentMediaLaw.name}</small>
+        </header>
+
+        <div className="media-status-grid">
+          <article><Newspaper /><span>언론 자유</span><strong>{Math.round(state.mediaRelations.freedom)}</strong><MetricBar value={state.mediaRelations.freedom} /></article>
+          <article><Mic /><span>언론 접근</span><strong>{Math.round(state.mediaRelations.access)}</strong><MetricBar value={state.mediaRelations.access} /></article>
+          <article><ShieldCheck /><span>언론 신뢰</span><strong>{Math.round(state.mediaRelations.pressTrust)}</strong><MetricBar value={state.mediaRelations.pressTrust} /></article>
+          <article className={state.mediaRelations.hostility >= 60 ? 'warning' : ''}><LockKeyhole /><span>취재 적대</span><strong>{Math.round(state.mediaRelations.hostility)}</strong><MetricBar value={state.mediaRelations.hostility} danger /></article>
+        </div>
+
+        <div className="media-design-principle">
+          <strong>정체성은 페널티가 아닙니다</strong>
+          <p>폭로 위험은 {role.title}의 공적 지위, 소속 집단의 권력 경쟁, 가족법, 언론법, 선거와 공개 범위에서 발생합니다. 동의 없는 공개는 별도의 사생활 침해로 기록되며 대응 결과는 법과 제도의 보호 수준에 따라 달라집니다.</p>
+        </div>
+
+        <div className="media-law-grid">
+          {mediaLawDefinitions.map((law) => {
+            const eligibility = canReformMediaLaw(state.mediaRelations, law.id, mediaContext);
+            const active = law.id === state.mediaRelations.lawId;
+            return (
+              <button type="button" key={law.id} className={active ? 'active' : ''} disabled={active || !eligibility.allowed} onClick={() => onMediaLawChange(law.id)} title={active ? '현재 시행 중' : eligibility.reason}>
+                <span>{law.principle}</span><strong>{law.name}</strong><p>{law.description}</p>
+                <small>자유 목표 {law.freedomTarget} · 정치력 {law.politicalCost} · {formatMoney(law.treasuryCost)}</small>
+                <em>{active ? '현재 시행 중' : eligibility.reason}</em>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="media-operations-grid">
+          <section className={`media-interview-card ${pendingInterview ? 'pending' : ''}`}>
+            <div className="personal-section-heading"><Mic /><span><small>PRESS INTERVIEW</small><strong>{pendingInterview ? `${pendingInterview.outlet.name} 인터뷰 요청` : '먼저 언론 인터뷰를 제안'}</strong></span></div>
+            {pendingInterview ? (
+              <>
+                <div className="interview-request-meta">
+                  <span>{pendingInterview.initiator === 'media' ? '편집국 요청' : '사용자 제안'}</span><b>{pendingInterview.format}</b><em>제{pendingInterview.deadlineWeek + 1}주까지</em>
+                </div>
+                <blockquote>{pendingInterview.question}</blockquote>
+                <p>{pendingInterview.context}</p>
+                <div className="interview-response-list">
+                  {interviewResponseDefinitions.map((response) => {
+                    const preview = previewInterviewResponse(pendingInterview, response.id, mediaContext);
+                    return <button type="button" key={response.id} className={response.id === 'decline' ? 'danger' : ''} onClick={() => onAnswerMediaInterview(response.id)}><strong>{response.name}</strong><span>{response.approach}</span><small>예상: {preview.label}</small></button>;
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="outbound-interview-planner">
+                <label>주도할 의제<select value={selectedMediaTopicId} onChange={(event) => setSelectedMediaTopicId(event.target.value as MediaTopicId)}>{mediaTopicDefinitions.map((topic) => <option key={topic.id} value={topic.id}>{topic.name}</option>)}</select></label>
+                <p>{mediaTopicDefinitions.find((topic) => topic.id === selectedMediaTopicId)?.purpose}</p>
+                <button type="button" disabled={!currentMediaLaw.independentInterviews || state.mediaRelations.access < 25 || game.politicalPower < 2} onClick={() => onRequestMediaInterview(selectedMediaTopicId)}>정치력 2 · 편집국에 인터뷰 요청</button>
+                <small>{currentMediaLaw.independentInterviews ? '편집국이 독립 질문을 추가하므로 일방적인 선전 방송이 아닙니다.' : '현재 언론법에서는 독립 인터뷰를 요청할 수 없습니다.'}</small>
+              </div>
+            )}
+          </section>
+
+          <section className={`media-exposure-card ${activeExposure && activeExposure.stage !== 'resolved' ? 'danger' : ''}`}>
+            <div className="personal-section-heading"><LockKeyhole /><span><small>PRIVACY & DISCLOSURE</small><strong>{activeExposure && activeExposure.stage !== 'resolved' ? '폭로 대응실 가동' : '사생활 폭로 위험'}</strong></span></div>
+            {activeExposure && activeExposure.stage !== 'resolved' ? (
+              <>
+                <div className="exposure-stage-line"><span>{getExposureStageLabel(activeExposure.stage)}</span><b>{activeExposure.outlet.name}</b><em>증거 {activeExposure.evidenceQuality}/100 · 관심 {activeExposure.publicAttention}/100</em></div>
+                <h4>{activeExposure.subject}</h4>
+                <p><b>제보자</b> {activeExposure.instigator}</p><p><b>동기</b> {activeExposure.motive}</p>
+                <div className="exposure-response-list">
+                  {exposureResponseDefinitions.map((response) => {
+                    const disabled = response.id === 'independent-review'
+                      ? state.institutionalCapacity < 42 || game.treasury < 10
+                      : response.id === 'legal-protection'
+                        ? state.personalLife.familyLawId === 'restrictive-code' || game.politicalPower < 5 || game.treasury < 6
+                        : false;
+                    return <button type="button" key={response.id} disabled={disabled} className={response.id === 'attack-source' ? 'danger' : ''} onClick={() => onAnswerExposure(response.id)}><strong>{response.name}</strong><span>{response.approach}</span><small>{response.id === 'independent-review' ? '제도 42 · 국고 10M' : response.id === 'legal-protection' ? '사생활 보호법 이상 · 정치력 5 · 국고 6M' : '즉시 대응'}</small></button>;
+                  })}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="disclosure-risk-score"><span>주간 폭로 가능성</span><strong>{disclosureRisk.weeklyChance.toFixed(1)}%</strong><em>종합 압력 {disclosureRisk.score}/100</em></div>
+                <p><b>예상 제보자</b> {disclosureRisk.likelyInstigator}</p><p><b>대상 정보</b> {disclosureRisk.subject}</p>
+                <div className="disclosure-factor-list">{disclosureRisk.factors.map((factor) => <div key={factor.label}><span><strong>{factor.label}</strong><small>{factor.detail}</small></span><b>+{factor.value}</b></div>)}</div>
+                <small className="media-protection-note">현재 보호: {disclosureRisk.protection}</small>
+                {activeExposure?.stage === 'resolved' && <div className="resolved-exposure-note"><strong>최근 해결</strong><p>{activeExposure.resolution}</p></div>}
+              </>
+            )}
+          </section>
+        </div>
+
+        {state.mediaRelations.history.length > 0 && <div className="media-history-ledger"><h4>언론 대응 기록</h4>{state.mediaRelations.history.slice(0, 8).map((record) => <article key={record.id} className={record.tone}><span><strong>{record.title}</strong><small>{record.detail}</small></span><b>제{record.week + 1}주</b></article>)}</div>}
       </section>
 
       <section className="nation-surface dynastic-politics-board">

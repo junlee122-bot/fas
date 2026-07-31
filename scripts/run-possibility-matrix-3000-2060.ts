@@ -40,6 +40,8 @@ function createOverviewMarkdown(run: PossibilityMatrixRun, prefix: string) {
 - 전체 경력: ${formatNumber(run.totalSessions)}회
 - 시대 범위: 1942–2060
 - 역사·미래 사건 선택: ${formatNumber(run.totalHistoricalEventChoices)}회
+- 국가별 시나리오 조합 용량: ${formatNumber(run.combinationCapacity)}개
+- 이전 용량 대비 확장: +${formatNumber(run.capacityExpansion)}개
 - 실제 고유 정책 조합: ${formatNumber(run.uniqueCombinations)}개
 - 고유 미래 경로: ${formatNumber(run.uniqueFuturePaths)}개
 - 미래 경로 충돌률: ${percent(run.futurePathCollisionRate)}
@@ -65,6 +67,7 @@ ${findingMarkdown(run)}
 - **더 구체적인 결말**: 정부·경제·국제질서뿐 아니라 권리 정착, 발전 수준, 생태 부채, 회복/과잉확장 기억을 결말 분류에 포함합니다.
 - **국가별 회귀 잠금**: 13개 국가 각각의 국가 점수 10·90분위와 생존 비율을 검사해 지나친 평준화와 일방적 붕괴를 동시에 경고합니다.
 - **플레이 화면의 인과 추적**: 진행 결과 분석실에서 현재 세계선 코드, 결말 ID, 국가 프로그램, 지배·차순위 역사동력과 누적 분기를 함께 확인합니다.
+- **독립 예산 전략 축**: 재건·복지·교육·산업·외교·안보 예산을 경제 모델과 분리해 같은 경제 체제 안에서도 전혀 다른 국가 경로를 만들며, 이론상 조합 용량을 12,960개에서 77,760개로 확장합니다.
 
 ## 산출물
 
@@ -138,6 +141,8 @@ function writeArtifacts(
     sessionsPerNation: run.sessionsPerNation,
     totalSessions: run.totalSessions,
     totalHistoricalEventChoices: run.totalHistoricalEventChoices,
+    combinationCapacity: run.combinationCapacity,
+    capacityExpansion: run.capacityExpansion,
     uniqueCombinations: run.uniqueCombinations,
     uniqueFuturePaths: run.uniqueFuturePaths,
     futurePathCollisionRate: run.futurePathCollisionRate,
