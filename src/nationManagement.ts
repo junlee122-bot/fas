@@ -39,6 +39,12 @@ import {
   type StrategicSagaState,
 } from './strategicSaga';
 import {
+  advanceSocialistWorldWeek,
+  createSocialistWorldState,
+  normalizeSocialistWorldState,
+  type SocialistWorldState,
+} from './socialistWorld';
+import {
   advanceNationalPlanWeek,
   advanceStrategicOperationWeek,
   createNationalPlanningState,
@@ -238,6 +244,7 @@ export interface NationManagementState {
   mediaRelations: MediaRelationsState;
   powerNetwork: PowerNetworkState;
   strategicSaga: StrategicSagaState;
+  socialistWorld: SocialistWorldState;
   electoral: ElectoralPoliticsState;
   strategicContinuity: StrategicContinuityState;
   nationalPlanning: NationalPlanningState;
@@ -653,6 +660,7 @@ export function createNationManagementState(
       completedResearch,
       publicHealthPressure: 0,
     }),
+    socialistWorld: createSocialistWorldState(nationId, game.week),
     electoral: createElectoralPoliticsState(nationId, game.week),
     strategicContinuity: createStrategicContinuityState(),
     nationalPlanning: createNationalPlanningState(),
@@ -837,6 +845,35 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     coalitionSupport: state.powerNetwork.blocs.reduce((sum, bloc) => sum + bloc.support, 0) / Math.max(1, state.powerNetwork.blocs.length),
     promiseReliability: state.powerNetwork.promiseReliability,
   });
+  const blocById = new Map(state.powerNetwork.blocs.map((bloc) => [bloc.id, bloc]));
+  const socialistEffects = advanceSocialistWorldWeek(state.socialistWorld, {
+    week: context.week,
+    year: 1942 + Math.floor(context.week / 52),
+    phase: 'nation',
+    nationId: state.nationId,
+    role: context.role ?? ({ tier: 1, branch: 'politics', title: '국가 지도자' } as CareerRole),
+    politicalPower: context.game.politicalPower,
+    treasury: context.game.treasury,
+    stability: context.game.stability,
+    warSupport: context.game.warSupport,
+    enemyPressure: context.game.enemyPressure,
+    legitimacy: state.legitimacy,
+    unrest: state.unrest,
+    welfare: state.welfare,
+    employment: state.employment,
+    inequality: state.inequality,
+    education: state.education,
+    civilianIndustry: state.civilianIndustry,
+    institutionalCapacity: state.institutionalCapacity,
+    publicConfidence: context.economy.publicConfidence,
+    inflation: context.economy.inflation,
+    relationAverage: context.relationAverage,
+    laborSupport: blocById.get('labor')?.support ?? 50,
+    laborInfluence: blocById.get('labor')?.influence ?? 50,
+    civicSupport: blocById.get('civic')?.support ?? 50,
+    intelligentsiaSupport: blocById.get('intelligentsia')?.support ?? 50,
+    securitySupport: blocById.get('security')?.support ?? 50,
+  });
   const strategy = strategyModifiers(state.strategyId);
   const investmentScale = state.spendingLevel / 100;
   const pressure = (domain: NationBudgetDomain) => state.budget[domain] * investmentScale;
@@ -958,14 +995,14 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     ...state,
     infrastructure: clamp(state.infrastructure + reconstruction * 0.013 * structure.reconstructionEfficiency + industry * 0.002 - 0.05),
     housing: clamp(state.housing + reconstruction * 0.009 * structure.reconstructionEfficiency + welfare * 0.003 - 0.04),
-    welfare: clamp(state.welfare + welfare * 0.014 + education * 0.002 - context.publicHealthPressure * 0.003 - Math.max(0, context.economy.inflation - 7) * 0.006),
+    welfare: clamp(state.welfare + welfare * 0.014 + education * 0.002 - context.publicHealthPressure * 0.003 - Math.max(0, context.economy.inflation - 7) * 0.006 + socialistEffects.nationDelta.welfare),
     education: clamp(state.education + education * 0.014 + context.completedResearch * 0.003),
-    civilianIndustry: clamp(state.civilianIndustry + (industry * 0.014 + reconstruction * 0.002) * (.72 + structure.industrialPotential / 180) - Math.max(0, context.economy.inflation - 10) * 0.005),
-    employment: clamp(state.employment + (industry * 0.009 + reconstruction * 0.004) * (.78 + structure.administrativeEfficiency / 220) - Math.max(0, state.taxBurden - 62) * 0.006),
-    institutionalCapacity: clamp(state.institutionalCapacity + (education * 0.005 + diplomacy * 0.005 + security * 0.003) * (.7 + structure.administrativeEfficiency / 170) - Math.max(0, state.unrest - 60) * 0.005),
+    civilianIndustry: clamp(state.civilianIndustry + (industry * 0.014 + reconstruction * 0.002) * (.72 + structure.industrialPotential / 180) - Math.max(0, context.economy.inflation - 10) * 0.005 + socialistEffects.nationDelta.civilianIndustry),
+    employment: clamp(state.employment + (industry * 0.009 + reconstruction * 0.004) * (.78 + structure.administrativeEfficiency / 220) - Math.max(0, state.taxBurden - 62) * 0.006 + socialistEffects.nationDelta.employment),
+    institutionalCapacity: clamp(state.institutionalCapacity + (education * 0.005 + diplomacy * 0.005 + security * 0.003) * (.7 + structure.administrativeEfficiency / 170) - Math.max(0, state.unrest - 60) * 0.005 + socialistEffects.nationDelta.institutionalCapacity),
     tradeBalance: clamp(state.tradeBalance + diplomacy * 0.025 + industry * 0.018 + (structure.resourceBase - 50) * .0015 - state.spendingLevel * 0.004, -100, 100),
-    inequality: clamp(state.inequality - welfare * 0.009 - Math.max(0, state.taxBurden - 45) * 0.004 + industry * 0.003),
-    unrest: clamp(state.unrest + (structuralPressure.targetUnrest - state.unrest) * .018 + dynasticEffects.unrest + personalLifeEffects.unrest + mediaEffects.unrest + powerEffects.unrest + sagaEffects.unrest),
+    inequality: clamp(state.inequality - welfare * 0.009 - Math.max(0, state.taxBurden - 45) * 0.004 + industry * 0.003 + socialistEffects.nationDelta.inequality),
+    unrest: clamp(state.unrest + (structuralPressure.targetUnrest - state.unrest) * .018 + dynasticEffects.unrest + personalLifeEffects.unrest + mediaEffects.unrest + powerEffects.unrest + sagaEffects.unrest + socialistEffects.nationDelta.unrest),
     legitimacy: clamp(state.legitimacy + sagaEffects.legitimacy),
     relativeCompetitiveness: clamp(state.relativeCompetitiveness + (competitivenessTarget - state.relativeCompetitiveness) * 0.018),
     institutionalAge: clamp(state.institutionalAge + (institutionalAgeTarget - state.institutionalAge) * 0.012),
@@ -983,6 +1020,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     mediaRelations: mediaEffects.state,
     powerNetwork: powerEffects.state,
     strategicSaga: sagaEffects.state,
+    socialistWorld: socialistEffects.state,
     electoral: state.electoral,
     strategicContinuity: state.strategicContinuity,
     nationalPlanning: state.nationalPlanning,
@@ -1000,6 +1038,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     + mediaEffects.legitimacy
     + powerEffects.legitimacy
     + sagaEffects.legitimacy
+    + socialistEffects.nationDelta.legitimacy
     + (state.strategyId === 'security-republic' ? -0.025 : 0.015),
   );
   const electoralResult = advanceElectoralPoliticsWeek(state.electoral, {
@@ -1106,6 +1145,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     ...mediaEffects.events,
     ...powerEffects.events,
     ...sagaEffects.events,
+    ...socialistEffects.events,
     ...electoralResult.events,
     ...(strategicResult.event ? [{
       id: `strategic-${context.week}-${next.strategicContinuity.active?.id ?? next.strategicContinuity.history[0]?.id ?? 'review'}`,
@@ -1139,6 +1179,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
       `언론환경 = ${mediaEffects.note}`,
       `권력생태계 = ${powerEffects.note}`,
       ...(next.strategicSaga.active ? [`시대 국면 = ${next.strategicSaga.active.definitionId} · 진척 ${Math.round(next.strategicSaga.active.progress)} · 압력 ${Math.round(next.strategicSaga.active.pressure)} · 후퇴 ${next.strategicSaga.active.setbacks}`] : []),
+      `사회체제 = ${next.socialistWorld.currentModelId ?? '혼합질서'} · 계급 압력 ${Math.round(next.socialistWorld.classPressure)} · 노동 조직 ${Math.round(next.socialistWorld.workerOrganization)} · 사회적 소유 ${Math.round(next.socialistWorld.socialOwnership)} · 강제력 ${Math.round(next.socialistWorld.coercion)}`,
       ...(state.electoral.activeCampaign ? [`선거일정 = ${getElectionTypeName(state.electoral.activeCampaign.type)} · ${getCampaignStageName(state.electoral.activeCampaign.stage)} · 투표일까지 ${Math.max(0, state.electoral.activeCampaign.electionWeek - context.week)}주`] : []),
     ],
     effects: [
@@ -1154,6 +1195,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
       `언론·평판: ${mediaEffects.note}`,
       `세력·공약·유산: ${powerEffects.note}`,
       ...(next.strategicSaga.active ? [`전략 서사: ${next.strategicSaga.active.approachId ? `선택한 원칙 ${next.strategicSaga.active.approachId}로 진행 중` : '새 막의 대응 원칙 결재 필요'}`] : []),
+      ...(next.socialistWorld.active ? [`사회주의 전환: ${next.socialistWorld.active.stage} · 진척 ${Math.round(next.socialistWorld.active.progress)} · 내부 모순 ${Math.round(next.socialistWorld.active.contradiction)}`] : []),
     ],
     events,
   };
@@ -1163,9 +1205,9 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     report,
     gameDelta: {
       week: 1,
-      treasury: fiscalBalance + powerEffects.treasury + sagaEffects.treasury,
-      stability: stabilityChange + sagaEffects.stability,
-      politicalPower: politicalPowerChange + powerEffects.politicalPower + sagaEffects.politicalPower + electoralResult.politicalPowerDelta + (strategicResult.gameDelta.politicalPower ?? 0),
+      treasury: fiscalBalance + powerEffects.treasury + sagaEffects.treasury + socialistEffects.treasury,
+      stability: stabilityChange + sagaEffects.stability + socialistEffects.stability,
+      politicalPower: politicalPowerChange + powerEffects.politicalPower + sagaEffects.politicalPower + socialistEffects.politicalPower + electoralResult.politicalPowerDelta + (strategicResult.gameDelta.politicalPower ?? 0),
       enemyPressure: enemyPressureChange + (strategicResult.gameDelta.enemyPressure ?? 0),
       commandPoints: 1,
       intelNetwork: strategicResult.gameDelta.intelNetwork ?? 0,
@@ -1174,7 +1216,7 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     economyDelta: {
       debt: debtChange,
       inflation: inflationChange,
-      publicConfidence: round(projectedEconomy.publicConfidence - context.economy.publicConfidence + mediaEffects.publicConfidence + powerEffects.publicConfidence + sagaEffects.publicConfidence, 2),
+      publicConfidence: round(projectedEconomy.publicConfidence - context.economy.publicConfidence + mediaEffects.publicConfidence + powerEffects.publicConfidence + sagaEffects.publicConfidence + socialistEffects.publicConfidence, 2),
     },
   };
 }
@@ -1220,6 +1262,7 @@ export function normalizeNationManagementState(value: unknown, fallback: NationM
       replacementEffect: '사용자가 권력 연합을 재구성합니다.',
     }, candidate.strategyId ?? fallback.strategyId),
     strategicSaga: normalizeStrategicSagaState(candidate.strategicSaga, fallback.strategicSaga),
+    socialistWorld: normalizeSocialistWorldState(candidate.socialistWorld, fallback.socialistWorld),
     electoral: normalizeElectoralPoliticsState(candidate.electoral, fallback.nationId, fallback.startedWeek),
     strategicContinuity: normalizeStrategicContinuityState(candidate.strategicContinuity),
     nationalPlanning: normalizeNationalPlanningState(candidate.nationalPlanning),

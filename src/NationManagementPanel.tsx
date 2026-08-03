@@ -95,6 +95,7 @@ import { NationalSimulationOverview } from './NationalSimulationOverview';
 import type { NationalSimulationSnapshot } from './nationalSimulation';
 import { PowerNetworkBoard } from './PowerNetworkBoard';
 import { StrategicSagaBoard } from './StrategicSagaBoard';
+import { SocialistWorldBoard } from './SocialistWorldBoard';
 import type {
   LeadershipPrincipleId,
   LegacyPathId,
@@ -104,6 +105,7 @@ import type {
   RivalActionId,
 } from './powerNetwork';
 import type { SagaApproachId, SagaChampion, StrategicSagaContext } from './strategicSaga';
+import type { SocialistModelId, SocialistSettlementId, SocialistTransitionMethodId, SocialistTransitionSponsor, SocialistWorldContext } from './socialistWorld';
 import {
   getAvailableStrategicOperations,
   nationalPlanDefinitions,
@@ -189,6 +191,9 @@ interface NationManagementPanelProps {
   onStrategicSagaStart: (definitionId: string, champion: SagaChampion) => void;
   onStrategicSagaApproach: (approachId: SagaApproachId) => void;
   onStrategicSagaReserve: () => void;
+  onSocialistTransitionStart: (modelId: SocialistModelId, sponsor: SocialistTransitionSponsor) => void;
+  onSocialistSettlement: (settlementId: SocialistSettlementId) => void;
+  onSocialistTransitionMethod: (methodId: SocialistTransitionMethodId) => void;
   onElectionCampaignAction: (actionId: ElectionCampaignActionId, regionId: string | null) => void;
   onLaunchReferendum: (topicId: ReferendumTopicId) => void;
   onLaunchStrategicOperation: (operationId: string) => void;
@@ -265,6 +270,9 @@ export function NationManagementPanel({
   onStrategicSagaStart,
   onStrategicSagaApproach,
   onStrategicSagaReserve,
+  onSocialistTransitionStart,
+  onSocialistSettlement,
+  onSocialistTransitionMethod,
   onElectionCampaignAction,
   onLaunchReferendum,
   onLaunchStrategicOperation,
@@ -426,6 +434,35 @@ export function NationManagementPanel({
     coalitionSupport: state.powerNetwork.blocs.reduce((sum, bloc) => sum + bloc.support, 0) / Math.max(1, state.powerNetwork.blocs.length),
     promiseReliability: state.powerNetwork.promiseReliability,
   };
+  const blocById = new Map(state.powerNetwork.blocs.map((bloc) => [bloc.id, bloc]));
+  const socialistWorldContext: SocialistWorldContext = {
+    week: game.week,
+    year: currentYear,
+    phase,
+    nationId: nation.id,
+    role,
+    politicalPower: game.politicalPower,
+    treasury: game.treasury,
+    stability: game.stability,
+    warSupport: game.warSupport,
+    enemyPressure: game.enemyPressure,
+    legitimacy: state.legitimacy,
+    unrest: state.unrest,
+    welfare: state.welfare,
+    employment: state.employment,
+    inequality: state.inequality,
+    education: state.education,
+    civilianIndustry: state.civilianIndustry,
+    institutionalCapacity: state.institutionalCapacity,
+    publicConfidence: economy.publicConfidence,
+    inflation: economy.inflation,
+    relationAverage: relations.length > 0 ? relations.reduce((sum, relation) => sum + relation.value, 0) / relations.length : 50,
+    laborSupport: blocById.get('labor')?.support ?? 50,
+    laborInfluence: blocById.get('labor')?.influence ?? 50,
+    civicSupport: blocById.get('civic')?.support ?? 50,
+    intelligentsiaSupport: blocById.get('intelligentsia')?.support ?? 50,
+    securitySupport: blocById.get('security')?.support ?? 50,
+  };
 
   if (phase === 'war') {
     const pillarRows = [
@@ -543,6 +580,16 @@ export function NationManagementPanel({
           onReserve={onStrategicSagaReserve}
         />
 
+        <SocialistWorldBoard
+          compact
+          state={state.socialistWorld}
+          context={socialistWorldContext}
+          staff={staff}
+          onStart={onSocialistTransitionStart}
+          onSettlement={onSocialistSettlement}
+          onMethod={onSocialistTransitionMethod}
+        />
+
         <section className="nation-surface transition-routes">
           <header><div><span>두 개의 종전 경로</span><h3>같은 나라, 다른 출발선</h3></div><small>{worldlineTitle}</small></header>
           <div>
@@ -635,6 +682,15 @@ export function NationManagementPanel({
         onStart={onStrategicSagaStart}
         onApproach={onStrategicSagaApproach}
         onReserve={onStrategicSagaReserve}
+      />
+
+      <SocialistWorldBoard
+        state={state.socialistWorld}
+        context={socialistWorldContext}
+        staff={staff}
+        onStart={onSocialistTransitionStart}
+        onSettlement={onSocialistSettlement}
+        onMethod={onSocialistTransitionMethod}
       />
 
       <section className="nation-surface structural-pressure-board" aria-labelledby="structural-pressure-title">

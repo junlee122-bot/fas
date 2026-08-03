@@ -1,23 +1,23 @@
 {
-  "generatedAt": "2026-07-27T13:00:13.353Z",
+  "generatedAt": "2026-08-03T03:18:02.259Z",
   "nations": 13,
   "eras": 6,
-  "domains": 10,
-  "historicalPrograms": 60,
+  "domains": 15,
+  "historicalPrograms": 90,
   "approachesPerProgram": 3,
-  "nationDifferentiatedChoicesPerRole": 2340,
+  "nationDifferentiatedChoicesPerRole": 3510,
   "evaluatedRoleLevels": [
     "tier-1 executive",
     "tier-2 minister",
     "tier-5 field"
   ],
-  "evaluatedPaths": 7020,
-  "officialSourceUrls": 17,
+  "evaluatedPaths": 10530,
+  "officialSourceUrls": 25,
   "minimumEffectSurfaces": 3,
   "authorityCounts": {
-    "direct": 3744,
-    "ministerial": 936,
-    "proposal": 2340
+    "direct": 5850,
+    "ministerial": 1170,
+    "proposal": 3510
   },
   "nationProfiles": [
     {
@@ -28,11 +28,13 @@
       "strengths": [
         "information",
         "science",
-        "transport"
+        "transport",
+        "finance"
       ],
       "constraints": [
         "housing",
-        "energy"
+        "energy",
+        "migration"
       ],
       "historicalAnchor": "의회·지방정부·제국망과 복지국가 전환이 공존해 공공서비스와 해외 네트워크의 균형이 핵심입니다."
     },
@@ -44,11 +46,13 @@
       "strengths": [
         "energy",
         "science",
-        "transport"
+        "transport",
+        "finance"
       ],
       "constraints": [
         "housing",
-        "labor"
+        "labor",
+        "justice"
       ],
       "historicalAnchor": "대륙 규모의 산업·시장·대학 기반이 강하지만 연방·지역·인종·계층 격차가 정책 효과를 다르게 만듭니다."
     },
@@ -60,11 +64,13 @@
       "strengths": [
         "energy",
         "education",
-        "science"
+        "science",
+        "resilience"
       ],
       "constraints": [
         "food",
-        "information"
+        "information",
+        "finance"
       ],
       "historicalAnchor": "계획·동원·대형 과학사업 능력이 강하지만 지역 지식과 공개된 피드백이 약해 병목이 누적될 수 있습니다."
     },
@@ -76,11 +82,13 @@
       "strengths": [
         "science",
         "labor",
-        "transport"
+        "transport",
+        "finance"
       ],
       "constraints": [
         "housing",
-        "environment"
+        "environment",
+        "justice"
       ],
       "historicalAnchor": "고숙련 산업과 행정 기반이 강하지만 전쟁·체제붕괴·분단 여부가 제도 연속성을 크게 바꿉니다."
     },
@@ -92,11 +100,13 @@
       "strengths": [
         "transport",
         "education",
-        "science"
+        "science",
+        "resilience"
       ],
       "constraints": [
         "energy",
-        "housing"
+        "housing",
+        "migration"
       ],
       "historicalAnchor": "고밀도 도시·산업조직과 기술학습 능력이 강하지만 에너지·식량 수입과 재난 노출이 전략을 제한합니다."
     },
@@ -108,11 +118,13 @@
       "strengths": [
         "food",
         "labor",
-        "transport"
+        "transport",
+        "resilience"
       ],
       "constraints": [
         "health",
-        "housing"
+        "housing",
+        "justice"
       ],
       "historicalAnchor": "광대한 농촌·지역 다양성과 전쟁 피해 때문에 중앙계획의 규모와 현지 실행 능력 사이의 간극이 중요합니다."
     },
@@ -124,11 +136,13 @@
       "strengths": [
         "food",
         "education",
-        "information"
+        "information",
+        "culture"
       ],
       "constraints": [
         "health",
-        "transport"
+        "transport",
+        "finance"
       ],
       "historicalAnchor": "민주적 다원성과 과학·행정 인재가 강점이지만 식민지 유산, 농촌 빈곤과 대륙 규모의 서비스 격차가 큽니다."
     },
@@ -140,11 +154,13 @@
       "strengths": [
         "transport",
         "education",
-        "health"
+        "health",
+        "justice"
       ],
       "constraints": [
         "housing",
-        "energy"
+        "energy",
+        "migration"
       ],
       "historicalAnchor": "망명·저항 네트워크를 해방 후 정통성과 공화국 행정으로 전환하는 과정이 모든 사업의 효과를 좌우합니다."
     },
@@ -156,11 +172,13 @@
       "strengths": [
         "food",
         "housing",
-        "labor"
+        "labor",
+        "culture"
       ],
       "constraints": [
         "energy",
-        "transport"
+        "transport",
+        "finance"
       ],
       "historicalAnchor": "도시·농촌과 남북 격차, 강한 지방사회가 중앙 개발계획의 속도와 정당성을 함께 결정합니다."
     },
@@ -172,11 +190,13 @@
       "strengths": [
         "education",
         "information",
-        "labor"
+        "labor",
+        "culture"
       ],
       "constraints": [
         "housing",
-        "transport"
+        "transport",
+        "finance"
       ],
       "historicalAnchor": "식민지 지배와 분단 위험 속에서 국내망·망명정부·지역조직을 주권국가의 공공제도로 바꾸는 것이 핵심입니다."
     },
@@ -188,11 +208,13 @@
       "strengths": [
         "food",
         "labor",
-        "information"
+        "information",
+        "resilience"
       ],
       "constraints": [
         "health",
-        "transport"
+        "transport",
+        "finance"
       ],
       "historicalAnchor": "농촌 조직과 독립운동의 동원력은 강하지만 장기전·식민지 경제와 파괴된 기반시설이 민생 전환을 어렵게 합니다."
     },
@@ -204,11 +226,13 @@
       "strengths": [
         "food",
         "information",
-        "labor"
+        "labor",
+        "migration"
       ],
       "constraints": [
         "transport",
-        "health"
+        "health",
+        "resilience"
       ],
       "historicalAnchor": "군도·다언어 사회에서 항로, 지방대표성과 공통 행정표준을 함께 세워야 국가 사업이 실제로 도달합니다."
     },
@@ -220,11 +244,13 @@
       "strengths": [
         "information",
         "education",
-        "housing"
+        "housing",
+        "migration"
       ],
       "constraints": [
         "transport",
-        "energy"
+        "energy",
+        "resilience"
       ],
       "historicalAnchor": "군도 물류와 식민지 제도, 지방 엘리트 권력이 보편서비스와 시장개방의 수혜 분포를 좌우합니다."
     }
@@ -235,14 +261,14 @@
       "nation": "영국",
       "eraId": "mobilization",
       "era": "1942–1945",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 101.4,
-      "averageTreasuryCost": 42.2,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 101.2,
+      "averageTreasuryCost": 41,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -250,14 +276,14 @@
       "nation": "영국",
       "eraId": "reconstruction",
       "era": "1946–1959",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 101.4,
-      "averageTreasuryCost": 55.5,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 101.2,
+      "averageTreasuryCost": 54,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -265,14 +291,14 @@
       "nation": "영국",
       "eraId": "mass-society",
       "era": "1960–1979",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 101.4,
-      "averageTreasuryCost": 65.4,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 101.2,
+      "averageTreasuryCost": 62.8,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -280,14 +306,14 @@
       "nation": "영국",
       "eraId": "globalization",
       "era": "1980–1999",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 101.4,
-      "averageTreasuryCost": 66.1,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 101.2,
+      "averageTreasuryCost": 63.6,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -295,14 +321,14 @@
       "nation": "영국",
       "eraId": "networked",
       "era": "2000–2024",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 101.4,
-      "averageTreasuryCost": 78,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 101.2,
+      "averageTreasuryCost": 75.3,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -310,14 +336,14 @@
       "nation": "영국",
       "eraId": "planetary",
       "era": "2025–2060",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 101.4,
-      "averageTreasuryCost": 98.4,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 101.2,
+      "averageTreasuryCost": 98.3,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -325,14 +351,14 @@
       "nation": "미국",
       "eraId": "mobilization",
       "era": "1942–1945",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 102,
-      "averageTreasuryCost": 42.1,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 101.8,
+      "averageTreasuryCost": 40.9,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -340,14 +366,14 @@
       "nation": "미국",
       "eraId": "reconstruction",
       "era": "1946–1959",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 102,
-      "averageTreasuryCost": 55.4,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 101.8,
+      "averageTreasuryCost": 53.9,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -355,14 +381,14 @@
       "nation": "미국",
       "eraId": "mass-society",
       "era": "1960–1979",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 102,
-      "averageTreasuryCost": 65.3,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 101.8,
+      "averageTreasuryCost": 62.7,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -370,89 +396,89 @@
       "nation": "미국",
       "eraId": "globalization",
       "era": "1980–1999",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 102,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 101.8,
+      "averageTreasuryCost": 63.5,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "usa",
+      "nation": "미국",
+      "eraId": "networked",
+      "era": "2000–2024",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 101.8,
+      "averageTreasuryCost": 75,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "usa",
+      "nation": "미국",
+      "eraId": "planetary",
+      "era": "2025–2060",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 101.8,
+      "averageTreasuryCost": 97.9,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "ussr",
+      "nation": "소련",
+      "eraId": "mobilization",
+      "era": "1942–1945",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.6,
+      "averageTreasuryCost": 43.1,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "ussr",
+      "nation": "소련",
+      "eraId": "reconstruction",
+      "era": "1946–1959",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.6,
+      "averageTreasuryCost": 56.7,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "ussr",
+      "nation": "소련",
+      "eraId": "mass-society",
+      "era": "1960–1979",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.6,
       "averageTreasuryCost": 65.9,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "usa",
-      "nation": "미국",
-      "eraId": "networked",
-      "era": "2000–2024",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 102,
-      "averageTreasuryCost": 77.7,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "usa",
-      "nation": "미국",
-      "eraId": "planetary",
-      "era": "2025–2060",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 102,
-      "averageTreasuryCost": 98.1,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "ussr",
-      "nation": "소련",
-      "eraId": "mobilization",
-      "era": "1942–1945",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.8,
-      "averageTreasuryCost": 44.4,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "ussr",
-      "nation": "소련",
-      "eraId": "reconstruction",
-      "era": "1946–1959",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.8,
-      "averageTreasuryCost": 58.2,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "ussr",
-      "nation": "소련",
-      "eraId": "mass-society",
-      "era": "1960–1979",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.8,
-      "averageTreasuryCost": 68.5,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -460,14 +486,14 @@
       "nation": "소련",
       "eraId": "globalization",
       "era": "1980–1999",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.8,
-      "averageTreasuryCost": 69.2,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.6,
+      "averageTreasuryCost": 66.6,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -475,14 +501,14 @@
       "nation": "소련",
       "eraId": "networked",
       "era": "2000–2024",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.8,
-      "averageTreasuryCost": 81.5,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.6,
+      "averageTreasuryCost": 78.7,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -490,14 +516,14 @@
       "nation": "소련",
       "eraId": "planetary",
       "era": "2025–2060",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.8,
-      "averageTreasuryCost": 103,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.6,
+      "averageTreasuryCost": 102.9,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -505,14 +531,14 @@
       "nation": "독일",
       "eraId": "mobilization",
       "era": "1942–1945",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 99.9,
-      "averageTreasuryCost": 42.7,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 99.7,
+      "averageTreasuryCost": 41.5,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -520,14 +546,14 @@
       "nation": "독일",
       "eraId": "reconstruction",
       "era": "1946–1959",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 99.9,
-      "averageTreasuryCost": 56.1,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 99.7,
+      "averageTreasuryCost": 54.6,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -535,14 +561,14 @@
       "nation": "독일",
       "eraId": "mass-society",
       "era": "1960–1979",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 99.9,
-      "averageTreasuryCost": 66.1,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 99.7,
+      "averageTreasuryCost": 63.5,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -550,14 +576,14 @@
       "nation": "독일",
       "eraId": "globalization",
       "era": "1980–1999",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 99.9,
-      "averageTreasuryCost": 66.8,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 99.7,
+      "averageTreasuryCost": 64.3,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -565,14 +591,14 @@
       "nation": "독일",
       "eraId": "networked",
       "era": "2000–2024",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 99.9,
-      "averageTreasuryCost": 78.8,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 99.7,
+      "averageTreasuryCost": 76,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -580,14 +606,14 @@
       "nation": "독일",
       "eraId": "planetary",
       "era": "2025–2060",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 99.9,
-      "averageTreasuryCost": 99.6,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 99.7,
+      "averageTreasuryCost": 99.5,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -595,629 +621,629 @@
       "nation": "일본",
       "eraId": "mobilization",
       "era": "1942–1945",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 100.5,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 100.3,
+      "averageTreasuryCost": 41.3,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "japan",
+      "nation": "일본",
+      "eraId": "reconstruction",
+      "era": "1946–1959",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 100.3,
+      "averageTreasuryCost": 54.5,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "japan",
+      "nation": "일본",
+      "eraId": "mass-society",
+      "era": "1960–1979",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 100.3,
+      "averageTreasuryCost": 63.4,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "japan",
+      "nation": "일본",
+      "eraId": "globalization",
+      "era": "1980–1999",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 100.3,
+      "averageTreasuryCost": 64.2,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "japan",
+      "nation": "일본",
+      "eraId": "networked",
+      "era": "2000–2024",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 100.3,
+      "averageTreasuryCost": 75.9,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "japan",
+      "nation": "일본",
+      "eraId": "planetary",
+      "era": "2025–2060",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 100.3,
+      "averageTreasuryCost": 99.1,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "china",
+      "nation": "중국",
+      "eraId": "mobilization",
+      "era": "1942–1945",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 95.1,
+      "averageTreasuryCost": 43.2,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "china",
+      "nation": "중국",
+      "eraId": "reconstruction",
+      "era": "1946–1959",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 95.1,
+      "averageTreasuryCost": 57.1,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "china",
+      "nation": "중국",
+      "eraId": "mass-society",
+      "era": "1960–1979",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 95.1,
+      "averageTreasuryCost": 66.4,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "china",
+      "nation": "중국",
+      "eraId": "globalization",
+      "era": "1980–1999",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 95.1,
+      "averageTreasuryCost": 67.2,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "china",
+      "nation": "중국",
+      "eraId": "networked",
+      "era": "2000–2024",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 95.1,
+      "averageTreasuryCost": 79.5,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "china",
+      "nation": "중국",
+      "eraId": "planetary",
+      "era": "2025–2060",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 95.1,
+      "averageTreasuryCost": 103.7,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "india",
+      "nation": "인도",
+      "eraId": "mobilization",
+      "era": "1942–1945",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 96.7,
+      "averageTreasuryCost": 42.8,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "india",
+      "nation": "인도",
+      "eraId": "reconstruction",
+      "era": "1946–1959",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 96.7,
+      "averageTreasuryCost": 56.4,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "india",
+      "nation": "인도",
+      "eraId": "mass-society",
+      "era": "1960–1979",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 96.7,
+      "averageTreasuryCost": 65.6,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "india",
+      "nation": "인도",
+      "eraId": "globalization",
+      "era": "1980–1999",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 96.7,
+      "averageTreasuryCost": 66.4,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "india",
+      "nation": "인도",
+      "eraId": "networked",
+      "era": "2000–2024",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 96.7,
+      "averageTreasuryCost": 78.5,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "india",
+      "nation": "인도",
+      "eraId": "planetary",
+      "era": "2025–2060",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 96.7,
+      "averageTreasuryCost": 102.5,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "freefrance",
+      "nation": "자유 프랑스",
+      "eraId": "mobilization",
+      "era": "1942–1945",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 98.3,
+      "averageTreasuryCost": 42.1,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "freefrance",
+      "nation": "자유 프랑스",
+      "eraId": "reconstruction",
+      "era": "1946–1959",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 98.3,
+      "averageTreasuryCost": 55.5,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "freefrance",
+      "nation": "자유 프랑스",
+      "eraId": "mass-society",
+      "era": "1960–1979",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 98.3,
+      "averageTreasuryCost": 64.6,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "freefrance",
+      "nation": "자유 프랑스",
+      "eraId": "globalization",
+      "era": "1980–1999",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 98.3,
+      "averageTreasuryCost": 65.4,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "freefrance",
+      "nation": "자유 프랑스",
+      "eraId": "networked",
+      "era": "2000–2024",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 98.3,
+      "averageTreasuryCost": 77.3,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "freefrance",
+      "nation": "자유 프랑스",
+      "eraId": "planetary",
+      "era": "2025–2060",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 98.3,
+      "averageTreasuryCost": 101,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "italy",
+      "nation": "이탈리아",
+      "eraId": "mobilization",
+      "era": "1942–1945",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 97.6,
       "averageTreasuryCost": 42.6,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
-      "nationId": "japan",
-      "nation": "일본",
+      "nationId": "italy",
+      "nation": "이탈리아",
       "eraId": "reconstruction",
       "era": "1946–1959",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 100.5,
-      "averageTreasuryCost": 56,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 97.6,
+      "averageTreasuryCost": 56.2,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
-      "nationId": "japan",
-      "nation": "일본",
+      "nationId": "italy",
+      "nation": "이탈리아",
       "eraId": "mass-society",
       "era": "1960–1979",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 100.5,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 97.6,
+      "averageTreasuryCost": 65.2,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "italy",
+      "nation": "이탈리아",
+      "eraId": "globalization",
+      "era": "1980–1999",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 97.6,
       "averageTreasuryCost": 66,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "japan",
-      "nation": "일본",
-      "eraId": "globalization",
-      "era": "1980–1999",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 100.5,
-      "averageTreasuryCost": 66.7,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "japan",
-      "nation": "일본",
-      "eraId": "networked",
-      "era": "2000–2024",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 100.5,
-      "averageTreasuryCost": 78.6,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "japan",
-      "nation": "일본",
-      "eraId": "planetary",
-      "era": "2025–2060",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 100.5,
-      "averageTreasuryCost": 99.3,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "china",
-      "nation": "중국",
-      "eraId": "mobilization",
-      "era": "1942–1945",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 95.3,
-      "averageTreasuryCost": 44.5,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "china",
-      "nation": "중국",
-      "eraId": "reconstruction",
-      "era": "1946–1959",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 95.3,
-      "averageTreasuryCost": 58.6,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "china",
-      "nation": "중국",
-      "eraId": "mass-society",
-      "era": "1960–1979",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 95.3,
-      "averageTreasuryCost": 69.2,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "china",
-      "nation": "중국",
-      "eraId": "globalization",
-      "era": "1980–1999",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 95.3,
-      "averageTreasuryCost": 69.9,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "china",
-      "nation": "중국",
-      "eraId": "networked",
-      "era": "2000–2024",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 95.3,
-      "averageTreasuryCost": 82.3,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "china",
-      "nation": "중국",
-      "eraId": "planetary",
-      "era": "2025–2060",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 95.3,
-      "averageTreasuryCost": 103.9,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "india",
-      "nation": "인도",
-      "eraId": "mobilization",
-      "era": "1942–1945",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 96.9,
-      "averageTreasuryCost": 44,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "india",
-      "nation": "인도",
-      "eraId": "reconstruction",
-      "era": "1946–1959",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 96.9,
-      "averageTreasuryCost": 57.9,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "india",
-      "nation": "인도",
-      "eraId": "mass-society",
-      "era": "1960–1979",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 96.9,
-      "averageTreasuryCost": 68.3,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "india",
-      "nation": "인도",
-      "eraId": "globalization",
-      "era": "1980–1999",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 96.9,
-      "averageTreasuryCost": 69,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "india",
-      "nation": "인도",
-      "eraId": "networked",
-      "era": "2000–2024",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 96.9,
-      "averageTreasuryCost": 81.3,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "india",
-      "nation": "인도",
-      "eraId": "planetary",
-      "era": "2025–2060",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 96.9,
-      "averageTreasuryCost": 102.7,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "freefrance",
-      "nation": "자유 프랑스",
-      "eraId": "mobilization",
-      "era": "1942–1945",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 98.5,
-      "averageTreasuryCost": 43.3,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "freefrance",
-      "nation": "자유 프랑스",
-      "eraId": "reconstruction",
-      "era": "1946–1959",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 98.5,
-      "averageTreasuryCost": 57,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "freefrance",
-      "nation": "자유 프랑스",
-      "eraId": "mass-society",
-      "era": "1960–1979",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 98.5,
-      "averageTreasuryCost": 67.3,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "freefrance",
-      "nation": "자유 프랑스",
-      "eraId": "globalization",
-      "era": "1980–1999",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 98.5,
-      "averageTreasuryCost": 67.9,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "freefrance",
-      "nation": "자유 프랑스",
-      "eraId": "networked",
-      "era": "2000–2024",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 98.5,
-      "averageTreasuryCost": 80.1,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "freefrance",
-      "nation": "자유 프랑스",
-      "eraId": "planetary",
-      "era": "2025–2060",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 98.5,
-      "averageTreasuryCost": 101.2,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
       "nationId": "italy",
       "nation": "이탈리아",
+      "eraId": "networked",
+      "era": "2000–2024",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 97.6,
+      "averageTreasuryCost": 78.1,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "italy",
+      "nation": "이탈리아",
+      "eraId": "planetary",
+      "era": "2025–2060",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 97.6,
+      "averageTreasuryCost": 101.9,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "korea",
+      "nation": "한국 독립운동",
       "eraId": "mobilization",
       "era": "1942–1945",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 97.8,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.1,
       "averageTreasuryCost": 43.8,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "italy",
-      "nation": "이탈리아",
-      "eraId": "reconstruction",
-      "era": "1946–1959",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 97.8,
-      "averageTreasuryCost": 57.7,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "italy",
-      "nation": "이탈리아",
-      "eraId": "mass-society",
-      "era": "1960–1979",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 97.8,
-      "averageTreasuryCost": 67.9,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "italy",
-      "nation": "이탈리아",
-      "eraId": "globalization",
-      "era": "1980–1999",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 97.8,
-      "averageTreasuryCost": 68.6,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "italy",
-      "nation": "이탈리아",
-      "eraId": "networked",
-      "era": "2000–2024",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 97.8,
-      "averageTreasuryCost": 80.9,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "italy",
-      "nation": "이탈리아",
-      "eraId": "planetary",
-      "era": "2025–2060",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 97.8,
-      "averageTreasuryCost": 102.1,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
       "nationId": "korea",
       "nation": "한국 독립운동",
+      "eraId": "reconstruction",
+      "era": "1946–1959",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.1,
+      "averageTreasuryCost": 57.8,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "korea",
+      "nation": "한국 독립운동",
+      "eraId": "mass-society",
+      "era": "1960–1979",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.1,
+      "averageTreasuryCost": 67.2,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "korea",
+      "nation": "한국 독립운동",
+      "eraId": "globalization",
+      "era": "1980–1999",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.1,
+      "averageTreasuryCost": 68,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "korea",
+      "nation": "한국 독립운동",
+      "eraId": "networked",
+      "era": "2000–2024",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.1,
+      "averageTreasuryCost": 80.4,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "korea",
+      "nation": "한국 독립운동",
+      "eraId": "planetary",
+      "era": "2025–2060",
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.1,
+      "averageTreasuryCost": 105,
+      "minimumEffectSurfaces": 3,
+      "authorities": {
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
+      }
+    },
+    {
+      "nationId": "vietnam",
+      "nation": "베트민",
       "eraId": "mobilization",
       "era": "1942–1945",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.3,
-      "averageTreasuryCost": 45.1,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 93.7,
+      "averageTreasuryCost": 43.8,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
-      "nationId": "korea",
-      "nation": "한국 독립운동",
+      "nationId": "vietnam",
+      "nation": "베트민",
       "eraId": "reconstruction",
       "era": "1946–1959",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.3,
-      "averageTreasuryCost": 59.4,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 93.7,
+      "averageTreasuryCost": 57.8,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
-      "nationId": "korea",
-      "nation": "한국 독립운동",
+      "nationId": "vietnam",
+      "nation": "베트민",
       "eraId": "mass-society",
       "era": "1960–1979",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.3,
-      "averageTreasuryCost": 69.9,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 93.7,
+      "averageTreasuryCost": 67.2,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
-      "nationId": "korea",
-      "nation": "한국 독립운동",
+      "nationId": "vietnam",
+      "nation": "베트민",
       "eraId": "globalization",
       "era": "1980–1999",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.3,
-      "averageTreasuryCost": 70.6,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 93.7,
+      "averageTreasuryCost": 68,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
-      "nationId": "korea",
-      "nation": "한국 독립운동",
+      "nationId": "vietnam",
+      "nation": "베트민",
       "eraId": "networked",
       "era": "2000–2024",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.3,
-      "averageTreasuryCost": 83.3,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 93.7,
+      "averageTreasuryCost": 80.5,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
-      "nationId": "korea",
-      "nation": "한국 독립운동",
+      "nationId": "vietnam",
+      "nation": "베트민",
       "eraId": "planetary",
       "era": "2025–2060",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.3,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 93.7,
       "averageTreasuryCost": 105.1,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "vietnam",
-      "nation": "베트민",
-      "eraId": "mobilization",
-      "era": "1942–1945",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 93.9,
-      "averageTreasuryCost": 45.1,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "vietnam",
-      "nation": "베트민",
-      "eraId": "reconstruction",
-      "era": "1946–1959",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 93.9,
-      "averageTreasuryCost": 59.4,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "vietnam",
-      "nation": "베트민",
-      "eraId": "mass-society",
-      "era": "1960–1979",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 93.9,
-      "averageTreasuryCost": 70,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "vietnam",
-      "nation": "베트민",
-      "eraId": "globalization",
-      "era": "1980–1999",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 93.9,
-      "averageTreasuryCost": 70.6,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "vietnam",
-      "nation": "베트민",
-      "eraId": "networked",
-      "era": "2000–2024",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 93.9,
-      "averageTreasuryCost": 83.4,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
-      }
-    },
-    {
-      "nationId": "vietnam",
-      "nation": "베트민",
-      "eraId": "planetary",
-      "era": "2025–2060",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 93.9,
-      "averageTreasuryCost": 105.3,
-      "minimumEffectSurfaces": 3,
-      "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -1225,14 +1251,14 @@
       "nation": "인도네시아",
       "eraId": "mobilization",
       "era": "1942–1945",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.3,
-      "averageTreasuryCost": 45.1,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.1,
+      "averageTreasuryCost": 43.8,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -1240,14 +1266,14 @@
       "nation": "인도네시아",
       "eraId": "reconstruction",
       "era": "1946–1959",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.3,
-      "averageTreasuryCost": 59.4,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.1,
+      "averageTreasuryCost": 57.8,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -1255,14 +1281,14 @@
       "nation": "인도네시아",
       "eraId": "mass-society",
       "era": "1960–1979",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.3,
-      "averageTreasuryCost": 70,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.1,
+      "averageTreasuryCost": 67.2,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -1270,14 +1296,14 @@
       "nation": "인도네시아",
       "eraId": "globalization",
       "era": "1980–1999",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.3,
-      "averageTreasuryCost": 70.7,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.1,
+      "averageTreasuryCost": 68,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -1285,14 +1311,14 @@
       "nation": "인도네시아",
       "eraId": "networked",
       "era": "2000–2024",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.3,
-      "averageTreasuryCost": 83.3,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.1,
+      "averageTreasuryCost": 80.5,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -1300,14 +1326,14 @@
       "nation": "인도네시아",
       "eraId": "planetary",
       "era": "2025–2060",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 94.3,
-      "averageTreasuryCost": 105.3,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 94.1,
+      "averageTreasuryCost": 105.1,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -1315,14 +1341,14 @@
       "nation": "필리핀",
       "eraId": "mobilization",
       "era": "1942–1945",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 96,
-      "averageTreasuryCost": 44.5,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 95.8,
+      "averageTreasuryCost": 43.2,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -1330,14 +1356,14 @@
       "nation": "필리핀",
       "eraId": "reconstruction",
       "era": "1946–1959",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 96,
-      "averageTreasuryCost": 58.6,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 95.8,
+      "averageTreasuryCost": 57,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -1345,14 +1371,14 @@
       "nation": "필리핀",
       "eraId": "mass-society",
       "era": "1960–1979",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 96,
-      "averageTreasuryCost": 69,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 95.8,
+      "averageTreasuryCost": 66.3,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -1360,14 +1386,14 @@
       "nation": "필리핀",
       "eraId": "globalization",
       "era": "1980–1999",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 96,
-      "averageTreasuryCost": 69.7,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 95.8,
+      "averageTreasuryCost": 67.1,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -1375,14 +1401,14 @@
       "nation": "필리핀",
       "eraId": "networked",
       "era": "2000–2024",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 96,
-      "averageTreasuryCost": 82.2,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 95.8,
+      "averageTreasuryCost": 79.4,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     },
     {
@@ -1390,14 +1416,14 @@
       "nation": "필리핀",
       "eraId": "planetary",
       "era": "2025–2060",
-      "evaluatedPaths": 90,
-      "averageEffectiveness": 96,
-      "averageTreasuryCost": 103.9,
+      "evaluatedPaths": 135,
+      "averageEffectiveness": 95.8,
+      "averageTreasuryCost": 103.6,
       "minimumEffectSurfaces": 3,
       "authorities": {
-        "direct": 48,
-        "ministerial": 12,
-        "proposal": 30
+        "direct": 75,
+        "ministerial": 15,
+        "proposal": 45
       }
     }
   ]

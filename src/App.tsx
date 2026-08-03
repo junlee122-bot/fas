@@ -362,6 +362,20 @@ import type {
   SagaChampion,
   StrategicSagaContext,
 } from './strategicSaga';
+import {
+  advanceSocialistWorldWeek,
+  chooseSocialistSettlement,
+  chooseSocialistTransitionMethod,
+  startSocialistTransition,
+} from './socialistWorld';
+import type {
+  SocialistActionResult,
+  SocialistModelId,
+  SocialistSettlementId,
+  SocialistTransitionMethodId,
+  SocialistTransitionSponsor,
+  SocialistWorldContext,
+} from './socialistWorld';
 import { applyElectionCampaignAction, launchReferendum } from './electoralPolitics';
 import type { ElectionCampaignActionId, ElectoralActionResult, ElectoralContext, ReferendumTopicId } from './electoralPolitics';
 import {
@@ -2007,6 +2021,11 @@ export function App() {
       setPeriodAdvanceRemaining(0);
       notify('전략 서사의 새 막이 열렸습니다. 국가 운영에서 대응 원칙을 선택하십시오.');
     }
+    if (result.report.events.some((event) => event.id.startsWith('socialist-stage-') || event.id.startsWith('socialist-setback-'))) {
+      setSpeed(0);
+      setPeriodAdvanceRemaining(0);
+      notify('사회체제 전환의 새 단계가 열렸습니다. 국가 운영에서 전환 방식을 선택하십시오.');
+    }
     if (result.report.events.length > 0 || breakthroughs.length > 0 || newlyAvailableResearch.length > 0 || publicHealthResult.events.length > 0) {
       setPeriodAdvanceRemaining(0);
     }
@@ -2185,18 +2204,54 @@ export function App() {
       coalitionSupport: nationManagement.powerNetwork.blocs.reduce((sum, bloc) => sum + bloc.support, 0) / Math.max(1, nationManagement.powerNetwork.blocs.length),
       promiseReliability: nationManagement.powerNetwork.promiseReliability,
     });
+    const warBlocById = new globalThis.Map(nationManagement.powerNetwork.blocs.map((bloc) => [bloc.id, bloc]));
+    const warSocialistEffects = advanceSocialistWorldWeek(nationManagement.socialistWorld, {
+      week: nextWeek,
+      year: 1942 + Math.floor(nextWeek / 52),
+      phase: 'war',
+      nationId: playerNation.id,
+      role: careerRole,
+      politicalPower: game.politicalPower,
+      treasury: game.treasury,
+      stability: game.stability,
+      warSupport: game.warSupport,
+      enemyPressure: game.enemyPressure,
+      legitimacy: nationManagement.legitimacy,
+      unrest: nationManagement.unrest,
+      welfare: nationManagement.welfare,
+      employment: nationManagement.employment,
+      inequality: nationManagement.inequality,
+      education: nationManagement.education,
+      civilianIndustry: nationManagement.civilianIndustry,
+      institutionalCapacity: nationManagement.institutionalCapacity,
+      publicConfidence: economy.publicConfidence,
+      inflation: economy.inflation,
+      relationAverage,
+      laborSupport: warBlocById.get('labor')?.support ?? 50,
+      laborInfluence: warBlocById.get('labor')?.influence ?? 50,
+      civicSupport: warBlocById.get('civic')?.support ?? 50,
+      intelligentsiaSupport: warBlocById.get('intelligentsia')?.support ?? 50,
+      securitySupport: warBlocById.get('security')?.support ?? 50,
+    });
     setNationManagement((current) => ({
       ...current,
       mediaRelations: warMediaEffects.state,
       personalLife: warMediaEffects.personalLife,
       powerNetwork: warPowerEffects.state,
       strategicSaga: warSagaEffects.state,
-      legitimacy: Math.max(0, Math.min(100, current.legitimacy + warMediaEffects.legitimacy + warPowerEffects.legitimacy + warSagaEffects.legitimacy)),
-      unrest: Math.max(0, Math.min(100, current.unrest + warMediaEffects.unrest + warPowerEffects.unrest + warSagaEffects.unrest)),
+      socialistWorld: warSocialistEffects.state,
+      welfare: Math.max(0, Math.min(100, current.welfare + warSocialistEffects.nationDelta.welfare)),
+      employment: Math.max(0, Math.min(100, current.employment + warSocialistEffects.nationDelta.employment)),
+      inequality: Math.max(0, Math.min(100, current.inequality + warSocialistEffects.nationDelta.inequality)),
+      civilianIndustry: Math.max(0, Math.min(100, current.civilianIndustry + warSocialistEffects.nationDelta.civilianIndustry)),
+      institutionalCapacity: Math.max(0, Math.min(100, current.institutionalCapacity + warSocialistEffects.nationDelta.institutionalCapacity)),
+      legitimacy: Math.max(0, Math.min(100, current.legitimacy + warMediaEffects.legitimacy + warPowerEffects.legitimacy + warSagaEffects.legitimacy + warSocialistEffects.nationDelta.legitimacy)),
+      unrest: Math.max(0, Math.min(100, current.unrest + warMediaEffects.unrest + warPowerEffects.unrest + warSagaEffects.unrest + warSocialistEffects.nationDelta.unrest)),
     }));
     if (warMediaEffects.stability !== 0) setGame((current) => applyGameDelta(current, { stability: warMediaEffects.stability }));
     if (warPowerEffects.stability !== 0 || warPowerEffects.politicalPower !== 0 || warPowerEffects.treasury !== 0) setGame((current) => applyGameDelta(current, { stability: warPowerEffects.stability, politicalPower: warPowerEffects.politicalPower, treasury: warPowerEffects.treasury }));
     if (warSagaEffects.stability !== 0 || warSagaEffects.politicalPower !== 0 || warSagaEffects.treasury !== 0) setGame((current) => applyGameDelta(current, { stability: warSagaEffects.stability, politicalPower: warSagaEffects.politicalPower, treasury: warSagaEffects.treasury }));
+    if (warSocialistEffects.stability !== 0 || warSocialistEffects.politicalPower !== 0 || warSocialistEffects.treasury !== 0) setGame((current) => applyGameDelta(current, { stability: warSocialistEffects.stability, politicalPower: warSocialistEffects.politicalPower, treasury: warSocialistEffects.treasury }));
     if (warMediaEffects.publicConfidence !== 0) setEconomy((current) => ({
       ...current,
       publicConfidence: Math.max(0, Math.min(100, current.publicConfidence + warMediaEffects.publicConfidence)),
@@ -2208,6 +2263,10 @@ export function App() {
     if (warSagaEffects.publicConfidence !== 0) setEconomy((current) => ({
       ...current,
       publicConfidence: Math.max(0, Math.min(100, current.publicConfidence + warSagaEffects.publicConfidence)),
+    }));
+    if (warSocialistEffects.publicConfidence !== 0) setEconomy((current) => ({
+      ...current,
+      publicConfidence: Math.max(0, Math.min(100, current.publicConfidence + warSocialistEffects.publicConfidence)),
     }));
     warMediaEffects.events.forEach((event) => addEvent(event.title, event.detail, event.tone, nextWeek, {
       domain: 'management',
@@ -2255,6 +2314,25 @@ export function App() {
       setSpeed(0);
       setPeriodAdvanceRemaining(0);
       notify('전략 서사의 새 막이 열렸습니다. 전후 설계에서 대응 원칙을 선택하십시오.');
+    }
+    warSocialistEffects.events.forEach((event) => addEvent(event.title, event.detail, event.tone, nextWeek, {
+      domain: 'management',
+      trigger: event.cause,
+      decision: '전시 노동·농촌·당·시민조직과 국가기관의 권력 재편이 한 주 진행됐습니다.',
+      factors: [
+        `계급 압력 ${Math.round(warSocialistEffects.state.classPressure)} · 노동 조직 ${Math.round(warSocialistEffects.state.workerOrganization)}`,
+        `사회적 소유 ${Math.round(warSocialistEffects.state.socialOwnership)} · 강제력 ${Math.round(warSocialistEffects.state.coercion)}`,
+        `현재 모델 ${warSocialistEffects.state.currentModelId ?? '혼합질서'}`,
+      ],
+      effects: [{ label: '체제 결과', value: event.consequence, tone: event.tone === 'bad' ? 'negative' : event.tone === 'good' ? 'positive' : 'neutral' }],
+      ongoing: ['전환 방식은 매 단계 다시 선택할 수 있으며 성과와 강제·부족·관료화의 비용이 함께 누적됩니다.'],
+      nextActions: [warSocialistEffects.requiresDecision ? '전후 설계의 사회체제 화면에서 다음 전환 방식을 선택하십시오.' : '사회체제 화면에서 조직·소유·당권·평의회·시장 지표를 확인하십시오.'],
+      certainty: 'developing',
+    }));
+    if (warSocialistEffects.requiresDecision) {
+      setSpeed(0);
+      setPeriodAdvanceRemaining(0);
+      notify('사회체제 전환의 새 단계가 열렸습니다. 전후 설계에서 방법을 선택하십시오.');
     }
     setCommanderDevelopment((current) => recoverCommanderFatigue(current));
 
@@ -3579,6 +3657,95 @@ export function App() {
   const reinforceStrategicSaga = () => {
     const result = commitSagaReserve(nationManagement.strategicSaga, strategicSagaContext());
     applySagaActionResult(result);
+  };
+
+  const socialistWorldContext = useCallback((): SocialistWorldContext => {
+    const blocById = new globalThis.Map(nationManagement.powerNetwork.blocs.map((bloc) => [bloc.id, bloc]));
+    return {
+      week: game.week,
+      year: 1942 + Math.floor(game.week / 52),
+      phase: campaignPhase,
+      nationId: playerNation.id,
+      role: displayedCareerRole,
+      politicalPower: game.politicalPower,
+      treasury: game.treasury,
+      stability: game.stability,
+      warSupport: game.warSupport,
+      enemyPressure: game.enemyPressure,
+      legitimacy: nationManagement.legitimacy,
+      unrest: nationManagement.unrest,
+      welfare: nationManagement.welfare,
+      employment: nationManagement.employment,
+      inequality: nationManagement.inequality,
+      education: nationManagement.education,
+      civilianIndustry: nationManagement.civilianIndustry,
+      institutionalCapacity: nationManagement.institutionalCapacity,
+      publicConfidence: economy.publicConfidence,
+      inflation: economy.inflation,
+      relationAverage,
+      laborSupport: blocById.get('labor')?.support ?? 50,
+      laborInfluence: blocById.get('labor')?.influence ?? 50,
+      civicSupport: blocById.get('civic')?.support ?? 50,
+      intelligentsiaSupport: blocById.get('intelligentsia')?.support ?? 50,
+      securitySupport: blocById.get('security')?.support ?? 50,
+    };
+  }, [campaignPhase, displayedCareerRole, economy.inflation, economy.publicConfidence, game.enemyPressure, game.politicalPower, game.stability, game.treasury, game.warSupport, game.week, nationManagement.civilianIndustry, nationManagement.education, nationManagement.employment, nationManagement.inequality, nationManagement.institutionalCapacity, nationManagement.legitimacy, nationManagement.powerNetwork.blocs, nationManagement.unrest, nationManagement.welfare, playerNation.id, relationAverage]);
+
+  const applySocialistActionResult = useCallback((result: SocialistActionResult) => {
+    setNationManagement((current) => ({
+      ...current,
+      socialistWorld: result.state,
+      legitimacy: Math.max(0, Math.min(100, current.legitimacy + result.nationDelta.legitimacy)),
+      unrest: Math.max(0, Math.min(100, current.unrest + result.nationDelta.unrest)),
+      welfare: Math.max(0, Math.min(100, current.welfare + result.nationDelta.welfare)),
+      employment: Math.max(0, Math.min(100, current.employment + result.nationDelta.employment)),
+      inequality: Math.max(0, Math.min(100, current.inequality + result.nationDelta.inequality)),
+      civilianIndustry: Math.max(0, Math.min(100, current.civilianIndustry + result.nationDelta.civilianIndustry)),
+      institutionalCapacity: Math.max(0, Math.min(100, current.institutionalCapacity + result.nationDelta.institutionalCapacity)),
+    }));
+    setGame((current) => applyGameDelta(current, {
+      politicalPower: result.politicalPowerDelta,
+      treasury: result.treasuryDelta,
+      stability: result.stabilityDelta,
+    }));
+    if (result.publicConfidenceDelta !== 0) setEconomy((current) => ({
+      ...current,
+      publicConfidence: Math.max(0, Math.min(100, current.publicConfidence + result.publicConfidenceDelta)),
+    }));
+    const costly = result.stabilityDelta < 0 || result.nationDelta.unrest > 0 || result.publicConfidenceDelta < 0;
+    addEvent(result.title, result.detail, costly ? 'bad' : result.nationDelta.legitimacy > 0 ? 'good' : 'neutral', game.week, {
+      domain: 'management',
+      decision: result.title,
+      trigger: '계급 압력, 조직 기반, 현재 권력연합, 책임 참모의 역량과 선택한 전환 모델을 함께 판정했습니다.',
+      factors: [
+        `현재 보직 ${displayedCareerRole.title} · 권한 ${displayedCareerRole.tier}급`,
+        `계급 압력 ${Math.round(result.state.classPressure)} · 노동 조직 ${Math.round(result.state.workerOrganization)}`,
+        `당 통제 ${Math.round(result.state.partyControl)} · 평의회 권력 ${Math.round(result.state.councilPower)} · 강제력 ${Math.round(result.state.coercion)}`,
+      ],
+      effects: [
+        { label: '정치력', value: `${result.politicalPowerDelta >= 0 ? '+' : ''}${result.politicalPowerDelta}`, tone: result.politicalPowerDelta < 0 ? 'negative' : 'neutral' },
+        { label: '국고', value: formatGameMoney(result.treasuryDelta, { signed: true }), tone: result.treasuryDelta < 0 ? 'negative' : 'neutral' },
+        { label: '정당성', value: `${result.nationDelta.legitimacy >= 0 ? '+' : ''}${result.nationDelta.legitimacy}`, tone: result.nationDelta.legitimacy < 0 ? 'negative' : 'positive' },
+        { label: '사회 불안', value: `${result.nationDelta.unrest >= 0 ? '+' : ''}${result.nationDelta.unrest}`, tone: result.nationDelta.unrest > 0 ? 'negative' : 'positive' },
+      ],
+      ongoing: ['네 단계에서 고른 방법, 발생한 후퇴와 제도적 상처가 체제 성립 이후의 생산·복지·대표권·강제력에 계속 반영됩니다.'],
+      nextActions: [result.state.active?.settlementId === null ? '사회체제 화면에서 새 단계의 제도 합의를 선택하십시오.' : result.state.active?.methodId === null ? '채택한 제도 합의를 집행할 전환 방식을 선택하십시오.' : '주간 브리핑에서 진척·내부 모순·자본유출·외압의 변화 원인을 확인하십시오.'],
+      certainty: 'developing',
+    });
+    notify(result.detail);
+    setPeriodAdvanceRemaining(0);
+  }, [addEvent, displayedCareerRole.tier, displayedCareerRole.title, formatGameMoney, game.week, notify]);
+
+  const launchSocialistWorldTransition = (modelId: SocialistModelId, sponsor: SocialistTransitionSponsor) => {
+    applySocialistActionResult(startSocialistTransition(nationManagement.socialistWorld, modelId, sponsor, socialistWorldContext()));
+  };
+
+  const selectSocialistWorldMethod = (methodId: SocialistTransitionMethodId) => {
+    applySocialistActionResult(chooseSocialistTransitionMethod(nationManagement.socialistWorld, methodId, socialistWorldContext()));
+  };
+
+  const selectSocialistSettlement = (settlementId: SocialistSettlementId) => {
+    applySocialistActionResult(chooseSocialistSettlement(nationManagement.socialistWorld, settlementId, socialistWorldContext()));
   };
 
   const electoralContext = useCallback((): ElectoralContext => ({
@@ -6434,6 +6601,7 @@ export function App() {
     { id: 'theater-asia', group: '전구 지도', title: '아시아·태평양 전구', description: '중국, 인도, 동남아시아와 태평양 전선을 엽니다.', keywords: ['아시아', '태평양', '지도'], icon: <Map size={17} />, active: activeTheater === 'asia' },
     { id: 'action-center', group: '지휘 도구', title: '행동 센터', description: '놓친 결정과 우선 처리할 행동을 확인합니다.', keywords: ['할 일', '다음 행동', '권장'], icon: <Menu size={17} />, meta: `${uxActions.length}건` },
     { id: 'status-overview', group: '지휘 도구', title: '지휘 현황판', description: '핵심 자원·국가 위험·최우선 행동과 다음 주 준비 상태를 한 화면에서 확인합니다.', keywords: ['현황', '자원', '국고', '위험', '요약', '대시보드'], icon: <LayoutDashboard size={17} />, meta: 'H' },
+    { id: 'civilization-portfolio', group: '국가 운영', title: '국가 문명 포트폴리오', description: '15개 분야의 역사 기반 국가 사업과 공공·시민·시장 경로를 비교합니다.', keywords: ['문명', '금융', '사법', '시민권', '문화', '민방위', '국가 사업'], icon: <Landmark size={17} />, meta: '15분야' },
     { id: 'war-journal', group: '지휘 도구', title: '진행 결과 분석실', description: '선택·계산·즉시효과·장기영향을 추적합니다.', keywords: ['기록', '전문', '이벤트', '결과', '원인', '결산'], icon: <BookOpen size={17} /> },
     { id: 'world-weekly', group: '지휘 도구', title: '세계 주보', description: '지난 7일의 전선·외교·경제·사회·과학·정보를 신뢰도와 인과관계까지 묶어 읽습니다.', keywords: ['신문', '주간', '뉴스', '세계', '이번 주'], icon: <Newspaper size={17} />, meta: latestWorldWeeklyIssue ? `제 ${latestWorldWeeklyIssue.edition}호` : '캠페인 시작 시 발행' },
     { id: 'achievements', group: '지휘 도구', title: '도전과제 기록실', description: '경력 목표, 달성 진척도와 해금된 삽화를 확인합니다.', keywords: ['업적', '도전과제', '삽화', '갤러리'], icon: <Trophy size={17} />, meta: `${achievementUnlocks.length}/${achievementDefinitions.length}` },
@@ -6462,6 +6630,10 @@ export function App() {
       setShowActionCenter(true);
     } else if (id === 'status-overview') {
       setShowStatusOverview(true);
+    } else if (id === 'civilization-portfolio') {
+      openGameTab('governance');
+      requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector('.civilization-portfolio')?.scrollIntoView({ behavior: 'smooth', block: 'start' })));
+      notify('국가 문명 포트폴리오를 열었습니다. 생존 기반·사회계약·주권과 미래의 15개 분야를 비교하십시오.');
     } else if (id === 'war-journal') {
       openWarJournal();
     } else if (id === 'world-weekly') {
@@ -6990,6 +7162,9 @@ export function App() {
                   onStrategicSagaStart={launchStrategicSaga}
                   onStrategicSagaApproach={selectStrategicSagaApproach}
                   onStrategicSagaReserve={reinforceStrategicSaga}
+                  onSocialistTransitionStart={launchSocialistWorldTransition}
+                  onSocialistSettlement={selectSocialistSettlement}
+                  onSocialistTransitionMethod={selectSocialistWorldMethod}
                   onElectionCampaignAction={runElectionCampaignAction}
                   onLaunchReferendum={proposeReferendum}
                   onLaunchStrategicOperation={launchPeacetimeStrategicOperation}

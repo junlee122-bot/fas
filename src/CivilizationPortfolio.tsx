@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import {
   Atom,
+  Banknote,
   BookOpen,
   Bot,
   CheckCircle2,
@@ -11,8 +12,12 @@ import {
   House,
   Leaf,
   Link2,
+  Luggage,
+  Palette,
   RadioTower,
   Route,
+  Scale,
+  ShieldPlus,
   Sprout,
   UsersRound,
   Zap,
@@ -53,7 +58,18 @@ const domainIcons: Record<CivilizationDomainId, typeof Sprout> = {
   information: RadioTower,
   environment: Leaf,
   science: Atom,
+  finance: Banknote,
+  justice: Scale,
+  migration: Luggage,
+  culture: Palette,
+  resilience: ShieldPlus,
 };
+
+const domainClusters: Array<{ id: string; label: string; description: string; domains: CivilizationDomainId[] }> = [
+  { id: 'survival', label: '생존 기반', description: '먹고 살며 이동하고 충격을 견디는 능력', domains: ['food', 'energy', 'housing', 'transport', 'resilience'] },
+  { id: 'society', label: '사회계약', description: '사람의 건강·역량·소속과 공동체', domains: ['health', 'education', 'labor', 'migration', 'culture'] },
+  { id: 'sovereignty', label: '주권과 미래', description: '정보·돈·법·환경·기술의 통제권', domains: ['information', 'finance', 'justice', 'environment', 'science'] },
+];
 
 const statusLabels: Record<SimulationStatus, string> = {
   stable: '안정',
@@ -92,6 +108,11 @@ function domainScore(snapshot: NationalSimulationSnapshot, domainId: Civilizatio
     information: average([findInstitution(snapshot, 'home-affairs'), snapshot.socialCohesion, snapshot.administrativeCapacity]),
     environment: average([snapshot.socialCohesion, institutionAverage, findGood(snapshot, 'food')]),
     science: average([findInstitution(snapshot, 'education-science'), snapshot.administrativeCapacity, snapshot.marketAccess]),
+    finance: average([snapshot.marketAccess, snapshot.administrativeCapacity, findInstitution(snapshot, 'economic-planning')]),
+    justice: average([snapshot.administrativeCapacity, snapshot.socialCohesion, findInstitution(snapshot, 'home-affairs')]),
+    migration: average([snapshot.socialCohesion, snapshot.standardOfLiving * 5, findGood(snapshot, 'transport')]),
+    culture: average([snapshot.socialCohesion, findInstitution(snapshot, 'education-science'), findInstitution(snapshot, 'home-affairs')]),
+    resilience: average([snapshot.administrativeCapacity, findGood(snapshot, 'transport'), findInstitution(snapshot, 'public-health')]),
   };
   return Math.round(Math.max(0, Math.min(100, scores[domainId])));
 }
@@ -106,6 +127,7 @@ export function CivilizationPortfolio({
   onEnact,
 }: CivilizationPortfolioProps) {
   const [selectedDomainId, setSelectedDomainId] = useState<CivilizationDomainId>('food');
+  const tabBaseId = useId();
   const era = getCivilizationEra(year);
   const programs = getCivilizationPrograms(year);
   const profile = nationCivilizationProfiles[nationId];
@@ -124,8 +146,8 @@ export function CivilizationPortfolio({
           <p>{era.order}</p>
         </div>
         <div className="civilization-era-progress">
-          <span><strong>{completedCount}</strong><small>/ 10 분야 결정</small></span>
-          <i><b style={{ width: `${completedCount * 10}%` }} /></i>
+          <span><strong>{completedCount}</strong><small>/ {programs.length} 분야 결정</small></span>
+          <i><b style={{ width: `${(completedCount / Math.max(1, programs.length)) * 100}%` }} /></i>
           <em>{era.question}</em>
         </div>
       </header>
@@ -138,31 +160,49 @@ export function CivilizationPortfolio({
       </div>
 
       <div className="civilization-domain-rail" role="tablist" aria-label="국가 문명체계 분야">
-        {programs.map((program) => {
-          const definition = civilizationDomainDefinitions[program.domainId];
-          const Icon = domainIcons[program.domainId];
-          const score = domainScore(snapshot, program.domainId);
-          const status = statusForScore(score);
-          const completed = getCompletedCivilizationApproach(program.id, completedDecisions);
+        {domainClusters.map((cluster) => {
+          const clusterPrograms = programs.filter((program) => cluster.domains.includes(program.domainId));
+          const completedInCluster = clusterPrograms.filter((program) => getCompletedCivilizationApproach(program.id, completedDecisions)).length;
           return (
-            <button
-              type="button"
-              role="tab"
-              aria-selected={program.id === selectedProgram.id}
-              className={`${program.id === selectedProgram.id ? 'active' : ''} ${status}`}
-              onClick={() => setSelectedDomainId(program.domainId)}
-              key={program.id}
-            >
-              <Icon />
-              <span><strong>{definition.shortLabel}</strong><small>{statusLabels[status]}</small></span>
-              <b>{score}</b>
-              {completed && <CheckCircle2 aria-label="이 시대 결정 완료" />}
-            </button>
+            <section className="civilization-domain-cluster" role="presentation" key={cluster.id}>
+              <header><span><strong>{cluster.label}</strong><small>{cluster.description}</small></span><em>{completedInCluster}/{clusterPrograms.length}</em></header>
+              <div className="civilization-domain-cluster-grid" role="presentation">
+                {clusterPrograms.map((program) => {
+                  const definition = civilizationDomainDefinitions[program.domainId];
+                  const Icon = domainIcons[program.domainId];
+                  const score = domainScore(snapshot, program.domainId);
+                  const status = statusForScore(score);
+                  const completed = getCompletedCivilizationApproach(program.id, completedDecisions);
+                  return (
+                    <button
+                      type="button"
+                      role="tab"
+                      id={`${tabBaseId}-${program.domainId}-tab`}
+                      aria-controls={`${tabBaseId}-${program.domainId}-panel`}
+                      aria-selected={program.id === selectedProgram.id}
+                      className={`${program.id === selectedProgram.id ? 'active' : ''} ${status}`}
+                      onClick={() => setSelectedDomainId(program.domainId)}
+                      key={program.id}
+                    >
+                      <Icon />
+                      <span><strong>{definition.shortLabel}</strong><small>{statusLabels[status]}</small></span>
+                      <b>{score}</b>
+                      {completed ? <CheckCircle2 aria-label="이 시대 결정 완료" /> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
           );
         })}
       </div>
 
-      <div className="civilization-program-brief">
+      <div
+        className="civilization-program-brief"
+        id={`${tabBaseId}-${selectedProgram.domainId}-panel`}
+        role="tabpanel"
+        aria-labelledby={`${tabBaseId}-${selectedProgram.domainId}-tab`}
+      >
         <div>
           <span>{selectedDomain.label} · {selectedProgram.reviewWeeks}주 검증</span>
           <h4>{selectedProgram.title}</h4>

@@ -17,15 +17,15 @@ import {
 import type { EconomyState } from './economy';
 
 describe('era-spanning civilization systems', () => {
-  it('covers ten civilian domains in every era with traceable historical sources', () => {
+  it('covers fifteen civilian domains in every era with traceable historical sources', () => {
     expect(civilizationEras).toHaveLength(6);
-    expect(Object.keys(civilizationDomainDefinitions)).toHaveLength(10);
-    expect(civilizationPrograms).toHaveLength(60);
+    expect(Object.keys(civilizationDomainDefinitions)).toHaveLength(15);
+    expect(civilizationPrograms).toHaveLength(90);
 
     civilizationEras.forEach((era) => {
       const programs = getCivilizationPrograms(era.startYear);
-      expect(programs).toHaveLength(10);
-      expect(new Set(programs.map((program) => program.domainId))).toHaveLength(10);
+      expect(programs).toHaveLength(15);
+      expect(new Set(programs.map((program) => program.domainId))).toHaveLength(15);
       programs.forEach((program) => {
         expect(program.historicalBasis.length).toBeGreaterThan(30);
         expect(program.sourceUrl).toMatch(/^https:\/\//);
@@ -34,14 +34,14 @@ describe('era-spanning civilization systems', () => {
     });
   });
 
-  it('generates 2,340 nation-era-domain approaches with visible trade-offs', () => {
+  it('generates 3,510 nation-era-domain approaches with visible trade-offs', () => {
     const matrix = nations.flatMap((nation) => {
       const role = careerRoles.find((candidate) => candidate.nationId === nation.id && candidate.tier === 1)!;
       return civilizationPrograms.flatMap((program) => getCivilizationPaths(program, nation.id, role).map((path) => ({ nationId: nation.id, path })));
     });
 
     expect(Object.keys(nationCivilizationProfiles)).toHaveLength(nations.length);
-    expect(matrix).toHaveLength(13 * 6 * 10 * 3);
+    expect(matrix).toHaveLength(13 * 6 * 15 * 3);
     expect(new Set(matrix.map(({ nationId, path }) => `${nationId}:${path.id}`))).toHaveLength(matrix.length);
     matrix.forEach(({ path }) => {
       expect(path.effectiveness).toBeGreaterThanOrEqual(30);
@@ -53,6 +53,18 @@ describe('era-spanning civilization systems', () => {
       expect(countCivilizationEffectSurfaces(path)).toBeGreaterThanOrEqual(2);
       expect(path.id).toBe(getCivilizationDecisionId(path.programId, path.approachId));
     });
+  });
+
+  it('turns every new game-wide domain into three materially different routes', () => {
+    const role = careerRoles.find((candidate) => candidate.id === 'korea-tier1')!;
+    for (const domainId of ['finance', 'justice', 'migration', 'culture', 'resilience'] as const) {
+      const program = civilizationPrograms.find((candidate) => candidate.eraId === 'mobilization' && candidate.domainId === domainId)!;
+      const paths = getCivilizationPaths(program, 'korea', role);
+      expect(paths).toHaveLength(3);
+      expect(new Set(paths.map((path) => path.label))).toHaveLength(3);
+      expect(new Set(paths.map((path) => JSON.stringify(path.effects)))).toHaveLength(3);
+      expect(paths.every((path) => countCivilizationEffectSurfaces(path) >= 2)).toBe(true);
+    }
   });
 
   it('turns office level and departmental remit into different authority routes', () => {
