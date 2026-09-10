@@ -1,4 +1,5 @@
 import { careerRoles, nations } from './campaign';
+import { getCivilianSyntheticRole } from './civilianCareer';
 import { withJosa } from './koreanGrammar';
 import {
   createClandestineCareerState,
@@ -87,6 +88,9 @@ export interface ForeignCareerOffer {
   acceptanceChance: number;
   terms: CareerOfferTerms;
   consequencePreview: string[];
+  /** Optional for pre-CE7 saves. Each contact can be explored and renegotiated once. */
+  explorationCount?: number;
+  negotiationCount?: number;
 }
 
 export interface CareerMarketRecord {
@@ -121,6 +125,7 @@ export interface CareerMarketContext {
   game: Pick<GameState, 'treasury' | 'politicalPower' | 'stability' | 'warSupport' | 'intelNetwork' | 'victoryScore' | 'enemyPressure'>;
   campaignPhase: 'war' | 'nation';
   relationByNation?: Partial<Record<NationId, number>>;
+  busy?: boolean;
 }
 
 export interface CareerOfferResolution {
@@ -151,6 +156,37 @@ export interface CareerApproachResult {
   careerTrustDelta: number;
   gameDelta: Partial<Record<keyof GameState, number>>;
 }
+
+export interface CareerActionEligibility {
+  allowed: boolean;
+  reason: string;
+  politicalPowerCost: number;
+}
+
+export interface CareerOfferResponsePreview extends CareerActionEligibility {
+  response: CareerOfferResponse;
+  offer: ForeignCareerOffer | null;
+  gameDelta: CareerOfferResolution['gameDelta'];
+  careerDelta: CareerOfferResolution['careerDelta'];
+  exposureDelta: number;
+  termsBefore: CareerOfferTerms | null;
+  termsAfter: CareerOfferTerms | null;
+  deadlineWeek: number | null;
+  transfer: CareerOfferResolution['transfer'] | null;
+  weeklyRetainer: number;
+  summary: string[];
+}
+
+export interface CareerApproachPreview extends CareerActionEligibility {
+  successChance: number;
+  trustDelta: number;
+  exposureDelta: number;
+  nextApproachWeek: number;
+  summary: string[];
+}
+
+export const CAREER_OFFER_NEGOTIATION_LIMIT = 1;
+export const CAREER_OFFER_EXPLORATION_LIMIT = 1;
 
 const offerKindLabels: Record<ForeignCareerOfferKind, string> = {
   'official-appointment': '공식 보직 제안',
@@ -223,6 +259,129 @@ function hashText(value: string) {
 
 function choose<T>(items: T[], seed: string, offset = 0) {
   return items[(hashText(`${seed}:${offset}`) + offset) % items.length];
+}
+
+export function getCareerOfferNegotiationCount(offer: ForeignCareerOffer): number {
+  return offer.negotiationCount ?? (offer.status === 'negotiating' ? 1 : 0);
+}
+
+export function getCareerOfferExplorationCount(offer: ForeignCareerOffer): number {
+  return offer.explorationCount ?? (offer.status === 'exploring' || offer.status === 'negotiating' ? 1 : 0);
+}
+
+function isTransferOffer(offer: ForeignCareerOffer): boolean {
+  return ['official-appointment', 'asylum-and-post', 'government-in-exile'].includes(offer.kind);
+}
+
+function careerContextProblem(state: CareerMarketState, context: CareerMarketContext): string | null {
+  if (context.busy) return '시간 진행을 마친 뒤 접촉을 승인할 수 있습니다.';
+  if (!Number.isSafeInteger(context.week) || context.week < 0) return '현재 주차를 확인할 수 없습니다. 저장 상태를 다시 확인하십시오.';
+  const knownNation = nations.some((nation) => nation.id === context.career.nationId);
+  // Civilian professions have exact synthetic IDs, not entries in the office
+  // roster. Avoid getRole here: its fallback would also accept unknown role IDs.
+  const role = knownNation
+    ? careerRoles.find((entry) => entry.id === context.role.id && entry.nationId === context.career.nationId)
+      ?? getCivilianSyntheticRole(context.role.id, context.career.nationId)
+    : null;
+  if (!role || context.career.roleId !== context.role.id || context.role.nationId !== context.career.nationId
+    || role.branch !== context.role.branch || role.tier !== context.role.tier) {
+    return '현재 소속·보직 정보가 바뀌었습니다. 접촉 조건을 다시 확인하십시오.';
+  }
+  const values = [
+    context.role.authority, context.career.reputation, context.career.councilTrust,
+    context.career.experience, context.career.legacy, ...Object.values(context.game),
+    state.exposure, state.leverage, state.lastApproachWeek, state.secretsDelivered, state.defections,
+  ];
+  if (values.some((value) => !Number.isFinite(value))) return '접촉 판정에 필요한 수치가 올바르지 않습니다. 저장 상태를 다시 확인하십시오.';
+  if (Object.values(context.game).some((value) => value < 0)
+    || [context.career.experience, context.career.legacy, state.secretsDelivered, state.defections].some((value) => value < 0)
+    || [context.career.reputation, context.career.councilTrust, context.role.authority, state.exposure, state.leverage]
+      .some((value) => value < 0 || value > 100)) return '접촉 판정의 자원·평판·노출 수치가 정상 범위를 벗어났습니다.';
+  if (!Object.hasOwn(careerAffiliationLabels, state.affiliationStatus)) return '현재 경력 신분을 확인할 수 없습니다.';
+  return null;
+}
+
+function validOfferNumbers(offer: ForeignCareerOffer): boolean {
+  return Number.isSafeInteger(offer.receivedWeek) && offer.receivedWeek >= 0
+    && Number.isSafeInteger(offer.deadlineWeek) && offer.deadlineWeek >= offer.receivedWeek
+    && [offer.secrecy, offer.exposureRisk, offer.credibility, offer.acceptanceChance]
+      .every((value) => Number.isFinite(value) && value >= 0 && value <= 100)
+    && Boolean(offer.terms)
+    && [offer.terms.signingBonus, offer.terms.weeklyRetainer, offer.terms.authority,
+      offer.terms.protection, offer.terms.extraction].every((value) => Number.isFinite(value) && value >= 0 && value <= Number.MAX_SAFE_INTEGER)
+    && [offer.terms.authority, offer.terms.protection, offer.terms.extraction].every((value) => value <= 100)
+    && [getCareerOfferNegotiationCount(offer), getCareerOfferExplorationCount(offer)]
+      .every((value) => Number.isSafeInteger(value) && value >= 0);
+}
+
+export function getCareerOfferResponseEligibility(
+  state: CareerMarketState, offerId: string, response: CareerOfferResponse, context: CareerMarketContext,
+): CareerActionEligibility {
+  const offer = state.offers.find((entry) => entry.id === offerId);
+  const politicalPowerCost = response === 'turn' ? 3 : response === 'accept' && offer && !isTransferOffer(offer) ? 4 : 0;
+  const blocked = (reason: string): CareerActionEligibility => ({ allowed: false, reason, politicalPowerCost });
+  const contextProblem = careerContextProblem(state, context);
+  if (contextProblem) return blocked(contextProblem);
+  if (!['defer', 'explore', 'negotiate', 'accept', 'reject', 'report', 'turn'].includes(response)) return blocked('지원하지 않는 회신 방식입니다.');
+  if (!offer || state.offers.filter((entry) => entry.id === offerId).length !== 1) return blocked('선택한 제안이 없거나 식별 정보가 중복됐습니다. 다시 선택하십시오.');
+  if (!['pending', 'exploring', 'negotiating'].includes(offer.status)) return blocked('이미 처리가 끝난 제안입니다. 경력 기록에서 결과를 확인하십시오.');
+  if (!validOfferNumbers(offer) || !Object.hasOwn(offerKindLabels, offer.kind)
+    || !nations.some((nation) => nation.id === offer.sourceNationId)
+    || !careerRoles.some((role) => role.id === offer.targetRoleId && role.nationId === offer.sourceNationId)
+    || !Number.isFinite(state.foreignTrust[offer.sourceNationId] ?? 35)) return blocked('제안의 국가·보직·조건 정보를 확인할 수 없습니다.');
+  if (context.week < offer.receivedWeek) return blocked('아직 도착하지 않은 제안입니다.');
+  if (context.week > offer.deadlineWeek) return blocked(`제${offer.deadlineWeek + 1}주 마감이 지나 회신할 수 없습니다.`);
+  if (response === 'explore' && getCareerOfferExplorationCount(offer) >= CAREER_OFFER_EXPLORATION_LIMIT) return blocked('이 제안의 비공식 탐색은 이미 끝났습니다. 확인된 조건으로 다음 대응을 선택하십시오.');
+  if (response === 'negotiate' && getCareerOfferNegotiationCount(offer) >= CAREER_OFFER_NEGOTIATION_LIMIT) return blocked('조건 재협상은 제안당 1회만 가능합니다. 수정된 최종 조건을 검토하십시오.');
+  if (response === 'negotiate' && (!Number.isSafeInteger(Math.round(offer.terms.signingBonus * 1.22))
+    || !Number.isSafeInteger(offer.deadlineWeek + 2))) return blocked('재협상 결과가 안전한 계산 범위를 벗어납니다. 제안 조건을 다시 확인하십시오.');
+  if (response === 'turn' && context.role.branch !== 'intelligence' && context.game.intelNetwork < 68) return blocked('역포섭에는 정보 보직 또는 정보망 68 이상이 필요합니다.');
+  if (response === 'report' && (state.affiliationStatus === 'dismissed' || state.affiliationStatus === 'unattached')) return blocked('보고할 현 소속이 없습니다. 보직에 복귀한 뒤 상부에 보고할 수 있습니다.');
+  if (response === 'accept' && offer.sourceNationId === context.career.nationId) return blocked('현재 소속국의 이전 제안은 수락할 수 없습니다. 새 소속에 맞는 제안을 검토하십시오.');
+  if (politicalPowerCost > 0 && context.game.politicalPower < politicalPowerCost) return blocked(`정치력 ${politicalPowerCost}이 필요합니다. 현재 ${context.game.politicalPower}입니다.`);
+  return { allowed: true, reason: '검토 후 회신할 수 있습니다.', politicalPowerCost };
+}
+
+export function getCareerApproachEligibility(
+  state: CareerMarketState, targetNationId: NationId, approachKind: CareerApproachKind, context: CareerMarketContext,
+): CareerActionEligibility {
+  const blocked = (reason: string): CareerActionEligibility => ({ allowed: false, reason, politicalPowerCost: 2 });
+  const contextProblem = careerContextProblem(state, context);
+  if (contextProblem) return blocked(contextProblem);
+  if (!Object.hasOwn(careerApproachLabels, approachKind)) return blocked('지원하지 않는 접촉 방식입니다.');
+  if (!nations.some((nation) => nation.id === targetNationId)) return blocked('선택한 국가를 찾을 수 없습니다.');
+  if (targetNationId === context.career.nationId) return blocked('현재 소속국에는 국제 경력 접근을 보낼 수 없습니다.');
+  if (context.week - state.lastApproachWeek < 2) return blocked(`제${state.lastApproachWeek + 3}주부터 연락망을 다시 사용할 수 있습니다. 국가·방식을 바꿔도 2주 대기는 유지됩니다.`);
+  if (context.game.politicalPower < 2) return blocked(`정치력 2가 필요합니다. 현재 ${context.game.politicalPower}입니다.`);
+  if (!Number.isFinite(context.relationByNation?.[targetNationId] ?? 50)) return blocked('상대국과의 외교 관계 수치를 확인할 수 없습니다.');
+  return { allowed: true, reason: '성공·실패와 관계없이 비용과 접촉 기록이 남습니다.', politicalPowerCost: 2 };
+}
+
+export function getCareerApproachPreview(
+  state: CareerMarketState, targetNationId: NationId, approachKind: CareerApproachKind, context: CareerMarketContext,
+): CareerApproachPreview {
+  const eligibility = getCareerApproachEligibility(state, targetNationId, approachKind, context);
+  if (!eligibility.allowed) return { ...eligibility, successChance: 0, trustDelta: 0, exposureDelta: 0,
+    nextApproachWeek: Number.isFinite(state.lastApproachWeek) ? state.lastApproachWeek + 2 : 0, summary: [eligibility.reason] };
+  // The deterministic roll is an integer in [0, 99]. Rounding the threshold up
+  // preserves every existing result and shows the actual count of passing rolls.
+  const successChance = Math.ceil(clamp(18 + context.career.reputation * 0.46 + context.role.authority * 0.18
+    + state.leverage * 0.2 + (state.affiliationStatus === 'dismissed' ? 18 : 0)
+    + (approachKind === 'offer-secrets' || approachKind === 'offer-double-agent' ? context.game.intelNetwork * 0.18 : 0)
+    - state.exposure * 0.16, 8, 88));
+  const trustDelta = state.affiliationStatus === 'serving'
+    ? approachKind === 'apply' ? -7 : approachKind === 'appeal' ? -4 : -12 : 0;
+  const rawExposure = approachKind === 'apply' ? 2 : approachKind === 'appeal' ? 4 : approachKind === 'request-asylum' ? 8 : 13;
+  const exposureDelta = clamp(state.exposure + rawExposure) - state.exposure;
+  return {
+    ...eligibility, successChance, trustDelta, exposureDelta, nextApproachWeek: context.week + 2,
+    summary: [
+      '정치력 2를 사용하며 회신 실패 시에도 돌려받지 않습니다.',
+      `지도부 신임 ${clamp(context.career.councilTrust + trustDelta) - context.career.councilTrust} · 접촉 노출 ${exposureDelta >= 0 ? '+' : ''}${exposureDelta}. 두 결과 모두 성공 여부와 관계없이 반영됩니다.`,
+      `회신 판정 기준 ${Math.round(successChance)}%. 같은 주차·국가·방식은 저장을 다시 불러와도 같은 판정값을 사용합니다.`,
+      `다음 접촉 제${context.week + 3}주. 성공하면 제안을 받을 뿐 자동으로 이적·비밀 계약을 체결하지 않습니다.`,
+    ],
+  };
 }
 
 function getBestTargetRole(nationId: NationId, sourceRole: CareerRole, reputation: number, kind: ForeignCareerOfferKind) {
@@ -313,7 +472,8 @@ function buildOffer(
     92,
   );
   const signingBonus = Math.round(80 + context.career.reputation * 3.2 + targetRole.authority * 2.4 + (kind === 'state-betrayal' ? 240 : 0));
-  const weeklyRetainer = Math.round(4 + targetRole.authority / 12 + (kind === 'secret-retainer' || kind === 'double-agent' ? 7 : 0));
+  const formalAppointment = ['official-appointment', 'asylum-and-post', 'government-in-exile'].includes(kind);
+  const weeklyRetainer = formalAppointment ? 0 : Math.round(4 + targetRole.authority / 12 + (kind === 'secret-retainer' || kind === 'double-agent' ? 7 : 0));
   const demand = kind === 'official-appointment'
     ? `${targetRole.title} 취임과 26주 성과심사`
     : kind === 'asylum-and-post'
@@ -355,6 +515,8 @@ function buildOffer(
     exposureRisk,
     credibility: clamp(42 + context.career.reputation * 0.22 + relationship * 0.12 + (origin === 'foreign-initiated' ? 12 : 0)),
     acceptanceChance,
+    explorationCount: 0,
+    negotiationCount: 0,
     terms: {
       signingBonus,
       weeklyRetainer,
@@ -364,12 +526,12 @@ function buildOffer(
       autonomy: targetRole.tier <= 2 ? 'independent' : targetRole.tier <= 4 ? 'operational' : 'limited',
     },
     consequencePreview: [
-      kind === 'official-appointment' || kind === 'government-in-exile'
+      formalAppointment
         ? `수락 시 ${nation.shortName}의 ${withJosa(targetRole.title, '으로/로')} 같은 세계선에서 경력을 계속합니다.`
         : '수락해도 현재 보직은 유지되지만 비밀 소속과 폭로 위험이 매주 누적됩니다.',
-      `발각 위험 ${Math.round(exposureRisk)}% · 제안 신뢰도 ${Math.round(clamp(48 + context.career.reputation * 0.22))}%`,
+      `제안 노출 위험 ${Math.round(exposureRisk)}/100 · 제안 신뢰도 ${Math.round(clamp(42 + context.career.reputation * 0.22 + relationship * 0.12 + (origin === 'foreign-initiated' ? 12 : 0)))}/100 · 즉시 발각 확률이 아닌 접촉 지표입니다.`,
       `현재 외교 관계 ${Math.round(relationship)}/100 · 관계가 낮을수록 공식 이적은 어렵고 비밀공작 요구는 강경해집니다.`,
-      `계약금 ${signingBonus} · 주간 비밀수당 ${weeklyRetainer} · 보호 보장 ${Math.round(clamp(35 + targetRole.authority * 0.45))}%`,
+      `계약금 ${signingBonus} · ${formalAppointment ? '정기 비밀수당 없음' : `주간 비밀수당 ${weeklyRetainer}`} · 보호 보장 ${Math.round(clamp(35 + targetRole.authority * 0.45 + (kind === 'asylum-and-post' ? 24 : 0)))}/100`,
     ],
   };
 }
@@ -399,7 +561,11 @@ export function normalizeCareerMarketState(value: unknown): CareerMarketState {
   return {
     ...fallback,
     ...candidate,
-    offers: Array.isArray(candidate.offers) ? candidate.offers : [],
+    offers: Array.isArray(candidate.offers) ? candidate.offers.filter((offer) => offer && typeof offer === 'object').map((offer) => ({
+      ...offer,
+      explorationCount: getCareerOfferExplorationCount(offer),
+      negotiationCount: getCareerOfferNegotiationCount(offer),
+    })) : [],
     history: Array.isArray(candidate.history) ? candidate.history : [],
     foreignTrust: candidate.foreignTrust && typeof candidate.foreignTrust === 'object' ? candidate.foreignTrust : {},
     clandestine: normalizeClandestineCareerState(candidate.clandestine),
@@ -434,7 +600,7 @@ export function expireCareerOffers(state: CareerMarketState, week: number): Care
         nationId: offer.sourceNationId,
         title: offer.title,
         outcome: 'expired' as const,
-        detail: '답변 기한을 넘겨 제안이 철회됐습니다. 해당 기관의 신뢰와 다음 제안 조건이 낮아집니다.',
+        detail: '답변 기한을 넘겨 제안이 철회됐습니다. 수락·계약금 지급·비밀 협조는 실행되지 않았습니다.',
       })),
       ...state.history,
     ].slice(0, 80),
@@ -527,6 +693,16 @@ export function respondToCareerOffer(
   response: CareerOfferResponse,
   context: CareerMarketContext,
 ): CareerOfferResolution | null {
+  if (!getCareerOfferResponseEligibility(state, offerId, response, context).allowed) return null;
+  return resolveCareerOfferResponse(state, offerId, response, context);
+}
+
+function resolveCareerOfferResponse(
+  state: CareerMarketState,
+  offerId: string,
+  response: CareerOfferResponse,
+  context: CareerMarketContext,
+): CareerOfferResolution | null {
   const offer = state.offers.find((entry) => entry.id === offerId);
   if (!offer || !['pending', 'exploring', 'negotiating'].includes(offer.status)) return null;
   if (response === 'defer') {
@@ -536,19 +712,22 @@ export function respondToCareerOffer(
       gameDelta: {},
       careerDelta: { reputation: 0, councilTrust: 0, legacy: 0 },
       title: '제안 보류',
-      detail: `${offer.deadlineWeek + 1}주차까지 제안을 받은편지함에 보관합니다.`,
+      detail: `제${offer.deadlineWeek + 1}주까지 회신할 수 있습니다. 제${offer.deadlineWeek + 2}주부터 만료되며, 보류해도 마감은 연장되지 않습니다.`,
       tone: 'neutral',
     };
   }
   if (response === 'explore') {
-    const updated = { ...offer, status: 'exploring' as const, credibility: clamp(offer.credibility + 8), exposureRisk: clamp(offer.exposureRisk + 4) };
+    const updated = { ...offer, status: 'exploring' as const, credibility: clamp(offer.credibility + 8), exposureRisk: clamp(offer.exposureRisk + 4),
+      explorationCount: getCareerOfferExplorationCount(offer) + 1, negotiationCount: getCareerOfferNegotiationCount(offer) };
+    const detail = '보직·보호·대가의 진위를 확인했습니다. 제안 신뢰도 최대 +8, 제안 노출 위험 최대 +4, 접촉 노출 최대 +2, 지도부 신임 -1이 반영됐습니다. 탐색은 제안당 1회입니다.';
     return {
-      state: { ...state, offers: state.offers.map((entry) => entry.id === offerId ? updated : entry), exposure: clamp(state.exposure + 2) },
+      state: { ...state, offers: state.offers.map((entry) => entry.id === offerId ? updated : entry), exposure: clamp(state.exposure + 2),
+        history: [{ id: `${offer.id}-exploring`, week: context.week, nationId: offer.sourceNationId, title: '비공식 탐색 회신', outcome: 'exploring' as const, detail }, ...state.history].slice(0, 80) },
       offer: updated,
       gameDelta: {},
       careerDelta: { reputation: 0, councilTrust: -1, legacy: 0 },
       title: '비공식 탐색 회신',
-      detail: '수락 의사 없이 보직·보호·대가의 진위를 확인합니다. 접촉면이 늘어 발각 위험도 조금 상승합니다.',
+      detail,
       tone: 'neutral',
     };
   }
@@ -556,26 +735,29 @@ export function respondToCareerOffer(
     const updated: ForeignCareerOffer = {
       ...offer,
       status: 'negotiating',
+      explorationCount: getCareerOfferExplorationCount(offer),
+      negotiationCount: getCareerOfferNegotiationCount(offer) + 1,
       deadlineWeek: offer.deadlineWeek + 2,
       exposureRisk: clamp(offer.exposureRisk + 7),
       terms: {
         ...offer.terms,
         signingBonus: Math.round(offer.terms.signingBonus * 1.22),
         protection: clamp(offer.terms.protection + 10),
-        authority: clamp(offer.terms.authority + 5),
       },
       consequencePreview: [
         ...offer.consequencePreview,
-        '재협상으로 계약금·보호·권한이 개선됐지만 접촉 기간과 노출면이 늘었습니다.',
+        '재협상으로 계약금·보호 조건이 개선됐지만 접촉 기간과 노출면이 늘었습니다. 실제 결재 권한은 취임하는 보직에 따르며 재협상으로 증가하지 않습니다.',
       ],
     };
+    const detail = `계약금 ${offer.terms.signingBonus} → ${updated.terms.signingBonus}, 보호 보장 ${offer.terms.protection} → ${updated.terms.protection}, 마감 제${offer.deadlineWeek + 1}주 → 제${updated.deadlineWeek + 1}주로 최종 조건이 수정됐습니다. 접촉 노출 최대 +5, 제안 노출 위험 최대 +7, 지도부 신임 -2, 평판 +1이 반영됐습니다. 재협상은 제안당 1회입니다.`;
     return {
-      state: { ...state, offers: state.offers.map((entry) => entry.id === offerId ? updated : entry), exposure: clamp(state.exposure + 5) },
+      state: { ...state, offers: state.offers.map((entry) => entry.id === offerId ? updated : entry), exposure: clamp(state.exposure + 5),
+        history: [{ id: `${offer.id}-negotiating`, week: context.week, nationId: offer.sourceNationId, title: '조건 재협상', outcome: 'negotiating' as const, detail }, ...state.history].slice(0, 80) },
       offer: updated,
       gameDelta: {},
       careerDelta: { reputation: 1, councilTrust: -2, legacy: 0 },
       title: '조건 재협상',
-      detail: '보호 보장과 실권을 높였습니다. 상대는 답변 기한을 연장했지만 방첩 노출 위험도 커졌습니다.',
+      detail,
       tone: 'neutral',
     };
   }
@@ -604,7 +786,7 @@ export function respondToCareerOffer(
       : response === 'report'
         ? '접촉 전문과 식별 정보를 현재 지도부 방첩망에 넘겼습니다.'
         : response === 'turn'
-          ? '상대의 포섭선을 역으로 이용하는 통제 이중공작을 개시했습니다.'
+          ? '상대의 포섭 연락망을 역이용해 정보망과 지휘 정보를 보강했습니다. 별도의 비밀 경력·장기 임무는 생성되지 않았습니다.'
           : '제안을 명시적으로 거절했습니다.',
   };
   const nextState: CareerMarketState = {
@@ -674,11 +856,48 @@ export function respondToCareerOffer(
       : response === 'report'
         ? '외국 포섭 시도 상부 보고'
         : response === 'turn'
-          ? '통제 이중공작 개시'
+          ? '포섭 연락망 역이용'
           : '외국 제안 거절',
     detail: history.detail,
     tone: response === 'report' || response === 'turn' ? 'good' : response === 'accept' ? 'neutral' : 'neutral',
   };
+}
+
+export function getCareerOfferResponsePreview(
+  state: CareerMarketState, offerId: string, response: CareerOfferResponse, context: CareerMarketContext,
+): CareerOfferResponsePreview {
+  const eligibility = getCareerOfferResponseEligibility(state, offerId, response, context);
+  const offer = state.offers.find((entry) => entry.id === offerId) ?? null;
+  const fallback: CareerOfferResponsePreview = {
+    ...eligibility, response, offer, gameDelta: {}, careerDelta: { reputation: 0, councilTrust: 0, legacy: 0 },
+    exposureDelta: 0, termsBefore: offer?.terms ?? null, termsAfter: offer?.terms ?? null,
+    deadlineWeek: offer?.deadlineWeek ?? null, transfer: null,
+    weeklyRetainer: offer && !isTransferOffer(offer) ? offer.terms?.weeklyRetainer ?? 0 : 0,
+    summary: [eligibility.reason],
+  };
+  if (!eligibility.allowed || !offer) return fallback;
+  const resolution = resolveCareerOfferResponse(state, offerId, response, context);
+  if (!resolution) return { ...fallback, allowed: false, reason: '현재 조건으로 회신 결과를 확인할 수 없습니다.' };
+  const exposureDelta = resolution.state.exposure - state.exposure;
+  const labels: Record<string, string> = { treasury: '국고', politicalPower: '정치력', stability: '안정도', intelNetwork: '정보망', commandPoints: '지휘력' };
+  const resources = Object.entries(resolution.gameDelta).map(([key, value]) => `${labels[key] ?? key} ${(value ?? 0) >= 0 ? '+' : ''}${value}`).join(' · ');
+  const summary = [
+    `즉시 정치력 비용 ${eligibility.politicalPowerCost}. ${resources || '국고·정치력 등 국가 자원 변화 없음.'}`,
+    `평판 ${resolution.careerDelta.reputation >= 0 ? '+' : ''}${resolution.careerDelta.reputation} · 지도부 신임 ${resolution.careerDelta.councilTrust >= 0 ? '+' : ''}${resolution.careerDelta.councilTrust} · 경력 유산 ${resolution.careerDelta.legacy >= 0 ? '+' : ''}${resolution.careerDelta.legacy} · 접촉 노출 ${exposureDelta >= 0 ? '+' : ''}${Math.round(exposureDelta * 10) / 10}.`,
+    `회신 마감 제${resolution.offer.deadlineWeek + 1}주까지. 보류·탐색은 마감을 연장하지 않으며, 재협상 1회만 2주 연장합니다.`,
+  ];
+  if (response === 'explore') summary.push(`신뢰도 ${offer.credibility} → ${resolution.offer.credibility}, 제안 노출 위험 ${offer.exposureRisk} → ${resolution.offer.exposureRisk}. 다시 탐색할 수 없습니다.`);
+  if (response === 'negotiate') summary.push(`계약금 ${offer.terms.signingBonus} → ${resolution.offer.terms.signingBonus}, 보호 ${offer.terms.protection} → ${resolution.offer.terms.protection}. 아직 계약금은 받지 않으며, 이 수정안이 최종 조건입니다. 실제 결재 권한은 취임 보직에 따르며 재협상으로 증가하지 않습니다.`);
+  if (response === 'turn') summary.push('상대 연락망을 역이용해 정보망·지휘 정보를 보강합니다. 별도의 비밀 경력이나 장기 공작 임무는 생성되지 않습니다.');
+  if (response === 'accept') summary.push(
+    '받은 제안의 수락에는 추가 확률 판정이 없습니다. 승인하면 표시된 계약을 체결합니다.',
+    isTransferOffer(offer)
+      ? '정식 보직 이동: 국가·참모·부대·국정 자원을 새 소속에 맞게 인계합니다. 정기 비밀수당은 지급되지 않습니다.'
+      : `현 보직을 유지하고 비밀 협조를 시작합니다. 계약금은 즉시, 주간 비밀수당 ${offer.terms.weeklyRetainer}은 비밀 경력의 주간 처리에서 반영됩니다.${state.clandestine && state.clandestine.status !== 'closed' ? ' 기존 비밀 경력의 연락관·임무·작전 자금은 새 계약으로 교체됩니다.' : ''}`,
+  );
+  return { ...fallback, gameDelta: resolution.gameDelta, careerDelta: resolution.careerDelta,
+    exposureDelta, termsAfter: resolution.offer.terms, deadlineWeek: resolution.offer.deadlineWeek,
+    transfer: resolution.transfer ?? null, summary };
 }
 
 export function initiateCareerApproach(
@@ -687,12 +906,13 @@ export function initiateCareerApproach(
   approachKind: CareerApproachKind,
   context: CareerMarketContext,
 ): CareerApproachResult {
-  if (targetNationId === context.career.nationId || context.week - state.lastApproachWeek < 2) {
+  const preview = getCareerApproachPreview(state, targetNationId, approachKind, context);
+  if (!preview.allowed) {
     return {
       state,
       success: false,
       title: '접촉망 사용 불가',
-      detail: targetNationId === context.career.nationId ? '현재 소속국에는 국제 경력 접근을 보낼 수 없습니다.' : '같은 연락망을 다시 사용하려면 2주가 지나야 합니다.',
+      detail: preview.reason,
       careerTrustDelta: 0,
       gameDelta: {},
     };
@@ -708,28 +928,14 @@ export function initiateCareerApproach(
           : 'secret-retainer';
   const sourceNation = nations.find((nation) => nation.id === targetNationId) ?? nations[0];
   const seed = `approach:${context.week}:${context.career.roleId}:${targetNationId}:${approachKind}`;
-  const baseChance = 18
-    + context.career.reputation * 0.46
-    + context.role.authority * 0.18
-    + state.leverage * 0.2
-    + (state.affiliationStatus === 'dismissed' ? 18 : 0)
-    + (approachKind === 'offer-secrets' || approachKind === 'offer-double-agent' ? context.game.intelNetwork * 0.18 : 0)
-    - state.exposure * 0.16;
-  const chance = clamp(baseChance, 8, 88);
+  const chance = preview.successChance;
   const roll = hashText(seed) % 100;
   const success = roll < chance;
-  const trustDelta = state.affiliationStatus === 'serving'
-    ? approachKind === 'apply' ? -7 : approachKind === 'appeal' ? -4 : -12
-    : 0;
+  const trustDelta = preview.trustDelta;
   const nextBase: CareerMarketState = {
     ...state,
     lastApproachWeek: context.week,
-    exposure: clamp(state.exposure + (
-      approachKind === 'apply' ? 2
-        : approachKind === 'appeal' ? 4
-          : approachKind === 'request-asylum' ? 8
-            : 13
-    )),
+    exposure: state.exposure + preview.exposureDelta,
   };
   if (!success) {
     const failureRecord: CareerMarketRecord = {
@@ -738,7 +944,7 @@ export function initiateCareerApproach(
       nationId: targetNationId,
       title: `${sourceNation.shortName} · ${careerApproachLabels[approachKind].title}`,
       outcome: 'approach-failed',
-      detail: '상대 기관이 응답하지 않았거나 신뢰성 검증 단계에서 접촉을 중단했습니다.',
+      detail: `상대 기관이 회신하지 않았습니다. 정치력 -2, 지도부 신임 ${trustDelta}, 접촉 노출 +${preview.exposureDelta}가 반영됐습니다. 다음 접촉은 제${preview.nextApproachWeek + 1}주입니다.`,
     };
     return {
       state: {
@@ -747,7 +953,7 @@ export function initiateCareerApproach(
       },
       success: false,
       title: `${sourceNation.shortName} 접촉 실패`,
-      detail: `성공 가능성 ${Math.round(chance)}%였으나 상대가 회신하지 않았습니다. 현 소속의 신임과 노출 위험은 이미 영향을 받았습니다.`,
+      detail: `회신 판정 기준 ${Math.round(chance)}%였으나 상대가 회신하지 않았습니다. ${failureRecord.detail}`,
       careerTrustDelta: trustDelta,
       gameDelta: { politicalPower: -2 },
     };
@@ -758,6 +964,8 @@ export function initiateCareerApproach(
       ...nextBase,
       offers: [offer, ...nextBase.offers].slice(0, 40),
       leverage: clamp(nextBase.leverage + 4),
+      history: [{ id: `${offer.id}-received`, week: context.week, nationId: targetNationId, title: `${sourceNation.shortName} 회신 도착`, outcome: 'pending' as const,
+        detail: `${careerApproachLabels[approachKind].title} 후 조건부 제안이 도착했습니다. 정치력 -2, 지도부 신임 ${trustDelta}, 접촉 노출 +${preview.exposureDelta}가 반영됐습니다. 아직 계약을 수락하지 않았습니다.` }, ...nextBase.history].slice(0, 80),
     },
     offer,
     success: true,

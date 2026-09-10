@@ -508,12 +508,11 @@ import { advancePostwarEquipmentWeek } from './postwarEquipment';
 import { PostwarIndustryBoard } from './PostwarIndustryBoard';
 import {
   careerAffiliationLabels,
+  careerApproachLabels,
   createCareerMarketState,
   evaluateForeignCareerOffers,
-  initiateCareerApproach,
   markCareerDismissed,
   normalizeCareerMarketState,
-  respondToCareerOffer,
 } from './careerMarket';
 import type {
   CareerApproachKind,
@@ -534,6 +533,8 @@ import type {
   ClandestinePosture,
 } from './clandestineCareer';
 import type { CareerMarketView } from './CareerMarketCenter';
+import { assessCareerDecision, createCareerReview, confirmCareerReview, createCareerReviewGate, projectCareerTransfer } from './careerDecisions';
+import type { CareerDecisionAction, CareerDecisionInput, CareerDecisionResult, CareerTransferPlan } from './careerDecisions';
 import { assessKoreaLiberationReadiness } from './koreaExperience';
 import {
   advanceJointOperationsWeek,
@@ -796,6 +797,7 @@ export function App() {
   const [equipmentWorkspace, setEquipmentWorkspace] = useState<'overview' | 'research' | 'prototype' | 'deployment'>('overview');
   const staffDecisionLocksRef = useRef(new Set<string>());
   const personnelCommandGateRef = useRef(createPersonnelReviewGate());
+  const careerDecisionGateRef = useRef(createCareerReviewGate());
   const commandSubmissionLocksRef = useRef(new Set<string>());
   const lastWeekAdvanceRequestRef = useRef<string | null>(null);
   const resetFieldSession = useCallback(() => {
@@ -1002,6 +1004,7 @@ export function App() {
     campaignPhase,
     relationByNation: Object.fromEntries(relations.map((relation) => [relation.id, relation.value])) as Partial<Record<NationId, number>>,
   }), [campaignPhase, career, careerRole, game, relations]);
+  const careerDecisionInput: CareerDecisionInput = { state: careerMarket, context: { ...careerMarketContext, game }, busy: periodAdvanceRemaining > 0 };
   const pendingClandestineCount = (careerMarket.clandestine?.missions.filter((mission) => mission.status === 'offered').length ?? 0)
     + (careerMarket.clandestine?.incident ? 1 : 0);
   const hasClandestineIncident = Boolean(careerMarket.clandestine?.incident);
@@ -4948,15 +4951,12 @@ export function App() {
 
   const continueCareerInForeignService = (
     offer: ForeignCareerOffer,
-    transfer: NonNullable<ReturnType<typeof respondToCareerOffer>>['transfer'],
-    gameDelta: Partial<Record<keyof GameState, number>>,
-    careerDelta: { reputation: number; councilTrust: number; legacy: number },
+    plan: CareerTransferPlan,
+    affiliationStatus: CareerMarketState['affiliationStatus'],
+    keepDeskOpen = true,
   ) => {
-    if (!transfer) return;
-    const nextNation = getNation(transfer.nationId);
-    const nextRole = getRole(transfer.roleId, transfer.nationId);
+    const { nextNation, nextRole, nextGame, nextCareer } = plan;
     const nextDivisions = createCampaignDivisions(nextNation);
-    const nextGame = applyGameDelta({ ...game, ...nextNation.modifiers, week: game.week }, gameDelta);
     const nextEconomy = createEconomyState(nextNation.id);
     const nextRelations = createDiplomaticRelations(nextNation.id);
     const nextOperations = createCovertOperations(nextNation.defaultTheater, nextNation.id);
@@ -4971,17 +4971,7 @@ export function App() {
       ? getMapRegionForTerritory(territories, commandTerritoryId, nextNation.defaultTheater)
       : getDefaultMapRegion(nextNation.defaultTheater);
 
-    setCareer((current) => ({
-      ...current,
-      nationId: nextNation.id,
-      roleId: nextRole.id,
-      reputation: Math.max(0, Math.min(100, current.reputation + careerDelta.reputation)),
-      councilTrust: Math.max(0, Math.min(100, 52 + careerDelta.councilTrust)),
-      experience: Math.max(12, Math.round(current.experience * 0.55)),
-      legacy: Math.max(0, current.legacy + careerDelta.legacy),
-      alternatePathId: null,
-      replacedPersonId: nextRole.historicalHolderId,
-    }));
+    setCareer(nextCareer);
     setGame(nextGame);
     setEconomy(nextEconomy);
     setPublicHealth(nextPublicHealth);
@@ -5027,27 +5017,32 @@ export function App() {
     setSpeed(0);
     setSetupNationId(nextNation.id);
     setSetupRoleId(nextRole.id);
-    setShowCareerMarket(false);
-    setPendingCareerOfferId(null);
+    // Keep the career desk mounted so its receipt can verify the real transferred state.
     setPendingClandestineMissionId(null);
-    setCareerMarketInitialView(undefined);
+    if (!keepDeskOpen) {
+      setShowCareerMarket(false);
+      setPendingCareerOfferId(null);
+      setCareerMarketInitialView(undefined);
+    }
     setActiveTab(campaignPhase === 'nation' ? 'governance' : 'command');
     addEvent(
       `국제 경력 이동 — ${nextNation.shortName} ${nextRole.title}`,
-      `${offer.title}을 수락했습니다. 이전 국가에서 쌓은 평판·경력·세계선·완료 연구·선택 기록은 유지되며, 지휘부·참모·부대·재정·외교망은 새 소속에 맞게 인계됐습니다.`,
+      `${withJosa(offer.title, '을/를')} 수락했습니다. 세계선·연구·선택 기록은 유지됩니다. 보직 경험은 기존의 55%(최소 12)로 환산되고 지도부 신임은 새 소속 기준으로 바뀝니다. 참모·부대·재정·외교망은 새 소속의 체계를 인수합니다.`,
       'neutral',
       game.week,
       {
         domain: 'diplomacy',
         decision: `${nextNation.shortName}의 ${nextRole.title} 보직을 수락해 같은 세계선에서 경력을 계속했습니다.`,
         trigger: `${withJosa(offer.sender, '이/가')} 보낸 ${offer.title}의 조건을 최종 수락했습니다.`,
-        factors: [`이전 소속: ${playerNation.shortName}`, `새 소속: ${nextNation.shortName}`, `새 보직: ${nextRole.title}`, `경력 신분: ${transfer.status}`],
+        factors: [`이전 소속: ${playerNation.shortName}`, `새 소속: ${nextNation.shortName}`, `새 보직: ${nextRole.title}`, `경력 신분: ${careerAffiliationLabels[affiliationStatus]}`],
         effects: [
           { label: '소속 국가', value: `${playerNation.shortName} → ${nextNation.shortName}`, tone: 'neutral' },
-          { label: '계약금', value: formatGameMoney(offer.terms.signingBonus), tone: 'positive' },
+          { label: '인수 후 국고', value: formatGameMoney(nextGame.treasury, { exact: true }) + ' (이동 전 화폐 환산)', tone: 'neutral' },
+          { label: '보직 경험', value: `${career.experience} → ${nextCareer.experience}`, tone: 'neutral' },
+          { label: '지도부 신임', value: `${career.councilTrust} → ${nextCareer.councilTrust}`, tone: 'neutral' },
           { label: '세계선', value: '기존 사건·선택·연구 기록 유지', tone: 'positive' },
         ],
-        ongoing: ['전향·망명 기록은 이후 외교 제안, 방첩 위험, 결말과 역사적 평가에 계속 반영됩니다.', '새 소속의 전황·국정 자원과 조직을 인수했지만 개인 경력과 대체역사 인과관계는 초기화되지 않습니다.'],
+        ongoing: ['전향·망명 기록은 이후 외교 제안, 방첩 위험, 결말과 역사적 평가에 계속 반영됩니다.', '이전 국가의 국고를 가져가는 환전이 아닙니다. 새 소속의 자원 기준에 계약금이 합산되고 공식 보직 제안의 주간 비밀수당은 지급하지 않습니다.'],
         nextActions: [campaignPhase === 'nation' ? '국가 운영 화면에서 새 정부의 예산·정통성·국가계획을 검토하십시오.' : '지휘 본부에서 새 부대·전선·참모와 첫 주 우선순위를 확인하십시오.'],
         certainty: 'confirmed',
       },
@@ -5055,37 +5050,54 @@ export function App() {
     notify(`${nextNation.shortName} · ${withJosa(nextRole.title, '으로/로')} 국제 경력을 계속합니다.`);
   };
 
+  const commitCareerDecision = (action: CareerDecisionAction): CareerDecisionResult | null => {
+    const assessment = assessCareerDecision(careerDecisionInput, action);
+    if (!assessment.allowed) {
+      notify(assessment.reason);
+      return null;
+    }
+    const review = createCareerReview(careerDecisionInput, action);
+    if (!review) return null;
+    const resultHolder: { value: CareerDecisionResult | null } = { value: null };
+    const approval = confirmCareerReview(review, careerDecisionInput, (result) => {
+      resultHolder.value = result;
+      setCareerMarket(result.stateAfter);
+      if (result.kind === 'respond' && result.transfer) {
+        continueCareerInForeignService(result.resolution.offer, result.transfer, result.resolution.transfer!.status);
+      } else {
+        setGame(result.gameAfter);
+        setCareer(result.careerAfter);
+      }
+      setPeriodAdvanceRemaining(0);
+      setSpeed(0);
+      return true;
+    }, careerDecisionGateRef.current);
+    if (!approval.ok) {
+      notify(approval.reason);
+      return null;
+    }
+    return resultHolder.value;
+  };
+
   const respondToForeignCareerOffer = (offerId: string, response: CareerOfferResponse) => {
-    const result = respondToCareerOffer(careerMarket, offerId, response, careerMarketContext);
-    if (!result) {
-      notify('이 대응은 현재 보직·정보력 또는 제안 상태에서 실행할 수 없습니다.');
-      return;
-    }
-    setCareerMarket(result.state);
-    if (response === 'accept' && result.state.clandestine) {
-      setPendingCareerOfferId(null);
-      setPendingClandestineMissionId(result.state.clandestine.missions.find((mission) => mission.status === 'offered')?.id ?? null);
-      setCareerMarketInitialView('clandestine');
-    }
     if (response === 'defer') {
       setShowCareerMarket(false);
       setPendingCareerOfferId(null);
       setPendingClandestineMissionId(null);
       setCareerMarketInitialView(undefined);
-      notify(result.detail);
-      return;
+      return true;
     }
-    if (result.transfer) {
-      continueCareerInForeignService(result.offer, result.transfer, result.gameDelta, result.careerDelta);
-      return;
-    }
-    setGame((current) => applyGameDelta(current, result.gameDelta));
-    setCareer((current) => ({
-      ...current,
-      reputation: Math.max(0, Math.min(100, current.reputation + result.careerDelta.reputation)),
-      councilTrust: Math.max(0, Math.min(100, current.councilTrust + result.careerDelta.councilTrust)),
-      legacy: Math.max(0, current.legacy + result.careerDelta.legacy),
-    }));
+    const committed = commitCareerDecision({ kind: 'respond', offerId, response });
+    if (!committed || committed.kind !== 'respond') return false;
+    const result = committed.resolution;
+    if (committed.transfer) return true;
+    const responseNames: Record<CareerOfferResponse, string> = {
+      defer: '보류', explore: '탐색 회신', negotiate: '조건 재협상', accept: '제안 수락',
+      reject: '명시적 거절', report: '현 소속에 보고', turn: '포섭 연락망 역이용',
+    };
+    const fieldNames: Partial<Record<keyof GameState, string>> = {
+      treasury: '국고', politicalPower: '정치력', stability: '안정도', intelNetwork: '정보망', commandPoints: '지휘 점수',
+    };
     addEvent(
       result.title,
       result.detail,
@@ -5093,40 +5105,43 @@ export function App() {
       game.week,
       {
         domain: 'operations',
-        decision: `${result.offer.title}에 대해 ${response} 대응을 선택했습니다.`,
-        trigger: `${result.offer.sender}의 외국 제안이 사용자에게 직접 도착했습니다.`,
-        factors: [`발각 위험 ${Math.round(result.offer.exposureRisk)}`, `제안 신뢰도 ${Math.round(result.offer.credibility)}`, `경력 신분 ${result.state.affiliationStatus}`],
-        effects: Object.entries(result.gameDelta).map(([key, value]) => ({ label: key, value: `${Number(value) >= 0 ? '+' : ''}${value}`, tone: Number(value) >= 0 ? 'positive' : 'negative' })),
+        decision: result.offer.title + '에 대해 ' + responseNames[response] + ' 대응을 선택했습니다.',
+        trigger: result.offer.sender + '의 제안을 검토하고 실제 경력·자원 영향을 확인한 뒤 회신했습니다.',
+        factors: [
+          '발각 위험 지표 ' + Math.round(result.offer.exposureRisk),
+          '제안 신뢰도 지표 ' + Math.round(result.offer.credibility),
+          '경력 신분 ' + careerAffiliationLabels[result.state.affiliationStatus],
+        ],
+        effects: [
+          ...Object.keys(result.gameDelta).map((key) => {
+            const field = key as keyof GameState;
+            const before = game[field];
+            const after = committed.gameAfter[field];
+            return { label: fieldNames[field] ?? field, value: field === 'treasury' ? formatGameMoney(before, { exact: true }) + ' → ' + formatGameMoney(after, { exact: true }) : before + ' → ' + after, tone: after >= before ? 'positive' as const : 'negative' as const };
+          }),
+          { label: '지도부 신임', value: career.councilTrust + ' → ' + committed.careerAfter.councilTrust, tone: committed.careerAfter.councilTrust >= career.councilTrust ? 'positive' : 'negative' },
+          { label: '노출 지표', value: careerMarket.exposure + ' → ' + result.state.exposure, tone: result.state.exposure <= careerMarket.exposure ? 'positive' : 'negative' },
+        ],
         ongoing: response === 'accept'
-          ? ['비밀 협조와 이중 소속은 매주 노출 위험과 외국 신뢰를 변화시키며 이후 추가 요구를 발생시킵니다.']
-          : response === 'report' || response === 'turn'
-            ? ['상대 기관은 연락망이 노출됐다고 의심하며 다음 접근 방식과 제안 조건을 바꿉니다.']
-            : ['거절 기록은 해당 국가의 외국 신뢰와 다음 제안 가능성에 남습니다.'],
-        nextActions: ['국제 경력·비밀 접촉실의 경력 기록에서 결과와 남은 제안을 확인하십시오.'],
+          ? ['현직은 유지됩니다. 비밀 소속 탭에서 실제 생성된 핸들러·임무·주간 계약을 확인하십시오.']
+          : response === 'explore' || response === 'negotiate'
+            ? ['아직 제안을 수락하지 않았습니다. 변경된 조건과 마감일을 같은 제안에서 다시 검토하십시오.']
+            : response === 'report' || response === 'turn'
+              ? ['현재 방첩 지표와 외국 신뢰에 반영됩니다. 이 응답만으로 별도 비밀 임무 경력을 생성하지는 않습니다.']
+              : ['거절 기록과 외국 신뢰의 변화가 다음 제안의 조건에 남습니다.'],
+        nextActions: ['국제 경력실의 현재 결과와 경력 기록을 확인하십시오. 다른 제안으로 자동 이동하지 않습니다.'],
         certainty: 'confirmed',
       },
     );
-    const nextPending = result.state.offers.find((offer) => offer.id !== offerId && ['pending', 'exploring', 'negotiating'].includes(offer.status));
-    if (!(response === 'accept' && result.state.clandestine)) setPendingCareerOfferId(nextPending?.id ?? null);
+    // The chosen offer stays selected for its receipt, including exploration and negotiation.
     notify(result.detail);
+    return true;
   };
 
   const approachForeignCareerMarket = (nationId: NationId, kind: CareerApproachKind) => {
-    const result = initiateCareerApproach(careerMarket, nationId, kind, careerMarketContext);
-    setCareerMarket(result.state);
-    setCareer((current) => ({
-      ...current,
-      councilTrust: Math.max(0, Math.min(100, current.councilTrust + result.careerTrustDelta)),
-    }));
-    setGame((current) => applyGameDelta(current, result.gameDelta));
-    if (result.offer) {
-      setPendingCareerOfferId(result.offer.id);
-      setPendingClandestineMissionId(null);
-      setCareerMarketInitialView('inbox');
-      setShowCareerMarket(true);
-      setPeriodAdvanceRemaining(0);
-      setSpeed(0);
-    }
+    const committed = commitCareerDecision({ kind: 'approach', nationId, approach: kind });
+    if (!committed || committed.kind !== 'approach') return false;
+    const result = committed.approachResult;
     addEvent(
       result.title,
       result.detail,
@@ -5134,16 +5149,22 @@ export function App() {
       game.week,
       {
         domain: 'diplomacy',
-        decision: `${getNation(nationId).shortName}에 사용자가 먼저 ${kind} 접근을 보냈습니다.`,
-        trigger: `현재 경력 신분 ${careerMarket.affiliationStatus}, 평판 ${Math.round(career.reputation)}, 지도부 신임 ${Math.round(career.councilTrust)}.`,
-        factors: [`목표 국가: ${getNation(nationId).shortName}`, `접근 방식: ${kind}`, `현재 노출 위험 ${Math.round(result.state.exposure)}`],
-        effects: [{ label: '접촉 결과', value: result.success ? '회신·제안 도착' : '응답 없음', tone: result.success ? 'positive' : 'negative' }],
-        ongoing: ['재직 중 외부 접근은 현재 지도부 신임과 방첩 노출 기록에 남습니다.'],
-        nextActions: [result.offer ? '도착한 회신의 보직·대가·보호·요구를 비교하십시오.' : '2주 뒤 다른 방식이나 국가로 다시 접근할 수 있습니다.'],
+        decision: getNation(nationId).shortName + '에 ' + careerApproachLabels[kind].title + '을 보냈습니다.',
+        trigger: '현재 경력 신분 ' + careerAffiliationLabels[careerMarket.affiliationStatus] + ', 평판 ' + Math.round(career.reputation) + ', 지도부 신임 ' + Math.round(career.councilTrust) + '.',
+        factors: ['목표 국가: ' + getNation(nationId).shortName, '접근 방식: ' + careerApproachLabels[kind].title],
+        effects: [
+          { label: '접촉 결과', value: result.success ? '회신·제안 도착' : '응답 없음', tone: result.success ? 'positive' : 'negative' },
+          { label: '정치력', value: game.politicalPower + ' → ' + committed.gameAfter.politicalPower, tone: 'negative' },
+          { label: '지도부 신임', value: career.councilTrust + ' → ' + committed.careerAfter.councilTrust, tone: 'neutral' },
+          { label: '노출 지표', value: careerMarket.exposure + ' → ' + result.state.exposure, tone: 'negative' },
+        ],
+        ongoing: ['회신 여부와 별개로 연락 비용과 신임·노출 변화는 적용됩니다. 같은 연락망의 다음 사용은 2주 뒤입니다.'],
+        nextActions: [result.offer ? '결과 화면에서 도착한 제안 열기를 선택해 실제 조건을 검토하십시오.' : '2주 뒤 다른 방식이나 국가로 다시 접근할 수 있습니다.'],
         certainty: 'confirmed',
       },
     );
     notify(result.detail);
+    return true;
   };
 
   const createCurrentClandestineContext = () => ({
@@ -5283,6 +5304,11 @@ export function App() {
         },
         consequencePreview: ['현재 국가의 보직을 떠납니다.', '기존 세계선·경력·완료 연구·선택 기록은 유지됩니다.'],
       };
+      const extractionPlan = projectCareerTransfer(careerDecisionInput, { nationId: result.transferNationId, roleId: targetRole.id, status: 'defector' }, result.gameDelta, result.careerDelta);
+      if (!extractionPlan) {
+        notify('새 소속과 보직의 인계 조건을 확인할 수 없어 이동하지 않았습니다.');
+        return;
+      }
       setCareerMarket((current) => ({
         ...current,
         affiliationStatus: 'defector',
@@ -5293,9 +5319,9 @@ export function App() {
       }));
       continueCareerInForeignService(
         extractionOffer,
-        { nationId: result.transferNationId, roleId: targetRole.id, status: 'defector' },
-        result.gameDelta,
-        result.careerDelta,
+        extractionPlan,
+        'defector',
+        false,
       );
       return;
     }
@@ -5459,6 +5485,7 @@ export function App() {
     setPostwarIndustry(createPostwarIndustryState(nation.id, newGame.week));
     initializeRegionalAccount(nation.id, newGame.week, true);
     resetFieldSession();
+    careerDecisionGateRef.current = createCareerReviewGate();
     setOperationStoppages([]);
     setPostwarIndustrySettings(normalizePostwarIndustrySettings(undefined));
     const openingStaff = createStaffRoster(nation.id, role.id);
@@ -5614,6 +5641,7 @@ export function App() {
       setProduction(migratedProduction);
       setPostwarIndustry(normalizePostwarIndustryState(data.postwarIndustry, restoredNation.id, restoredGame.week));
       resetFieldSession();
+      careerDecisionGateRef.current = createCareerReviewGate();
       setPostwarIndustrySettings(normalizePostwarIndustrySettings(data.postwarIndustrySettings));
       setEvents(restoredEvents);
       setOrders(normalizeOperationOrders(data.orders ?? [], mergedTerritories, migratedDivisions));
@@ -5795,6 +5823,7 @@ export function App() {
     setPostwarIndustry(createPostwarIndustryState(DEFAULT_NATION_ID, initialGame.week));
     initializeRegionalAccount(DEFAULT_NATION_ID, initialGame.week, true);
     resetFieldSession();
+    careerDecisionGateRef.current = createCareerReviewGate();
     setOperationStoppages([]);
     setPostwarIndustrySettings(normalizePostwarIndustrySettings(undefined));
     setEvents(initialEvents);
@@ -9385,6 +9414,7 @@ export function App() {
         <Suspense fallback={<DeferredSurface label="국제 경력·비밀 접촉실 준비 중" overlay />}>
           <CareerMarketCenter
             state={careerMarket}
+            decisionInput={careerDecisionInput}
             currentNationId={playerNation.id}
             role={displayedCareerRole}
             week={game.week}

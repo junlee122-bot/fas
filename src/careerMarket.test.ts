@@ -1,15 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { careerRoles, createCareerState, getRole } from './campaign';
+import { careerRoles, createCareerState, getRole, nations } from './campaign';
 import { advanceClandestineCareerWeek, createClandestineCareerState } from './clandestineCareer';
+import { civilianProfessions, createCivilianCareerState, getCivilianRoleId } from './civilianCareer';
 import {
   createCareerMarketState,
   evaluateForeignCareerOffers,
+  expireCareerOffers,
+  getCareerApproachEligibility,
+  getCareerApproachPreview,
+  getCareerOfferResponseEligibility,
+  getCareerOfferResponsePreview,
   getCareerRecruitmentReadiness,
   initiateCareerApproach,
   markCareerDismissed,
+  normalizeCareerMarketState,
   respondToCareerOffer,
 } from './careerMarket';
-import type { CareerMarketContext } from './careerMarket';
+import type { CareerApproachKind, CareerMarketContext, CareerOfferResponse, ForeignCareerOffer } from './careerMarket';
+import type { NationId } from './types';
 
 function context(roleId = 'britain-tier2', week = 26): CareerMarketContext {
   const career = createCareerState('britain', roleId);
@@ -193,5 +201,308 @@ describe('international career market', () => {
     expect(advanced.state.lastProcessedWeek).toBe(1);
     expect(advanced.state.handlerNationId).toBe('germany');
     expect(advanced.state.missions.length).toBeGreaterThan(0);
+  });
+});
+
+function offerFixture(current = context(), overrides: Partial<ForeignCareerOffer> = {}) {
+  const generated = markCareerDismissed(createCareerMarketState(), current).newOffers[0];
+  const offer: ForeignCareerOffer = {
+    ...generated, kind: 'official-appointment', status: 'pending',
+    deadlineWeek: current.week + 3, explorationCount: 0, negotiationCount: 0,
+    ...overrides,
+  };
+  return { offer, state: { ...createCareerMarketState(), offers: [offer] } };
+}
+
+const responses: CareerOfferResponse[] = ['defer', 'explore', 'negotiate', 'accept', 'reject', 'report', 'turn'];
+const approaches: CareerApproachKind[] = ['apply', 'appeal', 'request-asylum', 'offer-secrets', 'offer-double-agent'];
+
+describe('career decision guards and truthful previews', () => {
+  it.each(responses)('allows %s through the deadline and rejects it after expiry without mutation', (response) => {
+    const { state, offer } = offerFixture();
+    const before = structuredClone(state);
+    const onDeadline = { ...context(), week: offer.deadlineWeek };
+    expect(getCareerOfferResponseEligibility(state, offer.id, response, onDeadline).allowed).toBe(true);
+    expect(respondToCareerOffer(state, offer.id, response, onDeadline)).not.toBeNull();
+    const expiredContext = { ...onDeadline, week: offer.deadlineWeek + 1 };
+    expect(getCareerOfferResponsePreview(state, offer.id, response, expiredContext).allowed).toBe(false);
+    expect(respondToCareerOffer(state, offer.id, response, expiredContext)).toBeNull();
+    expect(state).toEqual(before);
+    expect(expireCareerOffers(state, offer.deadlineWeek).offers[0].status).toBe('pending');
+    expect(expireCareerOffers(state, offer.deadlineWeek + 1).offers[0].status).toBe('expired');
+  });
+
+  it('explores and negotiates once each in either order without repeatedly improving terms', () => {
+    for (const sequence of [['explore', 'negotiate'], ['negotiate', 'explore']] as const) {
+      const { offer, state } = offerFixture();
+      const first = respondToCareerOffer(state, offer.id, sequence[0], context())!;
+      const second = respondToCareerOffer(first.state, offer.id, sequence[1], context())!;
+      expect(second.offer.explorationCount).toBe(1);
+      expect(second.offer.negotiationCount).toBe(1);
+      expect(second.offer.deadlineWeek).toBe(offer.deadlineWeek + 2);
+      expect(second.offer.terms.signingBonus).toBe(Math.round(offer.terms.signingBonus * 1.22));
+      expect(second.offer.terms.authority).toBe(offer.terms.authority);
+      expect(second.state.history.map((record) => record.outcome)).toEqual([sequence[1] === 'explore' ? 'exploring' : 'negotiating', sequence[0] === 'explore' ? 'exploring' : 'negotiating']);
+      const saved = structuredClone(second.state);
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        expect(respondToCareerOffer(second.state, offer.id, 'explore', context())).toBeNull();
+        expect(respondToCareerOffer(second.state, offer.id, 'negotiate', context())).toBeNull();
+      }
+      expect(second.state).toEqual(saved);
+      expect(respondToCareerOffer(second.state, offer.id, 'accept', context())?.offer.status).toBe('accepted');
+    }
+  });
+
+  it.each(['exploring', 'negotiating'] as const)('respects legacy %s contacts with no optional counters after restore', (status) => {
+    const { offer, state } = offerFixture(context(), { status, explorationCount: undefined, negotiationCount: undefined });
+    const restored = normalizeCareerMarketState(state);
+    expect(restored.offers[0].explorationCount).toBe(1);
+    expect(respondToCareerOffer(restored, offer.id, 'explore', context())).toBeNull();
+    if (status === 'negotiating') {
+      expect(restored.offers[0].negotiationCount).toBe(1);
+      expect(respondToCareerOffer(restored, offer.id, 'negotiate', context())).toBeNull();
+    } else {
+      expect(respondToCareerOffer(restored, offer.id, 'negotiate', context())).not.toBeNull();
+    }
+    expect(respondToCareerOffer(restored, offer.id, 'reject', context())?.offer.status).toBe('rejected');
+  });
+
+  it.each(responses)('uses identical preview and execution deltas for %s without modifying the preview source', (response) => {
+    const { offer, state } = offerFixture(context(), { kind: 'double-agent' });
+    const before = structuredClone(state);
+    const preview = getCareerOfferResponsePreview(state, offer.id, response, context());
+    expect(preview.allowed).toBe(true);
+    expect(state).toEqual(before);
+    const result = respondToCareerOffer(state, offer.id, response, context())!;
+    expect(preview.gameDelta).toEqual(result.gameDelta);
+    expect(preview.careerDelta).toEqual(result.careerDelta);
+    expect(preview.exposureDelta).toBeCloseTo(result.state.exposure - state.exposure);
+    expect(preview.termsAfter).toEqual(result.offer.terms);
+    expect(preview.deadlineWeek).toBe(result.offer.deadlineWeek);
+  });
+
+  it.each([['accept', 'double-agent', 4], ['accept', 'secret-retainer', 4], ['turn', 'official-appointment', 3]] as const)(
+    'requires exact political power before %s %s', (response, kind, cost) => {
+      const { offer, state } = offerFixture(context(), { kind });
+      const poor = { ...context(), game: { ...context().game, politicalPower: cost - 0.01 } };
+      expect(getCareerOfferResponsePreview(state, offer.id, response, poor)).toMatchObject({ allowed: false, politicalPowerCost: cost });
+      expect(respondToCareerOffer(state, offer.id, response, poor)).toBeNull();
+      const exact = { ...poor, game: { ...poor.game, politicalPower: cost } };
+      expect(respondToCareerOffer(state, offer.id, response, exact)?.gameDelta.politicalPower).toBe(-cost);
+    },
+  );
+
+  it('does not invent a retainer or random acceptance roll for formal offers, including legacy terms', () => {
+    for (const kind of ['official-appointment', 'asylum-and-post', 'government-in-exile'] as const) {
+      const base = offerFixture();
+      const { offer, state } = offerFixture(context(), { kind, terms: { ...base.offer.terms, weeklyRetainer: 77 } });
+      const preview = getCareerOfferResponsePreview(state, offer.id, 'accept', context());
+      expect(preview.transfer?.nationId).toBe(offer.sourceNationId);
+      expect(preview.weeklyRetainer).toBe(0);
+      expect(preview.summary.join(' ')).toContain('추가 확률 판정이 없습니다');
+      expect(preview.summary.join(' ')).toContain('정기 비밀수당은 지급되지 않습니다');
+      expect(respondToCareerOffer(state, offer.id, 'accept', context())?.state.clandestine).toBeNull();
+    }
+  });
+
+  it('describes turn as a contact-network result, without promising a non-existent secret career', () => {
+    const { offer, state } = offerFixture();
+    const preview = getCareerOfferResponsePreview(state, offer.id, 'turn', context());
+    const result = respondToCareerOffer(state, offer.id, 'turn', context())!;
+    expect(preview.summary.join(' ')).toContain('장기 공작 임무는 생성되지 않습니다');
+    expect(result.state.clandestine).toBeNull();
+    expect(result.gameDelta).toEqual({ intelNetwork: 11, commandPoints: 5, politicalPower: -3 });
+    expect(result.title).toBe('포섭 연락망 역이용');
+  });
+
+  it.each(approaches)('requires PP2 and explains paid failure, trust, exposure and global cooldown for %s', (kind) => {
+    const state = createCareerMarketState();
+    const poor = { ...context(), game: { ...context().game, politicalPower: 1.999 } };
+    expect(getCareerApproachEligibility(state, 'usa', kind, poor).allowed).toBe(false);
+    const invalid = initiateCareerApproach(state, 'usa', kind, poor);
+    expect(invalid.state).toBe(state);
+    expect(invalid.gameDelta).toEqual({});
+    const exact = { ...poor, game: { ...poor.game, politicalPower: 2 } };
+    const preview = getCareerApproachPreview(state, 'usa', kind, exact);
+    const result = initiateCareerApproach(state, 'usa', kind, exact);
+    expect(preview.allowed).toBe(true);
+    expect(result.gameDelta.politicalPower).toBe(-2);
+    expect(result.careerTrustDelta).toBe(preview.trustDelta);
+    expect(result.state.exposure - state.exposure).toBe(preview.exposureDelta);
+    expect(result.state.history[0].outcome).toBe(result.success ? 'pending' : 'approach-failed');
+    expect(getCareerApproachPreview(result.state, 'germany', 'appeal', { ...exact, week: 27 }).allowed).toBe(false);
+    expect(getCareerApproachPreview(result.state, 'germany', 'appeal', { ...exact, week: 28 }).allowed).toBe(true);
+    expect(result).toEqual(initiateCareerApproach(state, 'usa', kind, exact));
+    expect(state.lastApproachWeek).toBe(-52);
+  });
+
+  it.each(nations.map((nation) => nation.id))('maintains all five voluntary approach routes for %s', (nationId) => {
+    const role = careerRoles.find((entry) => entry.nationId === nationId && entry.tier === 2)!;
+    const current: CareerMarketContext = { ...context(), role, career: { ...createCareerState(nationId, role.id), reputation: 76 } };
+    const foreign = nationId === 'usa' ? 'britain' : 'usa';
+    for (const kind of approaches) {
+      const state = createCareerMarketState();
+      const preview = getCareerApproachPreview(state, foreign, kind, current);
+      expect(preview.allowed, `${nationId}/${kind}`).toBe(true);
+      expect(Number.isInteger(preview.successChance)).toBe(true);
+      expect(preview.successChance).toBeGreaterThanOrEqual(8);
+      expect(preview.successChance).toBeLessThanOrEqual(88);
+      const result = initiateCareerApproach(state, foreign, kind, current);
+      expect(result.state.lastApproachWeek).toBe(26);
+      expect(result.gameDelta.politicalPower).toBe(-2);
+      expect(result.state.history).toHaveLength(1);
+      if (result.offer) expect(result.offer.sourceNationId).toBe(foreign);
+    }
+  });
+
+  it('keeps initial-week and highest-office voluntary contacts available while gating incoming offers', () => {
+    const current = context('britain-tier1', 0);
+    for (const kind of approaches) expect(getCareerApproachEligibility(createCareerMarketState(), 'usa', kind, current).allowed).toBe(true);
+    expect(evaluateForeignCareerOffers(createCareerMarketState(), current, true).newOffers).toHaveLength(0);
+  });
+
+  it.each([NaN, Infinity, -Infinity])('rejects non-finite values %s before applying a response or approach', (value) => {
+    const { offer, state } = offerFixture();
+    for (const current of [
+      { ...context(), week: value },
+      { ...context(), game: { ...context().game, politicalPower: value } },
+      { ...context(), career: { ...context().career, reputation: value } },
+    ]) {
+      expect(respondToCareerOffer(state, offer.id, 'accept', current)).toBeNull();
+      expect(initiateCareerApproach(state, 'usa', 'apply', current).state).toBe(state);
+    }
+    const badOffer = { ...offer, terms: { ...offer.terms, signingBonus: value } };
+    expect(respondToCareerOffer({ ...state, offers: [badOffer] }, offer.id, 'accept', context())).toBeNull();
+    const badState = { ...state, exposure: value };
+    expect(initiateCareerApproach(badState, 'usa', 'apply', context()).state).toBe(badState);
+  });
+
+  it('blocks stale role identity, unknown or duplicate targets and busy progression without consuming an action', () => {
+    const { offer, state } = offerFixture();
+    const wrongRole = { ...context(), career: { ...context().career, roleId: 'britain-tier1' } };
+    const busy = { ...context(), busy: true };
+    for (const current of [wrongRole, busy]) {
+      for (const response of responses) expect(respondToCareerOffer(state, offer.id, response, current)).toBeNull();
+      expect(initiateCareerApproach(state, 'usa', 'apply', current).state).toBe(state);
+    }
+    expect(initiateCareerApproach(state, 'unknown' as NationId, 'apply', context()).state).toBe(state);
+    expect(respondToCareerOffer({ ...state, offers: [offer, offer] }, offer.id, 'accept', context())).toBeNull();
+    expect(respondToCareerOffer({ ...state, offers: [{ ...offer, targetRoleId: 'not-a-real-office' }] }, offer.id, 'accept', context())).toBeNull();
+    expect(respondToCareerOffer(state, offer.id, 'accept', { ...context(), week: offer.receivedWeek - 1 })).toBeNull();
+  });
+
+  it('caps recorded exposure deltas rather than promising points beyond 100', () => {
+    const state = { ...createCareerMarketState(), exposure: 99 };
+    const preview = getCareerApproachPreview(state, 'usa', 'offer-secrets', context());
+    expect(preview.exposureDelta).toBe(1);
+    expect(initiateCareerApproach(state, 'usa', 'offer-secrets', context()).state.exposure).toBe(100);
+  });
+
+  it.each(['dismissed', 'unattached'] as const)('prevents a %s player from reporting to a non-existent employer', (affiliationStatus) => {
+    const fixture = offerFixture();
+    const state = { ...fixture.state, affiliationStatus };
+    expect(getCareerOfferResponseEligibility(state, fixture.offer.id, 'report', context()).reason).toContain('보고할 현 소속이 없습니다');
+    expect(respondToCareerOffer(state, fixture.offer.id, 'report', context())).toBeNull();
+    expect(respondToCareerOffer(state, fixture.offer.id, 'reject', context())).not.toBeNull();
+    expect(respondToCareerOffer(state, fixture.offer.id, 'accept', context())).not.toBeNull();
+  });
+
+  it('uses one-based weeks in guidance while retaining zero-based engine deadlines', () => {
+    const current = context('britain-tier2', 0);
+    const { state, offer } = offerFixture(current, { deadlineWeek: 3 });
+    const deferred = respondToCareerOffer(state, offer.id, 'defer', current)!;
+    expect(deferred.detail).toContain('제4주까지');
+    expect(deferred.detail).toContain('제5주부터 만료');
+    const preview = getCareerApproachPreview(state, 'usa', 'appeal', current);
+    expect(preview.nextApproachWeek).toBe(2);
+    expect(preview.summary.join(' ')).toContain('다음 접촉 제3주');
+    const contacted = initiateCareerApproach(state, 'usa', 'appeal', current);
+    expect(getCareerApproachEligibility(contacted.state, 'germany', 'apply', { ...current, week: 1 }).reason).toContain('제3주부터');
+    expect(getCareerOfferResponseEligibility(state, offer.id, 'accept', { ...current, week: 4 }).reason).toContain('제4주 마감');
+  });
+
+  it('warns that accepting a second secret contract replaces, rather than combines, its handler and mission state', () => {
+    const { state: base, offer } = offerFixture(context(), { kind: 'secret-retainer' });
+    const clandestine = createClandestineCareerState({ homeNationId: 'britain', handlerNationId: 'usa', week: 20,
+      role: context().role, handlerTrust: 80, coverStrength: 80, weeklyRetainer: 20 });
+    const state = { ...base, clandestine, affiliationStatus: 'double-agent' as const, handlerNationId: 'usa' as const };
+    const preview = getCareerOfferResponsePreview(state, offer.id, 'accept', context());
+    expect(preview.summary.join(' ')).toContain('기존 비밀 경력의 연락관·임무·작전 자금은 새 계약으로 교체됩니다');
+    const result = respondToCareerOffer(state, offer.id, 'accept', context())!;
+    expect(result.state.clandestine).not.toBe(clandestine);
+    expect(result.state.handlerNationId).toBe(offer.sourceNationId);
+    expect(result.state.clandestine?.handlerNationId).toBe(offer.sourceNationId);
+    expect(state.clandestine).toBe(clandestine);
+  });
+
+  it('rejects negative resources and out-of-range contact metrics instead of creating invalid results', () => {
+    const { state, offer } = offerFixture();
+    const invalidGame = { ...context(), game: { ...context().game, treasury: -1 } };
+    expect(respondToCareerOffer(state, offer.id, 'accept', invalidGame)).toBeNull();
+    expect(initiateCareerApproach(state, 'usa', 'apply', invalidGame).state).toBe(state);
+    for (const exposure of [-1, 101]) {
+      const invalid = { ...state, exposure };
+      expect(respondToCareerOffer(invalid, offer.id, 'explore', context())).toBeNull();
+      expect(initiateCareerApproach(invalid, 'usa', 'apply', context()).state).toBe(invalid);
+    }
+  });
+
+  it('does not overflow the safe contract or deadline range through negotiation', () => {
+    const fixture = offerFixture();
+    for (const override of [
+      { terms: { ...fixture.offer.terms, signingBonus: Number.MAX_SAFE_INTEGER } },
+      { deadlineWeek: Number.MAX_SAFE_INTEGER },
+    ]) {
+      const { offer, state } = offerFixture(context(), override);
+      const before = structuredClone(state);
+      expect(getCareerOfferResponsePreview(state, offer.id, 'negotiate', context()).allowed).toBe(false);
+      expect(respondToCareerOffer(state, offer.id, 'negotiate', context())).toBeNull();
+      expect(state).toEqual(before);
+    }
+  });
+
+  it.each(nations.map((nation) => nation.id))('allows exact civilian profession roles from %s to approach and answer offers', (nationId) => {
+    const foreignNationId = nationId === 'usa' ? 'britain' : 'usa';
+    for (const profession of civilianProfessions) {
+      const roleId = getCivilianRoleId(nationId, profession.id);
+      const role = getRole(roleId, nationId);
+      const current: CareerMarketContext = {
+        ...context(), role,
+        career: { ...createCareerState(nationId, roleId), civilian: createCivilianCareerState(profession.id, 'university-network') },
+      };
+      expect(role.id).toBe(roleId);
+      const { offer, state } = offerFixture(current);
+      for (const kind of approaches) {
+        expect(getCareerApproachPreview(state, foreignNationId, kind, current).allowed, `${roleId}/${kind}`).toBe(true);
+        const result = initiateCareerApproach(state, foreignNationId, kind, current);
+        expect(result.state.lastApproachWeek).toBe(current.week);
+        expect(result.gameDelta.politicalPower).toBe(-2);
+      }
+      for (const response of ['explore', 'negotiate', 'accept', 'reject'] as const) {
+        expect(getCareerOfferResponsePreview(state, offer.id, response, current).allowed, `${roleId}/${response}`).toBe(true);
+        expect(respondToCareerOffer(state, offer.id, response, current)).not.toBeNull();
+      }
+    }
+  });
+
+  it('does not turn an unknown or cross-nation civilian ID into a valid office via getRole fallback', () => {
+    const { offer, state } = offerFixture();
+    const knownRoleId = getCivilianRoleId('britain', 'scientist');
+    const validRole = getRole(knownRoleId, 'britain');
+    const validCareer = createCareerState('britain', knownRoleId);
+    const cases: CareerMarketContext[] = [
+      { ...context(), role: getRole('civilian-britain-fictional', 'britain'), career: { ...validCareer, roleId: 'civilian-britain-fictional' } },
+      { ...context(), role: { ...validRole, id: 'civilian-britain-fictional' }, career: { ...validCareer, roleId: 'civilian-britain-fictional' } },
+      { ...context(), role: getRole('civilian-usa-scientist', 'usa'), career: { ...validCareer, roleId: 'civilian-usa-scientist' } },
+      { ...context(), role: { ...validRole, id: 'civilian-unknown-scientist', nationId: 'unknown' as NationId },
+        career: { ...validCareer, roleId: 'civilian-unknown-scientist', nationId: 'unknown' as NationId } },
+      { ...context(), role: { ...validRole, tier: 1 }, career: validCareer },
+      { ...context(), role: { ...validRole, branch: 'military' }, career: validCareer },
+    ];
+    for (const current of cases) {
+      expect(getCareerApproachEligibility(state, 'usa', 'apply', current).allowed).toBe(false);
+      expect(initiateCareerApproach(state, 'usa', 'apply', current).state).toBe(state);
+      expect(respondToCareerOffer(state, offer.id, 'accept', current)).toBeNull();
+    }
   });
 });
