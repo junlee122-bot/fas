@@ -1,0 +1,77 @@
+.justice-command-desk { --jd-text:var(--ui-text,#edf0ec); --jd-muted:var(--ui-muted,#9dacb8); --jd-bg:var(--ui-surface,#18212b); --jd-border:var(--ui-border,#34424c); --jd-accent:var(--ui-accent,#c7a16c); color:var(--jd-text); }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition { width:100%; max-width:1320px; min-width:0; margin:0 auto; display:grid; gap:24px; font-size:16px; line-height:1.65; color:var(--jd-text); background:none; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition * { box-sizing:border-box; min-width:0; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition :is(h1,h2,h3,p,dl) { margin:0; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition h1 { font-size:28px; font-weight:700; line-height:1.3; letter-spacing:-.03em; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition h2 { font-size:22px; line-height:1.4; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition h3 { font-size:18px; line-height:1.4; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition :is(p,li,dd) { font-size:16px; line-height:1.65; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition :is(strong,b) { color:var(--jd-text); font-size:16px; line-height:1.5; font-weight:650; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition :is(span,dt,label) { font-size:14px; line-height:1.6; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition :is(small,.jd-footer span) { display:block; color:var(--jd-muted); font-size:12px; line-height:1.6; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition :is(h1,h2,h3,p,span,small,strong,li,dd,dt) { white-space:normal; overflow-wrap:anywhere; word-break:keep-all; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition dd { margin:4px 0 0; color:var(--jd-text); }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition dt { color:var(--jd-muted); }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition label { display:grid; gap:8px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition :is(button,select,summary) { min-height:44px; max-width:100%; font-family:inherit; font-size:14px; line-height:1.5; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition button { display:inline-flex; justify-content:center; align-items:center; gap:10px; padding:10px 16px; color:var(--jd-text); background:var(--ui-raised,#202c38); border:1px solid var(--jd-border); border-radius:8px; cursor:pointer; white-space:normal; box-shadow:none; text-align:left; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition button:disabled { opacity:.5; cursor:not-allowed; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition button:not(:disabled):hover { border-color:var(--jd-accent); }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-primary { color:var(--ui-ink,#1c2831); background:var(--jd-accent); border-color:var(--jd-accent); font-weight:700; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition select { width:100%; padding:12px; color:var(--jd-text); background:#121b24; border:1px solid var(--jd-border); border-radius:8px; text-overflow:ellipsis; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition :is(button,select,summary,h2):focus-visible { outline:2px solid #ead2a9; outline-offset:4px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition h2[tabindex] { scroll-margin-top:28px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition svg { flex:0 0 auto; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-heading { display:flex; justify-content:space-between; gap:20px; align-items:center; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-heading > div { display:grid; gap:8px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-badge { padding:8px 12px; background:var(--jd-bg); border:1px solid var(--jd-border); border-radius:8px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-workspaces { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-workspaces button[aria-pressed=true] { border-color:var(--jd-accent); color:#ead2a9; background:#c7a16c12; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-workspaces span { font-size:12px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition :is(.jd-surface,.jd-review,.jd-disclosure) { padding:24px; background:var(--jd-bg); border:1px solid var(--jd-border); border-radius:8px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-surface { display:grid; align-content:start; gap:20px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-review { display:grid; gap:18px; border-color:var(--jd-accent); }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-review > small { color:#e4c69b; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-layout { display:grid; grid-template-columns:minmax(200px,280px) minmax(0,1fr); gap:24px; align-items:start; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-desktop-picker { display:grid; gap:8px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-desktop-picker button { display:grid; justify-content:stretch; gap:6px; padding:14px; background:transparent; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-desktop-picker button[aria-pressed=true] { border-color:var(--jd-accent); background:#c7a16c12; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-desktop-picker span { font-size:12px; color:var(--jd-muted); }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-mobile-picker { display:none; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-priority { display:flex; gap:18px; align-items:center; padding:20px 24px; background:#c7a16c0b; border:1px solid var(--jd-border); border-left:3px solid var(--jd-accent); border-radius:8px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-priority > div { display:grid; gap:5px; flex:1; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition :is(.jd-caution,.jd-notice,.jd-outcome) { display:block; padding:16px; border:1px solid var(--jd-border); border-radius:8px; background:#10182080; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-caution { border-left:3px solid #b18d63; color:#e0ccaf; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-caution > :is(p,button) { margin-top:12px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition :is(.jd-facts,.jd-metrics) { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-metrics > div { padding:14px; border:1px solid var(--jd-border); border-radius:8px; background:#10182055; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-metrics dd { font-size:20px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-status-line { display:grid; gap:8px; padding-top:16px; border-top:1px solid var(--jd-border); }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-disclosure { display:block; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-disclosure > summary { display:flex; align-items:center; gap:10px; padding:4px 0; cursor:pointer; font-weight:650; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-disclosure > summary::before { content:'+'; color:var(--jd-accent); font-size:20px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-disclosure[open] > summary::before { content:'−'; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-disclosure[open] > :not(summary) { margin-top:16px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition :is(.jd-option,.jd-record,.jd-evidence-list,.jd-evidence-list article) { display:grid; gap:12px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-evidence-list article { padding-top:16px; border-top:1px solid var(--jd-border); }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-evidence-list article span { color:var(--jd-muted); font-size:12px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-actions { display:flex; flex-wrap:wrap; gap:12px; justify-content:flex-end; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-preview-effects { margin:0; padding-left:22px; display:grid; gap:6px; }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-footer { display:flex; align-items:center; gap:12px; color:var(--jd-muted); }
+.game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-footer span { flex:1; }
+@media (max-width:900px) {
+  .game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-layout { grid-template-columns:minmax(0,1fr); gap:16px; }
+  .game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-desktop-picker { display:none; }
+  .game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-mobile-picker { display:grid; }
+}
+@media (max-width:600px) {
+  .game-shell.design-v2 .deck-content .justice-command-desk.command-edition { gap:16px; }
+  .game-shell.design-v2 .deck-content .justice-command-desk.command-edition :is(.jd-surface,.jd-review,.jd-disclosure) { padding:18px; }
+  .game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-heading { display:grid; gap:12px; }
+  .game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-workspaces { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-priority { display:grid; grid-template-columns:minmax(0,1fr); padding:18px; }
+  .game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-priority > svg { display:none; }
+  .game-shell.design-v2 .deck-content .justice-command-desk.command-edition :is(.jd-facts,.jd-metrics) { grid-template-columns:minmax(0,1fr); }
+  .game-shell.design-v2 .deck-content .justice-command-desk.command-edition .jd-actions { display:grid; grid-template-columns:minmax(0,1fr); }
+  .game-shell.design-v2 .deck-content .justice-command-desk.command-edition :is(.jd-actions button,.jd-primary) { width:100%; }
+}

@@ -1,0 +1,108 @@
+.equipment-lab.equipment-lab-v2 { --lab-border: var(--ui-border, #34424c); --lab-surface: var(--ui-surface, #18212b); --lab-bg: var(--ui-bg, #10161d); --lab-text: var(--ui-text, #edf0ec); --lab-muted: var(--ui-muted, #9dacb8); --lab-accent: var(--ui-accent, #c7a16c); display: grid; gap: 20px; color: var(--lab-text); background: var(--lab-bg); min-width: 0; max-width: 100%; font-size: 16px; }
+.equipment-lab.equipment-lab-v2 :is(p, li) { font-size: 16px; line-height: 1.65; }
+.equipment-lab.equipment-lab-v2 :is(span, strong, b, label, input, select, button, summary) { font-family: inherit; font-size: 14px; font-weight: 400; line-height: 1.6; color: inherit; }
+.equipment-lab.equipment-lab-v2 :is(small, em) { font-size: 12px; font-weight: 400; font-style: normal; line-height: 1.65; color: var(--lab-muted); }
+.equipment-lab.equipment-lab-v2 :is(h3, h4) { color: var(--lab-text); font-family: inherit; font-weight: 500; line-height: 1.45; }
+.equipment-lab.equipment-lab-v2 h3 { font-size: 24px; }
+.equipment-lab.equipment-lab-v2 h4 { font-size: 19px; }
+.equipment-lab.equipment-lab-v2 :is(button, input, select, summary) { min-height: 44px; height: auto; padding: 10px 14px; border-radius: 8px; box-sizing: border-box; }
+.equipment-lab.equipment-lab-v2 :is(button, input, select) { color: var(--lab-text); border: 1px solid var(--lab-border); background: var(--ui-raised, #202c38); max-width: 100%; }
+.equipment-lab.equipment-lab-v2 button { cursor: pointer; white-space: normal; }
+.equipment-lab.equipment-lab-v2 button:hover:not(:disabled) { border-color: var(--lab-accent); background: #293846; }
+.equipment-lab.equipment-lab-v2 button:disabled { opacity: .5; cursor: not-allowed; }
+.equipment-lab.equipment-lab-v2 :focus-visible { outline: 2px solid var(--lab-accent); outline-offset: 3px; }
+.equipment-lab.equipment-lab-v2 a { color: var(--lab-accent); font-size: 14px; text-underline-offset: 3px; }
+.equipment-lab.equipment-lab-v2 .equipment-workviews { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.equipment-lab.equipment-lab-v2 .equipment-workviews button[aria-pressed=true] { color: var(--lab-accent); border-color: var(--lab-accent); background: var(--lab-surface); }
+.equipment-lab.equipment-lab-v2 .equipment-target-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.equipment-lab.equipment-lab-v2 .equipment-target-picker label { display: grid; gap: 8px; min-width: 0; }
+.equipment-lab.equipment-lab-v2 .equipment-target-picker select { width: 100%; }
+.equipment-lab.equipment-lab-v2 :is(.equipment-order-review, .equipment-overview, .equipment-strategic-brief, .procurement-route-planner, .equipment-workflow, .prototype-workshop, .equipment-deployment) { padding: 24px; border: 1px solid var(--lab-border); border-radius: 8px; background: var(--lab-surface); min-width: 0; box-shadow: none; }
+.equipment-lab.equipment-lab-v2 .equipment-order-review { border-color: var(--lab-accent); }
+.equipment-lab.equipment-lab-v2 .equipment-order-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.equipment-lab.equipment-lab-v2 .equipment-primary { background: var(--lab-accent); color: var(--ui-ink, #1c2831); }
+.equipment-lab.equipment-lab-v2 .equipment-order-message { margin: 0; color: var(--lab-muted); }
+.equipment-lab.equipment-lab-v2 .equipment-overview-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.equipment-lab.equipment-lab-v2 .equipment-lab-heading { padding: 24px; align-items: flex-start; gap: 24px; background: var(--lab-surface); border: 1px solid var(--lab-border); border-radius: 8px; }
+.equipment-lab.equipment-lab-v2 .equipment-program-status { min-width: 0; gap: 12px; background: transparent; padding: 0; border: 0; }
+.equipment-lab.equipment-lab-v2 .equipment-strategic-brief { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.equipment-lab.equipment-lab-v2 :is(.equipment-capability-dossier, .equipment-stage-programs, .procurement-decision-brief, .prototype-preview) { background: var(--lab-bg); padding: 20px; border: 1px solid var(--lab-border); border-radius: 8px; }
+.equipment-lab.equipment-lab-v2 .equipment-stage-programs > div { display: block; }
+.equipment-lab.equipment-lab-v2 .equipment-stage-programs footer { padding: 16px 0 0; border-color: var(--lab-border); }
+.equipment-lab.equipment-lab-v2 .procurement-route-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.equipment-lab.equipment-lab-v2 .procurement-route-grid button { padding: 16px; gap: 8px; background: var(--lab-bg); }
+.equipment-lab.equipment-lab-v2 .procurement-route-grid button.active { border-color: var(--lab-accent); }
+.equipment-lab.equipment-lab-v2 .procurement-portfolio-strip { flex-wrap: wrap; gap: 16px; padding: 16px 0; }
+.equipment-lab.equipment-lab-v2 .procurement-outcome-chain { flex-wrap: wrap; gap: 12px; }
+.equipment-lab.equipment-lab-v2 .equipment-workflow ol { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.equipment-lab.equipment-lab-v2 .equipment-workflow li { background: var(--lab-bg); padding: 16px; border: 1px solid var(--lab-border); border-radius: 8px; }
+.equipment-lab.equipment-lab-v2 .equipment-tech-tree { display: block; overflow: visible; min-width: 0; }
+.equipment-lab.equipment-lab-v2 .equipment-era-column { width: auto; min-width: 0; padding: 0; background: none; border: 0; }
+.equipment-lab.equipment-lab-v2 .equipment-era-column > header { padding: 16px 0; }
+.equipment-lab.equipment-lab-v2 .equipment-node { width: auto; min-width: 0; padding: 24px; border: 1px solid var(--lab-border); border-radius: 8px; background: var(--lab-surface); }
+.equipment-lab.equipment-lab-v2 .equipment-node-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.equipment-lab.equipment-lab-v2 .equipment-node-stats span { padding: 12px; background: var(--lab-bg); border-color: var(--lab-border); }
+.equipment-lab.equipment-lab-v2 .equipment-era-legend { flex-wrap: wrap; gap: 12px; }
+.equipment-lab.equipment-lab-v2 .prototype-builder { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.equipment-lab.equipment-lab-v2 .prototype-inputs label { display: grid; gap: 8px; min-width: 0; }
+.equipment-lab.equipment-lab-v2 .prototype-inputs :is(select, input) { width: 100%; }
+.equipment-lab.equipment-lab-v2 .module-selector-grid { gap: 14px; }
+.equipment-lab.equipment-lab-v2 .prototype-roster { display: block; margin-top: 20px; }
+.equipment-lab.equipment-lab-v2 .prototype-roster article { padding: 20px; border: 1px solid var(--lab-border); background: var(--lab-bg); border-radius: 8px; }
+.equipment-lab.equipment-lab-v2 .equipment-stat { gap: 8px; }
+.equipment-lab.equipment-lab-v2 .equipment-stat > i { background: var(--lab-border); }
+.equipment-lab.equipment-lab-v2 .equipment-stat > i > b { background: var(--lab-accent); }
+.equipment-lab.equipment-lab-v2 .division-equipment-list { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.equipment-lab.equipment-lab-v2 .division-equipment-list label { min-width: 0; padding: 18px; background: var(--lab-bg); border-color: var(--lab-border); }
+.equipment-lab.equipment-lab-v2 .division-equipment-list select { max-width: 100%; width: 100%; }
+.equipment-lab.equipment-lab-v2 > div:last-child { display: grid; gap: 20px; min-width: 0; }
+.equipment-lab.equipment-lab-v2 :is(section, article, header, footer, div, label, details) { min-width: 0; box-sizing: border-box; }
+.equipment-lab.equipment-lab-v2 :is(p, span, strong, small, em, a, summary) { overflow-wrap: anywhere; white-space: normal; }
+.equipment-lab.equipment-lab-v2 :is(.equipment-procurement-details, .equipment-workflow-guide) { border: 1px solid var(--lab-border); border-radius: 8px; background: var(--lab-surface); }
+.equipment-lab.equipment-lab-v2 :is(.equipment-procurement-details, .equipment-workflow-guide) > summary { cursor: pointer; padding: 16px 20px; }
+.equipment-lab.equipment-lab-v2 :is(.equipment-capability-dossier, .equipment-stage-programs) :is(header, footer, aside) { flex-wrap: wrap; background: none; }
+.equipment-lab.equipment-lab-v2 .equipment-capability-dossier > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.equipment-lab.equipment-lab-v2 .equipment-stage-programs button { width: 100%; grid-template-columns: 28px minmax(0, 1fr); }
+.equipment-lab.equipment-lab-v2 .equipment-stage-programs button > em { grid-column: 2; }
+.equipment-lab.equipment-lab-v2 .procurement-portfolio-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); border-color: var(--lab-border); }
+.equipment-lab.equipment-lab-v2 .procurement-portfolio-strip > span { flex-direction: column; align-items: flex-start; }
+.equipment-lab.equipment-lab-v2 .procurement-decision-brief { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.equipment-lab.equipment-lab-v2 :is(.procurement-route-planner, .procurement-outcome-chain, .procurement-forecast, .equipment-workflow, .prototype-preview) > header { flex-wrap: wrap; gap: 12px; }
+.equipment-lab.equipment-lab-v2 .procurement-outcome-chain > header span { overflow: visible; }
+.equipment-lab.equipment-lab-v2 .procurement-outcome-chain > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.equipment-lab.equipment-lab-v2 .procurement-forecast > div { grid-template-columns: 34px repeat(3, minmax(0, 1fr)); gap: 12px; padding: 14px; }
+.equipment-lab.equipment-lab-v2 .procurement-forecast > div > strong { grid-column: 2 / -1; justify-self: start; }
+.equipment-lab.equipment-lab-v2 .procurement-forecast > div > em { grid-column: 1 / -1; }
+.equipment-lab.equipment-lab-v2 :is(.equipment-saved-prototype-picker, .equipment-division-picker) { display: grid; gap: 8px; margin-bottom: 16px; }
+.equipment-lab.equipment-lab-v2 :is(.equipment-saved-prototype-picker, .equipment-division-picker) select { width: 100%; }
+.equipment-lab.equipment-lab-v2 .weapon-readiness-board { margin: 0; border-radius: 8px; background: var(--lab-surface); border-color: var(--lab-border); box-shadow: none; overflow: visible; }
+.equipment-lab.equipment-lab-v2 .weapon-readiness-heading { background: none; flex-wrap: wrap; padding: 20px; }
+.equipment-lab.equipment-lab-v2 .weapon-readiness-verdict { min-width: 0; max-width: 100%; grid-template-columns: 28px minmax(0, 1fr); }
+.equipment-lab.equipment-lab-v2 .weapon-readiness-verdict em { grid-column: 1 / -1; }
+.equipment-lab.equipment-lab-v2 .weapon-category-planner { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 16px; }
+.equipment-lab.equipment-lab-v2 .weapon-category-planner > button { border: 1px solid var(--lab-border); background: var(--lab-bg); padding: 14px; }
+.equipment-lab.equipment-lab-v2 .weapon-category-planner > button.active { border-color: var(--lab-accent); box-shadow: none; }
+.equipment-lab.equipment-lab-v2 :is(.weapon-category-planner strong, .weapon-readiness-kpis strong, .weapon-depth-chart article strong) { overflow: visible; white-space: normal; }
+.equipment-lab.equipment-lab-v2 .weapon-readiness-detail { grid-template-columns: minmax(0, 1fr); }
+.equipment-lab.equipment-lab-v2 :is(.weapon-depth-chart, .weapon-metric-panel, .weapon-capability-families, .weapon-work-orders, .weapon-policy-row > section) { padding: 20px; background: none; border-color: var(--lab-border); }
+.equipment-lab.equipment-lab-v2 :is(.weapon-depth-chart > div, .weapon-capability-families > div, .weapon-work-order-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.equipment-lab.equipment-lab-v2 :is(.weapon-depth-chart > header, .weapon-metric-panel > header, .weapon-work-orders > header) { flex-wrap: wrap; gap: 12px; }
+.equipment-lab.equipment-lab-v2 .weapon-capability-families > header { grid-template-columns: 22px minmax(0, 1fr); }
+.equipment-lab.equipment-lab-v2 .weapon-capability-families > header p { grid-column: 1 / -1; }
+.equipment-lab.equipment-lab-v2 .weapon-policy-row { grid-template-columns: minmax(0, 1fr); }
+.equipment-lab.equipment-lab-v2 .weapon-work-order-grid i { font: inherit; font-size: 12px; color: var(--lab-muted); }
+.game-shell:is(.design-v2, .readable-ui) .deck-content .equipment-lab.equipment-lab-v2 :is(p, li) { font-size: 16px; line-height: 1.65; color: var(--lab-text); }
+.game-shell:is(.design-v2, .readable-ui) .deck-content .equipment-lab.equipment-lab-v2 :is(button, input, select, label, legend, summary, span, strong, b, a) { font-size: 14px; font-weight: 400; line-height: 1.6; }
+.game-shell:is(.design-v2, .readable-ui) .deck-content .equipment-lab.equipment-lab-v2 :is(small, em, .eyebrow) { font-size: 12px; line-height: 1.65; font-weight: 400; color: var(--lab-muted); }
+.game-shell:is(.design-v2, .readable-ui) .deck-content .equipment-lab.equipment-lab-v2 :is(button, input, select, summary) { min-height: 44px; }
+.game-shell:is(.design-v2, .readable-ui) .deck-content .equipment-lab.equipment-lab-v2 h3 { font-size: 24px; font-weight: 500; }
+.game-shell:is(.design-v2, .readable-ui) .deck-content .equipment-lab.equipment-lab-v2 h4 { font-size: 19px; font-weight: 500; }
+@media (max-width: 850px) { .equipment-lab.equipment-lab-v2 .equipment-lab-heading { flex-direction: column; } .equipment-lab.equipment-lab-v2 :is(.prototype-builder, .equipment-target-picker) { grid-template-columns: 1fr; } .equipment-lab.equipment-lab-v2 .equipment-workflow ol { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .equipment-lab.equipment-lab-v2 .equipment-workviews { grid-template-columns: repeat(2, minmax(0, 1fr)); } .equipment-lab.equipment-lab-v2 :is(.equipment-node, .equipment-order-review, .equipment-overview, .equipment-strategic-brief, .procurement-route-planner, .equipment-workflow, .prototype-workshop, .equipment-deployment) { padding: 18px; } .equipment-lab.equipment-lab-v2 :is(.procurement-route-grid, .equipment-workflow ol, .module-selector-grid) { grid-template-columns: 1fr; } .equipment-lab.equipment-lab-v2 .equipment-node-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .equipment-lab.equipment-lab-v2 :is(.equipment-deployment-summary, .prototype-heading) { flex-wrap: wrap; } }
+@media (max-width: 600px) {
+  .equipment-lab.equipment-lab-v2 :is(.weapon-category-planner, .weapon-depth-chart > div, .weapon-capability-families > div, .weapon-work-order-grid, .weapon-metric-panel > div, .weapon-policy-row > section > div, .equipment-glossary > div, .procurement-outcome-chain ul) { grid-template-columns: minmax(0, 1fr); }
+  .equipment-lab.equipment-lab-v2 :is(.procurement-portfolio-strip, .weapon-readiness-kpis) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .equipment-lab.equipment-lab-v2 :is(.equipment-capability-dossier, .equipment-stage-programs, .procurement-decision-brief, .prototype-preview) { padding: 14px; }
+  .equipment-lab.equipment-lab-v2 .division-equipment-list label { display: grid; gap: 12px; }
+  .equipment-lab.equipment-lab-v2 .active-weapon-orders > span { display: flex; flex-wrap: wrap; }
+}

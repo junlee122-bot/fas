@@ -1,0 +1,10 @@
+.field-workspace-switch { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 18px; padding:7px; background:#111d19; border:1px solid #41594d; border-radius:8px; }
+.field-workspace-switch button { flex:1 1 190px; display:grid; gap:4px; text-align:left; min-width:0; min-height:60px; padding:11px 15px; background:#1c2b23; border:1px solid transparent; border-radius:5px; color:#d4dfd3; cursor:pointer; }
+.field-workspace-switch button[aria-pressed=true] { background:#42482c; border-color:#b8a165; color:#f0dfae; }
+.field-workspace-switch button:focus-visible { outline:3px solid #ead090; outline-offset:2px; }
+.game-shell.readable-ui .deck-content .field-workspace-switch strong { font-size:15px; line-height:1.5; }
+.game-shell.readable-ui .deck-content .field-workspace-switch span { font-size:12px; line-height:1.5; }
+.active-operation-dock footer button { min-height:38px; width:100%; border:1px solid #928052; padding:7px; background:#303e2e; color:#eee0b8; cursor:pointer; font-size:12px; }
+.regional-industry-notice { padding:12px 15px; border:1px solid #8b7647; background:#2c3221; color:#ddd3a6; border-radius:6px; font-size:14px; line-height:1.7; }
+.game-shell.readable-ui .deck-content .regional-industry-notice { font-size:14px; line-height:1.7; }
+.game-shell.readable-ui .deck-content .regional-industry-notice button { min-height:44px; font-size:14px; padding:8px 12px; color:#f1dfab; background:#37462f; border:1px solid #9c894d; border-radius:5px; cursor:pointer; }

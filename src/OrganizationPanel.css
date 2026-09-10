@@ -1,0 +1,301 @@
+/* Scoped Command Edition workspace; shell specificity keeps legacy tiny type out. */
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) {
+  --org-bg: var(--ui-bg, #121820);
+  --org-surface: var(--ui-surface, #18212b);
+  --org-raised: var(--ui-raised, #202c38);
+  --org-text: var(--ui-text, #edf0ec);
+  --org-muted: var(--ui-muted, #9dacb8);
+  --org-accent: var(--ui-accent, #c7a16c);
+  --org-border: var(--ui-border, #34424c);
+  display: flex; flex-direction: column; gap: 16px; min-width: 0; width: 100%;
+  color: var(--org-text); background: var(--org-bg); font-size: 16px; line-height: 1.6;
+}
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) * { box-sizing: border-box; min-width: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :where(p, span, em, dt, dd, label) { font-size: 16px; line-height: 1.6; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :where(strong, b, h4) { font-size: 16px; line-height: 1.4; color: var(--org-text); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :where(small, em) { font-size: 12px; line-height: 1.5; color: var(--org-muted); font-style: normal; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) p { margin: 8px 0; color: var(--org-muted); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :where(button, input, select, summary, a) { min-height: 44px; font: inherit; font-size: 14px; line-height: 1.5; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :where(button, input, select) { color: var(--org-text); border: 1px solid var(--org-border); border-radius: 6px; background: var(--org-raised); padding: 10px 12px; box-shadow: none; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) button { cursor: pointer; gap: 8px; white-space: normal; word-break: keep-all; overflow-wrap: anywhere; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) button :where(span, strong, b) { font-size: 14px; line-height: 1.5; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) button small { font-size: 12px; white-space: normal; overflow: visible; text-overflow: clip; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) button:hover:not(:disabled) { border-color: var(--org-accent); background: var(--org-surface); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) button:is(.active, .selected) { border-color: var(--org-accent); color: var(--org-accent); background: var(--org-raised); box-shadow: none; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) button:disabled { opacity: .55; cursor: not-allowed; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :where(button, summary, input, select, a):focus-visible { outline: 2px solid var(--org-accent); outline-offset: 3px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) svg { flex-shrink: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :where(section, article, aside, nav, header, footer, details) { background-image: none; box-shadow: none; border-color: var(--org-border); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :where(strong, p, h3, h4, small, em) { word-break: keep-all; overflow-wrap: anywhere; white-space: normal; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) a { display: inline-flex; align-items: center; gap: 8px; color: var(--org-accent); text-decoration: underline; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .management-card { padding: 20px; border: 1px solid var(--org-border); border-radius: 10px; background: var(--org-surface); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-card { display: flex; flex-direction: column; gap: 16px; width: 100%; min-height: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .management-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; min-height: 0; margin: 0; padding: 0 0 16px; border-bottom: 1px solid var(--org-border); background: none; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .management-heading h3 { margin: 4px 0; font-size: 24px; line-height: 1.3; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .management-heading > div > span { color: var(--org-accent); font-size: 12px; letter-spacing: .1em; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .management-heading p { max-width: 680px; margin: 4px 0 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-career-link { display: flex; align-items: center; flex-shrink: 0; text-align: left; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-career-link span { display: grid; gap: 3px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-career-link .org-career-status { display: inline; font-size: inherit; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-career-link.has-offers { border-color: var(--org-accent); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .organization-workspace-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 0; border: 0; background: none; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .organization-workspace-switch > button { padding: 14px 16px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; text-align: left; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .organization-workspace-switch > button span { display: grid; gap: 4px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-squad-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--org-border); border-radius: 8px; background: var(--org-bg); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-squad-summary > span { display: grid; gap: 5px; padding: 12px 16px; border-right: 1px solid var(--org-border); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-squad-summary > span:last-child { border-right: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-squad-summary strong { font-size: 20px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-disclosure { margin: 0; border: 1px solid var(--org-border); border-radius: 8px; background: var(--org-bg); overflow: hidden; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-disclosure > summary { display: flex; align-items: center; gap: 10px; padding: 12px 16px; color: var(--org-text); list-style: none; cursor: pointer; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-disclosure > summary > span { flex: 1; font-size: 14px; font-weight: 600; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-disclosure > summary small { display: block; margin-top: 3px; font-weight: 400; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) summary::-webkit-details-marker { display: none; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) details[open] > summary > svg:last-child { transform: rotate(90deg); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-disclosure-body { padding: 16px; border-top: 1px solid var(--org-border); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-management-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; border: 0; background: none; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-management-tabs button { display: flex; align-items: center; justify-content: center; flex: 1 1 auto; padding: 10px 14px; border: 1px solid var(--org-border); border-radius: 6px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-management-tabs em { padding: 1px 6px; border-radius: 4px; background: var(--org-bg); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-squad-layout { display: grid; grid-template-columns: minmax(250px, .85fr) minmax(0, 1.65fr); gap: 18px; align-items: start; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-roster { display: flex; flex-direction: column; border: 1px solid var(--org-border); border-radius: 8px; overflow: hidden; background: var(--org-bg); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-roster > header { display: grid; gap: 4px; padding: 14px; border-bottom: 1px solid var(--org-border); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-roster > header > span { display: flex; align-items: center; gap: 8px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-roster-list { display: grid; gap: 4px; padding: 8px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-mobile-staff-picker { display: none; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) button.org-roster-person { display: grid; grid-template-columns: 38px minmax(0, 1fr) 34px; align-items: center; gap: 10px; padding: 12px 10px; text-align: left; background: var(--org-bg); border-color: transparent; border-radius: 6px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) button.org-roster-person.selected { border-color: var(--org-accent); background: var(--org-raised); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-monogram { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid var(--org-border); border-radius: 8px; background: var(--org-surface); color: var(--org-accent); font: 600 14px/1.2 var(--font-ui, sans-serif); font-style: normal; flex-shrink: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-roster-person-copy { display: grid; gap: 4px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-roster-person-copy strong { font-size: 16px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-roster-ability { display: grid; gap: 3px; justify-items: end; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-roster-ability b { font-size: 18px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-market-link { display: flex; align-items: center; justify-content: center; margin: 4px 8px 8px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-detail { display: flex; flex-direction: column; gap: 18px; padding: 20px; border: 1px solid var(--org-border); border-radius: 8px; background: var(--org-bg); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-heading { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--org-border); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-monogram.large { width: 64px; height: 64px; font-size: 22px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-heading h4 { margin: 4px 0; font-size: 26px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-heading p { margin: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-access-tag { grid-column: 2; display: inline-flex; align-items: center; justify-self: start; gap: 6px; padding: 3px 8px; border: 1px solid var(--org-border); border-radius: 4px; color: var(--org-muted); font-size: 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-access-tag.managed { color: var(--org-accent); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-ratings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-ratings > span { display: grid; align-content: start; gap: 7px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-ratings strong { font-size: 18px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-meter { display: block; width: 100%; height: 4px; overflow: hidden; background: var(--org-border); border: 0; border-radius: 2px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-meter > i { display: block; height: 100%; background: #81a9ba; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-meter > i.gold { background: var(--org-accent); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-meter > i.red { background: #d18a7f; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-commitment { padding: 14px; border-left: 3px solid var(--org-accent); background: var(--org-surface); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-commitment > span { display: flex; gap: 8px; align-items: center; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-commitment.broken { border-color: #d18a7f; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-actions button { display: flex; align-items: center; justify-content: flex-start; text-align: left; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-actions .org-pledge-link { grid-column: 1 / -1; border-color: var(--org-accent); color: var(--org-accent); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-authority-notice { display: flex; gap: 8px; align-items: flex-start; color: #d9b49d; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-read-only-note { margin: 0; font-size: 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-empty { display: grid; justify-items: start; gap: 8px; padding: 20px; }
+
+/* Secondary planning, dynamics and operational controls remain available on demand. */
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-management-hero, .replacement-seat-card, .staff-weekly-briefing, .staff-responsibility-board, .staff-dynamics-board) { display: block; margin: 0; padding: 16px; border: 1px solid var(--org-border); border-radius: 6px; background: var(--org-surface); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-command-identity, .staff-authority-summary, .staff-weekly-briefing > header, .staff-responsibility-board > header, .staff-dynamics-board > header) { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 0; margin: 0 0 12px; height: auto; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-command-identity > span:last-child, .staff-authority-summary > span) { display: grid; gap: 4px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .replacement-seat-card { margin-top: 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-briefing-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; border: 0; margin: 12px 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-briefing-kpis > span { padding: 12px; border: 1px solid var(--org-border); background: var(--org-bg); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-recruitment-priorities, .recruitment-objectives > div) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-recruitment-priorities button, .recruitment-objectives button) { display: flex; align-items: center; gap: 10px; padding: 12px; text-align: left; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-recruitment-priorities button > span, .recruitment-objectives button > span) { display: grid; gap: 4px; flex: 1; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-planner-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 1fr); gap: 16px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-seat-board, .staff-assignment-panel) { padding: 14px; border: 1px solid var(--org-border); border-radius: 8px; background: var(--org-bg); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-seat-board > header, .staff-assignment-panel > header) { display: grid; gap: 8px; padding: 0 0 12px; height: auto; background: none; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-seat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-seat-card { display: flex; flex-direction: column; align-items: stretch; gap: 9px; padding: 12px; min-height: 0; text-align: left; border: 1px solid var(--org-border); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-seat-card-top, .staff-seat-person, .staff-seat-fit) { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-seat-person > span, .staff-seat-planning, .staff-current-office) { display: grid; gap: 4px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-option { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--org-border); background: none; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-option > button { grid-column: 2 / -1; justify-content: center; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-option-copy, .staff-option-score) { display: grid; gap: 3px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-external-depth button { display: flex; width: 100%; align-items: center; gap: 10px; text-align: left; margin-top: 8px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-responsibility-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-responsibility-grid > article { display: grid; gap: 8px; padding: 16px; background: var(--org-bg); border: 1px solid var(--org-border); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-social-dynamics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-influence-blocs, .staff-relationship-watch) { padding: 12px; background: var(--org-bg); border: 1px solid var(--org-border); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-influence-blocs article, .staff-relationship-watch article) { padding: 12px 0; height: auto; background: none; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-dynamics-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-dynamics-list > article { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 16px; background: var(--org-bg); border: 1px solid var(--org-border); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-dynamic-person, .staff-contract-cell, .staff-promise-cell, .staff-dynamics-list > article > button) { grid-column: 1 / -1; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-operations-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 16px; border-top: 1px solid var(--org-border); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-operations-grid > .management-card { display: block; padding: 16px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-operations-grid .management-heading { flex-wrap: wrap; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.procurement-grid, .policy-domain-grid) { grid-template-columns: 1fr; gap: 10px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .formation-management-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) 80px; gap: 10px; padding: 12px 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .formation-management-row > button { grid-column: 2 / -1; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.procurement-grid button, .supply-policy-list button, .policy-domain button) { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; width: 100%; min-height: 44px; text-align: left; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.procurement-grid button > span, .supply-policy-list button > span, .policy-domain button > span) { flex: 1 1 160px; display: grid; gap: 4px; }
+
+/* The market is a searchable roster. Only one dossier is expanded at a time. */
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .recruitment-hub { display: flex; flex-direction: column; gap: 16px; padding: 0; margin: 0; border: 0; background: none; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.recruitment-title, .talent-coverage-audit, .recruitment-objectives, .recruitment-guide) { margin: 0 0 16px; padding: 12px; background: var(--org-surface); border: 1px solid var(--org-border); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .recruitment-title { display: grid; gap: 8px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-coverage-audit { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-coverage-audit > span { display: grid; gap: 4px; padding: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .recruitment-guide ol { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .recruitment-guide li { border: 0; padding: 8px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-market-filterbar { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: end; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) 180px; gap: 12px; padding: 0; margin: 0; border: 0; background: none; }
+/* Legacy 30px toolbar labels cannot contain the new caption and 44px select. */
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-toolbar > label { height: auto; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-toolbar .org-talent-search { display: flex; align-items: center; gap: 10px; padding: 0 12px; min-height: 48px; background: var(--org-bg); border: 1px solid var(--org-border); border-radius: 6px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-talent-search { align-self: end; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-toolbar input { flex: 1; width: 100%; padding: 10px 0; border: 0; background: none; font-size: 16px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-discipline-select { display: grid; gap: 4px; border: 0; padding: 0; background: none; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.org-discipline-select > span, .talent-scope-list label > span, .talent-sort > span) { font-size: 12px; color: var(--org-muted); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-market-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 0; margin: 0; background: none; border: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.talent-scope-list, .talent-sort) { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: none; border: 0; padding: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-scope-list label { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-market-result-count { margin: 0; font-size: 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-market-results { display: grid; gap: 16px; align-items: start; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-market-results.has-report { grid-template-columns: minmax(280px, 1fr) minmax(0, 1.15fr); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .candidate-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 0; align-items: start; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .has-report .candidate-grid { grid-column: 1; grid-row: 1; grid-template-columns: 1fr; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .candidate-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: 16px; margin: 0; background: var(--org-bg); border: 1px solid var(--org-border); border-radius: 8px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .candidate-card.selected { border-color: var(--org-accent); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .candidate-card > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; grid-column: 1 / -1; margin: 0; padding: 0; border: 0; background: none; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .candidate-card > header > span { font-size: 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-candidate-identity { display: flex; align-items: center; gap: 10px; grid-column: 1 / -1; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-candidate-identity > span { display: grid; gap: 5px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-candidate-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-column: 1 / -1; gap: 10px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-candidate-comparison > span { display: grid; gap: 4px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .candidate-card .open-candidate-report { display: flex; width: 100%; align-items: center; justify-content: center; grid-column: 1 / -1; margin: 0; padding: 10px 12px; color: var(--org-accent); border: 1px solid var(--org-border); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-candidate-more { grid-column: 1 / -1; border-top: 1px solid var(--org-border); background: none; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-candidate-more > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0 0; font-size: 12px; color: var(--org-muted); list-style: none; cursor: pointer; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-candidate-more-body { display: grid; gap: 12px; padding-top: 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.candidate-attributes, .market-pressure-grid, .candidate-report-summary) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 0; border: 0; background: none; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.candidate-attributes > span, .candidate-report-summary > span) { display: grid; gap: 5px; padding: 10px; border: 1px solid var(--org-border); background: var(--org-bg); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.historical-verification, .candidate-verification, .candidate-origin, .candidate-seat-fit, .appointment-effect, .recruitment-forecast, .candidate-report-next) { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 10px; border: 1px solid var(--org-border); background: var(--org-surface); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.candidate-actions, .candidate-report-actions) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 0; margin: 0; border: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.candidate-actions button, .candidate-report-actions button) { display: flex; align-items: center; justify-content: center; padding: 10px; text-align: center; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .candidate-report { display: flex; flex-direction: column; gap: 16px; grid-column: 2; grid-row: 1 / 3; position: static; padding: 18px; margin: 0; background: var(--org-raised); border: 1px solid var(--org-accent); border-radius: 8px; scroll-margin-top: 24px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .candidate-report > header { display: flex; align-items: flex-start; gap: 12px; margin: 0; padding: 0 0 12px; border-bottom: 1px solid var(--org-border); background: none; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .candidate-report > header > span { flex: 1; display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 5px 8px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .candidate-report > header strong { grid-column: 1 / -1; font-size: 22px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .candidate-report > header button { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .candidate-report-findings { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 0; border: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .candidate-report-findings article { padding: 12px; background: var(--org-bg); border: 1px solid var(--org-border); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px 0 0; border: 0; background: none; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-pagination > span { display: grid; gap: 4px; text-align: center; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-empty { padding: 20px; grid-column: 1 / -1; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+/* CE6: investigation work is separate from interest tracking and appointment authority. */
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-desk { border: 1px solid var(--org-border); border-radius: 10px; padding: 16px; background: var(--org-surface); min-width: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-desk > header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; height: auto; background: none; padding: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-desk > header > span { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-desk strong { font-size: 16px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.org-scouting-desk p, .org-report-scouting p, .org-candidate-score-note) { margin: 10px 0; font-size: 14px; line-height: 1.65; color: var(--org-muted); overflow-wrap: anywhere; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-routes { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-routes span { font-size: 13px; color: var(--org-muted); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-jobs { display: grid; gap: 10px; margin-top: 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-jobs article { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 10px; align-items: center; border-top: 1px solid var(--org-border); padding-top: 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-jobs article > span { display: grid; gap: 7px; min-width: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-jobs small { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-report-scouting { border: 1px solid var(--org-border); border-radius: 8px; padding: 12px; background: var(--org-bg); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-report-scouting ul { margin: 8px 0 0; padding-left: 20px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-report-scouting li { color: var(--org-muted); font-size: 13px; line-height: 1.7; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-report-action-reasons { margin: 12px 0 0; padding-left: 20px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-report-action-reasons li { color: #e5c99c; font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.org-scouting-desk button, .candidate-action-review button) { min-height: 44px; white-space: normal; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-negotiation-workspace { min-width: 0; scroll-margin-top: 16px; }
+@media (max-width: 760px) {
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-jobs article { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-jobs article > span { grid-column: 1 / -1; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-routes button { flex: 1 1 100%; }
+}
+
+/* CE8: costs and inability reasons remain readable without hovering over a disabled button. */
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.org-staff-action-notice, .org-staff-action-reasons, .org-assignment-reason) { color: #e7d2ad; font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-staff-action-notice { margin: 0; padding: 12px 14px; border: 1px solid #79674c; border-radius: 8px; background: #29271f; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-staff-action-reasons { display: grid; gap: 8px; padding: 12px 12px 12px 30px; margin: 0; border: 1px solid var(--org-border); border-radius: 8px; background: var(--org-bg); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-staff-action-reasons strong { color: var(--org-text, #ecf1f5); margin-right: 6px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-assignment-reason { grid-column: 2 / -1; margin: 0; padding-top: 5px; font-size: 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-dynamics-renewal { display: grid; gap: 8px; min-width: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-dynamics-renewal small { color: var(--org-muted); font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-dynamics-renewal button { min-height: 44px; white-space: normal; }
+@media (max-width: 640px) {
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-option { grid-template-columns: 24px minmax(0,1fr); }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-option > .staff-option-score { grid-column: 2; align-items: start; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-option > button { grid-column: 1 / -1; min-height: 44px; white-space: normal; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-assignment-reason { grid-column: 1 / -1; }
+}
+
+/* Existing paid meetings retain their authoritative callbacks. */
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-backdrop { background: #090d12c9; padding: 20px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-modal { width: min(740px, 100%); max-height: calc(100dvh - 40px); overflow-y: auto; background: var(--org-surface); border: 1px solid var(--org-border); border-radius: 10px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-modal > header { padding: 16px; height: auto; background: var(--org-bg); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-modal > header strong { font-size: 22px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-modal > header button { width: 44px; height: 44px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-status > span { padding: 14px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-options { padding: 16px; gap: 10px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-options > button { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 14px; text-align: left; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-options > button > span { display: grid; gap: 6px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-modal > footer { padding: 16px; background: var(--org-bg); gap: 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-negotiation-backdrop { background: #090d12c9; padding: 20px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-negotiation-modal { width: min(960px, 100%); max-height: calc(100dvh - 40px); border: 1px solid var(--org-border); border-radius: 10px; background: var(--org-surface); grid-template-columns: minmax(0, 1fr) 320px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-negotiation-modal > header { padding: 16px; background: var(--org-bg); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-negotiation-modal > header strong { font-size: 22px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-negotiation-modal > header button { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-negotiation-summary > span, .staff-offer-editor > section, .staff-offer-assessment) { padding: 14px; background: var(--org-bg); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-offer-editor section > header { flex-wrap: wrap; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-offer-options button { display: flex; flex-direction: column; align-items: flex-start; padding: 12px; text-align: left; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-negotiation-modal > footer { padding: 16px; background: var(--org-bg); flex-wrap: wrap; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-negotiation-modal > footer button.primary { background: var(--org-accent); border-color: var(--org-accent); color: var(--ui-ink, #18212b); }
+
+@media (max-width: 1100px) {
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-squad-layout { grid-template-columns: minmax(220px, .8fr) minmax(0, 1.2fr); }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-ratings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-planner-layout, .org-operations-grid, .staff-social-dynamics, .staff-dynamics-list, .org-market-results.has-report) { grid-template-columns: 1fr; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-market-filterbar { grid-template-columns: 1fr; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .candidate-report { grid-column: 1; grid-row: 1; position: static; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .has-report .candidate-grid { grid-row: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .management-card { padding: 14px; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-card { gap: 12px; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-workspace-heading { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 8px; padding-bottom: 10px; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-workspace-heading > div > span,
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-workspace-heading p { display: none; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-workspace-heading h3 { margin: 0; font-size: 20px; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-career-link { width: auto; min-height: 44px; padding: 8px; gap: 6px; margin-left: auto; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-career-link > span { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-career-link .org-career-status { display: none; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-career-link .org-career-label { display: inline; white-space: nowrap; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-career-link small { white-space: nowrap; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-squad-layout { grid-template-columns: 1fr; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.org-roster-list, .org-roster > header, .org-roster > .org-market-link) { display: none; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-mobile-staff-picker { display: grid; gap: 8px; padding: 12px; width: 100%; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-mobile-staff-picker > span { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-mobile-staff-picker > select { display: block; width: 100%; max-width: 100%; min-width: 0; min-height: 44px; font-size: 14px; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-detail { padding: 16px; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.candidate-grid, .has-report .candidate-grid, .staff-responsibility-grid, .talent-toolbar) { grid-template-columns: 1fr; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-recruitment-priorities, .recruitment-objectives > div, .recruitment-guide ol, .talent-coverage-audit) { grid-template-columns: 1fr; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-squad-summary > span { padding: 8px; gap: 4px; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-squad-summary small { font-size: 12px; line-height: 1.35; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-squad-summary strong { font-size: 16px; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.org-disclosure > summary, .org-disclosure-body, .org-operations-grid) { padding: 12px; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.org-discipline-select, .talent-market-controls > div, .talent-sort, .talent-scope-list label) { width: 100%; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-scope-list > svg { display: none; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.org-discipline-select select, .talent-scope-list select, .talent-sort select) { flex: 1; max-width: 100%; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-negotiation-modal { grid-template-columns: 1fr; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-negotiation-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-offer-options.three { grid-template-columns: 1fr; }
+}
+@media (max-width: 460px) {
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .organization-workspace-switch { grid-template-columns: 1fr; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-management-tabs button { flex-basis: calc(50% - 6px); padding: 10px 6px; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-seat-grid, .org-person-actions, .candidate-report-actions, .candidate-actions) { grid-template-columns: 1fr; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.staff-briefing-kpis, .staff-meeting-status) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-heading { grid-template-columns: 44px minmax(0, 1fr); gap: 10px; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-monogram.large { width: 44px; height: 44px; font-size: 16px; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-person-heading h4 { font-size: 22px; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-options > button { grid-template-columns: minmax(0, 1fr) auto; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-options > button > i { display: none; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-modal > footer { flex-direction: column; align-items: stretch; }
+}

@@ -1,0 +1,50 @@
+.living-world{margin:18px 0 26px;border:1px solid #465047;border-radius:12px;background:#18211f;color:#e5e9df;overflow:hidden;container-type:inline-size}
+.living-world *{box-sizing:border-box;min-width:0}
+.living-world-header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 24px;border-bottom:1px solid #38463e}
+.living-world-header span,.living-world-kicker{font:700 11px/1.6 sans-serif;letter-spacing:.1em;color:#cdbb84}
+.living-world-header h2{font-size:22px;margin:5px 0 0;line-height:1.4}
+.living-world-header p{display:flex;gap:7px;font-size:12px;color:#b8c6bc;line-height:1.7;margin:0}
+.living-world-header>button{flex-shrink:0;background:#293a30;color:#d8dece;border:1px solid #67765d;border-radius:5px;padding:8px 12px;font-size:12px;cursor:pointer}
+#living-world-body[hidden]{display:none}
+.living-world-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(300px,1fr)}
+.living-world-stage{padding:26px 22px 16px;background:radial-gradient(ellipse at 50% 40%,#3d4f42 0,transparent 66%),repeating-linear-gradient(45deg,transparent 0 40px,#9fb59908 40px 41px),#1d2d29;display:flex;flex-direction:column;justify-content:center;gap:22px}
+.living-world-sites{display:grid;grid-template-columns:1fr 1fr;gap:22px 24px;position:relative;isolation:isolate}
+.living-world-sites:before{content:'';position:absolute;left:10%;right:10%;top:50%;height:7px;border-top:1px dashed #b6ae7977;border-bottom:1px dashed #b6ae7955;transform:rotate(-12deg);z-index:-1}
+.living-world-site{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:171px;background:linear-gradient(160deg,#415346,#24372e)!important;border:1px solid #667668!important;border-radius:8px;padding:14px 10px!important;color:#edf2e7!important;text-align:center;transition:background .2s,border-color .2s,transform .2s;cursor:pointer}
+.living-world-site:hover{transform:translateY(-3px);border-color:#e3cf89!important}
+.living-world-site.selected{border-color:#e5cb79!important;box-shadow:0 0 0 2px #e5cb7930,0 8px 24px #0003;background:linear-gradient(160deg,#555d43,#2a3d32)!important}
+.living-world-building{position:relative;width:88px;height:61px;display:flex;align-items:center;justify-content:center;isolation:isolate}
+.living-world-building:before{content:'';position:absolute;inset:13px 2px -3px;background:#1a2922;transform:skewY(-8deg);border:1px solid #96a285;z-index:-1;box-shadow:7px 8px 0 #14201977}
+.living-world-building:after{content:'';position:absolute;left:4px;right:4px;top:3px;height:15px;background:#9d9c6c;transform:skewY(-8deg);z-index:-1}
+.living-world-building i{position:absolute;bottom:0;width:4px;height:5px;background:#e8c969;left:19px;box-shadow:9px 0 #e8c969,18px 0 #e8c969,27px 0 #e8c969,36px 0 #e8c969}
+.living-world-building i:not(:first-child){display:none}
+.living-world-building.industry:after{left:9px;right:55px;top:-5px;height:26px;background:#7f8779;box-shadow:16px 5px #636f65}
+.living-world-building.market:after{background:repeating-linear-gradient(90deg,#b29b63 0 13px,#667e65 13px 26px)}
+.living-world-building.health:after{background:#abb9a5}
+.living-world-building.council:after{background:#ada87d;clip-path:polygon(50% 0,100% 100%,0 100%);height:25px;top:-5px}
+.living-world-site-copy{display:grid;gap:3px;max-width:100%;overflow-wrap:anywhere}
+.living-world-site-copy small{color:#c0cbbd;font-size:11px}.living-world-site-copy strong{font-size:16px;line-height:1.5}.living-world-site-copy em{font-size:12px;color:#d5dabe;font-style:normal;line-height:1.5}
+.living-world-site.strained,.living-world-site.critical{border-color:#b58066!important}.living-world-site.strained em,.living-world-site.critical em{color:#ffd0ac}.living-world-site.critical .living-world-building i{background:#cb8667;box-shadow:none}
+.living-world-flow{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;font-size:12px;color:#dfd7b2}.living-world-flow svg{color:#c9b778}
+.living-world-disclaimer{font-size:11px;line-height:1.8;color:#b2c0b4;margin:0;text-align:center}
+.living-world-detail{padding:22px 24px;background:#1b2521;border-left:1px solid #465047;min-height:395px}
+.living-world-detail h3{font-size:18px;line-height:1.55;margin:5px 0 10px}.living-world-detail p{font-size:13px;line-height:1.85;color:#c1cdc2;margin:9px 0 14px;overflow-wrap:anywhere}
+.living-world-detail label{display:grid;gap:7px;color:#d5dece;font-size:12px}.living-world-detail select{width:100%;padding:9px 10px;background:#111c17;border:1px solid #5a6b5b;border-radius:5px;color:#eef0dc;font:inherit}
+.living-world button{font:inherit}.living-world-detail button,.living-world-settlement button{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 12px;background:#2f4034;border:1px solid #61745f;border-radius:5px;color:#e5ebdf;font-size:12px;line-height:1.6;cursor:pointer;white-space:normal}
+.living-world button:focus-visible,.living-world select:focus-visible{outline:3px solid #f7dd8c;outline-offset:3px}
+.living-world button:disabled{opacity:.5;cursor:not-allowed}.living-world-direction{display:flex;gap:7px;margin:9px 0}.living-world-direction button{flex:1}.living-world-direction button[aria-pressed=true]{background:#5a5233;border-color:#d8bf72;color:#ffefb9}
+.living-world-preview{display:grid;gap:5px;background:#121d18;border:1px solid #3c5040;border-radius:5px;padding:12px;margin-bottom:11px;font-size:12px;line-height:1.6}.living-world-preview strong{font-size:11px;color:#e1c684}.living-world-preview small{font-size:11px;color:#b5c4b7;line-height:1.7}
+.living-world-detail .living-world-primary{width:100%;background:#dbc17b;color:#232a1e;border-color:#e9d7a2;font-weight:700}
+.living-world-detail .living-world-receipt{color:#d4e2b6;background:#34482e;padding:10px;border-radius:5px;font-size:12px}
+.living-world-detail dl{margin:15px 0;display:grid;gap:8px}.living-world-detail dl div{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #40513e;font-size:13px}.living-world-detail dd{margin:0;color:#e2d49e;font-weight:700}
+.living-world-authority{padding:12px;background:#2c3327;border:1px solid #657151;border-radius:5px;font-size:13px}
+.living-world-council{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;align-items:center;margin:24px 0;color:#cdbf8d}.living-world-council svg{grid-row:span 2}.living-world-council strong{font-size:24px}.living-world-council span{font-size:12px}
+.living-world-settlement{border-top:1px solid #465047;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;background:#202d25}.living-world-settlement small{color:#ddca8f;font-size:11px}.living-world-settlement p{font-size:12px;line-height:1.8;color:#c4d0bf;margin:5px 0 0;overflow-wrap:anywhere}.living-world-settlement button{flex-shrink:0}
+@container(max-width:820px){.living-world-layout{grid-template-columns:1fr}.living-world-detail{border-left:0;border-top:1px solid #465047;min-height:0}.living-world-header{display:block}.living-world-header p{margin-top:8px}.living-world-header>button{margin-top:10px}.living-world-stage{padding:18px}.living-world-sites{gap:16px}.living-world-site{min-height:151px}.living-world-settlement{align-items:stretch;flex-direction:column;gap:10px}}
+@container(max-width:390px){.living-world-header,.living-world-detail,.living-world-settlement{padding:16px}.living-world-header h2{font-size:19px}.living-world-stage{padding:12px}.living-world-sites{gap:10px}.living-world-site{padding:12px 5px!important}.living-world-site-copy strong{font-size:14px}.living-world-site-copy em{font-size:11px}.living-world-flow{gap:4px;font-size:10px}}
+@media(prefers-reduced-motion:reduce){.living-world-site{transition:none}.living-world-site:hover{transform:none}}
+.game-shell.readable-ui .deck-content .living-world :where(p, span, dt, dd, label) { font-size: 14px; line-height: 1.7; }
+.game-shell.readable-ui .deck-content .living-world :where(small, em) { font-size: 12px; line-height: 1.7; }
+.game-shell.readable-ui .deck-content .living-world strong { font-size: 14px; line-height: 1.6; }
+.game-shell.readable-ui .deck-content .living-world button { min-height: 44px; font-size: 13px; }
+.game-shell.readable-ui .deck-content .living-world .living-world-council strong { font-size: 24px; }

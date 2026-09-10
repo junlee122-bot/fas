@@ -1,0 +1,71 @@
+.game-shell.design-v2 .recruitment-desk { min-width: 0; margin: 0 0 24px; color: #edf2f7; background: linear-gradient(130deg, #182637, #111c2a); border: 1px solid #536176; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 35px #040b1526; }
+.game-shell.design-v2 .recruitment-desk *, .game-shell.design-v2 .recruitment-desk *::before, .game-shell.design-v2 .recruitment-desk *::after { box-sizing: border-box; }
+.game-shell.design-v2 .recruitment-desk h2, .game-shell.design-v2 .recruitment-desk h3, .game-shell.design-v2 .recruitment-desk p { margin: 0; }
+.game-shell.design-v2 .recruitment-desk p, .game-shell.design-v2 .recruitment-desk li { font-size: 15px; line-height: 1.7; overflow-wrap: anywhere; }
+.game-shell.design-v2 .recruitment-desk small { color: #b7c6d7; font-size: 12px; line-height: 1.6; }
+.game-shell.design-v2 .recruitment-desk button, .game-shell.design-v2 .recruitment-desk select { min-height: 44px; min-width: 0; font: inherit; font-size: 14px; color: #e9f0f8; border: 1px solid #52647a; border-radius: 9px; background: #1c2d41; cursor: pointer; padding: 10px 13px; white-space: normal; overflow-wrap: anywhere; }
+.game-shell.design-v2 .recruitment-desk button:hover:not(:disabled) { background: #2c425d; border-color: #9eb9d7; }
+.game-shell.design-v2 .recruitment-desk button:disabled { opacity: .5; cursor: not-allowed; }
+.game-shell.design-v2 .recruitment-desk :focus-visible { outline: 3px solid #a8d5ff; outline-offset: 3px; }
+.game-shell.design-v2 .recruitment-desk .primary { background: #dcc185; border-color: #efd6a0; color: #172332; font-weight: 750; }
+.game-shell.design-v2 .recruitment-desk-header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 23px 26px; }
+.game-shell.design-v2 .recruitment-desk-header > svg { color: #e5c890; }
+.game-shell.design-v2 .recruitment-desk-header h2 { font-size: 23px; line-height: 1.4; margin: 5px 0; }
+.game-shell.design-v2 .recruitment-desk-header p { color: #c0cede; }
+.game-shell.design-v2 .recruitment-kicker { display: block; color: #ddc58e; font-size: 11px; font-weight: 700; letter-spacing: .08em; line-height: 1.7; }
+.game-shell.design-v2 .recruitment-close { display: grid; place-items: center; padding: 10px; }
+.game-shell.design-v2 .recruitment-steps { display: flex; gap: 14px; flex-wrap: wrap; margin: 0; padding: 15px 26px; list-style: none; border-block: 1px solid #34465d; background: #0c17248c; }
+.game-shell.design-v2 .recruitment-steps li { display: flex; align-items: center; gap: 8px; color: #abbcd0; font-size: 13px; }
+.game-shell.design-v2 .recruitment-steps li[aria-current] { color: #f0d79e; }
+.game-shell.design-v2 .recruitment-steps b { display: grid; width: 23px; height: 23px; place-items: center; border: 1px solid #73849b; border-radius: 50%; font-size: 11px; }
+.game-shell.design-v2 .recruitment-identity-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px 16px; align-items: center; padding: 20px 26px; background: #2434484d; }
+.game-shell.design-v2 .recruitment-identity-row span > * { display: block; overflow-wrap: anywhere; }
+.game-shell.design-v2 .recruitment-identity-row strong { font-size: 17px; margin-top: 4px; }
+.game-shell.design-v2 .recruitment-identity-row p { grid-column: 1 / -1; color: #bdccdd; }
+.game-shell.design-v2 .recruitment-editor-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(250px, 1fr); gap: 24px; padding: 24px 26px; }
+.game-shell.design-v2 .recruitment-editor { min-width: 0; }
+.game-shell.design-v2 .recruitment-editor h3, .game-shell.design-v2 .recruitment-review h3, .game-shell.design-v2 .recruitment-receipt h3 { font-size: 20px; line-height: 1.5; }
+.game-shell.design-v2 .recruitment-editor fieldset { min-width: 0; border: 0; padding: 0; margin: 24px 0; }
+.game-shell.design-v2 .recruitment-editor legend { padding: 0; margin-bottom: 10px; color: #d4dfeb; font-size: 14px; font-weight: 700; }
+.game-shell.design-v2 .recruitment-option-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.game-shell.design-v2 .recruitment-option-grid button { padding: 10px 8px; }
+.game-shell.design-v2 .recruitment-option-grid button > * { display: block; }
+.game-shell.design-v2 .recruitment-option-grid button[aria-pressed=true] { background: #514b37; border-color: #d7bd7f; color: #fff0c9; }
+.game-shell.design-v2 .recruitment-pay-editor { display: grid; gap: 15px; }
+.game-shell.design-v2 .recruitment-pay-editor > div > strong { display: block; margin-bottom: 8px; font-size: 13px; color: #bdccdd; }
+.game-shell.design-v2 .recruitment-promise { display: grid; gap: 10px; font-size: 14px; }
+.game-shell.design-v2 .recruitment-promise select { width: 100%; }
+.game-shell.design-v2 .recruitment-forecast { align-self: start; min-width: 0; padding: 20px; background: #0b1727; border: 1px solid #344b65; border-radius: 12px; }
+.game-shell.design-v2 .recruitment-forecast h3 { font-size: 43px; margin: 8px 0; font-variant-numeric: tabular-nums; }
+.game-shell.design-v2 .recruitment-forecast h3 small { font-size: 16px; }
+.game-shell.design-v2 .recruitment-forecast h3.ready { color: #a8dfca; }
+.game-shell.design-v2 .recruitment-forecast h3.risk { color: #f1b991; }
+.game-shell.design-v2 .recruitment-forecast > p { margin-top: 12px; color: #c2d0df; }
+.game-shell.design-v2 .recruitment-costs { display: grid; gap: 13px; margin: 22px 0; }
+.game-shell.design-v2 .recruitment-costs > div { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+.game-shell.design-v2 .recruitment-costs dt { display: flex; gap: 7px; font-size: 12px; line-height: 1.6; color: #c2d0df; }
+.game-shell.design-v2 .recruitment-costs dd { margin: 0; font-size: 14px; font-weight: 700; text-align: right; overflow-wrap: anywhere; }
+.game-shell.design-v2 .recruitment-forecast summary { cursor: pointer; min-height: 44px; padding: 12px 0; font-size: 14px; border-top: 1px solid #344b65; }
+.game-shell.design-v2 .recruitment-factors { margin: 0; }
+.game-shell.design-v2 .recruitment-factors > div { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 12px; }
+.game-shell.design-v2 .recruitment-factors dd { margin: 0; }
+.game-shell.design-v2 .recruitment-desk .recruitment-reserve-note { padding: 14px; border: 1px solid #4f6077; background: #243247; border-radius: 9px; color: #cbd7e6; font-size: 13px; }
+.game-shell.design-v2 .recruitment-review { padding: 24px 26px; }
+.game-shell.design-v2 .recruitment-review > header { display: flex; gap: 13px; align-items: center; margin-bottom: 16px; color: #e2c994; }
+.game-shell.design-v2 .recruitment-review-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+.game-shell.design-v2 .recruitment-review-grid article { min-width: 0; padding: 17px; background: #0e1b2d; border: 1px solid #475b76; border-radius: 10px; }
+.game-shell.design-v2 .recruitment-review-grid article strong { display: block; margin: 8px 0; font-size: 17px; overflow-wrap: anywhere; }
+.game-shell.design-v2 .recruitment-review-grid article p { font-size: 13px; color: #bacade; }
+.game-shell.design-v2 .recruitment-risk-note { display: flex; gap: 10px; align-items: start; padding: 14px; margin: 16px 0 !important; border: 1px solid #9c7153; border-radius: 9px; color: #f4c4a2; }
+.game-shell.design-v2 .recruitment-risk-note svg { flex: 0 0 auto; margin-top: 4px; }
+.game-shell.design-v2 .recruitment-message { padding: 15px 26px; font-size: 14px; line-height: 1.7; color: #d4e1ef; background: #21364d; overflow-wrap: anywhere; }
+.game-shell.design-v2 .recruitment-desk-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 20px 26px; border-top: 1px solid #40556e; }
+.game-shell.design-v2 .recruitment-desk-footer button, .game-shell.design-v2 .recruitment-receipt button { display: inline-flex; justify-content: center; align-items: center; gap: 10px; }
+.game-shell.design-v2 .recruitment-receipt { display: flex; gap: 17px; padding: 26px; }
+.game-shell.design-v2 .recruitment-receipt > svg { flex: 0 0 auto; color: #9fd9c3; margin-top: 4px; }
+.game-shell.design-v2 .recruitment-receipt > div { min-width: 0; }
+.game-shell.design-v2 .recruitment-receipt p { margin: 10px 0; }
+.game-shell.design-v2 .recruitment-receipt.failed > svg { color: #e3b28f; }
+@media(max-width: 1000px) { .game-shell.design-v2 .recruitment-editor-layout { grid-template-columns: 1fr; } .game-shell.design-v2 .recruitment-review-grid { grid-template-columns: 1fr; } }
+@media(max-width: 520px) { .game-shell.design-v2 .recruitment-desk { border-radius: 12px; } .game-shell.design-v2 .recruitment-desk-header { grid-template-columns: minmax(0, 1fr) auto; padding: 17px; gap: 8px; } .game-shell.design-v2 .recruitment-desk-header > svg { display: none; } .game-shell.design-v2 .recruitment-desk-header h2 { font-size: 20px; } .game-shell.design-v2 .recruitment-steps, .game-shell.design-v2 .recruitment-identity-row, .game-shell.design-v2 .recruitment-editor-layout, .game-shell.design-v2 .recruitment-review, .game-shell.design-v2 .recruitment-message, .game-shell.design-v2 .recruitment-desk-footer, .game-shell.design-v2 .recruitment-receipt { padding: 17px; } .game-shell.design-v2 .recruitment-steps { gap: 10px; } .game-shell.design-v2 .recruitment-steps li { font-size: 12px; } .game-shell.design-v2 .recruitment-option-grid button { font-size: 12px; padding-inline: 4px; } .game-shell.design-v2 .recruitment-option-grid small { font-size: 11px; } .game-shell.design-v2 .recruitment-desk-footer { flex-direction: column-reverse; } .game-shell.design-v2 .recruitment-desk-footer button { width: 100%; } .game-shell.design-v2 .recruitment-forecast { padding: 16px; } }
+@media(prefers-reduced-motion: reduce) { .game-shell.design-v2 .recruitment-desk * { scroll-behavior: auto; } }

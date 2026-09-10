@@ -1,0 +1,357 @@
+[
+  {
+    "nationId": "germany",
+    "stageId": "total-war",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 669,
+    "dominantPathRate": 1.4,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 31.6,
+    "averageCapabilityGain": 41.5,
+    "averageFinalCapability": 99.9,
+    "averageAutonomy": 82.9,
+    "averageInteroperability": 74.8,
+    "averageRelations": 63.7,
+    "averageTreasury": 207.6,
+    "averageFiscalStress": 1.3,
+    "averageEscalation": 50.4,
+    "averageSupplySecurity": 76.5,
+    "averageProliferation": 17.3,
+    "averageTreatyCompliance": 33.3,
+    "averageDecisionImpact": 20.2,
+    "sanctionsPerSession": 0.14,
+    "procurementFailureRate": 14.7,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "total-war-systems",
+        "uses": 2680
+      },
+      {
+        "id": "total-war-aircraft",
+        "uses": 2581
+      },
+      {
+        "id": "total-war-armor",
+        "uses": 2577
+      },
+      {
+        "id": "total-war-strategic",
+        "uses": 1036
+      },
+      {
+        "id": "total-war-logistics",
+        "uses": 876
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "strategic-embargo",
+        "uses": 700
+      },
+      {
+        "id": "combined-standards",
+        "uses": 690
+      },
+      {
+        "id": "scientific-mission",
+        "uses": 688
+      },
+      {
+        "id": "licensed-mass-production",
+        "uses": 667
+      },
+      {
+        "id": "emergency-aid",
+        "uses": 653
+      }
+    ]
+  },
+  {
+    "nationId": "germany",
+    "stageId": "reconstruction",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 659,
+    "dominantPathRate": 1,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 32.2,
+    "averageCapabilityGain": 44.2,
+    "averageFinalCapability": 99.7,
+    "averageAutonomy": 83,
+    "averageInteroperability": 73.6,
+    "averageRelations": 72,
+    "averageTreasury": 205.4,
+    "averageFiscalStress": 1.6,
+    "averageEscalation": 40.5,
+    "averageSupplySecurity": 71.1,
+    "averageProliferation": 9.3,
+    "averageTreatyCompliance": 43.5,
+    "averageDecisionImpact": 20.8,
+    "sanctionsPerSession": 0.14,
+    "procurementFailureRate": 14.5,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "reconstruction-systems",
+        "uses": 2665
+      },
+      {
+        "id": "reconstruction-aircraft",
+        "uses": 2630
+      },
+      {
+        "id": "reconstruction-armor",
+        "uses": 2571
+      },
+      {
+        "id": "reconstruction-strategic",
+        "uses": 976
+      },
+      {
+        "id": "reconstruction-logistics",
+        "uses": 837
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "demobilization-control",
+        "uses": 746
+      },
+      {
+        "id": "decolonization-security-compact",
+        "uses": 711
+      },
+      {
+        "id": "atomic-oversight",
+        "uses": 678
+      },
+      {
+        "id": "arsenal-reconstruction-credit",
+        "uses": 659
+      },
+      {
+        "id": "mutual-defense",
+        "uses": 639
+      }
+    ]
+  },
+  {
+    "nationId": "germany",
+    "stageId": "bipolar",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 620,
+    "dominantPathRate": 1.2,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 31.4,
+    "averageCapabilityGain": 47.4,
+    "averageFinalCapability": 99.9,
+    "averageAutonomy": 86.2,
+    "averageInteroperability": 68.9,
+    "averageRelations": 66.1,
+    "averageTreasury": 195.8,
+    "averageFiscalStress": 3.4,
+    "averageEscalation": 60.2,
+    "averageSupplySecurity": 74.3,
+    "averageProliferation": 32,
+    "averageTreatyCompliance": 59.3,
+    "averageDecisionImpact": 26.4,
+    "sanctionsPerSession": 0.22,
+    "procurementFailureRate": 15.2,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "bipolar-systems",
+        "uses": 2650
+      },
+      {
+        "id": "bipolar-armor",
+        "uses": 2589
+      },
+      {
+        "id": "bipolar-aircraft",
+        "uses": 2556
+      },
+      {
+        "id": "bipolar-strategic",
+        "uses": 1031
+      },
+      {
+        "id": "bipolar-logistics",
+        "uses": 828
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "hotline-arms-control",
+        "uses": 781
+      },
+      {
+        "id": "indigenous-deterrent",
+        "uses": 767
+      },
+      {
+        "id": "proxy-military-aid",
+        "uses": 618
+      },
+      {
+        "id": "nonaligned-diversification",
+        "uses": 617
+      },
+      {
+        "id": "npt-safeguards",
+        "uses": 613
+      }
+    ]
+  },
+  {
+    "nationId": "germany",
+    "stageId": "networked",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 668,
+    "dominantPathRate": 1,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 31.5,
+    "averageCapabilityGain": 50.5,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 79.5,
+    "averageInteroperability": 79.1,
+    "averageRelations": 76,
+    "averageTreasury": 198.8,
+    "averageFiscalStress": 3.5,
+    "averageEscalation": 51.4,
+    "averageSupplySecurity": 73.8,
+    "averageProliferation": 10.4,
+    "averageTreatyCompliance": 58.7,
+    "averageDecisionImpact": 22.8,
+    "sanctionsPerSession": 0.13,
+    "procurementFailureRate": 13.9,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "networked-systems",
+        "uses": 2706
+      },
+      {
+        "id": "networked-armor",
+        "uses": 2541
+      },
+      {
+        "id": "networked-aircraft",
+        "uses": 2525
+      },
+      {
+        "id": "networked-strategic",
+        "uses": 995
+      },
+      {
+        "id": "networked-logistics",
+        "uses": 921
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "precision-network-access",
+        "uses": 702
+      },
+      {
+        "id": "illicit-transfer-interdiction",
+        "uses": 686
+      },
+      {
+        "id": "regional-code-conduct",
+        "uses": 667
+      },
+      {
+        "id": "joint-procurement",
+        "uses": 659
+      },
+      {
+        "id": "responsible-export-controls",
+        "uses": 652
+      }
+    ]
+  },
+  {
+    "nationId": "germany",
+    "stageId": "horizon",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 666,
+    "dominantPathRate": 0.8,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 31.6,
+    "averageCapabilityGain": 53.5,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 87.6,
+    "averageInteroperability": 76.3,
+    "averageRelations": 65.9,
+    "averageTreasury": 178.1,
+    "averageFiscalStress": 8.1,
+    "averageEscalation": 56.6,
+    "averageSupplySecurity": 74.6,
+    "averageProliferation": 30.1,
+    "averageTreatyCompliance": 67.8,
+    "averageDecisionImpact": 24.7,
+    "sanctionsPerSession": 0.26,
+    "procurementFailureRate": 15,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "horizon-armor",
+        "uses": 2621
+      },
+      {
+        "id": "horizon-systems",
+        "uses": 2585
+      },
+      {
+        "id": "horizon-aircraft",
+        "uses": 2552
+      },
+      {
+        "id": "horizon-strategic",
+        "uses": 989
+      },
+      {
+        "id": "horizon-logistics",
+        "uses": 863
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "space-incident-regime",
+        "uses": 723
+      },
+      {
+        "id": "sovereign-ai-deterrent",
+        "uses": 722
+      },
+      {
+        "id": "cyber-confidence-network",
+        "uses": 697
+      },
+      {
+        "id": "human-control-protocol",
+        "uses": 688
+      },
+      {
+        "id": "autonomous-joint-lab",
+        "uses": 591
+      }
+    ]
+  }
+]

@@ -1,0 +1,101 @@
+/* Four-class scope outranks both legacy readable-ui and the later design-system sheet. */
+.game-shell.design-v2 .deck-content .nation-desk-shell { display: grid; gap: 24px; min-width: 0; max-width: 1440px; margin-inline: auto; color: var(--ui-text, #edf0ec); font-size: 16px; line-height: 1.7; }
+.game-shell.design-v2 .deck-content .nation-desk-shell :where(p, dd, li) { font-size: 16px; line-height: 1.75; }
+.game-shell.design-v2 .deck-content .nation-desk-shell :where(span, dt, label, em, summary) { font-size: 14px; line-height: 1.65; }
+.game-shell.design-v2 .deck-content .nation-desk-shell :where(small, .nation-desk-meta, .eyebrow) { font-size: 12px; line-height: 1.65; color: var(--ui-muted, #afbdc6); }
+.game-shell.design-v2 .deck-content .nation-desk-shell :where(strong, b) { font-size: 16px; line-height: 1.6; }
+.game-shell.design-v2 .deck-content .nation-desk-shell :where(p, small, span, strong, b, em, dt, dd, label) { overflow-wrap: anywhere; white-space: normal; max-height: none; -webkit-line-clamp: unset; }
+.game-shell.design-v2 .deck-content .nation-desk-shell :where(h1, h2, h3, h4) { font-family: inherit; color: var(--ui-text, #edf0ec); letter-spacing: -.035em; line-height: 1.45; }
+.game-shell.design-v2 .deck-content .nation-desk-shell h1 { margin: 8px 0; font-size: clamp(26px, 2.5vw, 34px); font-weight: 650; }
+.game-shell.design-v2 .deck-content .nation-desk-shell h2 { font-size: 23px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell h3 { font-size: 20px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell h4 { font-size: 17px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell :where(button, select, input) { min-height: 44px; height: auto; padding: 10px 14px; font: inherit; font-size: 14px; line-height: 1.55; border: 1px solid var(--ui-border, #34424c); border-radius: 8px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell button { cursor: pointer; color: var(--ui-text, #edf0ec); background: var(--ui-surface, #18212b); white-space: normal; }
+.game-shell.design-v2 .deck-content .nation-desk-shell button:disabled { cursor: not-allowed; opacity: .45; }
+.game-shell.design-v2 .deck-content .nation-desk-shell button:hover:not(:disabled) { border-color: var(--ui-accent, #c7a16c); background: #26343f; }
+.game-shell.design-v2 .deck-content .nation-desk-shell :where(button, select, input, summary):focus-visible { outline: 3px solid var(--ui-accent, #c7a16c); outline-offset: 3px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell :where(section, article, div, header, footer, nav) { min-width: 0; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-surface { padding: 24px; background: var(--ui-surface, #18212b); border: 1px solid var(--ui-border, #34424c); border-radius: 8px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-surface > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 22px; padding-bottom: 18px; border-color: var(--ui-border, #34424c); }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-surface > header h3 { margin: 6px 0 0; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-eyebrow { display: block; font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--ui-accent, #c7a16c); }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-header { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 8px 0 4px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-header p { margin: 0; color: var(--ui-muted, #afbdc6); font-size: 14px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-header > button { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-navigation { border-bottom: 1px solid var(--ui-border, #34424c); }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-domains { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 16px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-domains button { padding: 12px 16px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-navigation button[aria-pressed='true'] { border-color: var(--ui-accent, #c7a16c); color: var(--ui-accent, #c7a16c); background: #2b3034; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-subnav { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 0 16px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-subnav button { border-color: transparent; background: transparent; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-overview { display: grid; gap: 24px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-focus-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, 1fr); gap: 24px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-priority { display: flex; align-items: flex-start; flex-direction: column; padding: 28px; background: var(--ui-paper, #edf0ec); color: var(--ui-ink, #18212b); border-radius: 8px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-priority .nation-desk-eyebrow { color: #6a583f; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-priority h2 { margin: 16px 0; color: var(--ui-ink, #18212b); font-size: 25px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-priority p { margin: 0 0 20px; color: #4c5d68; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-priority dl { display: grid; gap: 18px; margin: 0 0 24px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-priority dl > div { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 14px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-priority dt { color: #6a7378; font-size: 12px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-priority dd { margin: 0; color: #30424c; font-size: 14px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-priority button { display: flex; gap: 20px; align-items: center; margin-top: auto; color: #fff; background: #20313c; border-color: #20313c; padding: 13px 18px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-priority > small { margin-top: 18px; color: #627078; font-size: 12px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-objectives { padding: 26px; border: 1px solid var(--ui-border, #34424c); border-radius: 8px; background: var(--ui-surface, #18212b); }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-objectives h2 { margin: 15px 0 20px; font-size: 21px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-target { display: flex; justify-content: space-between; align-items: center; gap: 18px; border-bottom: 1px solid var(--ui-border, #34424c); padding: 13px 0; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-target > strong { font-size: 24px; font-weight: 600; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-target small { display: block; margin-top: 4px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-current { padding: 22px 0; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-current h2 { margin: 0 0 18px; font-size: 20px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-current-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-current-grid article { display: grid; align-content: start; gap: 9px; padding: 20px; border: 1px solid var(--ui-border, #34424c); background: var(--ui-surface, #18212b); border-radius: 8px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-current-grid strong { font-size: 24px; line-height: 1.35; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-link { display: flex; gap: 9px; align-items: center; margin-top: 16px; border-color: transparent; background: transparent; color: var(--ui-accent, #c7a16c); }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-edit-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-edit-grid article { display: flex; flex-direction: column; padding: 20px; border: 1px solid var(--ui-border, #34424c); border-radius: 8px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-edit-grid h4 { margin: 6px 0 12px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-edit-grid p { margin: 0 0 10px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-edit-grid article > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 22px; margin-top: auto; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-edit-grid article > div strong { font-size: 25px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-edit-grid button { width: 44px; min-width: 44px; flex: 0 0 44px; padding: 10px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-editor > header h2 { margin: 6px 0 0; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-editor :where(h2[tabindex='-1'], button) { scroll-margin-block-start: 112px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-editor h2[tabindex='-1']:focus { outline: 3px solid var(--ui-accent, #c7a16c); outline-offset: 6px; border-radius: 4px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-review { padding: 24px; border: 1px solid var(--ui-accent, #c7a16c); background: #202a34; border-radius: 8px; margin-top: 26px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-review h2 { margin: 12px 0 20px; overflow-wrap: anywhere; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-comparison > div { display: grid; gap: 9px; border-left: 2px solid var(--ui-accent, #c7a16c); padding-left: 16px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-review-actions { display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; margin-top: 22px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-review-actions button { display: flex; align-items: center; gap: 9px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-review-actions button:last-child { background: var(--ui-accent, #c7a16c); color: #18212b; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-warning { color: #edb298; }
+/* Existing detailed desks retain their controls, but gain reading space and wrapping. */
+.game-shell.design-v2 .deck-content .nation-desk-shell :where(.nation-government-grid, .nation-transition-grid, .continuity-board-grid, .national-strategy-grid, .national-agenda-options, .government-form-grid, .court-management-grid, .personal-life-grid, .media-relations-grid) { gap: 20px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell :where(.national-strategy-grid, .government-form-grid, .structural-pressure-drivers) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.game-shell.design-v2 .deck-content .nation-desk-shell :where(.national-strategy-grid > button, .government-form-grid > button, .national-agenda-options > button) { padding: 20px; background: var(--ui-surface, #18212b); }
+.game-shell.design-v2 .deck-content .nation-desk-shell :where(.national-strategy-grid > button.active, .government-form-grid > button.active) { border-color: var(--ui-accent, #c7a16c); background: #2b3034; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .fiscal-controls > div { padding-block: 16px; gap: 16px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .fiscal-controls button { min-width: 44px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .fiscal-controls strong { min-width: 34px; }
+.game-shell.design-v2 .deck-content .nation-desk-shell .nation-transition-hero { background: var(--ui-surface, #18212b); border: 1px solid var(--ui-border, #34424c); border-radius: 8px; padding: 26px; }
+@media (max-width: 1000px) {
+  .game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-focus-grid { grid-template-columns: minmax(0, 1fr); }
+  .game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-current-grid, .game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-edit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .game-shell.design-v2 .deck-content .nation-desk-shell :where(.nation-government-grid, .nation-transition-grid, .continuity-board-grid) { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 620px) {
+  .game-shell.design-v2 .deck-content .nation-desk-shell { gap: 20px; }
+  .game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-header { align-items: flex-start; flex-direction: column; }
+  .game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-domains { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-domains button { padding-inline: 10px; }
+  .game-shell.design-v2 .deck-content .nation-desk-shell :where(.nation-surface, .nation-desk-priority, .nation-desk-objectives, .nation-budget-review) { padding: 20px; }
+  .game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-current-grid { gap: 10px; }
+  .game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-current-grid article { padding: 15px; }
+  .game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-current-grid strong { font-size: 20px; }
+  .game-shell.design-v2 .deck-content .nation-desk-shell :where(.nation-budget-edit-grid, .nation-budget-comparison, .national-strategy-grid, .government-form-grid, .structural-pressure-drivers, .national-agenda-options) { grid-template-columns: minmax(0, 1fr); }
+  .game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-review-actions { flex-direction: column; align-items: stretch; }
+  .game-shell.design-v2 .deck-content .nation-desk-shell .nation-budget-review-actions button { width: 100%; justify-content: center; }
+  .game-shell.design-v2 .deck-content .nation-desk-shell .nation-desk-priority dl > div { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .game-shell.design-v2 .deck-content .nation-desk-shell .nation-surface > header { flex-direction: column; gap: 8px; }
+}

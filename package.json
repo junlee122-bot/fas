@@ -1,13 +1,24 @@
 {
   "name": "iron-dominion",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.22.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:pages": "tsc -b && vite build --base=/fas/",
     "preview": "vite preview",
-    "lint": "tsc -b --pretty false"
+    "lint": "tsc -b --pretty false",
+    "test": "vitest run",
+    "playtest:clandestine": "node scripts/run-clandestine-career-playtest-2060.mjs",
+    "playtest:korea": "node scripts/run-korea-century-playtest-2060.mjs",
+    "playtest:nations": "node scripts/run-multi-nation-century-playtest-2060.mjs",
+    "playtest:possibilities": "node scripts/run-possibility-matrix-3000-2060.mjs",
+    "playtest:arms-diplomacy": "node scripts/run-arms-diplomacy-stage-playtest.mjs",
+    "audit:civilization": "node scripts/audit-civilization-systems.mjs",
+    "audit:possibilities": "node scripts/audit-possibility-remediation.mjs",
+    "data:historical-roster": "node scripts/build-wikidata-roster.mjs",
+    "data:later-era-roster": "node scripts/build-later-era-roster.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.24.0",
@@ -19,6 +30,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "typescript": "^7.0.2",
-    "vite": "^8.1.4"
+    "vite": "^8.1.4",
+    "vitest": "^4.1.10"
   }
 }

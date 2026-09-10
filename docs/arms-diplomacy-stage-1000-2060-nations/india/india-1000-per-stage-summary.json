@@ -1,0 +1,357 @@
+[
+  {
+    "nationId": "india",
+    "stageId": "total-war",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 699,
+    "dominantPathRate": 1.3,
+    "dominantRoute": "license",
+    "dominantRouteRate": 22.3,
+    "averageCapabilityGain": 49.6,
+    "averageFinalCapability": 99.8,
+    "averageAutonomy": 64.9,
+    "averageInteroperability": 83.3,
+    "averageRelations": 68.3,
+    "averageTreasury": 204,
+    "averageFiscalStress": 4.5,
+    "averageEscalation": 50.6,
+    "averageSupplySecurity": 68.5,
+    "averageProliferation": 25.1,
+    "averageTreatyCompliance": 33.3,
+    "averageDecisionImpact": 21.1,
+    "sanctionsPerSession": 0.07,
+    "procurementFailureRate": 18.9,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "total-war-strategic",
+        "uses": 2986
+      },
+      {
+        "id": "total-war-aircraft",
+        "uses": 2561
+      },
+      {
+        "id": "total-war-naval",
+        "uses": 2339
+      },
+      {
+        "id": "total-war-systems",
+        "uses": 873
+      },
+      {
+        "id": "total-war-armor",
+        "uses": 854
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "combined-standards",
+        "uses": 719
+      },
+      {
+        "id": "licensed-mass-production",
+        "uses": 688
+      },
+      {
+        "id": "strategic-embargo",
+        "uses": 675
+      },
+      {
+        "id": "neutral-procurement",
+        "uses": 646
+      },
+      {
+        "id": "scientific-mission",
+        "uses": 645
+      }
+    ]
+  },
+  {
+    "nationId": "india",
+    "stageId": "reconstruction",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 694,
+    "dominantPathRate": 0.8,
+    "dominantRoute": "joint",
+    "dominantRouteRate": 22.4,
+    "averageCapabilityGain": 52.3,
+    "averageFinalCapability": 99.5,
+    "averageAutonomy": 65.7,
+    "averageInteroperability": 83.4,
+    "averageRelations": 76.3,
+    "averageTreasury": 200.6,
+    "averageFiscalStress": 4.7,
+    "averageEscalation": 41.9,
+    "averageSupplySecurity": 61.8,
+    "averageProliferation": 18.9,
+    "averageTreatyCompliance": 43.2,
+    "averageDecisionImpact": 21.6,
+    "sanctionsPerSession": 0.08,
+    "procurementFailureRate": 18,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "reconstruction-strategic",
+        "uses": 2946
+      },
+      {
+        "id": "reconstruction-aircraft",
+        "uses": 2624
+      },
+      {
+        "id": "reconstruction-naval",
+        "uses": 2369
+      },
+      {
+        "id": "reconstruction-logistics",
+        "uses": 857
+      },
+      {
+        "id": "reconstruction-systems",
+        "uses": 856
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "decolonization-security-compact",
+        "uses": 737
+      },
+      {
+        "id": "demobilization-control",
+        "uses": 673
+      },
+      {
+        "id": "atomic-oversight",
+        "uses": 660
+      },
+      {
+        "id": "mutual-defense",
+        "uses": 658
+      },
+      {
+        "id": "arsenal-reconstruction-credit",
+        "uses": 652
+      }
+    ]
+  },
+  {
+    "nationId": "india",
+    "stageId": "bipolar",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 647,
+    "dominantPathRate": 1.1,
+    "dominantRoute": "joint",
+    "dominantRouteRate": 22.8,
+    "averageCapabilityGain": 55.6,
+    "averageFinalCapability": 99.8,
+    "averageAutonomy": 69.6,
+    "averageInteroperability": 79.1,
+    "averageRelations": 71.1,
+    "averageTreasury": 164.3,
+    "averageFiscalStress": 14.1,
+    "averageEscalation": 60.3,
+    "averageSupplySecurity": 65.9,
+    "averageProliferation": 42.8,
+    "averageTreatyCompliance": 60.2,
+    "averageDecisionImpact": 25.8,
+    "sanctionsPerSession": 0.18,
+    "procurementFailureRate": 18,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 99.9,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "bipolar-strategic",
+        "uses": 2984
+      },
+      {
+        "id": "bipolar-aircraft",
+        "uses": 2535
+      },
+      {
+        "id": "bipolar-naval",
+        "uses": 2330
+      },
+      {
+        "id": "bipolar-logistics",
+        "uses": 910
+      },
+      {
+        "id": "bipolar-systems",
+        "uses": 880
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "hotline-arms-control",
+        "uses": 825
+      },
+      {
+        "id": "indigenous-deterrent",
+        "uses": 696
+      },
+      {
+        "id": "alliance-standardization",
+        "uses": 639
+      },
+      {
+        "id": "npt-safeguards",
+        "uses": 622
+      },
+      {
+        "id": "nonaligned-diversification",
+        "uses": 616
+      }
+    ]
+  },
+  {
+    "nationId": "india",
+    "stageId": "networked",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 672,
+    "dominantPathRate": 1.3,
+    "dominantRoute": "license",
+    "dominantRouteRate": 22.3,
+    "averageCapabilityGain": 58.8,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 60.5,
+    "averageInteroperability": 87.4,
+    "averageRelations": 79.8,
+    "averageTreasury": 156.4,
+    "averageFiscalStress": 15,
+    "averageEscalation": 50.7,
+    "averageSupplySecurity": 65,
+    "averageProliferation": 21.8,
+    "averageTreatyCompliance": 58.1,
+    "averageDecisionImpact": 21.9,
+    "sanctionsPerSession": 0.09,
+    "procurementFailureRate": 17.7,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "networked-strategic",
+        "uses": 3001
+      },
+      {
+        "id": "networked-aircraft",
+        "uses": 2583
+      },
+      {
+        "id": "networked-naval",
+        "uses": 2342
+      },
+      {
+        "id": "networked-systems",
+        "uses": 876
+      },
+      {
+        "id": "networked-logistics",
+        "uses": 839
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "joint-procurement",
+        "uses": 691
+      },
+      {
+        "id": "regional-code-conduct",
+        "uses": 691
+      },
+      {
+        "id": "precision-network-access",
+        "uses": 676
+      },
+      {
+        "id": "illicit-transfer-interdiction",
+        "uses": 670
+      },
+      {
+        "id": "peacekeeping-assistance",
+        "uses": 662
+      }
+    ]
+  },
+  {
+    "nationId": "india",
+    "stageId": "horizon",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 678,
+    "dominantPathRate": 1.2,
+    "dominantRoute": "license",
+    "dominantRouteRate": 22.7,
+    "averageCapabilityGain": 61.8,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 70.3,
+    "averageInteroperability": 85.8,
+    "averageRelations": 71.3,
+    "averageTreasury": 125,
+    "averageFiscalStress": 22,
+    "averageEscalation": 55.5,
+    "averageSupplySecurity": 66.7,
+    "averageProliferation": 45.2,
+    "averageTreatyCompliance": 68.4,
+    "averageDecisionImpact": 24.6,
+    "sanctionsPerSession": 0.2,
+    "procurementFailureRate": 18.6,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 99.9,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "horizon-strategic",
+        "uses": 2970
+      },
+      {
+        "id": "horizon-aircraft",
+        "uses": 2541
+      },
+      {
+        "id": "horizon-naval",
+        "uses": 2374
+      },
+      {
+        "id": "horizon-logistics",
+        "uses": 925
+      },
+      {
+        "id": "horizon-systems",
+        "uses": 833
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "cyber-confidence-network",
+        "uses": 747
+      },
+      {
+        "id": "space-incident-regime",
+        "uses": 717
+      },
+      {
+        "id": "human-control-protocol",
+        "uses": 690
+      },
+      {
+        "id": "sovereign-ai-deterrent",
+        "uses": 635
+      },
+      {
+        "id": "resilient-supply-club",
+        "uses": 616
+      }
+    ]
+  }
+]

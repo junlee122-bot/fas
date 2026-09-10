@@ -1,0 +1,357 @@
+[
+  {
+    "nationId": "philippines",
+    "stageId": "total-war",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 659,
+    "dominantPathRate": 1.9,
+    "dominantRoute": "joint",
+    "dominantRouteRate": 22.7,
+    "averageCapabilityGain": 54.5,
+    "averageFinalCapability": 92.5,
+    "averageAutonomy": 37.4,
+    "averageInteroperability": 90.4,
+    "averageRelations": 71.5,
+    "averageTreasury": 135.7,
+    "averageFiscalStress": 23.2,
+    "averageEscalation": 41,
+    "averageSupplySecurity": 51.5,
+    "averageProliferation": 15.8,
+    "averageTreatyCompliance": 33.3,
+    "averageDecisionImpact": 17.5,
+    "sanctionsPerSession": 0.11,
+    "procurementFailureRate": 26.5,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 99,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "total-war-systems",
+        "uses": 2692
+      },
+      {
+        "id": "total-war-aircraft",
+        "uses": 2592
+      },
+      {
+        "id": "total-war-naval",
+        "uses": 2495
+      },
+      {
+        "id": "total-war-strategic",
+        "uses": 1040
+      },
+      {
+        "id": "total-war-armor",
+        "uses": 851
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "emergency-aid",
+        "uses": 781
+      },
+      {
+        "id": "combined-standards",
+        "uses": 764
+      },
+      {
+        "id": "licensed-mass-production",
+        "uses": 732
+      },
+      {
+        "id": "scientific-mission",
+        "uses": 601
+      },
+      {
+        "id": "neutral-procurement",
+        "uses": 568
+      }
+    ]
+  },
+  {
+    "nationId": "philippines",
+    "stageId": "reconstruction",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 710,
+    "dominantPathRate": 1.5,
+    "dominantRoute": "joint",
+    "dominantRouteRate": 22.7,
+    "averageCapabilityGain": 56.8,
+    "averageFinalCapability": 91.8,
+    "averageAutonomy": 41.6,
+    "averageInteroperability": 90.1,
+    "averageRelations": 78.1,
+    "averageTreasury": 131.7,
+    "averageFiscalStress": 22.8,
+    "averageEscalation": 33.1,
+    "averageSupplySecurity": 43.4,
+    "averageProliferation": 8.9,
+    "averageTreatyCompliance": 42.7,
+    "averageDecisionImpact": 18.1,
+    "sanctionsPerSession": 0.1,
+    "procurementFailureRate": 26,
+    "obsoleteLockInRate": 8.1,
+    "viabilityRate": 88.8,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "reconstruction-systems",
+        "uses": 2712
+      },
+      {
+        "id": "reconstruction-aircraft",
+        "uses": 2522
+      },
+      {
+        "id": "reconstruction-naval",
+        "uses": 2453
+      },
+      {
+        "id": "reconstruction-strategic",
+        "uses": 1014
+      },
+      {
+        "id": "reconstruction-logistics",
+        "uses": 853
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "arsenal-reconstruction-credit",
+        "uses": 834
+      },
+      {
+        "id": "decolonization-security-compact",
+        "uses": 702
+      },
+      {
+        "id": "demobilization-control",
+        "uses": 663
+      },
+      {
+        "id": "atomic-oversight",
+        "uses": 628
+      },
+      {
+        "id": "mutual-defense",
+        "uses": 609
+      }
+    ]
+  },
+  {
+    "nationId": "philippines",
+    "stageId": "bipolar",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 693,
+    "dominantPathRate": 1.4,
+    "dominantRoute": "joint",
+    "dominantRouteRate": 22.7,
+    "averageCapabilityGain": 61.9,
+    "averageFinalCapability": 93.9,
+    "averageAutonomy": 44.6,
+    "averageInteroperability": 87,
+    "averageRelations": 73.3,
+    "averageTreasury": 84.5,
+    "averageFiscalStress": 34.3,
+    "averageEscalation": 55.2,
+    "averageSupplySecurity": 47,
+    "averageProliferation": 29.2,
+    "averageTreatyCompliance": 57.6,
+    "averageDecisionImpact": 23.7,
+    "sanctionsPerSession": 0.18,
+    "procurementFailureRate": 26.2,
+    "obsoleteLockInRate": 2.3,
+    "viabilityRate": 96.2,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "bipolar-systems",
+        "uses": 2675
+      },
+      {
+        "id": "bipolar-aircraft",
+        "uses": 2612
+      },
+      {
+        "id": "bipolar-naval",
+        "uses": 2397
+      },
+      {
+        "id": "bipolar-strategic",
+        "uses": 992
+      },
+      {
+        "id": "bipolar-logistics",
+        "uses": 876
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "alliance-standardization",
+        "uses": 819
+      },
+      {
+        "id": "hotline-arms-control",
+        "uses": 694
+      },
+      {
+        "id": "indigenous-deterrent",
+        "uses": 672
+      },
+      {
+        "id": "proxy-military-aid",
+        "uses": 615
+      },
+      {
+        "id": "nonaligned-diversification",
+        "uses": 602
+      }
+    ]
+  },
+  {
+    "nationId": "philippines",
+    "stageId": "networked",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 710,
+    "dominantPathRate": 1.1,
+    "dominantRoute": "joint",
+    "dominantRouteRate": 22.7,
+    "averageCapabilityGain": 66.4,
+    "averageFinalCapability": 95.4,
+    "averageAutonomy": 32.1,
+    "averageInteroperability": 93.5,
+    "averageRelations": 81.4,
+    "averageTreasury": 74.3,
+    "averageFiscalStress": 35.3,
+    "averageEscalation": 45,
+    "averageSupplySecurity": 45,
+    "averageProliferation": 10.3,
+    "averageTreatyCompliance": 57.3,
+    "averageDecisionImpact": 21,
+    "sanctionsPerSession": 0.12,
+    "procurementFailureRate": 25.6,
+    "obsoleteLockInRate": 3.9,
+    "viabilityRate": 93.3,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "networked-aircraft",
+        "uses": 2687
+      },
+      {
+        "id": "networked-systems",
+        "uses": 2681
+      },
+      {
+        "id": "networked-naval",
+        "uses": 2403
+      },
+      {
+        "id": "networked-strategic",
+        "uses": 1021
+      },
+      {
+        "id": "networked-logistics",
+        "uses": 911
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "joint-procurement",
+        "uses": 821
+      },
+      {
+        "id": "precision-network-access",
+        "uses": 644
+      },
+      {
+        "id": "regional-code-conduct",
+        "uses": 644
+      },
+      {
+        "id": "peacekeeping-assistance",
+        "uses": 638
+      },
+      {
+        "id": "responsible-export-controls",
+        "uses": 628
+      }
+    ]
+  },
+  {
+    "nationId": "philippines",
+    "stageId": "horizon",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 746,
+    "dominantPathRate": 1,
+    "dominantRoute": "joint",
+    "dominantRouteRate": 22.7,
+    "averageCapabilityGain": 71.3,
+    "averageFinalCapability": 97.3,
+    "averageAutonomy": 46.5,
+    "averageInteroperability": 92.2,
+    "averageRelations": 72.9,
+    "averageTreasury": 42.5,
+    "averageFiscalStress": 42.7,
+    "averageEscalation": 53.5,
+    "averageSupplySecurity": 49,
+    "averageProliferation": 29.4,
+    "averageTreatyCompliance": 65.7,
+    "averageDecisionImpact": 25,
+    "sanctionsPerSession": 0.17,
+    "procurementFailureRate": 26.8,
+    "obsoleteLockInRate": 2.8,
+    "viabilityRate": 84.5,
+    "collapseRate": 0.4,
+    "topPrograms": [
+      {
+        "id": "horizon-systems",
+        "uses": 2716
+      },
+      {
+        "id": "horizon-aircraft",
+        "uses": 2631
+      },
+      {
+        "id": "horizon-naval",
+        "uses": 2380
+      },
+      {
+        "id": "horizon-strategic",
+        "uses": 1056
+      },
+      {
+        "id": "horizon-logistics",
+        "uses": 833
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "resilient-supply-club",
+        "uses": 768
+      },
+      {
+        "id": "cyber-confidence-network",
+        "uses": 683
+      },
+      {
+        "id": "sovereign-ai-deterrent",
+        "uses": 681
+      },
+      {
+        "id": "space-incident-regime",
+        "uses": 667
+      },
+      {
+        "id": "human-control-protocol",
+        "uses": 638
+      }
+    ]
+  }
+]
