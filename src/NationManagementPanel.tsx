@@ -1037,6 +1037,7 @@ export function NationManagementPanel({
             <div><span>물가</span><strong>{economy.inflation.toFixed(1)}%</strong></div>
             <div><span>최근 수지</span><strong>{latestReport ? formatMoney(latestReport.fiscalBalance, { signed: true }) : '첫 결산 전'}</strong></div>
           </div>
+          {typeof latestReport?.staffWeeklyCost === 'number' && <p>최근 결산의 참모 인건비 <strong>{formatMoney(latestReport.staffWeeklyCost, { exact: true })}</strong> · 총지출에 포함된 금액이며 별도 추가 지출이 아닙니다.</p>}
           <div className="fiscal-controls">
             <div><span><b>조세 부담</b><small>세입 증가 · 고용과 지지 부담</small></span><div><button aria-label="조세 부담 5 낮추기" onClick={() => { if (canManageFiscal) onTaxChange(-5); }} disabled={!canManageFiscal || state.taxBurden <= 20}><Minus /></button><strong>{state.taxBurden}</strong><button aria-label="조세 부담 5 높이기" onClick={() => { if (canManageFiscal) onTaxChange(5); }} disabled={!canManageFiscal || state.taxBurden >= 80}><Plus /></button></div></div>
             <div><span><b>공공지출</b><small>정책 효과 증가 · 부채와 물가 부담</small></span><div><button aria-label="공공지출 5 낮추기" onClick={() => { if (canManageFiscal) onSpendingChange(-5); }} disabled={!canManageFiscal || state.spendingLevel <= 25}><Minus /></button><strong>{state.spendingLevel}</strong><button aria-label="공공지출 5 높이기" onClick={() => { if (canManageFiscal) onSpendingChange(5); }} disabled={!canManageFiscal || state.spendingLevel >= 85}><Plus /></button></div></div>
@@ -1432,6 +1433,7 @@ export function NationManagementPanel({
 {latestReport && (
         <section className="nation-surface nation-weekly-causality">
           <header><div><span>제{latestReport.week + 1}주 국정 결산</span><h3>무엇을 선택했고, 무엇이 달라졌는가</h3></div><strong>{formatMoney(latestReport.fiscalBalance, { signed: true })}</strong></header>
+          {typeof latestReport.staffWeeklyCost === 'number' && <p>참모 인건비 <strong>{formatMoney(latestReport.staffWeeklyCost, { exact: true })}</strong> · 총지출에 포함된 금액이며 한 번만 반영됐습니다.</p>}
           <div className="causality-columns">
             <div><h4>원인</h4>{latestReport.causes.map((cause) => <p key={cause}>{localizeMoney(cause)}</p>)}</div>
             <ChevronRight className="causality-arrow" />

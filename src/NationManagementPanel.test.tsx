@@ -4,7 +4,7 @@ import { NationManagementPanel, type NationManagementPanelProps } from './Nation
 import { getNationDeskSections, type NationDeskView } from './NationDesk';
 import { careerRoles, getNation } from './campaign';
 import { createEconomyState } from './economy';
-import { createNationManagementState } from './nationManagement';
+import { advanceNationManagementWeek, createNationManagementState } from './nationManagement';
 import { deriveNationalSimulation } from './nationalSimulation';
 import { createPoliticalCrisisState, getNationPoliticalProfile } from './politicalCrisis';
 import { createPublicHealthState } from './publicHealth';
@@ -121,5 +121,30 @@ describe('national management conditional workspaces', () => {
     const { props } = setup('britain', 'records');
     expect(renderToStaticMarkup(<NationManagementPanel {...props} />)).toContain('아직 확정된 국정 결산이 없습니다');
     expect(renderToStaticMarkup(<NationManagementPanel {...props} phase="war" initialView="budget" />)).toContain('data-nation-view="overview"');
+  });
+
+  it.each(['budget', 'records'] as const)('shows payroll as an included, currency-formatted expense in %s', (view) => {
+    const { props, onMutation } = setup('britain', view);
+    const result = advanceNationManagementWeek(props.state, {
+      week: game.week + 1, game, economy: props.economy, relationAverage: 62,
+      completedResearch: 3, publicHealthPressure: 0, staffWeeklyCost: 62.5,
+    });
+    const html = renderToStaticMarkup(<NationManagementPanel {...props} state={result.state} />);
+    expect(html).toContain('참모 인건비');
+    expect(html).toContain('금액 62.5');
+    expect(html).toContain('총지출에 포함');
+    expect(onMutation).not.toHaveBeenCalled();
+  });
+
+  it('does not invent a payroll figure for a legacy weekly report', () => {
+    const { props } = setup('britain', 'records');
+    const result = advanceNationManagementWeek(props.state, {
+      week: game.week + 1, game, economy: props.economy, relationAverage: 62,
+      completedResearch: 3, publicHealthPressure: 0,
+    });
+    const legacyReport = { ...result.report };
+    delete legacyReport.staffWeeklyCost;
+    const html = renderToStaticMarkup(<NationManagementPanel {...props} state={{ ...result.state, reports: [legacyReport] }} />);
+    expect(html).not.toContain('참모 인건비');
   });
 });

@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { OrganizationPanel, type OrganizationPanelProps } from './OrganizationPanel';
-import { createCampaignDivisions, createCampaignProduction, createStaffCandidates, createStaffRoster, getNation, getRole } from './campaign';
+import { OrganizationPanel, getOrganizationSelectedStaff, getOrganizationStaffDecisionInput, type OrganizationPanelProps } from './OrganizationPanel';
+import { createCampaignDivisions, createCampaignProduction, createCareerState, createStaffCandidates, createStaffRoster, getNation, getRole } from './campaign';
 import { createStaffNarrativeState } from './staffNarrative';
 import { getStaffAuthorityProfile } from './staffOrganization';
 
@@ -31,6 +31,13 @@ function render(props = fixture()) {
   expect(JSON.stringify(props)).toBe(before);
   Object.values(props).filter((value) => vi.isMockFunction(value)).forEach((callback) => expect(callback).not.toHaveBeenCalled());
   return html;
+}
+
+function connect(props: OrganizationPanelProps): OrganizationPanelProps {
+  return { ...props, staffDecisionInput: {
+    game: props.game, role: props.role, staff: props.staff, campaignPhase: props.campaignPhase,
+    nationStatus: props.nation.status, developmentFocusId: props.developmentFocusId,
+  } };
 }
 
 function button(html: string, label: string) {
@@ -155,12 +162,13 @@ describe('OrganizationPanel Command Edition workspace contract', () => {
   it('preserves the existing development and renewal eligibility conditions in the personal dossier', () => {
     const props = fixture();
     const readyStaff = { ...props.staff[0], development: 100, grade: 2 as const, contractWeeksRemaining: 3 };
-    const html = render({ ...props, staff: [readyStaff] });
+    const html = render(connect({ ...props, staff: [readyStaff] }));
     expect(button(html, '승급')).not.toContain('disabled');
-    expect(button(html, '재계약 · 4PP')).not.toContain('disabled');
-    const poor = render({ ...props, staff: [readyStaff], game: { ...props.game, politicalPower: 0, treasury: 0 } });
-    expect(button(poor, '재계약 · 4PP')).toContain('disabled');
-    const mature = render({ ...props, staff: [{ ...readyStaff, grade: 3 }] });
+    expect(button(html, '재계약 검토')).not.toContain('disabled');
+    const poor = render(connect({ ...props, staff: [readyStaff], game: { ...props.game, politicalPower: 0, treasury: 0 } }));
+    expect(button(poor, '재계약 검토')).toContain('disabled');
+    expect(button(poor, '승급')).toContain('disabled');
+    const mature = render(connect({ ...props, staff: [{ ...readyStaff, grade: 3 }] }));
     expect(button(mature, '승급')).toContain('disabled');
   });
 
@@ -241,5 +249,76 @@ describe('OrganizationPanel Command Edition workspace contract', () => {
     expect(html).toContain('1/2쪽');
     expect(button(html, '이전')).toContain('disabled');
     expect(button(html, '다음')).not.toContain('disabled');
+  });
+
+  it('keeps paid staff actions read-only when full state is not connected', () => {
+    const props = fixture();
+    const html = render({ ...props, staff: [{ ...props.staff[0], development: 100, grade: 1, contractWeeksRemaining: 0 }] });
+    expect(html).toContain('인사·국고 기록 연결 필요');
+    expect(button(html, '승급 검토')).toContain('disabled');
+    expect(button(html, '재계약 검토')).toContain('disabled');
+    expect(html).toContain('자동 퇴직하지는 않습니다');
+    expect(html).toContain('직무와 주급은 유지');
+  });
+
+  it('shows costs and eligibility reasons in text rather than only a hover title', () => {
+    const props = fixture();
+    const html = render(connect({ ...props, staff: [{ ...props.staff[0], development: 100, grade: 1, contractWeeksRemaining: 10 }] }));
+    const reasons = html.match(/<ul class="org-staff-action-reasons">[\s\S]*?<\/ul>/)?.[0] ?? '';
+    expect(reasons).toContain('정치력 8'); expect(reasons).toContain('£50');
+    expect(reasons).toContain('남은 10주에 104주를 더합니다');
+    expect(html).toContain('성장 등급 1/3 · 보직 별과 별도');
+    expect(html).not.toContain('class="staff-decision-review');
+  });
+
+  it.each(['missing', 'game', 'staff', 'focus', 'role', 'phase', 'status'] as const)('rejects visible staff state mismatch: %s', (change) => {
+    const props = connect(fixture());
+    if (change === 'missing') props.staffDecisionInput = undefined;
+    if (change === 'game') props.game = { ...props.game, treasury: 0 };
+    if (change === 'staff') props.staff = props.staff.slice(1);
+    if (change === 'focus') props.developmentFocusId = props.staff[0].id;
+    if (change === 'role') props.role = getRole('britain-tier2', 'britain');
+    if (change === 'phase') props.campaignPhase = 'war';
+    if (change === 'status') props.nation = { ...props.nation, status: 'government-in-exile' };
+    expect(getOrganizationStaffDecisionInput(props)).toBeNull();
+  });
+
+  it('passes visible busy state and accepts matching canonical staff state', () => {
+    const props = connect(fixture());
+    expect(getOrganizationStaffDecisionInput(props)).toMatchObject({ game: props.game, staff: props.staff, busy: false });
+    expect(getOrganizationStaffDecisionInput({ ...props, busy: true })?.busy).toBe(true);
+  });
+
+  it('does not silently select another person after dismissal, replacement or an invalid identity', () => {
+    const props = fixture(); const first = props.staff[0];
+    expect(getOrganizationSelectedStaff(props.staff, { id: first.id, personId: first.personId })).toBe(first);
+    expect(getOrganizationSelectedStaff(props.staff.slice(1), { id: first.id, personId: first.personId })).toBeNull();
+    expect(getOrganizationSelectedStaff(props.staff, { id: first.id, personId: 'other-person' })).toBeNull();
+    expect(getOrganizationSelectedStaff(props.staff, null)).toBeNull();
+  });
+
+  it.each(['dismissed', 'unattached', 'civilian'] as const)('shows no acting personnel authority for %s even with a former top-office role', (status) => {
+    const props = connect(fixture());
+    if (status === 'civilian') props.staffDecisionInput!.career = { ...createCareerState(props.nation.id, props.role.id), startMode: 'civilian' };
+    else props.staffDecisionInput!.affiliationStatus = status;
+    const html = render(props);
+    expect(html).toContain('인사권 없음 · 열람 전용');
+    expect(html).toContain('직접 관리 0개 보직');
+    expect(html).toContain('현재 인사권을 뜻하지 않으며');
+    expect(button(html, '면담 의제 선택')).toContain('disabled');
+    expect(button(html, '책임 위임')).toContain('aria-pressed'); // Read-only navigation remains available.
+    const actions = html.match(/<div class="org-person-actions"[\s\S]*?<\/div>/)?.[0] ?? '';
+    for (const markup of actions.match(/<button\b[^>]*>[\s\S]*?<\/button>/g) ?? []) {
+      if (!markup.includes('보직 배치 비교')) expect(markup).toContain('disabled');
+    }
+    const market = render({ ...props, workspace: 'market', candidates: [{ ...props.candidates[0], knowledge: 85, status: 'unscouted' }] });
+    expect(market).toContain('인사권 없음 · 열람 전용');
+    const candidateActions = market.match(/<div class="candidate-actions"[\s\S]*?<\/div>/)?.[0] ?? '';
+    for (const label of ['협상', '조사 검토', '접촉 검토', '관심']) expect(button(candidateActions, label)).toContain('disabled');
+    expect(button(market, '조사 보고서')).not.toContain('disabled');
+    expect(market).toContain('조사·접촉·관심 명단 변경도 잠기지만');
+    const scouting = render({ ...props, workspace: 'market', onStopScouting: vi.fn(), candidates: [{ ...props.candidates[0], knowledge: 50, status: 'scouting' }] });
+    expect(button(scouting, '중단 검토 · 무료')).toContain('disabled');
+    expect(button(scouting, '보고서')).not.toContain('disabled');
   });
 });

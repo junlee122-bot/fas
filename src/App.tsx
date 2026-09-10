@@ -246,8 +246,10 @@ import { weeklyRivalInterest } from './recruitment';
 import { advanceCandidateScouting, assessPersonnelAction, confirmPersonnelReview, createPersonnelReview, createPersonnelReviewGate, normalizeCandidateScoutingRoster } from './personnelActions';
 import type { PersonnelAction, PersonnelActionResult } from './personnelActions';
 import type { RecruitmentOffer } from './recruitment';
-import { advanceStaffRosterWeek, getStaffContractWeeks, getStaffMeetingOption, getStaffRenewalCost, resolveStaffMeeting } from './staffManagement';
+import { advanceStaffRosterWeek, getStaffContractWeeks, getStaffMeetingOption, resolveStaffMeeting } from './staffManagement';
 import type { StaffMeetingTopic } from './staffManagement';
+import { assessStaffDecision, confirmStaffReview, createStaffReview, createStaffReviewGate, getStaffOfficeProblem } from './staffDecisions';
+import type { StaffDecisionAction, StaffDecisionInput, StaffDecisionResult } from './staffDecisions';
 import { advanceStaffNarrativeWeek, createStaffNarrativeState, getStaffNarrativeOptions, normalizeStaffNarrativeState, resolveStaffNarrativeDecision } from './staffNarrative';
 import type { StaffNarrativeState } from './staffNarrative';
 import {
@@ -476,11 +478,9 @@ import {
   type NationalPlanMetrics,
 } from './strategicContinuity';
 import {
-  calculateStaffSuitability,
   getCareerInstitutionalTitle,
   getStaffAuthorityProfile,
   getStaffSeatTitle,
-  reassignStaff,
 } from './staffOrganization';
 import {
   advancePoliticalCrisisWeek,
@@ -798,11 +798,13 @@ export function App() {
   const staffDecisionLocksRef = useRef(new Set<string>());
   const personnelCommandGateRef = useRef(createPersonnelReviewGate());
   const careerDecisionGateRef = useRef(createCareerReviewGate());
+  const staffCommandGateRef = useRef(createStaffReviewGate());
   const commandSubmissionLocksRef = useRef(new Set<string>());
   const lastWeekAdvanceRequestRef = useRef<string | null>(null);
   const resetFieldSession = useCallback(() => {
     staffDecisionLocksRef.current.clear();
     personnelCommandGateRef.current = createPersonnelReviewGate();
+    staffCommandGateRef.current = createStaffReviewGate();
     commandSubmissionLocksRef.current.clear();
     lastWeekAdvanceRequestRef.current = null;
     setSelectedFieldOrderId(undefined);
@@ -1005,6 +1007,11 @@ export function App() {
     relationByNation: Object.fromEntries(relations.map((relation) => [relation.id, relation.value])) as Partial<Record<NationId, number>>,
   }), [campaignPhase, career, careerRole, game, relations]);
   const careerDecisionInput: CareerDecisionInput = { state: careerMarket, context: { ...careerMarketContext, game }, busy: periodAdvanceRemaining > 0 };
+  const staffDecisionInput: StaffDecisionInput = {
+    game, role: displayedCareerRole, staff, developmentFocusId, campaignPhase,
+    nationStatus: playerNation.status, career, affiliationStatus: careerMarket.affiliationStatus,
+    busy: periodAdvanceRemaining > 0,
+  };
   const pendingClandestineCount = (careerMarket.clandestine?.missions.filter((mission) => mission.status === 'offered').length ?? 0)
     + (careerMarket.clandestine?.incident ? 1 : 0);
   const hasClandestineIncident = Boolean(careerMarket.clandestine?.incident);
@@ -1627,9 +1634,10 @@ export function App() {
       relationAverage,
       completedResearch: projectionCompletedResearch,
       publicHealthPressure: projectionPublicHealthPressure,
+      staffWeeklyCost,
       role: careerRole,
     })
-    : null, [campaignPhase, careerRole, economy, game, nationManagement, projectionCompletedResearch, projectionPublicHealthPressure, relationAverage]);
+    : null, [campaignPhase, careerRole, economy, game, nationManagement, projectionCompletedResearch, projectionPublicHealthPressure, relationAverage, staffWeeklyCost]);
   const nationHealthProjection = useMemo(() => campaignPhase === 'nation' ? advancePublicHealthWeek(publicHealth, publicHealthContext) : null, [campaignPhase, publicHealth, publicHealthContext]);
   const nationProgramCommitments = useMemo(() => getNationalProgramPulse(
     getNationalProgram(playerNation, career.alternatePathId),
@@ -1684,7 +1692,7 @@ export function App() {
         id: 'nation-finance',
         label: '재정 수지',
         value: formatGameMoney(nationWeekProjection.report.fiscalBalance, { signed: true }),
-        detail: `세입 ${formatGameMoney(nationWeekProjection.report.fiscalRevenue)} · 지출 ${formatGameMoney(nationWeekProjection.report.fiscalExpenditure)}`,
+        detail: `세입 ${formatGameMoney(nationWeekProjection.report.fiscalRevenue)} · 지출 ${formatGameMoney(nationWeekProjection.report.fiscalExpenditure)} (참모 인건비 ${formatGameMoney(nationWeekProjection.report.staffWeeklyCost ?? 0)} 포함)`,
         tone: nationWeekProjection.report.fiscalBalance < -12 ? 'danger' : nationWeekProjection.report.fiscalBalance < 0 ? 'warning' : 'good',
         icon: 'treasury',
       },
@@ -2311,6 +2319,7 @@ export function App() {
       relationAverage,
       completedResearch,
       publicHealthPressure,
+      staffWeeklyCost,
       role: careerRole,
     });
     const industryResult = advancePostwarIndustryWeek(postwarIndustry, {
@@ -2511,7 +2520,7 @@ export function App() {
     const expectedNationResult = nationWeekProjection ?? result;
     addEvent(
       `국가 운영 결산 — 제 ${nextWeek + 1}주`,
-      `세입 ${formatGameMoney(result.report.fiscalRevenue)}, 지출 ${formatGameMoney(result.report.fiscalExpenditure)}, 수지 ${formatGameMoney(result.report.fiscalBalance, { signed: true })}. 국가 성과 ${result.state.nationalScore}, 국민 위임 ${result.state.mandateScore}.`,
+      `세입 ${formatGameMoney(result.report.fiscalRevenue)}, 지출 ${formatGameMoney(result.report.fiscalExpenditure)} (참모 인건비 ${formatGameMoney(result.report.staffWeeklyCost ?? 0)} 포함), 수지 ${formatGameMoney(result.report.fiscalBalance, { signed: true })}. 국가 성과 ${result.state.nationalScore}, 국민 위임 ${result.state.mandateScore}.`,
       result.report.fiscalBalance < -12 || result.state.unrest >= 60 ? 'bad' : result.report.nationalScore >= 60 ? 'good' : 'neutral',
       nextWeek,
       {
@@ -2566,7 +2575,7 @@ export function App() {
         addEvent('국정 의제 소집 — ' + councilEvent.category, councilEvent.title, councilEvent.historicalYear ? 'neutral' : 'bad', nextWeek);
       }
     }
-  }, [staffDeliveryContext, regionalIndustryContext, armsPortfolio, divisions, doctrine, equipmentDevelopment, postwarIndustry, postwarIndustryForecast, postwarIndustrySettings, production, scienceAdvisor, stockpile, addEvent, careerRole, completedDecisions, delegatedDepartments, developmentFocusId, economy, formatGameMoney, game, nationManagement, nationProgramCommitments, nationWeekProjection, notify, pendingCouncilEventId, playerNation.id, publicHealth, publicHealthContext, relationAverage, research, resolvedCouncilChoices, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisorBonus, staff, staffAuthority.managedDepartments, staffCandidates, staffNarrative, staffPlayContext, worldline.timeline]);
+  }, [staffDeliveryContext, regionalIndustryContext, armsPortfolio, divisions, doctrine, equipmentDevelopment, postwarIndustry, postwarIndustryForecast, postwarIndustrySettings, production, scienceAdvisor, stockpile, addEvent, careerRole, completedDecisions, delegatedDepartments, developmentFocusId, economy, formatGameMoney, game, nationManagement, nationProgramCommitments, nationWeekProjection, notify, pendingCouncilEventId, playerNation.id, publicHealth, publicHealthContext, relationAverage, research, resolvedCouncilChoices, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisorBonus, staff, staffAuthority.managedDepartments, staffCandidates, staffNarrative, staffPlayContext, staffWeeklyCost, worldline.timeline]);
 
   const advanceNationalProgramWeek = useCallback((nextWeek: number) => {
     const activeNationalProgram = getNationalProgram(playerNation, career.alternatePathId);
@@ -7164,7 +7173,17 @@ export function App() {
     return true;
   };
 
+  const canManageCurrentStaff = () => {
+    const officeProblem = getStaffOfficeProblem(staffDecisionInput);
+    if (officeProblem || staffDecisionInput.busy) {
+      notify(officeProblem ?? '기간 진행 중에는 인사 업무를 변경할 수 없습니다. 진행을 멈춘 뒤 다시 확인하십시오.');
+      return false;
+    }
+    return true;
+  };
+
   const meetStaff = (staffId: string, topic: StaffMeetingTopic) => {
+    if (!canManageCurrentStaff()) return;
     const member = staff.find((item) => item.id === staffId);
     if (member && !staffAuthority.managedDepartments.includes(member.department)) {
       notify(`${withJosa(getStaffSeatTitle(member.department, campaignPhase, playerNation.status), '은/는')} 현재 직함의 면담·평가 권한 밖입니다.`);
@@ -7188,6 +7207,7 @@ export function App() {
   };
 
   const toggleStaffDelegation = (staffId: string) => {
+    if (!canManageCurrentStaff()) return;
     const member = staff.find((item) => item.id === staffId);
     if (!member) return;
     if (!staffAuthority.managedDepartments.includes(member.department)) {
@@ -7204,6 +7224,7 @@ export function App() {
   };
 
   const changeDevelopmentFocus = (staffId: string) => {
+    if (!canManageCurrentStaff()) return;
     const member = staff.find((item) => item.id === staffId);
     if (!member) return;
     if (!staffAuthority.managedDepartments.includes(member.department)) {
@@ -7214,66 +7235,74 @@ export function App() {
     notify(developmentFocusId === staffId ? '집중 육성 지정을 해제했습니다.' : `${withJosa(member.name, '을/를')} 집중 육성합니다.`);
   };
 
-  const upgradeStaff = (staffId: string) => {
-    const member = staff.find((item) => item.id === staffId);
-    if (!member || member.development < 100 || member.grade >= 3) return;
-    if (!staffAuthority.managedDepartments.includes(member.department)) {
-      notify(`${member.name}의 승급은 현재 지휘계통 밖의 인사권입니다.`);
-      return;
+  const commitStaffDecision = (action: StaffDecisionAction): StaffDecisionResult | null => {
+    const assessment = assessStaffDecision(staffDecisionInput, action);
+    if (!assessment.allowed) {
+      notify(assessment.reason);
+      return null;
     }
-    if (game.politicalPower < 8 || game.treasury < 50) {
-      notify(`승급에는 정치력 8과 재정 ${formatGameMoney(50)}가 필요합니다.`);
-      return;
+    const review = createStaffReview(staffDecisionInput, action);
+    if (!review) return null;
+    const committed: { value: StaffDecisionResult | null } = { value: null };
+    const approval = confirmStaffReview(review, staffDecisionInput, (result) => {
+      committed.value = result;
+      setGame(result.gameAfter);
+      setStaff(result.staffAfter);
+      setDevelopmentFocusId(result.developmentFocusAfter);
+      setSpeed(0);
+      return true;
+    }, staffCommandGateRef.current);
+    if (!approval.ok || !committed.value) {
+      notify(approval.reason);
+      return null;
     }
-    setGame((current) => ({ ...current, politicalPower: current.politicalPower - 8, treasury: current.treasury - 50 }));
-    setStaff((current) => current.map((item) => item.id === staffId ? {
-      ...item,
-      grade: Math.min(3, item.grade + 1) as 1 | 2 | 3,
-      development: 0,
-      ability: Math.min(item.potential, item.ability + 4),
-      potential: Math.min(99, item.potential + 1),
-      loyalty: Math.min(100, item.loyalty + 5),
-      workload: Math.min(100, item.workload + 8),
-      weeklyCost: item.weeklyCost + 1,
-    } : item));
-    addEvent('참모 승급 — ' + member.name, member.specialty + ' 역량이 한 단계 전문화됐습니다. 능력과 주급, 조직 내 영향력이 함께 상승합니다.', 'good', game.week);
-    notify(`${withJosa(member.name, '이/가')} 등급 ${member.grade + 1}로 승급했습니다.`);
-  };
-
-  const assignStaffToDepartment = (staffId: string, department: StaffDepartment) => {
-    const member = staff.find((item) => item.id === staffId);
-    const targetMember = staff.find((item) => item.department === department);
-    if (!member || !targetMember || member.department === department) return;
-    if (!staffAuthority.managedDepartments.includes(member.department) || !staffAuthority.managedDepartments.includes(department)) {
-      notify('현재 직함은 선택한 두 보직을 모두 임명할 권한이 없습니다. 잠긴 보직은 상급기관이 관리합니다.');
-      return;
-    }
-    const sourceTitle = getStaffSeatTitle(member.department, campaignPhase, playerNation.status);
-    const targetTitle = getStaffSeatTitle(department, campaignPhase, playerNation.status);
-    const suitability = calculateStaffSuitability(member, department);
-    setStaff((current) => reassignStaff(current, staffId, department));
-    if (developmentFocusId === member.id || developmentFocusId === targetMember.id) setDevelopmentFocusId(null);
+    const result = committed.value;
+    const label = action.kind === 'promote' ? '승급' : action.kind === 'renew' ? '재계약' : '보직 교환';
+    const { memberBefore, memberAfter, cost } = result;
+    const seatTitle = getStaffSeatTitle(memberAfter.department, campaignPhase, playerNation.status);
     addEvent(
-      `참모 보직 교체 — ${member.name}`,
-      `${withJosa(member.name, '을/를')} ${sourceTitle}에서 ${withJosa(targetTitle, '으로/로')} 배치하고 ${withJosa(targetMember.name, '을/를')} 반대 보직으로 이동했습니다. 두 보직의 기존 위임은 안전하게 회수됐습니다.`,
-      suitability.score >= 68 ? 'good' : 'neutral',
+      '참모 ' + label + ' — ' + memberAfter.name,
+      result.summary.join(' '),
+      result.warnings.length ? 'neutral' : 'good',
       game.week,
       {
         domain: 'management',
-        decision: `${withJosa(member.name, '을/를')} ${targetTitle}에 배치했습니다.`,
-        trigger: `${targetTitle}의 현재 보직 적합도와 참모진 뎁스를 재검토했습니다.`,
-        factors: suitability.reasons,
-        effects: [{ label: '보직 적합도', value: `${suitability.score} · ${suitability.label}`, tone: suitability.score >= 68 ? 'positive' : 'neutral' }, { label: '책임 위임', value: '두 보직 모두 직접 결재로 전환', tone: 'neutral' }],
-        ongoing: ['새 부서 기준으로 참모 보너스와 주간 업무가 계산됩니다.', `${withJosa(targetMember.name, '은/는')} ${sourceTitle}에서 계속 참모진에 남습니다.`],
-        nextActions: ['책임 위임 탭에서 새 배치의 결재 범위를 설정하십시오.', '참모 명단에서 충성도·업무량·육성 계획을 검토하십시오.'],
+        decision: memberAfter.name + '의 ' + label + ' 검토를 승인했습니다.',
+        trigger: action.kind === 'assign'
+          ? '두 참모의 보직 적합도·임명 약속·책임 위임을 함께 비교했습니다.'
+          : action.kind === 'renew'
+            ? '남은 임기 ' + getStaffContractWeeks(memberBefore) + '주에서 갱신 비용과 지속 인건비를 확인했습니다.'
+            : '육성 ' + memberBefore.development + '과 전문 등급 ' + memberBefore.grade + '의 승급 요건을 확인했습니다.',
+        factors: result.summary,
+        effects: [
+          { label: '국고', value: formatGameMoney(game.treasury, { exact: true }) + ' → ' + formatGameMoney(result.gameAfter.treasury, { exact: true }), tone: cost.treasury ? 'negative' : 'neutral' },
+          { label: '정치력', value: game.politicalPower + ' → ' + result.gameAfter.politicalPower, tone: cost.politicalPower ? 'negative' : 'neutral' },
+          { label: '전체 주간 인건비', value: formatGameMoney(result.weeklyPayrollBefore, { exact: true }) + ' → ' + formatGameMoney(result.weeklyPayrollAfter, { exact: true }), tone: 'neutral' },
+          ...result.changes.map((change) => ({
+            label: change.after.name + ' · 보직 적합도',
+            value: change.fitBefore.score + ' → ' + change.fitAfter.score + ' · ' + change.fitAfter.label,
+            tone: (change.fitAfter.score < change.fitBefore.score ? 'negative' : change.fitAfter.score > change.fitBefore.score ? 'positive' : 'neutral') as 'negative' | 'positive' | 'neutral',
+          })),
+        ],
+        ongoing: result.warnings.length ? result.warnings : ['승인된 참모·계약·배치는 즉시 반영됐으며 지속 인건비와 조직 영향은 다음 주간 결산에서도 확인할 수 있습니다.'],
+        nextActions: action.kind === 'assign'
+          ? ['두 보직의 책임 위임과 집중 육성을 다시 설정하십시오.', '기존 임명 약속과 납품 약속의 종료 여부를 검토하십시오.']
+          : ['주간 결산에서 인건비와 조직 분위기를 확인하십시오.', '참모 명단에서 계약·육성·업무량을 계속 관리하십시오.'],
         certainty: 'confirmed',
       },
     );
-    notify(`${member.name} → ${targetTitle} 배치 완료 · 적합도 ${suitability.score}`);
-    recordSuccessfulRoleAction('organization', `staff-assignment:${staffId}:${department}`, `${member.name} ${targetTitle} 배치`);
+    notify(memberAfter.name + ' · ' + label + ' 반영 · ' + seatTitle);
+    if (action.kind === 'assign') recordSuccessfulRoleAction('organization', 'staff-assignment:' + action.staffId + ':' + action.department, memberAfter.name + ' ' + seatTitle + ' 배치');
+    return result;
   };
 
+  const upgradeStaff = (staffId: string) => Boolean(commitStaffDecision({ kind: 'promote', staffId }));
+
+  const assignStaffToDepartment = (staffId: string, department: StaffDepartment) =>
+    Boolean(commitStaffDecision({ kind: 'assign', staffId, department }));
+
   const commitPersonnelAction = (action: PersonnelAction): PersonnelActionResult | null => {
+    if (!canManageCurrentStaff()) return null;
     const context = { game, role: displayedCareerRole, reputation: career.reputation, staff, candidates: staffCandidates, busy: periodAdvanceRemaining > 0 };
     const assessment = assessPersonnelAction(context, action);
     if (!assessment.allowed) {
@@ -7392,43 +7421,7 @@ export function App() {
     return true;
   };
 
-  const renewStaffContract = (staffId: string) => {
-    const member = staff.find((item) => item.id === staffId);
-    if (!member || !staffAuthority.managedDepartments.includes(member.department)) return;
-    const renewalCost = getStaffRenewalCost(member);
-    if (game.politicalPower < 4 || game.treasury < renewalCost) {
-      notify(`재계약에는 정치력 4와 갱신 보너스 ${formatGameMoney(renewalCost)}가 필요합니다.`);
-      return;
-    }
-    const nextWeeklyCost = Math.ceil(member.weeklyCost * 1.08);
-    setGame((current) => ({ ...current, politicalPower: current.politicalPower - 4, treasury: current.treasury - renewalCost }));
-    setStaff((current) => current.map((item) => item.id === staffId ? {
-      ...item,
-      contractWeeksRemaining: Math.max(getStaffContractWeeks(item), 0) + 104,
-      contractTermWeeks: 104,
-      weeklyCost: nextWeeklyCost,
-      morale: Math.min(100, (item.morale ?? 65) + 10),
-      roleSatisfaction: Math.min(100, (item.roleSatisfaction ?? 65) + 6),
-      loyalty: Math.min(100, item.loyalty + 5),
-    } : item));
-    addEvent(
-      `참모 재계약 — ${member.name}`,
-      `${getStaffSeatTitle(member.department, campaignPhase, playerNation.status)}의 임기를 104주 연장했습니다. 갱신 보너스 ${formatGameMoney(renewalCost)}, 새 주급 ${formatGameMoney(nextWeeklyCost)}입니다.`,
-      'good',
-      game.week,
-      {
-        domain: 'management',
-        decision: `${withJosa(member.name, '과/와')} 2년 재계약을 체결했습니다.`,
-        trigger: `남은 계약 ${getStaffContractWeeks(member)}주로 승계 또는 재계약 판단이 필요했습니다.`,
-        factors: [`현재 능력 ${member.ability}`, `영향력 ${member.influence}`, `충성도 ${member.loyalty}`, `기존 주급 ${formatGameMoney(member.weeklyCost)}`],
-        effects: [{ label: '계약 기간', value: '+104주', tone: 'positive' }, { label: '사기', value: '+10', tone: 'positive' }, { label: '주급', value: formatGameMoney(nextWeeklyCost), tone: 'neutral' }],
-        ongoing: ['계약 안정은 조직 분위기와 지도부 수용도를 지지합니다.', '보직 약속과 업무 과부하는 재계약 뒤에도 계속 관리해야 합니다.'],
-        nextActions: ['책임 위임과 업무량을 다시 검토하십시오.', '후임 후보는 비상 승계선으로 관심 명단에 유지할 수 있습니다.'],
-        certainty: 'confirmed',
-      },
-    );
-    notify(`${member.name} 재계약 완료 · 104주 연장`);
-  };
+  const renewStaffContract = (staffId: string) => Boolean(commitStaffDecision({ kind: 'renew', staffId }));
 
   const setPriorityFormation = (divisionId: string) => {
     if (priorityDivisionId === divisionId) return;
@@ -9087,6 +9080,7 @@ export function App() {
                 careerReputation={career.reputation}
                 busy={periodAdvanceRemaining > 0}
                 careerOfferCount={pendingCareerOfferCount}
+                staffDecisionInput={staffDecisionInput}
                 careerStatusLabel={careerAffiliationLabels[careerMarket.affiliationStatus]}
                 staff={staff}
                 candidates={staffCandidates}

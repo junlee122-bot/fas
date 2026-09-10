@@ -218,6 +218,8 @@ export interface NationWeeklyReport {
   industrySettlement?: { nationId: NationId; week: number; additionalTreasuryCost: number; includedBudgetUsed: number };
   fiscalRevenue: number;
   fiscalExpenditure: number;
+  /** Included in fiscalExpenditure, not an additional debit; absent in legacy reports. */
+  staffWeeklyCost?: number;
   fiscalBalance: number;
   debtChange: number;
   inflationChange: number;
@@ -281,6 +283,8 @@ export interface NationManagementContext {
   relationAverage: number;
   completedResearch: number;
   publicHealthPressure: number;
+  /** Current appointed roster payroll. Legacy simulations may omit this value. */
+  staffWeeklyCost?: number;
   role?: CareerRole;
 }
 
@@ -965,13 +969,18 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     + Math.max(-8, state.tradeBalance * 0.12)
     + state.civilianIndustry * 0.08,
   );
+  const staffWeeklyCost = typeof context.staffWeeklyCost === 'number'
+    && Number.isFinite(context.staffWeeklyCost) && context.staffWeeklyCost >= 0
+    ? context.staffWeeklyCost
+    : 0;
   const fiscalExpenditure = round(
     state.spendingLevel * 0.78
     + Math.min(fiscalRevenue * 0.45, context.economy.debt * 0.0008)
     + context.publicHealthPressure * 0.08
     + Math.max(0, state.unrest - 55) * 0.08
     + dynasticEffects.weeklyCost
-    + personalLifeEffects.weeklyCost,
+    + personalLifeEffects.weeklyCost
+    + staffWeeklyCost,
   );
   const fiscalBalance = round(fiscalRevenue - fiscalExpenditure);
   const debtChange = round(fiscalBalance < 0
@@ -1258,14 +1267,16 @@ export function advanceNationManagementWeek(state: NationManagementState, contex
     week: context.week,
     fiscalRevenue,
     fiscalExpenditure,
+    staffWeeklyCost,
     fiscalBalance,
     debtChange,
     inflationChange,
     nationalScore: next.nationalScore,
     mandateScore: next.mandateScore,
     causes: [
-      `세입 = 산업기반 ${context.game.factories}개 · 조세부담 ${state.taxBurden}/100 · 안정도 ${context.game.stability}/100 · 무역수지 ${state.tradeBalance.toFixed(1)}`,
+      `세입 = 산업기반 ${round(context.game.factories)}개 · 조세부담 ${round(state.taxBurden)}/100 · 안정도 ${round(context.game.stability)}/100 · 무역수지 ${state.tradeBalance.toFixed(1)}`,
       `지출 = 공공지출 ${state.spendingLevel}/100 · 부채상환 £${Math.min(fiscalRevenue * 0.45, context.economy.debt * 0.0008).toFixed(1)}M · 보건·사회불안 비용`,
+      '참모·전문가 급여 = 현재 재직 명단의 계약 보수는 총지출에 한 번 포함되며 별도로 다시 차감하지 않습니다.',
       `정책효율 = ${nationStrategies.find((candidate) => candidate.id === state.strategyId)?.name ?? state.strategyId} × 부처별 예산배분`,
       `거시균형 = ${campaignYear}년 물가 목표 ${inflationTarget.toFixed(1)}% · 7년 경기순환 ${businessCycle >= 0 ? '확장' : '조정'} 국면`,
       `대외압력 = 외교관계·국가안정·치안예산을 반영한 균형점 ${externalPressureTarget.toFixed(1)}/100`,

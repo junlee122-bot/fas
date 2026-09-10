@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRightLeft,
@@ -47,6 +47,10 @@ import {
 import type { RecruitmentOffer, TalentMarketSort } from './recruitment';
 import { RecruitmentNegotiation } from './RecruitmentNegotiation';
 import { CandidateActionReview } from './CandidateActionReview';
+import { StaffDecisionReview, createStaffDeskReview, getStaffDeskAvailability } from './StaffDecisionReview';
+import type { StaffDeskContext, StaffDeskReview } from './StaffDecisionReview';
+import { createStaffReviewGate, getStaffOfficeProblem } from './staffDecisions';
+import type { StaffDecisionAction, StaffDecisionInput } from './staffDecisions';
 import { assessPersonnelAction, createPersonnelReview, getCandidateScoutingPlan, getPersonnelScoutingSummary } from './personnelActions';
 import type { PersonnelAction, PersonnelContext, PersonnelReview } from './personnelActions';
 import { StaffNarrativeBoard } from './StaffNarrativeBoard';
@@ -56,7 +60,6 @@ import {
   createStaffManagementOverview,
   getStaffBuyIn,
   getStaffMorale,
-  getStaffRenewalCost,
   getStaffRoleSatisfaction,
   staffMeetingOptions,
 } from './staffManagement';
@@ -111,18 +114,18 @@ export interface OrganizationPanelProps {
   formatMoney: (value: number, options?: { signed?: boolean; exact?: boolean }) => string;
   onMeetStaff: (id: string, topic: StaffMeetingTopic) => void;
   onToggleDelegation: (id: string) => void;
-  onAssignStaff: (staffId: string, department: StaffDepartment) => void;
+  onAssignStaff: (staffId: string, department: StaffDepartment) => void | boolean;
   onSetPriorityDivision: (id: string) => void;
   onSetProcurementFocus: (id: string) => void;
   onSetSupplyPolicy: (policy: SupplyPolicy) => void;
   onSelectPolicy: (policyId: string) => void;
   onSetDevelopmentFocus: (staffId: string) => void;
-  onUpgradeStaff: (staffId: string) => void;
+  onUpgradeStaff: (staffId: string) => void | boolean;
   onScoutCandidate: (candidateId: string) => void | boolean;
   onToggleShortlist: (candidateId: string) => void;
   onApproachCandidate: (candidateId: string) => void | boolean;
   onRecruitCandidate: (candidateId: string, offer: RecruitmentOffer) => void | boolean;
-  onRenewStaff: (staffId: string) => void;
+  onRenewStaff: (staffId: string) => void | boolean;
   onResolveStaffNarrative: (storylineId: string, optionId: string) => void;
   onOpenCareerMarket: () => void;
   workspace?: OrganizationWorkspace;
@@ -131,6 +134,22 @@ export interface OrganizationPanelProps {
   onOpenDeliveryPledges?: (staffId: string) => void;
   busy?: boolean;
   onStopScouting?: (candidateId: string) => void | boolean;
+  /** Required for paid staff actions. An unconnected roster stays read-only. */
+  staffDecisionInput?: StaffDecisionInput;
+}
+
+export function getOrganizationStaffDecisionInput(props: Pick<OrganizationPanelProps, 'staffDecisionInput' | 'game' | 'role' | 'staff' | 'developmentFocusId' | 'campaignPhase' | 'nation' | 'busy'>): StaffDecisionInput | null {
+  const input = props.staffDecisionInput;
+  if (!input || input.role.nationId !== props.nation.id || input.role.id !== props.role.id || input.role.archetype !== props.role.archetype
+    || input.role.tier !== props.role.tier || input.role.branch !== props.role.branch
+    || input.campaignPhase !== props.campaignPhase || input.nationStatus !== props.nation.status
+    || input.developmentFocusId !== props.developmentFocusId
+    || JSON.stringify(input.game) !== JSON.stringify(props.game) || JSON.stringify(input.staff) !== JSON.stringify(props.staff)) return null;
+  return { ...input, busy: Boolean(input.busy || props.busy) };
+}
+
+export function getOrganizationSelectedStaff(staff: StaffMember[], identity: { id: string; personId: string } | null) {
+  return identity ? staff.find((member) => member.id === identity.id && member.personId === identity.personId) ?? null : null;
 }
 
 const departmentLabels: Record<StaffDepartment, string> = {
@@ -291,6 +310,7 @@ export function OrganizationPanel({
   onOpenDeliveryPledges,
   busy = false,
   onStopScouting,
+  staffDecisionInput,
 }: OrganizationPanelProps) {
   const [talentQuery, setTalentQuery] = useState('');
   const [disciplineFilter, setDisciplineFilter] = useState<PersonnelDiscipline | 'all'>('all');
@@ -302,10 +322,19 @@ export function OrganizationPanel({
   const [internalWorkspace, setInternalWorkspace] = useState<OrganizationWorkspace>('squad');
   const workspace = controlledWorkspace ?? internalWorkspace;
   const setWorkspace = (value: OrganizationWorkspace) => {
+    setStaffReview(null);
     if (controlledWorkspace === undefined) setInternalWorkspace(value);
     onWorkspaceChange?.(value);
   };
-  const [selectedStaffIdentity, setSelectedStaffIdentity] = useState<{ id: string; personId: string } | null>(null);
+  const [selectedStaffIdentity, setSelectedStaffIdentity] = useState<{ id: string; personId: string } | null>(() => {
+    const first = staff.find((member) => getStaffAuthorityProfile(role).managedDepartments.includes(member.department)) ?? staff[0];
+    return first ? { id: first.id, personId: first.personId } : null;
+  });
+  const [staffReview, setStaffReview] = useState<StaffDeskReview | null>(null);
+  const [staffReviewMessage, setStaffReviewMessage] = useState('');
+  const staffReviewGate = useRef(createStaffReviewGate());
+  const staffReviewReturnFocus = useRef<HTMLElement | null>(null);
+  const staffReviewSequence = useRef(0);
   const detailId = useId();
   const reportId = useId();
   const negotiationId = useId();
@@ -314,8 +343,13 @@ export function OrganizationPanel({
   const [candidateReview, setCandidateReview] = useState<PersonnelReview | null>(null);
   const [meetingStaffIdentity, setMeetingStaffIdentity] = useState<{ id: string; personId: string } | null>(null);
   const [recruitmentOffer, setRecruitmentOffer] = useState<RecruitmentOffer>(defaultRecruitmentOffer);
-  const authority = useMemo(() => getStaffAuthorityProfile(role), [role]);
-  const [selectedStaffDepartment, setSelectedStaffDepartment] = useState<StaffDepartment>(() => authority.managedDepartments[0]);
+  const officeProblem = staffDecisionInput ? getStaffOfficeProblem(staffDecisionInput) : null;
+  const authority = useMemo(() => {
+    const profile = getStaffAuthorityProfile(role);
+    return officeProblem ? { ...profile, managedDepartments: [], maxDelegations: 0,
+      label: '인사권 없음 · 열람 전용', summary: officeProblem, restrictionReason: officeProblem } : profile;
+  }, [role, officeProblem]);
+  const [selectedStaffDepartment, setSelectedStaffDepartment] = useState<StaffDepartment>(() => authority.managedDepartments[0] ?? 'operations');
   const manageableDepartments = useMemo(() => new Set(authority.managedDepartments), [authority]);
   const manageableStaffIds = useMemo(() => new Set(staff.filter((member) => manageableDepartments.has(member.department)).map((member) => member.id)), [manageableDepartments, staff]);
   const delegatedCount = staff.filter((member) => member.delegated).length;
@@ -326,6 +360,11 @@ export function OrganizationPanel({
   const scienceBonus = scienceAdvisor?.delegated ? Math.max(2, Math.round((scienceAdvisor.ability + scienceAdvisor.influence) / 62)) : 0;
   const economyBonus = economyAdvisor?.delegated ? Math.max(8, Math.round((economyAdvisor.ability + economyAdvisor.influence) / 12)) : 0;
   const personnelContext: PersonnelContext = { game, role, reputation: careerReputation, staff, candidates, busy };
+  const assessCandidateAction = (action: PersonnelAction) => officeProblem
+    ? { allowed: false as const, reason: officeProblem }
+    : assessPersonnelAction(personnelContext, action);
+  const liveStaffInput = getOrganizationStaffDecisionInput({ staffDecisionInput, game, role, staff, developmentFocusId, campaignPhase, nation, busy });
+  const staffDeskContext: StaffDeskContext = { input: liveStaffInput, formatMoney, onUpgradeStaff, onRenewStaff, onAssignStaff };
   const scoutingSummary = getPersonnelScoutingSummary(personnelContext);
   const shortlistCount = candidates.filter(isCandidateShortlisted).length;
   const scoutingCount = scoutingSummary.active;
@@ -382,19 +421,19 @@ export function OrganizationPanel({
     ? staffOverview.relationships.filter((relationship) => relationship.kind === 'tension' || relationship.kind === 'rivalry').slice(0, 4)
     : [...staffOverview.relationships].sort((left, right) => right.affinity - left.affinity).slice(0, 3);
   const selectedSeatPlan = staffOverview.seats.find((seat) => seat.department === selectedStaffDepartment) ?? staffOverview.seats[0];
-  const selectedStaff = staff.find((member) => member.id === selectedStaffIdentity?.id && member.personId === selectedStaffIdentity.personId)
-    ?? staff.find((member) => manageableDepartments.has(member.department)) ?? staff[0] ?? null;
+  const selectedStaff = getOrganizationSelectedStaff(staff, selectedStaffIdentity);
   const selectedStaffManaged = selectedStaff ? manageableDepartments.has(selectedStaff.department) : false;
   const selectedStaffDynamics = staffOverview.dynamics.find((record) => record.member.id === selectedStaff?.id);
-  const selectedStaffRenewalCost = selectedStaff ? getStaffRenewalCost(selectedStaff) : 0;
+  const selectedPromotion = selectedStaff ? getStaffDeskAvailability(liveStaffInput, { kind: 'promote', staffId: selectedStaff.id }) : null;
+  const selectedRenewal = selectedStaff ? getStaffDeskAvailability(liveStaffInput, { kind: 'renew', staffId: selectedStaff.id }) : null;
   const selectedCandidateFit = selectedCandidate ? calculateCandidateSeatFit(selectedCandidate, selectedCandidate.department) : null;
   const recruitmentPriorities = [...staffOverview.seats].filter((seat) => seat.manageable).sort((left, right) => right.needScore - left.needScore).slice(0, 3);
   const rankedStaff = useMemo(() => staff
-    .filter((member) => manageableDepartments.has(member.department))
     .map((member) => ({ member, suitability: calculateStaffSuitability(member, selectedStaffDepartment) }))
-    .sort((left, right) => right.suitability.score - left.suitability.score), [manageableDepartments, selectedStaffDepartment, staff]);
+    .sort((left, right) => right.suitability.score - left.suitability.score), [selectedStaffDepartment, staff]);
   const selectedCandidateNextAction = !selectedCandidate
     ? ''
+    : officeProblem ? officeProblem
     : selectedCandidateUnavailable
       ? selectedCandidate.status === 'signed' ? '영입 완료: 직속 참모진에서 임명 상태를 확인하십시오.' : '경쟁 기관이 먼저 영입해 현재 시장에서는 접근할 수 없습니다.'
       : selectedCandidate.knowledge < 30
@@ -418,6 +457,7 @@ export function OrganizationPanel({
     }, 0);
   };
   const openNegotiation = (candidate: StaffCandidate) => {
+    if (officeProblem) return;
     setCandidateReview(null);
     setSelectedCandidateId(candidate.id);
     setRecruitmentOffer(defaultRecruitmentOffer);
@@ -426,6 +466,7 @@ export function OrganizationPanel({
     window.setTimeout(() => document.getElementById(negotiationId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
   };
   const reviewCandidateAction = (candidateId: string, kind: PersonnelAction['kind']) => {
+    if (officeProblem) return;
     setSelectedCandidateId(candidateId);
     setNegotiatingCandidateId(null);
     setCandidateReview(createPersonnelReview(personnelContext, { kind, candidateId }));
@@ -436,6 +477,7 @@ export function OrganizationPanel({
     }, 0);
   };
   const dispatchCandidateAction = (action: PersonnelAction) => {
+    if (officeProblem) return false;
     if (action.kind === 'scout') return onScoutCandidate(action.candidateId);
     if (action.kind === 'stop-scout') return onStopScouting ? onStopScouting(action.candidateId) : false;
     if (action.kind === 'approach') return onApproachCandidate(action.candidateId);
@@ -448,7 +490,25 @@ export function OrganizationPanel({
   };
   const selectStaffById = (staffId: string) => {
     const member = staff.find((person) => person.id === staffId);
-    if (member) setSelectedStaffIdentity({ id: member.id, personId: member.personId });
+    if (member) { setSelectedStaffIdentity({ id: member.id, personId: member.personId }); setStaffReview(null); }
+  };
+  const changeStaffView = (value: typeof staffView) => { setStaffReview(null); setStaffView(value); };
+  const reviewStaffAction = (action: StaffDecisionAction) => {
+    const next = createStaffDeskReview(staffDeskContext, action);
+    if (!next) { setStaffReviewMessage(getStaffDeskAvailability(liveStaffInput, action).reason); return; }
+    staffReviewReturnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    staffReviewSequence.current += 1;
+    setStaffReview(next);
+    setStaffReviewMessage('');
+  };
+  const closeStaffReview = () => {
+    setStaffReview(null);
+    setStaffReviewMessage('');
+    window.setTimeout(() => {
+      const origin = staffReviewReturnFocus.current;
+      if (origin?.isConnected && !origin.matches(':disabled') && origin.getClientRects().length) { origin.focus(); return; }
+      document.querySelector<HTMLElement>('.organization-panel-v2 .staff-management-tabs button[aria-pressed="true"]')?.focus();
+    }, 0);
   };
 
   return (
@@ -462,6 +522,7 @@ export function OrganizationPanel({
           <div><span>{workspace === 'squad' ? 'STAFF SQUAD' : 'TALENT MARKET'}</span><h3>{workspace === 'squad' ? '참모 스쿼드' : '후보 시장'}</h3><p>{workspace === 'squad' ? '명단에서 한 명을 선택하고, 상태를 확인한 뒤 조치하십시오.' : '후보를 찾고 조사 보고서에서 정보·비용·임명 권한을 확인하십시오.'}</p></div>
           <button type="button" className={`org-career-link ${careerOfferCount > 0 ? 'has-offers' : ''}`} aria-label={`내 국제 경력 · ${careerStatusLabel} · 제안 ${careerOfferCount}건`} onClick={onOpenCareerMarket}><BriefcaseBusiness size={16} /><span><span className="org-career-label">내 국제 경력</span><small><span className="org-career-status">{careerStatusLabel} · </span>제안 {careerOfferCount}건</small></span></button>
         </div>
+        {officeProblem && <p className="org-staff-action-notice" role="status"><strong>인사권 없음 · 열람 전용.</strong> {officeProblem} 조사·접촉·관심 명단 변경도 잠기지만 기존 참모와 후보 보고서는 계속 확인할 수 있습니다.</p>}
         {workspace === 'squad' && <>
         <div className="org-squad-summary" aria-label="참모진 핵심 현황">
           <span><small>현재 재직 / 직접 관리</small><strong>{staff.length}명 / {manageableStaffIds.size}명</strong></span>
@@ -469,16 +530,20 @@ export function OrganizationPanel({
           <span><small>계약 만료 임박 · 13주 이내</small><strong>{staffOverview.expiringContracts}명</strong></span>
         </div>
         <nav className="staff-management-tabs" aria-label="참모 관리 보기">
-          <button type="button" className={staffView === 'roster' ? 'active' : ''} aria-pressed={staffView === 'roster'} onClick={() => setStaffView('roster')}><List size={15} /> 명단·개인 관리</button>
-          <button type="button" className={staffView === 'planner' ? 'active' : ''} aria-pressed={staffView === 'planner'} onClick={() => setStaffView('planner')}><LayoutGrid size={15} /> 보직 배치</button>
-          <button type="button" className={staffView === 'responsibilities' ? 'active' : ''} aria-pressed={staffView === 'responsibilities'} onClick={() => setStaffView('responsibilities')}><ShieldCheck size={15} /> 책임 위임</button>
-          <button type="button" className={staffView === 'dynamics' ? 'active' : ''} aria-pressed={staffView === 'dynamics'} onClick={() => setStaffView('dynamics')}><HeartHandshake size={15} /> 분위기·계약{staffNarrative.activeStorylines.length > 0 && <em>{staffNarrative.activeStorylines.length}</em>}</button>
+          <button type="button" className={staffView === 'roster' ? 'active' : ''} aria-pressed={staffView === 'roster'} onClick={() => changeStaffView('roster')}><List size={15} /> 명단·개인 관리</button>
+          <button type="button" className={staffView === 'planner' ? 'active' : ''} aria-pressed={staffView === 'planner'} onClick={() => changeStaffView('planner')}><LayoutGrid size={15} /> 보직 배치</button>
+          <button type="button" className={staffView === 'responsibilities' ? 'active' : ''} aria-pressed={staffView === 'responsibilities'} onClick={() => changeStaffView('responsibilities')}><ShieldCheck size={15} /> 책임 위임</button>
+          <button type="button" className={staffView === 'dynamics' ? 'active' : ''} aria-pressed={staffView === 'dynamics'} onClick={() => changeStaffView('dynamics')}><HeartHandshake size={15} /> 분위기·계약{staffNarrative.activeStorylines.length > 0 && <em>{staffNarrative.activeStorylines.length}</em>}</button>
         </nav>
+
+        {!liveStaffInput && <p className="org-staff-action-notice" role="status">인사·국고 기록 연결 필요 · 승급·계약 연장·보직 배치는 열람 전용입니다.</p>}
+        {staffReviewMessage && <p className="org-staff-action-notice" role="status">{staffReviewMessage}</p>}
+        {staffReview && <StaffDecisionReview key={staffReviewSequence.current} review={staffReview} context={staffDeskContext} gate={staffReviewGate.current} onClose={closeStaffReview} />}
 
         {staffView === 'planner' && (
           <div className="staff-planner-layout">
             <section className="staff-seat-board" aria-label="참모 보직 계획">
-              <header><span><UserRoundCog size={16} /><strong>보직별 뎁스 차트</strong></span><small>보직을 고른 뒤 오른쪽 후보를 비교해 즉시 교체합니다.</small></header>
+              <header><span><UserRoundCog size={16} /><strong>보직별 뎁스 차트</strong></span><small>보직과 인물을 고르고, 이동하는 모든 참모의 영향을 검토한 뒤 승인합니다.</small></header>
               <div className="staff-seat-grid">
                 {staffSeatDefinitions.map((seat) => {
                   const member = staff.find((item) => item.department === seat.department);
@@ -492,7 +557,7 @@ export function OrganizationPanel({
                       className={`staff-seat-card ${selected ? 'selected' : ''} ${manageable ? '' : 'locked'}`}
                       key={seat.department}
                       aria-pressed={selected}
-                      onClick={() => setSelectedStaffDepartment(seat.department)}
+                      onClick={() => { setStaffReview(null); setSelectedStaffDepartment(seat.department); }}
                     >
                       <span className="staff-seat-card-top"><em>{seat.label}</em>{manageable ? <small>관리 가능</small> : <small><LockKeyhole size={10} /> 상급 권한</small>}</span>
                       <strong>{getStaffSeatTitle(seat.department, campaignPhase, nation.status)}</strong>
@@ -516,12 +581,14 @@ export function OrganizationPanel({
                   <div className="staff-option-list">
                     {rankedStaff.map(({ member, suitability }, index) => {
                       const incumbent = member.department === selectedStaffDepartment;
+                      const assignment = getStaffDeskAvailability(liveStaffInput, { kind: 'assign', staffId: member.id, department: selectedStaffDepartment });
                       return (
                         <article className={`staff-option ${incumbent ? 'incumbent' : ''}`} key={member.id}>
                           <span className="staff-option-rank">{index + 1}</span>
                           <span className="staff-option-copy"><strong>{member.name}</strong><small>{getStaffSeatTitle(member.department, campaignPhase, nation.status)} · 능력 {member.ability} · 잠재 {member.potential}</small><em>{suitability.reasons[0]}</em></span>
                           <span className="staff-option-score"><small>{suitability.label}</small><strong>{suitability.score}</strong></span>
-                          <button type="button" disabled={incumbent} onClick={() => onAssignStaff(member.id, selectedStaffDepartment)}>{incumbent ? '현재 배치' : <><ArrowRightLeft size={12} /> 배치</>}</button>
+                          <button type="button" disabled={!assignment.allowed} title={assignment.reason} aria-label={`${member.name} 보직 배치 검토`} onClick={() => reviewStaffAction({ kind: 'assign', staffId: member.id, department: selectedStaffDepartment })}>{incumbent ? '현재 배치' : <><ArrowRightLeft size={12} /> 배치 검토</>}</button>
+                          {!assignment.allowed && !incumbent && <p className="org-assignment-reason">{assignment.reason}</p>}
                         </article>
                       );
                     })}
@@ -546,7 +613,7 @@ export function OrganizationPanel({
             <section className="org-roster" aria-label="현재 참모 명단">
               <header><span><UsersRound size={16} /><strong>현재 재직자</strong></span><small>{staff.length}명 · 인물을 선택해 상세 보기</small></header>
               <label className="org-mobile-staff-picker"><span>참모 선택 <small>재직 {staff.length}명</small></span><select aria-label="참모 선택" aria-controls={detailId} value={selectedStaff?.id ?? ''} disabled={!staff.length} onChange={(event) => selectStaffById(event.target.value)}>
-                {!staff.length && <option value="">현재 재직자가 없습니다</option>}
+                {!selectedStaff && <option value="">{staff.length ? '인물을 다시 선택하십시오' : '현재 재직자가 없습니다'}</option>}
                 {staff.map((member) => <option key={`${member.id}:${member.personId}`} value={member.id}>{member.name} · {getStaffSeatTitle(member.department, campaignPhase, nation.status)}{manageableDepartments.has(member.department) ? '' : ' · 열람 전용'}</option>)}
               </select></label>
               <div className="org-roster-list">
@@ -575,21 +642,26 @@ export function OrganizationPanel({
                   <span><small>사기</small><strong>{getStaffMorale(selectedStaff)}</strong><Meter value={getStaffMorale(selectedStaff)} tone={getStaffMorale(selectedStaff) < 50 ? 'red' : 'blue'} /></span>
                   <span><small>충성도</small><strong>{Math.round(selectedStaff.loyalty)}</strong><Meter value={selectedStaff.loyalty} tone={selectedStaff.loyalty < 55 ? 'red' : 'gold'} /></span>
                   <span><small>업무량</small><strong>{Math.round(selectedStaff.workload)}%</strong><Meter value={selectedStaff.workload} tone={selectedStaff.workload > 75 ? 'red' : 'blue'} /></span>
-                  <span><small>등급 {selectedStaff.grade} · 성장</small><strong>{selectedStaff.development}%</strong><Meter value={selectedStaff.development} tone="gold" /></span>
+                  <span><small>성장 등급 {selectedStaff.grade}/3 · 보직 별과 별도</small><strong>{selectedStaff.development}%</strong><Meter value={selectedStaff.development} tone="gold" /></span>
                   <span><small>주급 / 잔여 계약</small><strong>{formatMoney(selectedStaff.weeklyCost)} / {selectedStaffDynamics?.contractWeeks ?? '미확인'}주</strong></span>
                 </div>
                 {selectedStaffDynamics && <div className={`org-person-commitment ${selectedStaffDynamics.promise.state}`}><span><HeartHandshake size={15} /><strong>임명 합의 · {selectedStaffDynamics.promise.label}</strong></span><p>{selectedStaffDynamics.promise.summary}</p><small>역할 만족 {selectedStaffDynamics.roleSatisfaction} · 지도부 수용 {selectedStaffDynamics.buyIn} · 계약 {contractRiskLabels[selectedStaffDynamics.contractRisk]}</small></div>}
                 {!selectedStaffManaged && <p className="org-authority-notice"><LockKeyhole size={16} />{authority.restrictionReason} 이 인물은 열람만 가능하며, 아래 관리 조치는 실행할 수 없습니다.</p>}
                 <div className="org-person-actions" aria-label="선택한 참모 관리 조치">
                   <button type="button" disabled={!selectedStaffManaged} onClick={() => openStaffMeeting(selectedStaff.id)}><MessageSquare size={16} /> 면담 의제 선택</button>
-                  <button type="button" disabled={!selectedStaffManaged || (!selectedStaff.delegated && managedDelegatedCount >= authority.maxDelegations)} className={selectedStaff.delegated ? 'active' : ''} title={!selectedStaffManaged ? authority.restrictionReason : !selectedStaff.delegated && managedDelegatedCount >= authority.maxDelegations ? '현재 보직의 책임 위임 한도에 도달했습니다.' : '위임 상태를 변경합니다.'} onClick={() => onToggleDelegation(selectedStaff.id)}><Check size={16} /> {selectedStaff.delegated ? '위임 회수' : managedDelegatedCount >= authority.maxDelegations ? '위임 한도 도달' : '책임 위임'}</button>
+                  <button type="button" disabled={!selectedStaffManaged || (!selectedStaff.delegated && managedDelegatedCount >= authority.maxDelegations)} className={selectedStaff.delegated ? 'active' : ''} title={!selectedStaffManaged ? authority.restrictionReason : !selectedStaff.delegated && managedDelegatedCount >= authority.maxDelegations ? '현재 보직의 책임 위임 한도에 도달했습니다.' : '위임 상태를 변경합니다.'} onClick={() => onToggleDelegation(selectedStaff.id)}><Check size={16} /> {!selectedStaffManaged ? '인사권 없음' : selectedStaff.delegated ? '위임 회수' : managedDelegatedCount >= authority.maxDelegations ? '위임 한도 도달' : '책임 위임'}</button>
                   <button type="button" disabled={!selectedStaffManaged} className={developmentFocusId === selectedStaff.id ? 'active' : ''} onClick={() => onSetDevelopmentFocus(selectedStaff.id)}><Star size={16} /> {developmentFocusId === selectedStaff.id ? '육성 대상으로 지정됨' : '육성 대상으로 지정'}</button>
-                  <button type="button" disabled={!selectedStaffManaged || selectedStaff.development < 100 || selectedStaff.grade >= 3} title={!selectedStaffManaged ? authority.restrictionReason : selectedStaff.grade >= 3 ? '이미 최고 등급입니다.' : selectedStaff.development < 100 ? `성장도 100%가 필요합니다. 현재 ${selectedStaff.development}%` : '정치력과 재정을 사용해 승급합니다.'} onClick={() => onUpgradeStaff(selectedStaff.id)}><RefreshCw size={16} /> 승급</button>
-                  {selectedStaffDynamics && <button type="button" disabled={!selectedStaffManaged || selectedStaffDynamics.contractRisk === 'secure' || game.politicalPower < 4 || game.treasury < selectedStaffRenewalCost} title={`2년 재계약 · 정치력 4 · 보너스 ${formatMoney(selectedStaffRenewalCost)}`} onClick={() => onRenewStaff(selectedStaff.id)}><CalendarClock size={16} /> {selectedStaffDynamics.contractRisk === 'secure' ? '계약 안정' : `재계약 · 4PP + ${formatMoney(selectedStaffRenewalCost)}`}</button>}
-                  <button type="button" onClick={() => { setSelectedStaffDepartment(selectedStaff.department); setStaffView('planner'); }}><ArrowRightLeft size={16} /> 보직 배치 비교</button>
+                  <button type="button" disabled={!selectedPromotion?.allowed} title={selectedPromotion?.reason} onClick={() => reviewStaffAction({ kind: 'promote', staffId: selectedStaff.id })}><RefreshCw size={16} /> 승급 검토</button>
+                  {selectedStaffDynamics && <button type="button" disabled={!selectedRenewal?.allowed} title={selectedRenewal?.reason} onClick={() => reviewStaffAction({ kind: 'renew', staffId: selectedStaff.id })}><CalendarClock size={16} /> {selectedStaffDynamics.contractRisk === 'secure' ? '계약 안정' : '재계약 검토 · 104주 추가'}</button>}
+                  <button type="button" onClick={() => { setSelectedStaffDepartment(selectedStaff.department); changeStaffView('planner'); }}><ArrowRightLeft size={16} /> 보직 배치 비교</button>
                   {onOpenDeliveryPledges && campaignPhase === 'nation' && selectedStaffManaged && <button type="button" className="org-pledge-link" onClick={() => onOpenDeliveryPledges(selectedStaff.id)}><Target size={16} /> 이 참모의 이행 약속 열기</button>}
                 </div>
-                <p className="org-read-only-note">인물 선택과 상세 열람에는 비용이나 성과 보상이 없습니다. 면담은 의제를 고른 뒤 실행하며, 위임·육성·승급·재계약은 해당 버튼에서 요청합니다.</p>
+                <ul className="org-staff-action-reasons">
+                  <li><strong>승급</strong> {selectedPromotion?.allowed ? `정치력 ${selectedPromotion.result.cost.politicalPower} · ${formatMoney(selectedPromotion.result.cost.treasury, { exact: true })}. 새 주급과 성장 변화를 검토합니다.` : selectedPromotion?.reason}</li>
+                  <li><strong>계약 연장</strong> {selectedRenewal?.allowed ? `정치력 ${selectedRenewal.result.cost.politicalPower} · 보너스 ${formatMoney(selectedRenewal.result.cost.treasury, { exact: true })}. 남은 ${selectedStaffDynamics?.contractWeeks ?? 0}주에 104주를 더합니다.` : selectedRenewal?.reason}</li>
+                </ul>
+                <p className="org-read-only-note">{officeProblem ? '인물 선택과 상세 열람에는 비용이나 성과 보상이 없습니다. 현재는 인사권이 없어 면담·위임·육성·승급·재계약·보직 배치를 실행할 수 없습니다.' : '인물 선택과 상세 열람에는 비용이나 성과 보상이 없습니다. 승급·재계약·보직 배치는 검토서를 읽고 최종 승인합니다. 위임·육성은 바로 변경되며, 면담은 의제를 고른 뒤 실행합니다.'}</p>
+                {selectedStaffDynamics?.contractRisk === 'expired' && <p className="org-staff-action-notice">계약이 만료됐지만 자동 퇴직하지는 않습니다. 직무와 주급은 유지되며, 주간 처리에서 위임이 회수되고 사기가 떨어지므로 재계약을 검토하십시오.</p>}
                 <details className="org-disclosure org-person-background"><summary><ClipboardList size={16} /><span>경력·전문 분야와 역사 자료</span><ChevronRight size={16} /></summary><div className="org-disclosure-body"><p>{selectedStaff.historicalOffice} · {selectedStaff.affiliation}</p><p>{selectedStaff.summary}</p>{selectedStaff.expertise?.length ? <p>전문 분야: {selectedStaff.expertise.join(' · ')}</p> : null}{selectedStaff.historicalConstraint && <p>역사적 제약: {selectedStaff.historicalConstraint}</p>}{selectedStaff.friction && <p>조직 마찰: {selectedStaff.friction}</p>}{selectedStaff.networks?.length ? <p>인맥: {selectedStaff.networks.join(' · ')}</p> : null}{selectedStaff.appointmentEffect && <p>임명 효과: {selectedStaff.appointmentEffect}</p>}{selectedStaff.sourceUrl && <a href={selectedStaff.sourceUrl} target="_blank" rel="noreferrer"><ExternalLink size={15} /> {selectedStaff.sourceLabel ?? '역사 자료 보기'}</a>}</div></details>
               </> : <div className="org-empty"><UsersRound size={28} /><h4>선택할 재직자가 없습니다</h4><p>없는 인물을 대신 표시하지 않습니다. 실제 임명 후 이곳에서 관리할 수 있습니다.</p></div>}
             </section>
@@ -662,7 +734,7 @@ export function OrganizationPanel({
             <div className="staff-dynamics-list">
               {staffOverview.dynamics.map((record) => {
                 const manageable = manageableDepartments.has(record.member.department);
-                const renewalCost = getStaffRenewalCost(record.member);
+                const renewal = getStaffDeskAvailability(liveStaffInput, { kind: 'renew', staffId: record.member.id });
                 return (
                   <article className={`${record.contractRisk} ${manageable ? '' : 'locked'}`} key={record.member.id}>
                     <span className="staff-dynamic-person"><i style={{ borderColor: nation.accent }}>{initials(record.member.name)}</i><span><small>{hierarchyLabels[record.hierarchy]} · {careerStageLabels[record.careerStage]}</small><strong>{record.member.name}</strong><em>{getStaffSeatTitle(record.member.department, campaignPhase, nation.status)}</em></span></span>
@@ -671,7 +743,7 @@ export function OrganizationPanel({
                     <span className="staff-dynamic-rating"><small>지도부 수용</small><strong>{record.buyIn}</strong><Meter value={record.buyIn} tone={record.buyIn < 50 ? 'red' : 'blue'} /></span>
                     <span className={`staff-contract-cell ${record.contractRisk}`}><small>{squadStatusLabels[record.member.squadStatus ?? (record.hierarchy === 'leader' ? 'key' : record.hierarchy === 'core' ? 'regular' : 'rotation')]}</small><strong>{record.contractWeeks}주</strong><em>{contractRiskLabels[record.contractRisk]}</em></span>
                     <span className={`staff-promise-cell ${record.promise.state}`} title={record.promise.summary}><small>임명 합의</small><strong>{record.promise.label}</strong><em>{record.promise.summary}</em></span>
-                    <button type="button" disabled={!manageable || record.contractRisk === 'secure' || game.politicalPower < 4 || game.treasury < renewalCost} title={!manageable ? authority.restrictionReason : `2년 재계약 · 정치력 4 · 보너스 ${formatMoney(renewalCost)}`} onClick={() => onRenewStaff(record.member.id)}><CalendarClock size={12} /> {record.contractRisk === 'secure' ? '계약 안정' : `재계약 ${formatMoney(renewalCost)}`}</button>
+                    <div className="org-dynamics-renewal"><button type="button" disabled={!renewal.allowed} title={renewal.reason} aria-label={`${record.member.name} 재계약 검토`} onClick={() => reviewStaffAction({ kind: 'renew', staffId: record.member.id })}><CalendarClock size={12} /> {record.contractRisk === 'secure' ? '계약 안정' : '재계약 검토 · 104주 추가'}</button><small>{renewal.allowed ? `정치력 ${renewal.result.cost.politicalPower} · ${formatMoney(renewal.result.cost.treasury, { exact: true })}` : renewal.reason}</small></div>
                   </article>
                 );
               })}
@@ -697,7 +769,7 @@ export function OrganizationPanel({
         <div className="replacement-seat-card compact">
           <span>HISTORICAL REPLACEMENT</span>
           <div><strong>{role.historicalHolderName}</strong><small>{role.historicalOffice}</small></div>
-          <p>당신이 이 실존 인물의 자리를 대체했습니다. 시작 직함에서 부여받은 인사권 범위는 정권이 바뀌어도 지휘계통으로 유지되며, 보직 명칭과 책임만 시대에 맞게 개편됩니다.</p>
+          <p>{officeProblem ? '이 인물과 직함은 경력·지휘계통의 참고 기록입니다. 현재 인사권을 뜻하지 않으며, 공식 보직에 취임한 뒤 실제 권한을 다시 확인해야 합니다.' : '당신이 이 실존 인물의 자리를 대체했습니다. 시작 직함에서 부여받은 인사권 범위는 정권이 바뀌어도 지휘계통으로 유지되며, 보직 명칭과 책임만 시대에 맞게 개편됩니다.'}</p>
         </div>
           </div>
         </details>
@@ -734,7 +806,7 @@ export function OrganizationPanel({
             <div className="org-scouting-routes"><button type="button" onClick={() => { setTalentScope('scouting'); setTalentPage(0); }}>진행 중 {scoutingCount}명 보기</button><button type="button" onClick={() => { setTalentScope('completed'); setTalentPage(0); }}>완료 보고서 {completedScoutCount}명 보기</button><span>빈 슬롯 {scoutingSummary.available}개 · {personnelDelegated ? '인사 업무 위임 중' : '기본 조사 속도'}</span></div>
             {scoutingCandidates.length > 0 ? <div className="org-scouting-jobs">{scoutingCandidates.map((candidate) => {
               const plan = getCandidateScoutingPlan(candidate, personnelDelegated);
-              const stop = assessPersonnelAction(personnelContext, { kind: 'stop-scout', candidateId: candidate.id });
+              const stop = assessCandidateAction({ kind: 'stop-scout', candidateId: candidate.id });
               return <article key={candidate.id}><span><strong>{candidate.name}</strong><small>정보 {candidate.knowledge}% · 현재 속도 유지 시 약 {plan.weeksToComplete}주 후 완료</small><Meter value={candidate.knowledge} /></span><button type="button" onClick={() => revealCandidateReport(candidate.id)}>보고서</button><button type="button" disabled={!stop.allowed || !onStopScouting} title={!stop.allowed ? stop.reason : '확보 정보를 보존하고 슬롯을 반환합니다.'} onClick={() => reviewCandidateAction(candidate.id, 'stop-scout')}>중단 검토 · 무료</button></article>;
             })}</div> : <p className="org-scouting-empty">진행 중인 조사가 없습니다. 후보의 조사 보고서를 열고 ‘조사 검토’를 선택하십시오.</p>}
           </section>
@@ -761,7 +833,7 @@ export function OrganizationPanel({
           </div>
           <p className="org-market-result-count" role="status">검색 결과 {filteredCandidates.length}명 · {visibleTalentPage + 1}/{talentPageCount}쪽 · 후보 선택·보고서 열람에는 비용이나 성과 보상이 없습니다.</p>
           {busy && <p className="org-market-result-count" role="status">주간 진행 중에는 조사를 포함한 인사 조치를 잠급니다. 목록과 보고서는 계속 열람할 수 있습니다.</p>}
-          {negotiatingCandidate && <div id={negotiationId} className="org-negotiation-workspace"><RecruitmentNegotiation
+          {negotiatingCandidate && !officeProblem && <div id={negotiationId} className="org-negotiation-workspace"><RecruitmentNegotiation
             key={`${negotiatingCandidate.id}-${negotiatingCandidate.personId}`}
             candidate={negotiatingCandidate}
             context={personnelContext}
@@ -811,19 +883,19 @@ export function OrganizationPanel({
               })()}
               <div className="candidate-report-actions">
                 {(['scout', 'approach', 'shortlist'] as const).map((kind) => {
-                  const assessment = assessPersonnelAction(personnelContext, { kind, candidateId: selectedCandidate.id });
+                  const assessment = assessCandidateAction({ kind, candidateId: selectedCandidate.id });
                   const shortlisted = isCandidateShortlisted(selectedCandidate);
                   return <button key={kind} disabled={!assessment.allowed} title={assessment.reason} className={kind === 'shortlist' && shortlisted ? 'active' : ''} onClick={() => kind === 'shortlist' ? onToggleShortlist(selectedCandidate.id) : reviewCandidateAction(selectedCandidate.id, kind)}>{kind === 'scout' ? <Search size={12} /> : kind === 'approach' ? <MessageSquare size={12} /> : <Star size={12} />}{kind === 'scout' ? '조사 검토 · 2PP' : kind === 'approach' ? '접촉 검토 · 4PP' : shortlisted ? '관심 명단에서 제외' : '관심 명단에 추가'}</button>;
                 })}
-                {selectedCandidate.status === 'scouting' && selectedCandidate.knowledge < 100 && <button disabled={busy || !onStopScouting} onClick={() => reviewCandidateAction(selectedCandidate.id, 'stop-scout')}>조사 중단 검토 · 무료</button>}
+                {selectedCandidate.status === 'scouting' && selectedCandidate.knowledge < 100 && <button disabled={Boolean(officeProblem) || busy || !onStopScouting} title={officeProblem ?? '확보 정보를 보존하고 조사 슬롯을 반환합니다.'} onClick={() => reviewCandidateAction(selectedCandidate.id, 'stop-scout')}>조사 중단 검토 · 무료</button>}
                 <button title={selectedCandidateManaged ? '권한·임기·보수·보직 약속을 조정해 제안합니다.' : authority.restrictionReason} disabled={busy || !selectedCandidateManaged || selectedCandidateUnavailable || selectedCandidate.knowledge < 55} onClick={() => openNegotiation(selectedCandidate)}>{selectedCandidateManaged ? <HeartHandshake size={12} /> : <LockKeyhole size={12} />} 조건 협상 열기</button>
                 {selectedCandidate.sourceUrl && <a href={selectedCandidate.sourceUrl} target="_blank" rel="noreferrer"><ExternalLink size={11} /> 역사 자료</a>}
               </div>
               <ul className="org-report-action-reasons" aria-label="후보 조치 가능 조건">{(['scout', 'approach', 'shortlist'] as const).map((kind) => {
-                const assessment = assessPersonnelAction(personnelContext, { kind, candidateId: selectedCandidate.id });
+                const assessment = assessCandidateAction({ kind, candidateId: selectedCandidate.id });
                 return !assessment.allowed ? <li key={kind}>{kind === 'scout' ? '조사' : kind === 'approach' ? '접촉' : '관심 등록'}: {assessment.reason}</li> : null;
               })}</ul>
-              {candidateReview?.action.candidateId === selectedCandidate.id && <CandidateActionReview key={candidateReview.fingerprint} review={candidateReview} context={personnelContext} onConfirm={dispatchCandidateAction} onClose={() => setCandidateReview(null)} />}
+              {!officeProblem && candidateReview?.action.candidateId === selectedCandidate.id && <CandidateActionReview key={candidateReview.fingerprint} review={candidateReview} context={personnelContext} onConfirm={dispatchCandidateAction} onClose={() => setCandidateReview(null)} />}
             </section>
           )}
           <div className="candidate-grid">
@@ -871,7 +943,7 @@ export function OrganizationPanel({
                   <div className="recruitment-forecast"><strong>{score} / 72</strong><span>기본조건 설득 점수<small>{score >= 72 ? '설득 문턱 충족' : `${72 - score}점 부족`} · 확률 아님</small></span></div>
                   <div className="candidate-actions">
                     {(['scout', 'shortlist', 'approach'] as const).map((kind) => {
-                      const assessment = assessPersonnelAction(personnelContext, { kind, candidateId: candidate.id });
+                      const assessment = assessCandidateAction({ kind, candidateId: candidate.id });
                       return <button key={kind} disabled={!assessment.allowed} title={assessment.reason} className={kind === 'shortlist' && isCandidateShortlisted(candidate) ? 'active' : ''} onClick={() => kind === 'shortlist' ? onToggleShortlist(candidate.id) : reviewCandidateAction(candidate.id, kind)}>{kind === 'scout' ? <Search size={10} /> : kind === 'shortlist' ? <Star size={10} /> : <MessageSquare size={10} />}{kind === 'scout' ? '조사 검토' : kind === 'shortlist' ? '관심' : '접촉 검토'}</button>;
                     })}
                     <button disabled={busy || !manageable || unavailable || candidate.knowledge < 55} title={manageable ? '권한·임기·보수·보직 약속을 조정합니다.' : authority.restrictionReason} onClick={() => openNegotiation(candidate)}>{manageable ? <HeartHandshake size={10} /> : <LockKeyhole size={10} />} 협상</button>

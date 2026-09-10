@@ -88,6 +88,83 @@ describe('war-to-state nation management', () => {
     expect(result.state.infrastructure).toBeGreaterThan(state.infrastructure);
   });
 
+  it('rounds human-facing revenue inputs without changing simulation precision', () => {
+    const economy = createEconomyState('britain');
+    const state = createNationManagementState('britain', game, economy, 3, 'victory');
+    const preciseGame = { ...game, stability: 81.92389999999999 };
+    const result = advanceNationManagementWeek(state, {
+      week: game.week + 1, game: preciseGame, economy, relationAverage: 62, completedResearch: 3, publicHealthPressure: 8,
+    });
+    expect(result.report.causes[0]).toContain('안정도 81.9/100');
+    expect(result.report.causes[0]).not.toContain('81.92389999999999');
+    expect(preciseGame.stability).toBe(81.92389999999999);
+    const expectedRevenue = Number((game.factories * 0.72 + preciseGame.stability * 0.12 + state.taxBurden * 0.44
+      + Math.max(-8, state.tradeBalance * 0.12) + state.civilianIndustry * 0.08).toFixed(1));
+    expect(result.report.fiscalRevenue).toBe(expectedRevenue);
+  });
+
+  it('includes appointed staff payroll exactly once in national expenditure and treasury', () => {
+    const economy = createEconomyState('britain');
+    const state = createNationManagementState('britain', game, economy, 3, 'victory');
+    const context = { week: game.week + 1, game, economy, relationAverage: 62, completedResearch: 3, publicHealthPressure: 8 };
+    const baseline = advanceNationManagementWeek(state, context);
+    const result = advanceNationManagementWeek(state, { ...context, staffWeeklyCost: 62.5 });
+
+    expect(result.report.staffWeeklyCost).toBe(62.5);
+    expect(result.report.fiscalExpenditure - baseline.report.fiscalExpenditure).toBeCloseTo(62.5, 1);
+    expect(result.report.fiscalBalance - baseline.report.fiscalBalance).toBeCloseTo(-62.5, 1);
+    expect(result.gameDelta.treasury! - baseline.gameDelta.treasury!).toBeCloseTo(-62.5, 1);
+    expect(result.report.fiscalRevenue).toBe(baseline.report.fiscalRevenue);
+    expect(result.state.reports[0].staffWeeklyCost).toBe(62.5);
+    expect(result.report.causes.filter((cause) => cause.startsWith('참모·전문가 급여'))).toEqual([
+      '참모·전문가 급여 = 현재 재직 명단의 계약 보수는 총지출에 한 번 포함되며 별도로 다시 차감하지 않습니다.',
+    ]);
+  });
+
+  it('reflects a renewal salary increase in the next national ledger without recharging its bonus', () => {
+    const economy = createEconomyState('britain');
+    const state = createNationManagementState('britain', game, economy, 3, 'victory');
+    const context = { week: game.week + 1, game, economy, relationAverage: 62, completedResearch: 3, publicHealthPressure: 8 };
+    const before = advanceNationManagementWeek(state, { ...context, staffWeeklyCost: 58 });
+    const after = advanceNationManagementWeek(state, { ...context, staffWeeklyCost: 59 });
+
+    expect(after.report.fiscalExpenditure - before.report.fiscalExpenditure).toBeCloseTo(1, 1);
+    expect(after.gameDelta.treasury! - before.gameDelta.treasury!).toBeCloseTo(-1, 1);
+    expect(after.report.staffWeeklyCost).toBe(59);
+  });
+
+  it('keeps omitted legacy payroll identical to an explicit zero', () => {
+    const economy = createEconomyState('britain');
+    const state = createNationManagementState('britain', game, economy, 3, 'victory');
+    const context = { week: game.week + 1, game, economy, relationAverage: 62, completedResearch: 3, publicHealthPressure: 8 };
+    expect(advanceNationManagementWeek(state, context)).toEqual(advanceNationManagementWeek(state, { ...context, staffWeeklyCost: 0 }));
+  });
+
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, -1])('does not credit or corrupt the national ledger for invalid payroll %s', (staffWeeklyCost) => {
+    const economy = createEconomyState('britain');
+    const state = createNationManagementState('britain', game, economy, 3, 'victory');
+    const context = { week: game.week + 1, game, economy, relationAverage: 62, completedResearch: 3, publicHealthPressure: 8 };
+    const baseline = advanceNationManagementWeek(state, context);
+    const result = advanceNationManagementWeek(state, { ...context, staffWeeklyCost });
+    expect(result).toEqual(baseline);
+    expect(result.report.staffWeeklyCost).toBe(0);
+    expect(Number.isFinite(result.gameDelta.treasury)).toBe(true);
+  });
+
+  it('uses the same pure payroll projection for review and weekly settlement', () => {
+    const economy = createEconomyState('britain');
+    const state = createNationManagementState('britain', game, economy, 3, 'victory');
+    const context = { week: game.week + 1, game, economy, relationAverage: 62, completedResearch: 3, publicHealthPressure: 8, staffWeeklyCost: 65 };
+    const beforeState = structuredClone(state);
+    const beforeContext = structuredClone(context);
+    const projection = advanceNationManagementWeek(state, context);
+    const settlement = advanceNationManagementWeek(state, context);
+    expect(projection).toEqual(settlement);
+    expect(state).toEqual(beforeState);
+    expect(context).toEqual(beforeContext);
+    expect(state.reports).toHaveLength(0);
+  });
+
   it('turns the scheduled public evaluation into a renewable four-year mandate', () => {
     const economy = { ...createEconomyState('britain'), inflation: 2, publicConfidence: 90 };
     const base = createNationManagementState('britain', game, economy, 5, 'victory');

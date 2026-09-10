@@ -210,6 +210,22 @@
   :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-routes button { flex: 1 1 100%; }
 }
 
+/* CE8: costs and inability reasons remain readable without hovering over a disabled button. */
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.org-staff-action-notice, .org-staff-action-reasons, .org-assignment-reason) { color: #e7d2ad; font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-staff-action-notice { margin: 0; padding: 12px 14px; border: 1px solid #79674c; border-radius: 8px; background: #29271f; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-staff-action-reasons { display: grid; gap: 8px; padding: 12px 12px 12px 30px; margin: 0; border: 1px solid var(--org-border); border-radius: 8px; background: var(--org-bg); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-staff-action-reasons strong { color: var(--org-text, #ecf1f5); margin-right: 6px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-assignment-reason { grid-column: 2 / -1; margin: 0; padding-top: 5px; font-size: 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-dynamics-renewal { display: grid; gap: 8px; min-width: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-dynamics-renewal small { color: var(--org-muted); font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-dynamics-renewal button { min-height: 44px; white-space: normal; }
+@media (max-width: 640px) {
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-option { grid-template-columns: 24px minmax(0,1fr); }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-option > .staff-option-score { grid-column: 2; align-items: start; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-option > button { grid-column: 1 / -1; min-height: 44px; white-space: normal; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-assignment-reason { grid-column: 1 / -1; }
+}
+
 /* Existing paid meetings retain their authoritative callbacks. */
 :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-backdrop { background: #090d12c9; padding: 20px; }
 :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-modal { width: min(740px, 100%); max-height: calc(100dvh - 40px); overflow-y: auto; background: var(--org-surface); border: 1px solid var(--org-border); border-radius: 10px; }
