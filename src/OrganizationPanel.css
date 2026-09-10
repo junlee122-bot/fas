@@ -141,6 +141,8 @@
 :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .recruitment-guide li { border: 0; padding: 8px; }
 :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-market-filterbar { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: end; }
 :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) 180px; gap: 12px; padding: 0; margin: 0; border: 0; background: none; }
+/* Legacy 30px toolbar labels cannot contain the new caption and 44px select. */
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-toolbar > label { height: auto; }
 :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-toolbar .org-talent-search { display: flex; align-items: center; gap: 10px; padding: 0 12px; min-height: 48px; background: var(--org-bg); border: 1px solid var(--org-border); border-radius: 6px; }
 :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-talent-search { align-self: end; }
 :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-toolbar input { flex: 1; width: 100%; padding: 10px 0; border: 0; background: none; font-size: 16px; }
@@ -183,7 +185,32 @@
 :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-empty { padding: 20px; grid-column: 1 / -1; }
 :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 
-/* Existing paid meeting and negotiation flows retain their authoritative callbacks. */
+/* CE6: investigation work is separate from interest tracking and appointment authority. */
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-desk { border: 1px solid var(--org-border); border-radius: 10px; padding: 16px; background: var(--org-surface); min-width: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-desk > header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; height: auto; background: none; padding: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-desk > header > span { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-desk strong { font-size: 16px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.org-scouting-desk p, .org-report-scouting p, .org-candidate-score-note) { margin: 10px 0; font-size: 14px; line-height: 1.65; color: var(--org-muted); overflow-wrap: anywhere; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-routes { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-routes span { font-size: 13px; color: var(--org-muted); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-jobs { display: grid; gap: 10px; margin-top: 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-jobs article { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 10px; align-items: center; border-top: 1px solid var(--org-border); padding-top: 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-jobs article > span { display: grid; gap: 7px; min-width: 0; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-jobs small { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-report-scouting { border: 1px solid var(--org-border); border-radius: 8px; padding: 12px; background: var(--org-bg); }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-report-scouting ul { margin: 8px 0 0; padding-left: 20px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-report-scouting li { color: var(--org-muted); font-size: 13px; line-height: 1.7; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-report-action-reasons { margin: 12px 0 0; padding-left: 20px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-report-action-reasons li { color: #e5c99c; font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.org-scouting-desk button, .candidate-action-review button) { min-height: 44px; white-space: normal; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-negotiation-workspace { min-width: 0; scroll-margin-top: 16px; }
+@media (max-width: 760px) {
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-jobs article { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-jobs article > span { grid-column: 1 / -1; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-scouting-routes button { flex: 1 1 100%; }
+}
+
+/* Existing paid meetings retain their authoritative callbacks. */
 :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-backdrop { background: #090d12c9; padding: 20px; }
 :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-modal { width: min(740px, 100%); max-height: calc(100dvh - 40px); overflow-y: auto; background: var(--org-surface); border: 1px solid var(--org-border); border-radius: 10px; }
 :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-meeting-modal > header { padding: 16px; height: auto; background: var(--org-bg); }
@@ -238,6 +265,7 @@
   :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .org-squad-summary strong { font-size: 16px; }
   :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.org-disclosure > summary, .org-disclosure-body, .org-operations-grid) { padding: 12px; }
   :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.org-discipline-select, .talent-market-controls > div, .talent-sort, .talent-scope-list label) { width: 100%; }
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .talent-scope-list > svg { display: none; }
   :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) :is(.org-discipline-select select, .talent-scope-list select, .talent-sort select) { flex: 1; max-width: 100%; }
   :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-negotiation-modal { grid-template-columns: 1fr; }
   :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-negotiation-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }

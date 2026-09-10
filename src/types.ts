@@ -226,6 +226,8 @@ export interface StaffCandidate {
   interest: number;
   knowledge: number;
   status: StaffCandidateStatus;
+  /** Interest tracking is independent of an active scouting assignment; absent in legacy saves. */
+  shortlisted?: boolean;
   specialty: string;
   influence: number;
   relationship: number;

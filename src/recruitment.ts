@@ -39,12 +39,16 @@ const availabilityPenalty: Record<StaffCandidate['availability'], number> = {
   opposition: 18,
 };
 
+export function isCandidateShortlisted(candidate: StaffCandidate) {
+  return candidate.shortlisted ?? candidate.status === 'shortlisted';
+}
+
 export function recruitmentScore(candidate: StaffCandidate, reputation: number) {
   return Math.round(
     candidate.interest
     + candidate.relationship * 0.35
     + reputation * 0.2
-    + (candidate.status === 'shortlisted' ? 6 : 0)
+    + (isCandidateShortlisted(candidate) ? 6 : 0)
     - candidate.rivalInterest * 0.25
     - availabilityPenalty[candidate.availability],
   );
@@ -97,7 +101,7 @@ export function isRecruitmentOfferSuccess(candidate: StaffCandidate, reputation:
 
 export function weeklyRivalInterest(candidate: StaffCandidate) {
   if (candidate.status === 'signed' || candidate.status === 'lost') return candidate.rivalInterest;
-  const shortlistShield = candidate.status === 'shortlisted' ? 2 : 0;
+  const shortlistShield = isCandidateShortlisted(candidate) ? 2 : 0;
   const relationshipShield = candidate.relationship >= 55 ? 2 : candidate.relationship >= 30 ? 1 : 0;
   const marketPressure = Math.max(2, Math.round(candidate.influence / 24));
   return Math.max(0, Math.min(100, candidate.rivalInterest + marketPressure - shortlistShield - relationshipShield));
@@ -117,7 +121,7 @@ export function sortTalentCandidates(candidates: readonly StaffCandidate[], sort
     recruitmentChance(candidate, reputation) * 2
     + candidate.knowledge
     + candidate.relationship
-    + (candidate.status === 'shortlisted' ? 30 : 0)
+    + (isCandidateShortlisted(candidate) ? 30 : 0)
     - (candidate.status === 'signed' || candidate.status === 'lost' ? 300 : 0)
   );
   return [...candidates].sort((left, right) => {

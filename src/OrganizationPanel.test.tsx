@@ -183,4 +183,63 @@ describe('OrganizationPanel Command Edition workspace contract', () => {
     expect(button(actions, '협상')).toContain('disabled');
     expect(button(actions, '조사')).not.toContain('disabled');
   });
+
+  it('separates active investigation assignments from interest tracking and completed reports', () => {
+    const props = fixture();
+    const [first, second, third] = props.candidates;
+    const html = render({ ...props, workspace: 'market', onStopScouting: vi.fn(), candidates: [
+      { ...first, status: 'scouting', knowledge: 40, shortlisted: true },
+      { ...second, status: 'scouting', knowledge: 100, shortlisted: false },
+      { ...third, status: 'shortlisted', knowledge: 80 },
+    ] });
+    expect(html).toContain('진행 중 1명 보기');
+    expect(html).toContain('완료 보고서 1명 보기');
+    expect(html).toContain('관심 명단</small><strong>2명');
+    expect(html).toContain('관심 등록은 조사를 중단하지 않습니다');
+    expect(html).toContain('중단 검토 · 무료');
+    expect(html).toContain('100%에 도달하면 슬롯을 반환');
+    expect(html).not.toContain('예상 합의율');
+    expect(html).not.toContain('합의 가능성');
+    expect(html).toContain('기본조건 설득 점수');
+    expect(html).toContain('확률 아님');
+  });
+
+  it.each([false, true])('shows real free weekly investigation cadence with personnel delegation %s', (delegated) => {
+    const props = fixture();
+    const html = render({ ...props, workspace: 'market', staff: props.staff.map((member) => ({ ...member, delegated: member.department === 'personnel' && delegated })), candidates: [{ ...props.candidates[0], status: 'scouting', knowledge: 55 }] });
+    expect(html).toContain(`매주 +${delegated ? 23 : 18} 무료`);
+    expect(html).toContain(`1 / ${delegated ? 3 : 2} 슬롯`);
+    expect(html).toContain(`약 ${delegated ? 2 : 3}주 후 완료`);
+  });
+
+  it('never charges directly from quick investigation or approach buttons, and disables active restart', () => {
+    const props = fixture();
+    const html = render({ ...props, workspace: 'market', candidates: [{ ...props.candidates[0], status: 'scouting', knowledge: 70 }] });
+    const actions = html.match(/<div class="candidate-actions"[\s\S]*?<\/div>/)?.[0] ?? '';
+    expect(button(actions, '조사 검토')).toContain('disabled');
+    expect(button(actions, '조사 검토')).toContain('이미 자동 조사 중');
+    expect(button(actions, '접촉 검토')).not.toContain('disabled');
+    expect(html).not.toContain('조사 계속 · 2PP');
+  });
+
+  it.each(['busy', 'poor', 'contacted', 'low-intelligence'] as const)('uses current engine conditions for candidate actions: %s', (condition) => {
+    const props = fixture();
+    const candidate = { ...props.candidates[0], status: 'unscouted' as const, knowledge: 65, lastApproachWeek: condition === 'contacted' ? props.game.week : null };
+    const html = render({ ...props, workspace: 'market', busy: condition === 'busy', game: { ...props.game, politicalPower: condition === 'poor' ? 0 : 86, intelNetwork: condition === 'low-intelligence' ? 10 : 64 }, candidates: [candidate] });
+    const actions = html.match(/<div class="candidate-actions"[\s\S]*?<\/div>/)?.[0] ?? '';
+    expect(button(actions, '접촉 검토')).toContain('disabled');
+    if (condition === 'busy' || condition === 'poor') expect(button(actions, '조사 검토')).toContain('disabled');
+    expect(button(html, '조사 보고서')).not.toContain('disabled');
+  });
+
+  it('bounds candidate presentation to 24 rows but keeps full-market search and counts', () => {
+    const props = fixture();
+    const candidates = createStaffCandidates(props.nation.id, props.role.id).slice(0, 30);
+    const html = render({ ...props, candidates, workspace: 'market' });
+    expect(html.match(/class="open-candidate-report"/g)).toHaveLength(24);
+    expect(html).toContain('검색 결과 30명');
+    expect(html).toContain('1/2쪽');
+    expect(button(html, '이전')).toContain('disabled');
+    expect(button(html, '다음')).not.toContain('disabled');
+  });
 });

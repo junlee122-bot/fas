@@ -4,6 +4,7 @@ import {
   defaultRecruitmentOffer,
   isRecruitmentOfferSuccess,
   isRecruitmentSuccess,
+  isCandidateShortlisted,
   recruitmentChance,
   recruitmentScore,
   sortTalentCandidates,
@@ -69,5 +70,27 @@ describe('historical personnel market', () => {
     const ready = { ...candidate, interest: 92, relationship: 70, rivalInterest: 5 };
     expect(isRecruitmentSuccess(ready, 70)).toBe(true);
     expect(isRecruitmentOfferSuccess(ready, 70, defaultRecruitmentOffer)).toBe(true);
+  });
+
+  it('preserves legacy interest lists while allowing independent live investigations', () => {
+    expect(isCandidateShortlisted({ ...candidate, status: 'shortlisted' })).toBe(true);
+    expect(isCandidateShortlisted({ ...candidate, status: 'scouting', shortlisted: true })).toBe(true);
+    expect(isCandidateShortlisted({ ...candidate, status: 'shortlisted', shortlisted: false })).toBe(false);
+  });
+
+  it('applies shortlist persuasion and rival shielding while investigations continue', () => {
+    const active = { ...candidate, status: 'scouting' as const, shortlisted: false };
+    const tracked = { ...active, shortlisted: true };
+    expect(recruitmentScore(tracked, 50) - recruitmentScore(active, 50)).toBe(6);
+    expect(weeklyRivalInterest(active) - weeklyRivalInterest(tracked)).toBe(2);
+    expect(assessRecruitmentOffer(tracked, 50).score - assessRecruitmentOffer(active, 50).score).toBe(6);
+  });
+
+  it('recommended sorting recognizes independent shortlist membership without changing stored order', () => {
+    const plain = { ...candidate, id: 'a', name: '가', status: 'scouting' as const, shortlisted: false };
+    const tracked = { ...plain, id: 'b', name: '나', shortlisted: true };
+    const input = [plain, tracked];
+    expect(sortTalentCandidates(input, 'recommended', 50)[0].id).toBe('b');
+    expect(input.map((person) => person.id)).toEqual(['a', 'b']);
   });
 });

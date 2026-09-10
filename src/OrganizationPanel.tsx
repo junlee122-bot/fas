@@ -40,12 +40,15 @@ import { historicalExperts, historicalExpertCoverage, minimumHistoricalExpertsPe
 import { wartimeHistoricalExperts, wartimeHistoricalExpertCoverage, wartimeHistoricalExpertIds } from './wartimeHistoricalExperts';
 import {
   defaultRecruitmentOffer,
-  recruitmentChance,
-  recruitmentScore,
+  isCandidateShortlisted,
+  assessRecruitmentOffer,
   sortTalentCandidates,
 } from './recruitment';
 import type { RecruitmentOffer, TalentMarketSort } from './recruitment';
 import { RecruitmentNegotiation } from './RecruitmentNegotiation';
+import { CandidateActionReview } from './CandidateActionReview';
+import { assessPersonnelAction, createPersonnelReview, getCandidateScoutingPlan, getPersonnelScoutingSummary } from './personnelActions';
+import type { PersonnelAction, PersonnelContext, PersonnelReview } from './personnelActions';
 import { StaffNarrativeBoard } from './StaffNarrativeBoard';
 import {
   assessStaffPromise,
@@ -115,10 +118,10 @@ export interface OrganizationPanelProps {
   onSelectPolicy: (policyId: string) => void;
   onSetDevelopmentFocus: (staffId: string) => void;
   onUpgradeStaff: (staffId: string) => void;
-  onScoutCandidate: (candidateId: string) => void;
+  onScoutCandidate: (candidateId: string) => void | boolean;
   onToggleShortlist: (candidateId: string) => void;
-  onApproachCandidate: (candidateId: string) => void;
-  onRecruitCandidate: (candidateId: string, offer: RecruitmentOffer) => void;
+  onApproachCandidate: (candidateId: string) => void | boolean;
+  onRecruitCandidate: (candidateId: string, offer: RecruitmentOffer) => void | boolean;
   onRenewStaff: (staffId: string) => void;
   onResolveStaffNarrative: (storylineId: string, optionId: string) => void;
   onOpenCareerMarket: () => void;
@@ -126,6 +129,8 @@ export interface OrganizationPanelProps {
   onWorkspaceChange?: (workspace: OrganizationWorkspace) => void;
   hideWorkspaceNavigation?: boolean;
   onOpenDeliveryPledges?: (staffId: string) => void;
+  busy?: boolean;
+  onStopScouting?: (candidateId: string) => void | boolean;
 }
 
 const departmentLabels: Record<StaffDepartment, string> = {
@@ -163,12 +168,13 @@ const disciplineFilters: Array<PersonnelDiscipline | 'all'> = [
   'social-science',
 ];
 
-type TalentMarketScope = 'all' | 'shortlisted' | 'scouting' | 'available' | 'wartime' | 'later' | 'deep' | 'identity';
+type TalentMarketScope = 'all' | 'shortlisted' | 'scouting' | 'completed' | 'available' | 'wartime' | 'later' | 'deep' | 'identity';
 
 const talentScopeLabels: Record<TalentMarketScope, string> = {
   all: '전체',
   shortlisted: '관심 명단',
   scouting: '조사 중',
+  completed: '조사 완료 보고서',
   available: '영입 가능',
   wartime: '1940년대 정밀 인물',
   later: '후대 인물',
@@ -178,7 +184,7 @@ const talentScopeLabels: Record<TalentMarketScope, string> = {
 
 const talentSortLabels: Record<TalentMarketSort, string> = {
   recommended: '추천순',
-  chance: '합의 가능성',
+  chance: '기본조건 설득 점수',
   ability: '현재 능력',
   potential: '잠재력',
   influence: '영향력',
@@ -283,6 +289,8 @@ export function OrganizationPanel({
   onWorkspaceChange,
   hideWorkspaceNavigation = false,
   onOpenDeliveryPledges,
+  busy = false,
+  onStopScouting,
 }: OrganizationPanelProps) {
   const [talentQuery, setTalentQuery] = useState('');
   const [disciplineFilter, setDisciplineFilter] = useState<PersonnelDiscipline | 'all'>('all');
@@ -300,7 +308,10 @@ export function OrganizationPanel({
   const [selectedStaffIdentity, setSelectedStaffIdentity] = useState<{ id: string; personId: string } | null>(null);
   const detailId = useId();
   const reportId = useId();
+  const negotiationId = useId();
   const [negotiatingCandidateId, setNegotiatingCandidateId] = useState<string | null>(null);
+  const [negotiationSnapshot, setNegotiationSnapshot] = useState<StaffCandidate | null>(null);
+  const [candidateReview, setCandidateReview] = useState<PersonnelReview | null>(null);
   const [meetingStaffIdentity, setMeetingStaffIdentity] = useState<{ id: string; personId: string } | null>(null);
   const [recruitmentOffer, setRecruitmentOffer] = useState<RecruitmentOffer>(defaultRecruitmentOffer);
   const authority = useMemo(() => getStaffAuthorityProfile(role), [role]);
@@ -314,8 +325,13 @@ export function OrganizationPanel({
   const economyAdvisor = staff.find((member) => member.department === 'economy');
   const scienceBonus = scienceAdvisor?.delegated ? Math.max(2, Math.round((scienceAdvisor.ability + scienceAdvisor.influence) / 62)) : 0;
   const economyBonus = economyAdvisor?.delegated ? Math.max(8, Math.round((economyAdvisor.ability + economyAdvisor.influence) / 12)) : 0;
-  const shortlistCount = candidates.filter((candidate) => candidate.status === 'shortlisted').length;
-  const scoutingCount = candidates.filter((candidate) => candidate.status === 'scouting').length;
+  const personnelContext: PersonnelContext = { game, role, reputation: careerReputation, staff, candidates, busy };
+  const scoutingSummary = getPersonnelScoutingSummary(personnelContext);
+  const shortlistCount = candidates.filter(isCandidateShortlisted).length;
+  const scoutingCount = scoutingSummary.active;
+  const scoutingCandidates = candidates.filter((candidate) => candidate.status === 'scouting' && candidate.knowledge < 100);
+  const completedScoutCount = candidates.filter((candidate) => candidate.knowledge >= 100 && !['signed', 'lost'].includes(candidate.status)).length;
+  const personnelDelegated = staff.some((member) => member.department === 'personnel' && member.delegated);
   const laterEraCount = candidates.filter((candidate) => candidate.historicalEra && candidate.historicalEra !== 'wartime').length;
   const wartimeCuratedCount = candidates.filter((candidate) => wartimeHistoricalExpertIds.has(candidate.personId)).length;
   const deepProfileCount = candidates.filter((candidate) => candidate.birthYear && !candidate.sourceUrl?.startsWith('https://www.wikidata.org/wiki/Q')).length;
@@ -325,8 +341,9 @@ export function OrganizationPanel({
       if (disciplineFilter !== 'all' && candidate.discipline !== disciplineFilter) return false;
       const laterEra = Boolean(candidate.historicalEra && candidate.historicalEra !== 'wartime');
       const identityOnly = (candidate.sourceUrl?.startsWith('https://www.wikidata.org/wiki/Q') ?? false) && !laterEra;
-      if (talentScope === 'shortlisted' && candidate.status !== 'shortlisted') return false;
-      if (talentScope === 'scouting' && candidate.status !== 'scouting') return false;
+      if (talentScope === 'shortlisted' && !isCandidateShortlisted(candidate)) return false;
+      if (talentScope === 'scouting' && (candidate.status !== 'scouting' || candidate.knowledge >= 100)) return false;
+      if (talentScope === 'completed' && (candidate.knowledge < 100 || ['signed', 'lost'].includes(candidate.status))) return false;
       if (talentScope === 'available' && (candidate.status === 'signed' || candidate.status === 'lost')) return false;
       if (talentScope === 'wartime' && !wartimeHistoricalExpertIds.has(candidate.personId)) return false;
       if (talentScope === 'later' && !laterEra) return false;
@@ -344,10 +361,10 @@ export function OrganizationPanel({
   const visibleTalentPage = Math.min(talentPage, talentPageCount - 1);
   const visibleCandidates = filteredCandidates.slice(visibleTalentPage * talentPageSize, (visibleTalentPage + 1) * talentPageSize);
   const selectedCandidate = candidates.find((candidate) => candidate.id === selectedCandidateId) ?? null;
-  const negotiatingCandidate = candidates.find((candidate) => candidate.id === negotiatingCandidateId) ?? null;
+  const negotiatingCandidate = candidates.find((candidate) => candidate.id === negotiatingCandidateId)
+    ?? (negotiationSnapshot?.id === negotiatingCandidateId ? negotiationSnapshot : null);
   const meetingStaff = staff.find((member) => member.id === meetingStaffIdentity?.id && member.personId === meetingStaffIdentity.personId) ?? null;
-  const selectedCandidateScore = selectedCandidate ? recruitmentScore(selectedCandidate, careerReputation) : 0;
-  const selectedCandidateChance = selectedCandidate ? recruitmentChance(selectedCandidate, careerReputation) : 0;
+  const selectedCandidateScore = selectedCandidate ? assessRecruitmentOffer(selectedCandidate, careerReputation, defaultRecruitmentOffer).score : 0;
   const selectedCandidateUnavailable = selectedCandidate?.status === 'signed' || selectedCandidate?.status === 'lost';
   const selectedCandidateManaged = selectedCandidate ? manageableDepartments.has(selectedCandidate.department) : false;
   const selectedCandidateIdentityOnly = Boolean(
@@ -380,24 +397,49 @@ export function OrganizationPanel({
     ? ''
     : selectedCandidateUnavailable
       ? selectedCandidate.status === 'signed' ? '영입 완료: 직속 참모진에서 임명 상태를 확인하십시오.' : '경쟁 기관이 먼저 영입해 현재 시장에서는 접근할 수 없습니다.'
-      : !selectedCandidateManaged
-        ? `${getStaffSeatTitle(selectedCandidate.department, campaignPhase, nation.status)} 임명권은 현재 직함의 지휘계통 밖에 있습니다.`
       : selectedCandidate.knowledge < 30
-        ? '조사를 시작하고 1주 진행해 접촉선과 성향 정보를 확보하십시오.'
+        ? `조사를 시작하면 즉시 정보 +8, 이후 매주 ${scoutingSummary.weeklyGain}씩 무료 갱신됩니다. 정보 30부터 접촉할 수 있습니다.`
         : selectedCandidate.knowledge < 55
           ? '비밀 접촉으로 관계·관심을 높이고, 조사를 계속해 정보 55%를 확보하십시오.'
+          : !selectedCandidateManaged
+            ? `${getStaffSeatTitle(selectedCandidate.department, campaignPhase, nation.status)}의 최종 임명은 권한 밖입니다. 조사와 접촉은 계속할 수 있습니다.`
           : selectedCandidateScore < 72
             ? `기본 설득 점수가 ${72 - selectedCandidateScore} 부족합니다. 비밀 접촉을 이어가거나 협상에서 권한·임기·보수를 개선하십시오.`
             : '기본 협상력이 충분합니다. 권한·임기·보수·보직 약속과 장기 재정 부담을 비교해 제안하십시오.';
   const revealCandidateReport = (candidateId: string) => {
     setSelectedCandidateId(candidateId);
+    setCandidateReview(null);
+    setNegotiatingCandidateId(null);
     setWorkspace('market');
-    window.setTimeout(() => document.getElementById(reportId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+    window.setTimeout(() => {
+      const report = document.getElementById(reportId);
+      report?.focus({ preventScroll: true });
+      report?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
   };
   const openNegotiation = (candidate: StaffCandidate) => {
+    setCandidateReview(null);
     setSelectedCandidateId(candidate.id);
     setRecruitmentOffer(defaultRecruitmentOffer);
+    setNegotiationSnapshot(candidate);
     setNegotiatingCandidateId(candidate.id);
+    window.setTimeout(() => document.getElementById(negotiationId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+  };
+  const reviewCandidateAction = (candidateId: string, kind: PersonnelAction['kind']) => {
+    setSelectedCandidateId(candidateId);
+    setNegotiatingCandidateId(null);
+    setCandidateReview(createPersonnelReview(personnelContext, { kind, candidateId }));
+    window.setTimeout(() => {
+      const review = document.getElementById(reportId)?.querySelector<HTMLElement>('.candidate-action-review');
+      review?.focus({ preventScroll: true });
+      review?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  };
+  const dispatchCandidateAction = (action: PersonnelAction) => {
+    if (action.kind === 'scout') return onScoutCandidate(action.candidateId);
+    if (action.kind === 'stop-scout') return onStopScouting ? onStopScouting(action.candidateId) : false;
+    if (action.kind === 'approach') return onApproachCandidate(action.candidateId);
+    return false;
   };
   const openStaffMeeting = (staffId: string) => {
     const member = staff.find((person) => person.id === staffId);
@@ -686,6 +728,16 @@ export function OrganizationPanel({
 
         {workspace === 'market' && (<div className="recruitment-hub" id="staff-recruitment-hub">
           <div className="org-squad-summary" aria-label="후보 시장 현황"><span><small>현재 시장 등록</small><strong>{candidates.length}명</strong></span><span><small>관심 명단</small><strong>{shortlistCount}명</strong></span><span><small>조사 진행 중</small><strong>{scoutingCount}명</strong></span></div>
+          <section className="org-scouting-desk" aria-label="조사 업무 현황">
+            <header><span><Search size={18} /><strong>조사 업무</strong><small>시작할 때 한 번 지출 · 이후 매주 자동 갱신</small></span><b>{scoutingCount} / {scoutingSummary.capacity} 슬롯</b></header>
+            <p>신규 조사 2 PP · 즉시 정보 +8 · 매주 +{scoutingSummary.weeklyGain} 무료. 정보 100%에 도달하면 슬롯을 반환하고 보고서가 남습니다. 관심 등록은 조사를 중단하지 않습니다.</p>
+            <div className="org-scouting-routes"><button type="button" onClick={() => { setTalentScope('scouting'); setTalentPage(0); }}>진행 중 {scoutingCount}명 보기</button><button type="button" onClick={() => { setTalentScope('completed'); setTalentPage(0); }}>완료 보고서 {completedScoutCount}명 보기</button><span>빈 슬롯 {scoutingSummary.available}개 · {personnelDelegated ? '인사 업무 위임 중' : '기본 조사 속도'}</span></div>
+            {scoutingCandidates.length > 0 ? <div className="org-scouting-jobs">{scoutingCandidates.map((candidate) => {
+              const plan = getCandidateScoutingPlan(candidate, personnelDelegated);
+              const stop = assessPersonnelAction(personnelContext, { kind: 'stop-scout', candidateId: candidate.id });
+              return <article key={candidate.id}><span><strong>{candidate.name}</strong><small>정보 {candidate.knowledge}% · 현재 속도 유지 시 약 {plan.weeksToComplete}주 후 완료</small><Meter value={candidate.knowledge} /></span><button type="button" onClick={() => revealCandidateReport(candidate.id)}>보고서</button><button type="button" disabled={!stop.allowed || !onStopScouting} title={!stop.allowed ? stop.reason : '확보 정보를 보존하고 슬롯을 반환합니다.'} onClick={() => reviewCandidateAction(candidate.id, 'stop-scout')}>중단 검토 · 무료</button></article>;
+            })}</div> : <p className="org-scouting-empty">진행 중인 조사가 없습니다. 후보의 조사 보고서를 열고 ‘조사 검토’를 선택하십시오.</p>}
+          </section>
           <div className="org-market-filterbar">
           <div className="talent-toolbar">
             <label className="org-talent-search"><Search size={18} /><span className="org-sr-only">후보 이름·직책·기관·전문 분야 검색</span><input value={talentQuery} onChange={(event) => { setTalentQuery(event.target.value); setTalentPage(0); }} placeholder="이름·직책·기관·전문 분야 검색" /></label>
@@ -700,7 +752,7 @@ export function OrganizationPanel({
           <div className="talent-market-controls">
             <div className="talent-scope-list" aria-label="인재 시장 보기 필터">
               <ListFilter size={16} /><label><span>시장 범위</span><select value={talentScope} onChange={(event) => { setTalentScope(event.target.value as TalentMarketScope); setTalentPage(0); }}>{(Object.keys(talentScopeLabels) as TalentMarketScope[]).map((scope) => {
-                const count = scope === 'shortlisted' ? shortlistCount : scope === 'scouting' ? scoutingCount : scope === 'wartime' ? wartimeCuratedCount : scope === 'later' ? laterEraCount : scope === 'deep' ? deepProfileCount : null;
+                const count = scope === 'shortlisted' ? shortlistCount : scope === 'scouting' ? scoutingCount : scope === 'completed' ? completedScoutCount : scope === 'wartime' ? wartimeCuratedCount : scope === 'later' ? laterEraCount : scope === 'deep' ? deepProfileCount : null;
                 return <option value={scope} key={scope}>{talentScopeLabels[scope]}{count !== null ? ` (${count})` : ''}</option>;
               })}</select></label>
             </div>
@@ -708,12 +760,28 @@ export function OrganizationPanel({
           </div>
           </div>
           <p className="org-market-result-count" role="status">검색 결과 {filteredCandidates.length}명 · {visibleTalentPage + 1}/{talentPageCount}쪽 · 후보 선택·보고서 열람에는 비용이나 성과 보상이 없습니다.</p>
+          {busy && <p className="org-market-result-count" role="status">주간 진행 중에는 조사를 포함한 인사 조치를 잠급니다. 목록과 보고서는 계속 열람할 수 있습니다.</p>}
+          {negotiatingCandidate && <div id={negotiationId} className="org-negotiation-workspace"><RecruitmentNegotiation
+            key={`${negotiatingCandidate.id}-${negotiatingCandidate.personId}`}
+            candidate={negotiatingCandidate}
+            context={personnelContext}
+            busy={busy}
+            offer={recruitmentOffer}
+            politicalPower={game.politicalPower}
+            treasury={game.treasury}
+            reputation={careerReputation}
+            formatMoney={formatMoney}
+            onChange={setRecruitmentOffer}
+            onClose={() => { setNegotiatingCandidateId(null); setNegotiationSnapshot(null); }}
+            onSubmit={() => onRecruitCandidate(negotiatingCandidate.id, recruitmentOffer)}
+          /></div>}
           <div className={`org-market-results ${selectedCandidate ? 'has-report' : ''}`}>
+          {selectedCandidateId && !selectedCandidate && <p className="org-market-result-count" role="status">선택했던 후보는 현재 시장에 없습니다. 임명·이적 후 다른 인물을 자동으로 대신 선택하지 않습니다.</p>}
           {selectedCandidate && (
-            <section className="candidate-report" id={reportId} role="region" aria-label={`${selectedCandidate.name} 조사 보고서`}>
+            <section className="candidate-report" id={reportId} role="region" tabIndex={-1} aria-label={`${selectedCandidate.name} 조사 보고서`}>
               <header>
                 <span><ClipboardList size={16} /><small>PERSONNEL DOSSIER · 정보 신뢰도 {selectedCandidate.knowledge}%</small><strong>{selectedCandidate.name} 조사 보고서</strong></span>
-                <button type="button" onClick={() => setSelectedCandidateId(null)} aria-label="조사 보고서 닫기"><X size={15} /></button>
+                <button type="button" onClick={() => { setSelectedCandidateId(null); setCandidateReview(null); setNegotiatingCandidateId(null); }} aria-label="조사 보고서 닫기"><X size={15} /></button>
               </header>
               <div className={`candidate-verification ${selectedCandidateLaterEra ? 'later-era' : selectedCandidateIdentityOnly ? 'identity-only' : 'deep-profile'}`}>
                 <ShieldCheck size={13} />
@@ -727,7 +795,7 @@ export function OrganizationPanel({
                 <span><small>목표 보직 적합도</small><strong className={(selectedCandidateFit?.score ?? 0) >= 68 ? 'ready' : ''}>{selectedCandidateFit?.score ?? 0} · {selectedCandidateFit?.label}</strong></span>
                 <span><small>관계 / 경쟁 제안</small><strong>{selectedCandidate.relationship} / {selectedCandidate.rivalInterest}</strong></span>
                 <span><small>설득 점수</small><strong className={selectedCandidateScore >= 72 ? 'ready' : ''}>{selectedCandidateScore} / 72</strong></span>
-                <span><small>합의 가능성</small><strong>{selectedCandidateChance}%</strong></span>
+                <span><small>기본조건 판정</small><strong>{selectedCandidateScore >= 72 ? '설득 문턱 충족' : `문턱까지 ${72 - selectedCandidateScore}점`}</strong></span>
                 <span><small>비용</small><strong>{formatMoney(selectedCandidate.signingCost)} + 주 {formatMoney(selectedCandidate.weeklyCost)}</strong></span>
               </div>
               <div className="candidate-report-findings">
@@ -736,13 +804,26 @@ export function OrganizationPanel({
                 <article><small>위험·마찰</small><p>{selectedCandidate.knowledge >= 65 ? selectedCandidate.historicalConstraint ?? selectedCandidate.friction ?? '중대한 역사적 제약이 확인되지 않았습니다.' : '정보 65%에서 역사적 제약·충성 위험·조직 마찰이 공개됩니다.'}</p></article>
               </div>
               <div className="candidate-report-next"><strong>추천 다음 행동</strong><span>{selectedCandidateNextAction}</span></div>
+              <p className="org-candidate-score-note">기본조건 설득 점수는 성공 확률이 아닙니다. 72점 이상이면 설득 문턱을 충족하며, 실제 협상에서는 정보·자원·임명권·변경한 조건을 다시 확인합니다.</p>
+              {(() => {
+                const plan = getCandidateScoutingPlan(selectedCandidate, personnelDelegated);
+                return <div className="org-report-scouting"><strong>{plan.complete ? '조사 완료 · 슬롯 반환' : plan.active ? '조사 진행 중 · 매주 무료 갱신' : '자동 조사 미진행'}</strong><p>{plan.complete ? '확보한 정보는 보고서로 남습니다. 재조사 비용을 지출할 필요가 없습니다.' : plan.active ? `다음 주 정보 +${plan.weeklyGain}, 현재 속도 유지 시 약 ${plan.weeksToComplete}주 후 완료됩니다.` : '조사를 시작할 때만 2 PP를 사용합니다. 보고서 열람과 관심 등록은 무료입니다.'}</p>{!plan.complete && <ul>{plan.milestones.filter((milestone) => milestone.knowledge > selectedCandidate.knowledge).map((milestone) => <li key={milestone.knowledge}>{milestone.label} · 정보 {milestone.knowledge}%{plan.active ? ` · 약 ${milestone.weeks}주 후` : ''}</li>)}</ul>}</div>;
+              })()}
               <div className="candidate-report-actions">
-                <button disabled={selectedCandidateUnavailable || selectedCandidate.knowledge >= 100} onClick={() => onScoutCandidate(selectedCandidate.id)}><Search size={12} /> 조사 계속 · 2PP</button>
-                <button disabled={selectedCandidateUnavailable || selectedCandidate.knowledge < 30} onClick={() => onApproachCandidate(selectedCandidate.id)}><MessageSquare size={12} /> 비밀 접촉 · 4PP</button>
-                <button disabled={selectedCandidateUnavailable || selectedCandidate.knowledge < 35} className={selectedCandidate.status === 'shortlisted' ? 'active' : ''} onClick={() => onToggleShortlist(selectedCandidate.id)}><Star size={12} /> {selectedCandidate.status === 'shortlisted' ? '관심 명단에서 제외' : '관심 명단에 추가'}</button>
-                <button title={selectedCandidateManaged ? '권한·임기·보수·보직 약속을 조정해 제안합니다.' : authority.restrictionReason} disabled={!selectedCandidateManaged || selectedCandidateUnavailable || selectedCandidate.knowledge < 55} onClick={() => openNegotiation(selectedCandidate)}>{selectedCandidateManaged ? <HeartHandshake size={12} /> : <LockKeyhole size={12} />} 조건 협상 열기</button>
+                {(['scout', 'approach', 'shortlist'] as const).map((kind) => {
+                  const assessment = assessPersonnelAction(personnelContext, { kind, candidateId: selectedCandidate.id });
+                  const shortlisted = isCandidateShortlisted(selectedCandidate);
+                  return <button key={kind} disabled={!assessment.allowed} title={assessment.reason} className={kind === 'shortlist' && shortlisted ? 'active' : ''} onClick={() => kind === 'shortlist' ? onToggleShortlist(selectedCandidate.id) : reviewCandidateAction(selectedCandidate.id, kind)}>{kind === 'scout' ? <Search size={12} /> : kind === 'approach' ? <MessageSquare size={12} /> : <Star size={12} />}{kind === 'scout' ? '조사 검토 · 2PP' : kind === 'approach' ? '접촉 검토 · 4PP' : shortlisted ? '관심 명단에서 제외' : '관심 명단에 추가'}</button>;
+                })}
+                {selectedCandidate.status === 'scouting' && selectedCandidate.knowledge < 100 && <button disabled={busy || !onStopScouting} onClick={() => reviewCandidateAction(selectedCandidate.id, 'stop-scout')}>조사 중단 검토 · 무료</button>}
+                <button title={selectedCandidateManaged ? '권한·임기·보수·보직 약속을 조정해 제안합니다.' : authority.restrictionReason} disabled={busy || !selectedCandidateManaged || selectedCandidateUnavailable || selectedCandidate.knowledge < 55} onClick={() => openNegotiation(selectedCandidate)}>{selectedCandidateManaged ? <HeartHandshake size={12} /> : <LockKeyhole size={12} />} 조건 협상 열기</button>
                 {selectedCandidate.sourceUrl && <a href={selectedCandidate.sourceUrl} target="_blank" rel="noreferrer"><ExternalLink size={11} /> 역사 자료</a>}
               </div>
+              <ul className="org-report-action-reasons" aria-label="후보 조치 가능 조건">{(['scout', 'approach', 'shortlist'] as const).map((kind) => {
+                const assessment = assessPersonnelAction(personnelContext, { kind, candidateId: selectedCandidate.id });
+                return !assessment.allowed ? <li key={kind}>{kind === 'scout' ? '조사' : kind === 'approach' ? '접촉' : '관심 등록'}: {assessment.reason}</li> : null;
+              })}</ul>
+              {candidateReview?.action.candidateId === selectedCandidate.id && <CandidateActionReview key={candidateReview.fingerprint} review={candidateReview} context={personnelContext} onConfirm={dispatchCandidateAction} onClose={() => setCandidateReview(null)} />}
             </section>
           )}
           <div className="candidate-grid">
@@ -751,8 +832,7 @@ export function OrganizationPanel({
               const ability = candidate.knowledge >= 65 ? String(candidate.ability) : `${Math.max(35, candidate.ability - uncertainty)}–${Math.min(99, candidate.ability + uncertainty)}`;
               const potential = candidate.knowledge >= 85 ? String(candidate.potential) : `${Math.max(40, candidate.potential - uncertainty)}+`;
               const unavailable = candidate.status === 'signed' || candidate.status === 'lost';
-              const chance = recruitmentChance(candidate, careerReputation);
-              const score = recruitmentScore(candidate, careerReputation);
+              const score = assessRecruitmentOffer(candidate, careerReputation, defaultRecruitmentOffer).score;
               const isExpert = Boolean(candidate.birthYear);
               const laterEra = Boolean(candidate.historicalEra && candidate.historicalEra !== 'wartime');
               const identityOnly = Boolean(candidate.sourceUrl?.startsWith('https://www.wikidata.org/wiki/Q') && candidate.historicalOffice.includes('정밀조사 필요'));
@@ -762,7 +842,7 @@ export function OrganizationPanel({
                 <article className={`candidate-card org-candidate-row ${candidate.status} ${selectedCandidate?.id === candidate.id ? 'selected' : ''} ${isExpert ? 'historical-expert' : ''} ${manageable ? '' : 'authority-locked'}`} key={candidate.id}>
                   <header>
                     <span>{isExpert ? (candidate.department === 'science' ? <Atom size={10} /> : <Landmark size={10} />) : null}{departmentLabels[candidate.department]} · {candidate.discipline ? disciplineLabels[candidate.discipline] : '군사'}</span>
-                    <em>{manageable ? statusLabels[candidate.status] : <><LockKeyhole size={12} /> 임명 권한 없음</>}</em>
+                    <em>{candidate.knowledge >= 100 && !unavailable ? '조사 완료' : statusLabels[candidate.status]}{isCandidateShortlisted(candidate) && ' · 관심'}{!manageable && <><LockKeyhole size={12} /> 임명 권한 없음</>}</em>
                   </header>
                   <div className="org-candidate-identity"><i className="org-person-monogram" aria-hidden="true">{initials(candidate.name)}</i><span><strong>{candidate.name}</strong><small>{candidate.historicalOffice}</small></span></div>
                   <div className="org-candidate-comparison"><span><small>정보 / 능력</small><strong>{candidate.knowledge}% / {ability}</strong></span><span><small>계약금 / 주급</small><strong>{formatMoney(candidate.signingCost)} / {formatMoney(candidate.weeklyCost)}</strong></span></div>
@@ -788,12 +868,13 @@ export function OrganizationPanel({
                   </div>
                   <p>정보 {candidate.knowledge}% · 관심 {candidate.knowledge >= 45 ? `${candidate.interest}%` : '?'} · 계약금 {formatMoney(candidate.signingCost)} · 주급 {formatMoney(candidate.weeklyCost)}</p>
                   {candidate.sourceUrl && <a className="historical-source-link" href={candidate.sourceUrl} target="_blank" rel="noreferrer"><ExternalLink size={10} /> {candidate.sourceLabel ?? '역사 자료 보기'}</a>}
-                  <div className="recruitment-forecast"><strong>{chance}%</strong><span>예상 합의율<small>설득 {score}/72</small></span></div>
+                  <div className="recruitment-forecast"><strong>{score} / 72</strong><span>기본조건 설득 점수<small>{score >= 72 ? '설득 문턱 충족' : `${72 - score}점 부족`} · 확률 아님</small></span></div>
                   <div className="candidate-actions">
-                    <button disabled={unavailable || candidate.knowledge >= 100} title="정치력 2를 사용해 정보를 수집합니다." onClick={() => { setSelectedCandidateId(candidate.id); onScoutCandidate(candidate.id); }}><Search size={10} /> 조사</button>
-                    <button disabled={unavailable || candidate.knowledge < 35} className={candidate.status === 'shortlisted' ? 'active' : ''} onClick={() => onToggleShortlist(candidate.id)}><Star size={10} /> 관심</button>
-                    <button disabled={unavailable || candidate.knowledge < 30} title="정치력 4로 비밀 접촉합니다." onClick={() => onApproachCandidate(candidate.id)}><MessageSquare size={10} /> 접촉</button>
-                    <button disabled={!manageable || unavailable || candidate.knowledge < 55} title={manageable ? '권한·임기·보수·보직 약속을 조정합니다.' : authority.restrictionReason} onClick={() => openNegotiation(candidate)}>{manageable ? <HeartHandshake size={10} /> : <LockKeyhole size={10} />} 협상</button>
+                    {(['scout', 'shortlist', 'approach'] as const).map((kind) => {
+                      const assessment = assessPersonnelAction(personnelContext, { kind, candidateId: candidate.id });
+                      return <button key={kind} disabled={!assessment.allowed} title={assessment.reason} className={kind === 'shortlist' && isCandidateShortlisted(candidate) ? 'active' : ''} onClick={() => kind === 'shortlist' ? onToggleShortlist(candidate.id) : reviewCandidateAction(candidate.id, kind)}>{kind === 'scout' ? <Search size={10} /> : kind === 'shortlist' ? <Star size={10} /> : <MessageSquare size={10} />}{kind === 'scout' ? '조사 검토' : kind === 'shortlist' ? '관심' : '접촉 검토'}</button>;
+                    })}
+                    <button disabled={busy || !manageable || unavailable || candidate.knowledge < 55} title={manageable ? '권한·임기·보수·보직 약속을 조정합니다.' : authority.restrictionReason} onClick={() => openNegotiation(candidate)}>{manageable ? <HeartHandshake size={10} /> : <LockKeyhole size={10} />} 협상</button>
                   </div>
                   </div></details>
                 </article>
@@ -838,23 +919,10 @@ export function OrganizationPanel({
               <li><i>4</i><span><strong>조건 협상</strong><small>권한·임기·보수·약속 설계</small></span></li>
               <li><i>5</i><span><strong>임명·계약 관리</strong><small>만족도·사기·재계약 추적</small></span></li>
             </ol>
-            <p><b>공개 기준</b> 임명 효과 45% · 제안 55% · 정확한 능력 65% · 정확한 잠재력 85%. 조사 중인 후보는 다음 주에도 자동 갱신됩니다.</p>
+            <p><b>공개 기준</b> 임명 효과 45% · 제안 55% · 정확한 능력 65% · 정확한 잠재력 85%. 조사 중인 후보는 다음 주에도 무료로 자동 갱신되고, 정보 100%에서 슬롯을 반환합니다. 관심 등록과 조사 상태는 별도로 유지됩니다.</p>
           </section>
           </div></details>
         </div>)}
-        {negotiatingCandidate && (
-          <RecruitmentNegotiation
-            candidate={negotiatingCandidate}
-            offer={recruitmentOffer}
-            politicalPower={game.politicalPower}
-            treasury={game.treasury}
-            reputation={careerReputation}
-            formatMoney={formatMoney}
-            onChange={setRecruitmentOffer}
-            onClose={() => setNegotiatingCandidateId(null)}
-            onSubmit={() => { onRecruitCandidate(negotiatingCandidate.id, recruitmentOffer); setNegotiatingCandidateId(null); }}
-          />
-        )}
         {meetingStaff && (() => {
           const promise = assessStaffPromise(meetingStaff, developmentFocusId === meetingStaff.id);
           const completedThisWeek = meetingStaff.lastMeetingWeek === game.week;

@@ -1,0 +1,14 @@
+.game-shell.design-v2 .deck-content .candidate-action-review { background: #10232d; border: 1px solid #52717e; border-radius: 12px; margin-top: 18px; padding: 18px; color: #edf4f5; min-width: 0; }
+.game-shell.design-v2 .deck-content .candidate-action-review header,.game-shell.design-v2 .deck-content .candidate-action-review header>span,.game-shell.design-v2 .deck-content .candidate-action-review footer { display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap; }
+.game-shell.design-v2 .deck-content .candidate-action-review header strong { font-size: 18px; }
+.game-shell.design-v2 .deck-content .candidate-action-review p,.game-shell.design-v2 .deck-content .candidate-action-review li { color: #c1d0d5; font-size: 15px; line-height: 1.65; overflow-wrap: anywhere; }
+.game-shell.design-v2 .deck-content .candidate-action-review dl { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin: 14px 0; }
+.game-shell.design-v2 .deck-content .candidate-action-review dl div { padding: 10px; border: 1px solid #36515c; border-radius: 8px; }
+.game-shell.design-v2 .deck-content .candidate-action-review dt { font-size: 13px; color: #b1c5ce; }
+.game-shell.design-v2 .deck-content .candidate-action-review dd { margin: 5px 0 0; font-size: 17px; font-weight: 700; overflow-wrap: anywhere; }
+.game-shell.design-v2 .deck-content .candidate-action-review dd small { display: block; font-size: 12px; font-weight: 400; }
+.game-shell.design-v2 .deck-content .candidate-action-review ul { margin: 12px 0; padding-left: 20px; }
+.game-shell.design-v2 .deck-content .candidate-action-review button { min-height: 44px; min-width: 44px; white-space: normal; }
+.game-shell.design-v2 .deck-content .candidate-action-review button:focus-visible { outline: 3px solid #e7c776; outline-offset: 3px; }
+.game-shell.design-v2 .deck-content .candidate-action-review .candidate-review-warning { color: #ffcfac; }
+@media(max-width:600px) { .game-shell.design-v2 .deck-content .candidate-action-review dl { grid-template-columns: minmax(0,1fr); } .game-shell.design-v2 .deck-content .candidate-action-review footer button { flex: 1 1 100%; } }
