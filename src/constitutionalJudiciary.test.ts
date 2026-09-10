@@ -5,6 +5,7 @@ import {
   advanceConstitutionalJudiciaryWeek,
   canNominateJudicialOffice,
   createConstitutionalJudiciaryState,
+  getConstitutionClause,
   getConstitutionContradictions,
   getConstitutionDraftProgress,
   isJudicialOfficeConstitutionallyEnabled,
@@ -39,7 +40,15 @@ const balancedDraft = [
 ];
 
 function draftConstitution(state: ConstitutionalJudiciaryState) {
-  return balancedDraft.reduce((current, clauseId) => selectConstitutionClause(current, clauseId, context())!.state, state);
+  return balancedDraft.reduce((current, clauseId) => current.draft[getConstitutionClause(clauseId)!.axis] === clauseId ? current : selectConstitutionClause(current, clauseId, context())!.state, state);
+}
+
+function confirmationState() {
+  const state = createConstitutionalJudiciaryState('korea');
+  const candidate = state.candidates.find((item) => item.philosophy === 'rights-oriented')!;
+  const nominated = nominateJudicialCandidate(state, 'supreme-chief', candidate.id, context())!.state;
+  const hearing = advanceConstitutionalJudiciaryWeek(nominated, context(2)).state;
+  return advanceConstitutionalJudiciaryWeek(hearing, context(3)).state;
 }
 
 describe('constitutional founding and judicial appointments', () => {
@@ -128,5 +137,53 @@ describe('constitutional founding and judicial appointments', () => {
     expect(restored.courtIndependence).toBe(100);
     expect(restored.candidates).toHaveLength(6);
     expect(restored.status).toBe('awaiting-authority');
+  });
+
+  it.each(balancedDraft)('does not charge, record or mutate an already selected %s clause', (clauseId) => {
+    const state = draftConstitution(activateConstitutionalFounding(createConstitutionalJudiciaryState('korea'), context())!.state);
+    const before = JSON.stringify(state); const history = state.history;
+    expect(selectConstitutionClause(state, clauseId, context())).toBeNull();
+    expect(selectConstitutionClause(state, clauseId, context(1, { politicalPower: 0 }))).toBeNull();
+    expect(JSON.stringify(state)).toBe(before); expect(state.history).toBe(history);
+  });
+
+  it('still charges one political point for replacing a clause and blocks unfunded replacements', () => {
+    const drafting = activateConstitutionalFounding(createConstitutionalJudiciaryState('korea'), context())!.state;
+    const state = selectConstitutionClause(drafting, 'parliamentary-cabinet', context())!.state;
+    const before = JSON.stringify(state);
+    expect(selectConstitutionClause(state, 'presidential-separation', context(0, { politicalPower: 0 }))).toBeNull();
+    const replaced = selectConstitutionClause(state, 'presidential-separation', context(0, { politicalPower: 1 }))!;
+    expect(replaced.politicalPowerDelta).toBe(-1); expect(replaced.state.draft.government).toBe('presidential-separation');
+    expect(replaced.state.history).toHaveLength(state.history.length + 1);
+    expect(JSON.stringify(state)).toBe(before);
+  });
+
+  it.each([0, 1])('rejects ordinary judicial confirmation with only %s political power without changing the pending nomination', (politicalPower) => {
+    const state = confirmationState(); const before = JSON.stringify(state);
+    const input = context(3, { politicalPower });
+    expect(state.activeNomination!.hearingSupport).toBeGreaterThanOrEqual(50);
+    expect(resolveJudicialNomination(state, 'confirm', input)).toBeNull();
+    expect(JSON.stringify(state)).toBe(before); expect(state.appointments).toHaveLength(0);
+    expect(input.politicalPower).toBe(politicalPower);
+  });
+
+  it('confirms normally with exactly two political power and retains the established timing and cost', () => {
+    const state = confirmationState(); const before = JSON.stringify(state);
+    const result = resolveJudicialNomination(state, 'confirm', context(3, { politicalPower: 2 }))!;
+    expect(result).not.toBeNull(); expect(result.politicalPowerDelta).toBe(-2); expect(result.treasuryDelta).toBe(0);
+    expect(result.state.activeNomination).toBeNull(); expect(result.state.appointments[0].appointedWeek).toBe(3);
+    expect(result.state.appointments[0].termEndWeek).toBe(3 + judicialOffices.find((office) => office.id === 'supreme-chief')!.termWeeks);
+    expect(result.state.history).toHaveLength(state.history.length + 1); expect(JSON.stringify(state)).toBe(before);
+  });
+
+  it('keeps withdrawal free while preserving force-through and re-vetting costs', () => {
+    const state = confirmationState(); const before = JSON.stringify(state);
+    const withdrawal = resolveJudicialNomination(state, 'withdraw', context(3, { politicalPower: 0 }))!;
+    expect(withdrawal.politicalPowerDelta).toBe(0); expect(withdrawal.treasuryDelta).toBe(0);
+    expect(resolveJudicialNomination(state, 'force-through', context(3, { politicalPower: 7 }))).toBeNull();
+    expect(resolveJudicialNomination(state, 'force-through', context(3, { politicalPower: 8 }))!.politicalPowerDelta).toBe(-8);
+    const recheck = resolveJudicialNomination(state, 'return-vetting', context(3, { politicalPower: 3, treasury: 4 }))!;
+    expect(recheck.politicalPowerDelta).toBe(-3); expect(recheck.treasuryDelta).toBe(-4);
+    expect(recheck.state.activeNomination!.nextReviewWeek).toBe(5); expect(JSON.stringify(state)).toBe(before);
   });
 });

@@ -325,6 +325,7 @@ export function selectConstitutionClause(state: ConstitutionalJudiciaryState, cl
   const clause = getConstitutionClause(clauseId);
   if (!clause || state.status !== 'drafting' || context.role.tier !== 1 || context.politicalPower < 1) return null;
   const previous = state.draft[clause.axis];
+  if (previous === clause.id) return null;
   const title = `헌법 초안 · ${constitutionAxisLabels[clause.axis].name}`;
   const detail = `${clause.name} 조항을 ${previous ? '대체 채택' : '초안에 채택'}했습니다. 비준 전까지 수정할 수 있습니다.`;
   return {
@@ -529,7 +530,7 @@ export function resolveJudicialNomination(state: ConstitutionalJudiciaryState, d
     };
   }
   const forceThrough = decisionId === 'force-through';
-  if (!forceThrough && nomination.hearingSupport < 50) return null;
+  if (!forceThrough && (nomination.hearingSupport < 50 || context.politicalPower < 2)) return null;
   if (forceThrough && (context.role.tier !== 1 || context.politicalPower < 8)) return null;
   const processIndependence = state.enacted?.clauses.appointments === 'independent-commission' ? 6 : state.enacted?.clauses.appointments === 'leader-appointment' ? -8 : 1;
   const appointment: JudicialAppointment = {

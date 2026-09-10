@@ -6,7 +6,7 @@ import { getRoleTabMandates } from './roleMandate';
 import type { CareerRole, GameState, NationProfile } from './types';
 import type { EconomyState } from './economy';
 
-export type NationDeskView = 'overview' | 'transition' | 'agenda' | 'strategy' | 'pressure' | 'simulation' | 'budget' | 'constitution' | 'sovereign' | 'justice' | 'dynasty' | 'elections' | 'power' | 'saga' | 'socialist' | 'personal' | 'media' | 'continuity' | 'records';
+export type NationDeskView = 'overview' | 'transition' | 'agenda' | 'strategy' | 'pressure' | 'simulation' | 'budget' | 'institutions' | 'constitution' | 'sovereign' | 'justice' | 'dynasty' | 'elections' | 'power' | 'saga' | 'socialist' | 'personal' | 'media' | 'continuity' | 'records';
 export interface NationDeskSection { id: string; label: string; items: Array<{ id: NationDeskView; label: string }> }
 export function getNationDeskSections(phase: CampaignPhase): NationDeskSection[] {
   const nation = phase === 'nation';
@@ -16,7 +16,7 @@ export function getNationDeskSections(phase: CampaignPhase): NationDeskSection[]
       { id: 'policy', label: '정책·발전', items: [{ id: 'agenda', label: '국가 의제' }, { id: 'strategy', label: '발전 노선' }, { id: 'pressure', label: '사회 갈등' }, { id: 'simulation', label: '국가 분석' }] },
       { id: 'finance', label: '재정·예산', items: [{ id: 'budget', label: '주간 재정과 배분' }, { id: 'records', label: '실제 국정 결산' }] },
     ] as NationDeskSection[] : [{ id: 'transition', label: '전후 전환', items: [{ id: 'transition', label: '전환 조건과 계승' }] } as NationDeskSection]),
-    { id: 'institutions', label: '헌정·사법', items: [{ id: 'constitution', label: '헌법과 임명' }, { id: 'sovereign', label: '주권 권한' }, { id: 'justice', label: '사법 사건' }, ...(nation ? [{ id: 'dynasty', label: '국가체제·왕실' }, { id: 'elections', label: '선거·국민투표' }] as NationDeskSection['items'] : [])] },
+    { id: 'institutions', label: '헌정·사법', items: [{ id: 'institutions', label: '제도 업무 일정' }, { id: 'constitution', label: '헌법과 임명' }, { id: 'sovereign', label: '주권 권한' }, { id: 'justice', label: '사법 사건' }, ...(nation ? [{ id: 'dynasty', label: '국가체제·왕실' }, { id: 'elections', label: '선거·국민투표' }] as NationDeskSection['items'] : [])] },
     { id: 'leadership', label: '권력·노선', items: [{ id: 'power', label: '정치 연합' }, { id: 'saga', label: '전략 서사' }, { id: 'socialist', label: '사회주의 전환' }] },
     { id: 'life', label: '삶·언론', items: [...(nation ? [{ id: 'personal', label: '개인·가족' }] as NationDeskSection['items'] : []), { id: 'media', label: '언론과 공개 대응' }] },
     ...(nation ? [{ id: 'continuity', label: '장기 계획', items: [{ id: 'continuity', label: '기간 진행·전략작전·국가계획' }] }] as NationDeskSection[] : []),

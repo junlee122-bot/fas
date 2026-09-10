@@ -107,8 +107,11 @@
 .game-shell.design-v2 .field-workspace-switch strong { font-size:15px; color:inherit; }
 .game-shell.design-v2 .field-workspace-switch span { font-size:12px; color:var(--ui-muted); }
 .game-shell.design-v2 .command-desk .command-desk-activities strong { font-size:28px; }
+/* Crisis text must size its own row; the legacy fixed row clipped the redesigned two-line banner. */
+.game-shell.design-v2 .workspace-deck:has(> .workspace-crisis-ribbon) { grid-template-rows:max-content max-content minmax(0,1fr); }
+.game-shell.design-v2 .workspace-deck:has(> .tracked-command-return):has(> .workspace-crisis-ribbon) { grid-template-rows:max-content max-content max-content minmax(0,1fr); }
 .game-shell.design-v2 .workspace-crisis-ribbon { margin:12px 28px 0; padding:12px 16px; background:#6c3b2924; border:1px solid #785d46; border-radius:7px; }
-.game-shell.design-v2 .workspace-crisis-ribbon strong { font-size:14px; }
+.game-shell.design-v2 .workspace-crisis-ribbon strong { font-size:14px; line-height:1.5; white-space:normal; overflow-wrap:anywhere; }
 .game-shell.design-v2 .workspace-crisis-ribbon small,.game-shell.design-v2 .workspace-crisis-ribbon em { font-size:12px; }
 .game-shell.design-v2.high-contrast { --ui-muted:#c0cbd3; --ui-border:#6b7d8c; --ui-accent:#ebc58c; }
 .game-shell.design-v2.map-focus-mode .war-room { top:0; left:0; bottom:0; }

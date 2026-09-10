@@ -1,5 +1,5 @@
 import { getCampaignYearForWeek } from './campaignCalendar';
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import {
   ArrowRight,
   Activity,
@@ -49,9 +49,7 @@ import {
 } from './dynasticPolitics';
 import type { EconomyState } from './economy';
 import { ElectionSituationRoom } from './ElectionSituationRoom';
-import { ConstitutionalJudiciaryBoard } from './ConstitutionalJudiciaryBoard';
-import { JusticeDocketBoard } from './JusticeDocketBoard';
-import { SovereignPowersBoard } from './SovereignPowersBoard';
+import { InstitutionAgendaDesk } from './InstitutionAgendaDesk';
 import type {
   ConstitutionalContext,
   JudicialOfficeId,
@@ -142,6 +140,10 @@ import { assessStrategicCadence, getStrategicTimeAdvanceOptions, type StrategicA
 import { NationBudgetEditor, NationDeskNavigation, NationDeskOverview, resolveNationDeskView, type NationDeskView } from './NationDesk';
 import { getRoleTabMandates } from './roleMandate';
 import './NationManagementPanel.css';
+
+const ConstitutionalJudiciaryBoard = lazy(() => import('./ConstitutionalJudiciaryBoard').then((module) => ({ default: module.ConstitutionalJudiciaryBoard })));
+const JusticeDocketBoard = lazy(() => import('./JusticeDocketBoard').then((module) => ({ default: module.JusticeDocketBoard })));
+const SovereignPowersBoard = lazy(() => import('./SovereignPowersBoard').then((module) => ({ default: module.SovereignPowersBoard })));
 
 interface TransitionReadiness {
   score: number;
@@ -322,7 +324,9 @@ export function NationManagementPanel({
   onNextWeek,
 }: NationManagementPanelProps) {
   const [requestedView, setView] = useState<NationDeskView>(initialView);
+  const [institutionEntry, setInstitutionEntry] = useState<'procedure' | 'records' | undefined>();
   const view = resolveNationDeskView(phase, requestedView);
+  const openInstitutionView = (next: NationDeskView, entry?: 'procedure' | 'records') => { setInstitutionEntry(entry); setView(next); };
   const canManageFiscal = (budgetAuthority ?? getRoleTabMandates(role).governance.mode === 'direct') && periodAdvanceRemaining === 0;
   const [selectedRecipientId, setSelectedRecipientId] = useState('');
   const [selectedDomainId, setSelectedDomainId] = useState('');
@@ -566,8 +570,10 @@ export function NationManagementPanel({
   const workspaceHeader = <header className="nation-desk-header"><div><span className="nation-desk-eyebrow">{nation.code} / 제{game.week + 1}주 · {phase === 'war' ? '전시 국가 운영' : '전후 국가 운영'}</span><h1>{nation.shortName} 국정 데스크</h1><p>{role.title} · {worldlineTitle}</p></div>
     {phase === 'nation' ? <button type="button" disabled={periodAdvanceRemaining > 0} onClick={onNextWeek}>국정 1주 진행<ChevronRight size={18} /></button> : <button type="button" onClick={() => onNavigate('map')}>전황으로 돌아가기<ChevronRight size={18} /></button>}
   </header>;
-  const workspaceNavigation = <NationDeskNavigation phase={phase} view={view} onChange={setView} />;
+  const workspaceNavigation = <NationDeskNavigation phase={phase} view={view} onChange={(next) => openInstitutionView(next)} />;
   const workspaceOverview = view === 'overview' ? <NationDeskOverview phase={phase} state={state} game={game} economy={economy} nation={nation} readiness={readiness} formatMoney={formatMoney} onViewChange={setView} /> : null;
+  const institutionOverview = view === 'institutions' ? <InstitutionAgendaDesk state={state} role={role} week={game.week} busy={periodAdvanceRemaining > 0} onOpen={openInstitutionView} /> : null;
+  const institutionFallback = <p role="status" className="institution-status">선택한 제도 업무 준비 중…</p>;
 
   if (phase === 'war') {
     const pillarRows = [
@@ -583,6 +589,7 @@ export function NationManagementPanel({
         {workspaceHeader}
         {workspaceNavigation}
         {workspaceOverview}
+        {institutionOverview}
 
         {view === 'transition' ? <>
 <section className="nation-transition-hero">
@@ -672,11 +679,15 @@ export function NationManagementPanel({
         </section>
         </> : null}
 
-        {view === 'constitution' ? <>
+        {view === 'constitution' ? <Suspense fallback={institutionFallback}>
 <ConstitutionalJudiciaryBoard
           compact
+          key={institutionEntry ?? 'default'}
+          initialView={institutionEntry === 'procedure' ? 'procedure' : 'draft'}
+          busy={periodAdvanceRemaining > 0}
           state={state.constitutionalJudiciary}
           context={constitutionalContext}
+          nationalIndicators={{ unrest: state.unrest, justiceIndependence: state.justice.independence, justiceIntegrity: state.justice.integrity }}
           formatMoney={formatMoney}
           onActivate={onActivateConstitution}
           onClauseSelect={onConstitutionClauseSelect}
@@ -684,28 +695,34 @@ export function NationManagementPanel({
           onNominate={onJudicialNominate}
           onNominationDecision={onJudicialNominationDecision}
         />
-        </> : null}
+        </Suspense> : null}
 
-        {view === 'sovereign' ? <>
+        {view === 'sovereign' ? <Suspense fallback={institutionFallback}>
 <SovereignPowersBoard
           compact
+          key={institutionEntry ?? 'default'}
+          initialView={institutionEntry === 'records' ? 'ledger' : 'exercise'}
+          busy={periodAdvanceRemaining > 0}
+          indicators={{ justiceIntegrity: state.justice.integrity, pressTrust: state.mediaRelations.pressTrust }}
           state={state.sovereignPowers}
           context={sovereignContext}
           formatMoney={formatMoney}
           onExercise={onSovereignPowerExercise}
         />
-        </> : null}
+        </Suspense> : null}
 
-        {view === 'justice' ? <>
+        {view === 'justice' ? <Suspense fallback={institutionFallback}>
 <JusticeDocketBoard
           compact
+          busy={periodAdvanceRemaining > 0}
           state={state.justice}
           context={justiceContext}
+          publicConfidence={economy.publicConfidence}
           formatMoney={formatMoney}
           onOpenCase={onOpenJusticeCase}
           onDecision={onJusticeDecision}
         />
-        </> : null}
+        </Suspense> : null}
 
         {view === 'power' ? <>
 <PowerNetworkBoard
@@ -771,6 +788,7 @@ export function NationManagementPanel({
       {workspaceHeader}
       {workspaceNavigation}
       {workspaceOverview}
+      {institutionOverview}
 
 
 
@@ -1296,10 +1314,14 @@ export function NationManagementPanel({
       </section>
       </> : null}
 
-      {view === 'constitution' ? <>
+      {view === 'constitution' ? <Suspense fallback={institutionFallback}>
 <ConstitutionalJudiciaryBoard
+        key={institutionEntry ?? 'default'}
+        initialView={institutionEntry === 'procedure' ? 'procedure' : 'draft'}
+        busy={periodAdvanceRemaining > 0}
         state={state.constitutionalJudiciary}
         context={constitutionalContext}
+        nationalIndicators={{ unrest: state.unrest, justiceIndependence: state.justice.independence, justiceIntegrity: state.justice.integrity }}
         formatMoney={formatMoney}
         onActivate={onActivateConstitution}
         onClauseSelect={onConstitutionClauseSelect}
@@ -1307,26 +1329,32 @@ export function NationManagementPanel({
         onNominate={onJudicialNominate}
         onNominationDecision={onJudicialNominationDecision}
       />
-      </> : null}
+      </Suspense> : null}
 
-      {view === 'sovereign' ? <>
+      {view === 'sovereign' ? <Suspense fallback={institutionFallback}>
 <SovereignPowersBoard
+        key={institutionEntry ?? 'default'}
+        initialView={institutionEntry === 'records' ? 'ledger' : 'exercise'}
+        busy={periodAdvanceRemaining > 0}
+        indicators={{ justiceIntegrity: state.justice.integrity, pressTrust: state.mediaRelations.pressTrust }}
         state={state.sovereignPowers}
         context={sovereignContext}
         formatMoney={formatMoney}
         onExercise={onSovereignPowerExercise}
       />
-      </> : null}
+      </Suspense> : null}
 
-      {view === 'justice' ? <>
+      {view === 'justice' ? <Suspense fallback={institutionFallback}>
 <JusticeDocketBoard
+        busy={periodAdvanceRemaining > 0}
         state={state.justice}
         context={justiceContext}
+        publicConfidence={economy.publicConfidence}
         formatMoney={formatMoney}
         onOpenCase={onOpenJusticeCase}
         onDecision={onJusticeDecision}
       />
-      </> : null}
+      </Suspense> : null}
 
       {view === 'dynasty' ? <>
 <section className="nation-surface dynastic-politics-board">

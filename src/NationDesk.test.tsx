@@ -29,7 +29,7 @@ describe('national desk workspace boundaries', () => {
     for (const view of views) expect(resolveNationDeskView(phase, view)).toBe(view);
     expect(views.includes('transition')).toBe(phase === 'war');
     expect(views.includes('budget')).toBe(phase === 'nation');
-    for (const view of ['constitution', 'sovereign', 'justice', 'power', 'saga', 'socialist', 'media']) expect(views).toContain(view);
+    for (const view of ['institutions', 'constitution', 'sovereign', 'justice', 'power', 'saga', 'socialist', 'media']) expect(views).toContain(view);
     expect(resolveNationDeskView('war', 'budget')).toBe('overview');
     expect(resolveNationDeskView('nation', 'transition')).toBe('overview');
   });
@@ -46,6 +46,14 @@ describe('national desk workspace boundaries', () => {
     const justice = elements(tree).find((item) => item.type === 'button' && item.props.children === '사법 사건')!;
     (justice.props.onClick as () => void)();
     expect(onChange).toHaveBeenCalledExactlyOnceWith('justice');
+  });
+
+  it.each(['war', 'nation'] as const)('opens the institutional itinerary first in %s', (phase) => {
+    const onChange = vi.fn();
+    const tree = NationDeskNavigation({ phase, view: 'overview', onChange });
+    const field = elements(tree).find((item) => item.type === 'button' && item.props.children === '헌정·사법')!;
+    (field.props.onClick as () => void)();
+    expect(onChange).toHaveBeenCalledExactlyOnceWith('institutions');
   });
 });
 
