@@ -1,0 +1,35 @@
+.weekly-review-overlay { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 24px; background: #080e0de8; }
+.weekly-review-dialog { color: #edf1e9; background: #18231f; border: 1px solid #617166; border-radius: 12px; width: min(1080px, 100%); max-height: calc(100dvh - 48px); min-width: 0; display: flex; flex-direction: column; box-shadow: 0 24px 90px #0009; font-size: 14px; line-height: 1.65; }
+.weekly-review-dialog button { display: inline-flex; justify-content: center; align-items: center; gap: 6px; min-height: 40px; padding: 7px 12px; color: #e2e9df; background: #26372f; border: 1px solid #52675b; border-radius: 5px; font: inherit; cursor: pointer; white-space: normal; }
+.weekly-review-dialog button:hover { background: #354b3f; }
+.weekly-review-dialog :focus-visible { outline: 3px solid #e2c879; outline-offset: 3px; }
+.weekly-review-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 22px 26px 18px; border-bottom: 1px solid #4e5d52; }
+.weekly-review-header > div { min-width: 0; }
+.weekly-review-header > button { flex: 0 0 auto; }
+.weekly-review-header span { color: #d0b775; font-size: 12px; letter-spacing: .05em; }
+.weekly-review-header h2 { margin: 5px 0; font-size: clamp(20px, 2.4vw, 28px); line-height: 1.4; }
+.weekly-review-dialog p { margin: 7px 0; color: #c8d2c7; overflow-wrap: anywhere; }
+.weekly-review-body { overflow-y: auto; min-height: 0; overscroll-behavior: contain; padding: 22px 26px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px; }
+.weekly-review-body > section { min-width: 0; }
+.weekly-review-body section > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.weekly-review-dialog h3 { margin: 0; font-size: 16px; }
+.weekly-review-dialog h3 small { display: inline-block; margin-left: 6px; color: #cbb774; font-size: 12px; font-weight: 500; }
+.weekly-review-body article { padding: 14px 0; border-top: 1px solid #425247; }
+.weekly-review-body article > span, .weekly-review-edition { font-size: 12px; color: #b7c9ba; }
+.weekly-review-body article.bad > span { color: #ffbaab; }
+.weekly-review-body article.good > span { color: #a6dfb9; }
+.weekly-review-dialog h4 { margin: 4px 0; font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; }
+.weekly-review-dialog details { margin-top: 9px; color: #c5d3c5; font-size: 13px; }
+.weekly-review-dialog summary { color: #deca8a; cursor: pointer; padding: 5px 0; }
+.weekly-review-dialog dl { margin: 8px 0 0; padding: 12px; background: #0f1915; border-radius: 4px; }
+.weekly-review-dialog dt { color: #b8c9b8; font-weight: 700; }
+.weekly-review-dialog dd { margin: 0 0 8px; overflow-wrap: anywhere; }
+.weekly-review-decisions { grid-column: 1 / -1; background: #111b16; padding: 16px; border: 1px solid #44594a; border-radius: 6px; }
+.weekly-review-decisions ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; list-style: none; margin: 12px 0 0; padding: 0; }
+.weekly-review-decisions li { min-width: 0; overflow-wrap: anywhere; }
+.weekly-review-decisions li strong, .weekly-review-decisions li span { display: block; }
+.weekly-review-decisions li span { margin-top: 5px; color: #bdcbbd; font-size: 13px; }
+.weekly-review-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 16px 26px; border-top: 1px solid #4e5d52; }
+.weekly-review-footer p { flex: 1 1 260px; font-size: 12px; }
+.weekly-review-dialog .weekly-review-confirm { color: #fff2bd; background: #574b26; border-color: #998247; font-weight: 700; }
+@media (max-width: 720px) { .weekly-review-overlay { padding: 8px; } .weekly-review-dialog { max-height: calc(100dvh - 16px); } .weekly-review-header, .weekly-review-footer { padding: 14px 16px; } .weekly-review-body { padding: 16px; grid-template-columns: minmax(0, 1fr); gap: 18px; } .weekly-review-decisions ul { grid-template-columns: minmax(0, 1fr); } .weekly-review-footer > button { width: 100%; } }

@@ -9,6 +9,7 @@ import type {
   Division,
   NationId,
 } from './types';
+import { createWeaponReadinessState, normalizeWeaponReadinessState } from './weaponReadiness';
 
 export const equipmentEraOrder: EquipmentEra[] = ['historical', 'late-war', 'cold-war', 'modern', 'speculative'];
 
@@ -313,15 +314,20 @@ export function applyEquipmentToDivision(division: Division, development: Equipm
   const equipment = getDevelopedEquipment(equipmentId, development);
   if (!equipment) return division;
 
+  const readiness = development.readiness.categories[fallbackCategory];
+  const readinessStrength = Math.max(-5, Math.min(5, Math.round((readiness.readinessScore - 60) / 8)));
+  const readinessOrganization = Math.max(-4, Math.min(5, Math.round((readiness.crewProficiency + readiness.standardization - 120) / 20)));
+  const readinessSupply = Math.max(-5, Math.min(5, Math.round((readiness.sparePartsDays + readiness.ammunitionDays - 90) / 18)));
+
   const strengthBonus = Math.max(-4, Math.min(10, Math.round((equipment.stats.firepower + equipment.stats.protection - 100) / 22)));
   const organizationBonus = Math.max(-3, Math.min(6, Math.round((equipment.stats.reliability + equipment.stats.range - 100) / 34)));
   const supplyBonus = Math.max(-3, Math.min(6, Math.round((equipment.stats.production + equipment.stats.mobility - 100) / 35)));
   return {
     ...division,
     equipmentPackageId: equipment.id,
-    strength: Math.max(5, Math.min(100, division.strength + strengthBonus)),
-    organization: Math.max(5, Math.min(100, division.organization + organizationBonus)),
-    supply: Math.max(5, Math.min(100, division.supply + supplyBonus)),
+    strength: Math.max(5, Math.min(100, division.strength + strengthBonus + readinessStrength)),
+    organization: Math.max(5, Math.min(100, division.organization + organizationBonus + readinessOrganization)),
+    supply: Math.max(5, Math.min(100, division.supply + supplyBonus + readinessSupply)),
   };
 }
 
@@ -331,13 +337,15 @@ export function getNationHistoricalEquipment(nationId: NationId) {
 
 export function createEquipmentDevelopment(nationId: NationId): EquipmentDevelopmentState {
   const initial = getNationHistoricalEquipment(nationId);
+  const fieldedByCategory = Object.fromEntries(initial.map((node) => [node.category, node.id]));
   return {
     unlockedIds: initial.map((node) => node.id),
     activeProjectId: null,
     progress: 0,
     prototypes: [],
-    fieldedByCategory: Object.fromEntries(initial.map((node) => [node.category, node.id])),
+    fieldedByCategory,
     divisionAssignments: {},
+    readiness: createWeaponReadinessState(fieldedByCategory),
   };
 }
 
@@ -421,5 +429,6 @@ export function normalizeEquipmentDevelopment(value: Partial<EquipmentDevelopmen
     prototypes,
     fieldedByCategory,
     divisionAssignments,
+    readiness: normalizeWeaponReadinessState(value.readiness, fieldedByCategory),
   };
 }

@@ -1,3 +1,4 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
 import { ChevronRight, MapPinned } from 'lucide-react';
 import { GameIcon } from './GameIcon';
 import { assessKoreaLiberationReadiness, getKoreaRoleGuide } from './koreaExperience';
@@ -38,7 +39,7 @@ export function KoreaCommandCenter({ role, game, territories, divisions, objecti
     <section className="korea-command-center" data-tour="korea-command-center" aria-labelledby="korea-command-title">
       <header>
         <span className="korea-command-location"><MapPinned size={17} /><i><small>현재 지휘 거점</small><strong>중화민국 충칭</strong></i></span>
-        <span className="korea-command-heading"><em>LIBERATION COMMAND · {1942 + Math.floor(game.week / 52)}</em><h3 id="korea-command-title">대한민국 임시정부 독립 준비 상황판</h3><p>네 준비축을 모두 충족해야 협상 건국이 열립니다. 현재 종합 {assessment.score} · 분할 위험 {assessment.partitionRisk}.</p></span>
+        <span className="korea-command-heading"><em>LIBERATION COMMAND · {getCampaignYearForWeek(game.week)}</em><h3 id="korea-command-title">대한민국 임시정부 독립 준비 상황판</h3><p>네 준비축을 모두 충족해야 협상 건국이 열립니다. 현재 종합 {assessment.score} · 분할 위험 {assessment.partitionRisk}.</p></span>
         <button type="button" onClick={() => onNavigate('governance')}><GameIcon name="organization" size={15} tone={assessment.eligible ? 'green' : 'gold'} /> {assessment.eligible ? '건국 전환 가능' : `${assessment.blockedTrackIds.length}축 보강 필요`}<ChevronRight size={13} /></button>
       </header>
       <div className="korea-liberation-tracks">

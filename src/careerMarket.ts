@@ -1,4 +1,5 @@
 import { careerRoles, nations } from './campaign';
+import { withJosa } from './koreanGrammar';
 import {
   createClandestineCareerState,
   normalizeClandestineCareerState,
@@ -237,17 +238,49 @@ function getBestTargetRole(nationId: NationId, sourceRole: CareerRole, reputatio
     ?? allRoles[0];
 }
 
+const INITIAL_CAREER_SETTLING_WEEKS = 6;
+const COVERT_RECRUITMENT_MIN_WEEK = 13;
+const STATE_BETRAYAL_MIN_WEEK = 26;
+
+export function getCareerRecruitmentReadiness(state: CareerMarketState, context: CareerMarketContext) {
+  // Incoming mail alone is not a relationship. Count distinct contacts that the
+  // player initiated or pursued, not repeated negotiation clicks on one letter.
+  const contacts = new Set([
+    ...state.offers.filter((offer) => offer.origin === 'player-initiated'
+      || ['exploring', 'negotiating', 'accepted', 'turned'].includes(offer.status)).map((offer) => offer.id),
+    ...state.history.filter((record) => record.outcome === 'approach-failed').map((record) => record.id),
+  ]);
+  const displaced = state.affiliationStatus === 'dismissed' || state.affiliationStatus === 'unattached';
+  const dismissalHistory = state.history.some((record) => record.id.startsWith('career-dismissed-'));
+  const establishedCovertCareer = state.affiliationStatus === 'double-agent' || Boolean(state.clandestine && state.clandestine.status !== 'closed');
+  const reasons = [
+    ...(displaced || dismissalHistory ? ['해임·무소속 경력'] : []),
+    ...(context.career.councilTrust <= 35 ? ['지도부 신임 35 이하'] : []),
+    ...(contacts.size >= 2 ? ['선행 외국 접촉 2회 이상'] : []),
+    ...(context.week >= 52 ? ['52주 이상 장기 경력'] : []),
+    ...(establishedCovertCareer ? ['기존 비밀 협조 관계'] : []),
+  ];
+  return {
+    settlingIn: state.affiliationStatus === 'serving' && !establishedCovertCareer && context.week < INITIAL_CAREER_SETTLING_WEEKS,
+    foreignContactCount: contacts.size,
+    reasons,
+    covertRecruitmentAllowed: context.week >= COVERT_RECRUITMENT_MIN_WEEK && reasons.length > 0,
+    stateBetrayalAllowed: context.week >= STATE_BETRAYAL_MIN_WEEK && reasons.length > 0,
+  };
+}
+
 function offerKindsFor(context: CareerMarketContext, state: CareerMarketState): ForeignCareerOfferKind[] {
   if (state.affiliationStatus === 'dismissed' || state.affiliationStatus === 'unattached') {
     return ['official-appointment', 'asylum-and-post', 'government-in-exile', 'secret-retainer'];
   }
-  if (context.role.branch === 'intelligence') {
-    return ['double-agent', 'sell-secrets', 'secret-retainer', 'official-appointment', 'state-betrayal'];
-  }
-  if (context.role.branch === 'politics') {
-    return ['official-appointment', 'secret-retainer', 'state-betrayal', 'double-agent', 'sell-secrets'];
-  }
-  return ['official-appointment', 'secret-retainer', 'double-agent', 'state-betrayal', 'sell-secrets'];
+  const kinds: ForeignCareerOfferKind[] = context.role.branch === 'intelligence'
+    ? ['double-agent', 'sell-secrets', 'secret-retainer', 'official-appointment', 'state-betrayal']
+    : context.role.branch === 'politics'
+      ? ['official-appointment', 'secret-retainer', 'state-betrayal', 'double-agent', 'sell-secrets']
+      : ['official-appointment', 'secret-retainer', 'double-agent', 'state-betrayal', 'sell-secrets'];
+  const readiness = getCareerRecruitmentReadiness(state, context);
+  return kinds.filter((kind) => kind === 'state-betrayal' ? readiness.stateBetrayalAllowed
+    : kind === 'double-agent' || kind === 'sell-secrets' ? readiness.covertRecruitmentAllowed : true);
 }
 
 function buildOffer(
@@ -295,12 +328,14 @@ function buildOffer(
               ? '현직을 유지한 채 정기 보고와 제한적 영향공작 수행'
               : '지도부 분열을 조성하고 결정적 시점에 정권·군 지휘권의 이양을 지원';
   const pitch = kind === 'official-appointment'
-    ? `${nation.shortName}은(는) 당신의 최근 성과와 국제 평판을 검토했습니다. ${targetRole.title} 면담 명단에 당신을 직접 올리려 합니다.`
+    ? `${withJosa(nation.shortName, '은/는')} 당신의 최근 성과와 국제 평판을 검토했습니다. ${targetRole.title} 면담 명단에 당신을 직접 올리려 합니다.`
     : kind === 'asylum-and-post'
-      ? `${nation.shortName}은(는) 신변보호·가족 이동·새 보직을 하나의 패키지로 제안합니다.`
+      ? `${withJosa(nation.shortName, '은/는')} 신변보호·가족 이동·새 보직을 하나의 패키지로 제안합니다.`
       : kind === 'government-in-exile'
         ? `${nation.shortName} 계열의 망명조직이 당신의 인맥을 새 정부의 핵심 자산으로 평가합니다.`
         : `${nation.shortName}의 비밀 연락선은 당신의 보직 접근권과 지도부 내부 사정을 높게 평가합니다.`;
+  const recruitmentReasons = origin === 'foreign-initiated' && ['state-betrayal', 'double-agent', 'sell-secrets'].includes(kind)
+    ? getCareerRecruitmentReadiness(state, context).reasons : [];
   return {
     id: `career-offer-${context.week}-${sourceNationId}-${kind}-${hashText(seed).toString(36)}`,
     sourceNationId,
@@ -313,7 +348,7 @@ function buildOffer(
     title: `${nation.shortName} · ${offerKindLabels[kind]}`,
     sender: choose(senderByBranch[targetRole.branch], seed, 4),
     coverChannel: channelByKind[kind],
-    pitch,
+    pitch: recruitmentReasons.length ? `${pitch} 접근 배경: ${recruitmentReasons.join(' · ')}.` : pitch,
     demand,
     motive,
     secrecy: clamp(58 + context.game.intelNetwork * 0.18 - exposureRisk * 0.12),
@@ -330,7 +365,7 @@ function buildOffer(
     },
     consequencePreview: [
       kind === 'official-appointment' || kind === 'government-in-exile'
-        ? `수락 시 ${nation.shortName}의 ${targetRole.title}(으)로 같은 세계선에서 경력을 계속합니다.`
+        ? `수락 시 ${nation.shortName}의 ${withJosa(targetRole.title, '으로/로')} 같은 세계선에서 경력을 계속합니다.`
         : '수락해도 현재 보직은 유지되지만 비밀 소속과 폭로 위험이 매주 누적됩니다.',
       `발각 위험 ${Math.round(exposureRisk)}% · 제안 신뢰도 ${Math.round(clamp(48 + context.career.reputation * 0.22))}%`,
       `현재 외교 관계 ${Math.round(relationship)}/100 · 관계가 낮을수록 공식 이적은 어렵고 비밀공작 요구는 강경해집니다.`,
@@ -427,8 +462,10 @@ export function evaluateForeignCareerOffers(
   const activeOfferCount = state.offers.filter((offer) => ['pending', 'exploring', 'negotiating'].includes(offer.status)).length;
   const isHighestOffice = context.role.tier === 1 && state.affiliationStatus === 'serving';
   const evaluationInterval = state.affiliationStatus === 'dismissed' || state.affiliationStatus === 'unattached' ? 2 : 6;
-  const due = force || context.week === 1 || (context.week > 0 && context.week % evaluationInterval === 0);
-  if (!due || isHighestOffice || (!force && activeOfferCount >= 3)) {
+  const due = force || (context.week > 0 && context.week % evaluationInterval === 0);
+  // Forced evaluation is used for post-dismissal recovery, not permission to
+  // skip a serving player's introductory period or recruitment prerequisites.
+  if (!due || isHighestOffice || getCareerRecruitmentReadiness(state, context).settlingIn || (!force && activeOfferCount >= 3)) {
     return { state: { ...state, lastEvaluationWeek: context.week }, newOffers: [] };
   }
   const seed = `${context.week}:${context.career.nationId}:${context.career.roleId}:${context.career.reputation}:${state.exposure}`;

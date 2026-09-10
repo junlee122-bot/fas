@@ -7,6 +7,7 @@ import type {
 } from './types';
 import { wikidataLaterEraFigureSeeds } from './wikidataLaterEraFigures.generated';
 import { getCuratedLaterEraDossier } from './curatedLaterEraFigures';
+import { withJosa } from './koreanGrammar';
 export { curatedLaterEraDossiers, getCuratedLaterEraDossier } from './curatedLaterEraFigures';
 
 export interface LaterEraFigure {
@@ -134,7 +135,7 @@ function createCandidate(figure: LaterEraFigure, playerNationId: NationId, campa
     role: curated?.role ?? model.role,
     historicalOffice: `${figure.occupation} · 후대 실존 인물`,
     affiliation: curated?.affiliation ?? `${origin} ${eraLabel} 인재 네트워크`,
-    summary: curated ? `${curated.summary} ${campaignYear}년의 임명과 능력 수치는 현재 세계선이 만든 대체역사 설정입니다.` : `${figure.name}은(는) ${figure.birthYear}년생 실존 인물이며 공개 직업 기록은 ‘${figure.occupation}’입니다. ${campaignYear}년의 이 직책·접촉 경로와 능력 수치는 현재 세계선이 만든 대체역사 설정입니다.`,
+    summary: curated ? `${curated.summary} ${campaignYear}년의 임명과 능력 수치는 현재 세계선이 만든 대체역사 설정입니다.` : `${withJosa(figure.name, '은/는')} ${figure.birthYear}년생 실존 인물이며 공개 직업 기록은 ‘${figure.occupation}’입니다. ${campaignYear}년의 이 직책·접촉 경로와 능력 수치는 현재 세계선이 만든 대체역사 설정입니다.`,
     department: model.department,
     ability,
     potential,

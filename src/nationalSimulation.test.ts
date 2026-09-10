@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createEconomyState } from './economy';
 import { createNationManagementState } from './nationManagement';
 import { deriveNationalSimulation, type NationalSimulationInput } from './nationalSimulation';
+import { deriveNationalEconomyFeedback } from './nationalEconomyFeedback';
 import { createPoliticalCrisisState, getNationPoliticalProfile } from './politicalCrisis';
 import { createPublicHealthState } from './publicHealth';
 import type { Division, GameState, ProductionLine, ResearchProject, Stockpile } from './types';
@@ -79,6 +80,54 @@ function createInput(overrides: Partial<NationalSimulationInput> = {}): National
 }
 
 describe('national simulation spine', () => {
+  it('moves civilian supply and prices when real factories move into military production', () => {
+    const input = createInput();
+    const before = structuredClone(input);
+    const scenarios = [0, 15, 30].map((assigned) => deriveNationalSimulation({
+      ...input,
+      production: [{ ...production[0], assigned }],
+    }).goods.find((good) => good.id === 'consumer')!);
+    expect(scenarios.map((good) => good.availability)).toEqual([60.6, 48.6, 36.6]);
+    expect(scenarios[0].priceIndex).toBeLessThan(scenarios[1].priceIndex);
+    expect(scenarios[1].priceIndex).toBeLessThan(scenarios[2].priceIndex);
+    expect(scenarios[0].weeklyBalance).toBeGreaterThan(scenarios[2].weeklyBalance);
+    expect(input).toEqual(before);
+  });
+
+  it('responds to one factory but not redistribution among military production lines', () => {
+    const input = createInput();
+    const consumer = (lines: ProductionLine[]) => deriveNationalSimulation({ ...input, production: lines }).goods.find((good) => good.id === 'consumer')!;
+    const baseline = consumer(production);
+    const civilianTransfer = consumer([{ ...production[0], assigned: 7 }, production[1]]);
+    const militaryTransfer = consumer([{ ...production[0], assigned: 7 }, { ...production[1], assigned: 7 }]);
+    expect(civilianTransfer.availability - baseline.availability).toBeCloseTo(0.8, 5);
+    expect(militaryTransfer).toEqual(baseline);
+  });
+
+  it('connects the actual production allocation through supply into next-week feedback', () => {
+    const input = createInput();
+    const civilian = deriveNationalSimulation({ ...input, production: [{ ...production[0], assigned: 0 }] });
+    const military = deriveNationalSimulation({ ...input, production: [{ ...production[0], assigned: game.factories }] });
+    const feedbackContext = { phase: input.phase, game, economy: input.economy, nationManagement: input.nationManagement };
+    const civilianFeedback = deriveNationalEconomyFeedback(civilian, feedbackContext);
+    const militaryFeedback = deriveNationalEconomyFeedback(military, feedbackContext);
+    expect(civilianFeedback.shortagePressure).toBe(0);
+    expect(militaryFeedback.shortagePressure).toBeGreaterThan(0);
+    expect(militaryFeedback.affectedGoods.some((good) => good.id === 'consumer')).toBe(true);
+    expect(militaryFeedback.economyDelta.inflation).toBeGreaterThan(civilianFeedback.economyDelta.inflation);
+    expect(militaryFeedback.economyDelta.publicConfidence).toBeLessThan(civilianFeedback.economyDelta.publicConfidence);
+    expect(militaryFeedback.gameDelta.stability).toBeLessThan(civilianFeedback.gameDelta.stability);
+  });
+
+  it('bounds the production contribution and does not invent civilian capacity without factories', () => {
+    const input = createInput();
+    const consumer = (factories: number, assigned: number) => deriveNationalSimulation({
+      ...input, game: { ...game, factories }, production: [{ ...production[0], assigned }],
+    }).goods.find((good) => good.id === 'consumer')!;
+    expect(consumer(30, 1000)).toEqual(consumer(30, 30));
+    expect(consumer(0, 0)).toEqual(consumer(30, 30));
+  });
+
   it('normalizes population shares and political clout', () => {
     const snapshot = deriveNationalSimulation(createInput());
     expect(snapshot.populationGroups).toHaveLength(6);

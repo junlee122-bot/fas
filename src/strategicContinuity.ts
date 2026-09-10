@@ -1,3 +1,4 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
 import type { CareerBranch, CareerRole, GameState } from './types';
 
 export type StrategicOperationDomain = 'demobilization' | 'deterrence' | 'peacekeeping' | 'proxy-conflict' | 'covert' | 'cyber' | 'space' | 'humanitarian';
@@ -155,7 +156,7 @@ export const nationalPlanDefinitions: NationalPlanDefinition[] = [
 
 const clamp = (value: number, minimum = 0, maximum = 100) => Math.max(minimum, Math.min(maximum, value));
 const round = (value: number, digits = 1) => Number(value.toFixed(digits));
-const campaignYear = (week: number) => 1942 + Math.floor(Math.max(0, week) / 52);
+const campaignYear = (week: number) => getCampaignYearForWeek(week);
 
 export function createStrategicContinuityState(): StrategicContinuityState {
   return { version: 1, active: null, history: [] };

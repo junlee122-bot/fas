@@ -13,6 +13,7 @@ import type {
   StaffMember,
   TheaterId,
 } from './types';
+import { withJosa } from './koreanGrammar';
 import { getHistoricalRoleHolder, historicalPersonnel, historicalSupplementalPersonnel } from './historicalPersonnel';
 import { getRecruitableHistoricalExperts, getStartingHistoricalExperts } from './historicalExperts';
 import { getNationHistoricalEquipment } from './equipment';
@@ -233,7 +234,7 @@ export const careerRoles: CareerRole[] = nations.flatMap((nation) => {
       historicalOffice: holder.office,
       historicalBasis: `게임 보직은 ${holder.name}의 실제 ${holder.office}와 1942년 조직 환경을 바탕으로 재구성했습니다.`,
       coverIdentity,
-      replacementEffect: `${holder.name}은(는) 취임과 동시에 직책에서 밀려나며 인재 시장의 고영향력 경쟁자로 남습니다.`,
+      replacementEffect: `${withJosa(holder.name, '은/는')} 취임과 동시에 직책에서 밀려나며 인재 시장의 고영향력 경쟁자로 남습니다.`,
     };
   };
   return [

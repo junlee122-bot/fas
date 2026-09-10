@@ -48,6 +48,14 @@ describe('multi-phase battle resolution', () => {
     const clamped = resolveBattle({ ...baseInput, stance: 'balanced', randomRolls: [0, 0, 0, 0] });
     expect(low.phases).toEqual(clamped.phases);
   });
+
+  it('weakens the same defender as supply is depleted without changing the battle rolls', () => {
+    const reports = [100, 40, 0].map((supply) => resolveBattle({ ...baseInput, stance: 'balanced', target: { ...plainTarget, supply } }));
+    expect(reports[0].margin).toBeLessThan(reports[1].margin);
+    expect(reports[1].margin).toBeLessThan(reports[2].margin);
+    expect(reports[0].phases[2].defenderScore).toBeGreaterThan(reports[1].phases[2].defenderScore);
+    expect(reports[1].phases[2].defenderScore).toBeGreaterThan(reports[2].phases[2].defenderScore);
+  });
 });
 
 describe('pre-battle forecast', () => {
@@ -84,5 +92,15 @@ describe('pre-battle forecast', () => {
     expect(lowIntel.confidence).toBe('low');
     expect(highIntel.confidence).toBe('high');
     expect(highIntel.successRange[1] - highIntel.successRange[0]).toBeLessThan(lowIntel.successRange[1] - lowIntel.successRange[0]);
+  });
+
+  it('uses persistent defender supply in the forecast as well as actual resolution', () => {
+    const forecasts = [100, 40, 0].map((supply) => forecastBattle({ ...forecastInput, stance: 'balanced', target: { ...plainTarget, supply } }));
+    expect(forecasts[0].defenderPower).toBeGreaterThan(forecasts[1].defenderPower);
+    expect(forecasts[1].defenderPower).toBeGreaterThan(forecasts[2].defenderPower);
+    expect(forecasts[0].expectedMargin).toBeLessThan(forecasts[1].expectedMargin);
+    expect(forecasts[1].expectedMargin).toBeLessThan(forecasts[2].expectedMargin);
+    expect(forecasts[0].successChance).toBeLessThanOrEqual(forecasts[1].successChance);
+    expect(forecasts[1].successChance).toBeLessThanOrEqual(forecasts[2].successChance);
   });
 });

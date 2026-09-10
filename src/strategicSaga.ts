@@ -1,4 +1,5 @@
 import type { CareerRole, NationId, StaffDepartment } from './types';
+import { withJosa } from './koreanGrammar';
 
 export type SagaDomain = 'war' | 'diplomacy' | 'economy' | 'science' | 'society' | 'health' | 'environment' | 'intelligence';
 export type SagaApproachId = 'command' | 'coalition' | 'innovation';
@@ -320,7 +321,7 @@ function completeSaga(state: StrategicSagaState, active: ActiveStrategicSaga, co
   const score = active.momentum + (active.champion.ability - 60) * .3 - active.setbacks * 12 - active.pressure * .08;
   const outcome: SagaOutcome = score >= 12 ? 'transformative' : score >= -8 ? 'contested' : 'costly';
   const outcomeLabel = outcome === 'transformative' ? '전환적 합의' : outcome === 'contested' ? '경합 속 타협' : '상처 입은 돌파';
-  const record: SagaHistoryRecord = { id: active.id, definitionId: definition.id, title: definition.title, startedWeek: active.startedWeek, resolvedWeek: context.week, outcome, championName: active.champion.name, summary: `${outcomeLabel}. ${definition.legacy}이(가) 다음 시대의 제도적 기억으로 남았습니다.`, scars: active.scars, turningPoints: active.turningPoints };
+  const record: SagaHistoryRecord = { id: active.id, definitionId: definition.id, title: definition.title, startedWeek: active.startedWeek, resolvedWeek: context.week, outcome, championName: active.champion.name, summary: `${outcomeLabel}. ${withJosa(definition.legacy, '이/가')} 다음 시대의 제도적 기억으로 남았습니다.`, scars: active.scars, turningPoints: active.turningPoints };
   const next: StrategicSagaState = { ...state, active: null, history: [record, ...state.history].slice(0, 40), nextOfferWeek: context.week + (outcome === 'transformative' ? 39 : 26), legacyMarks: state.legacyMarks + (outcome === 'transformative' ? 3 : outcome === 'contested' ? 2 : 1), institutionalMemory: [`${definition.shortTitle} · ${outcomeLabel}`, ...active.scars.map((scar) => `상처 · ${scar}`), ...state.institutionalMemory].slice(0, 20), lastUpdatedWeek: context.week };
   return { state: next, events: [{ id: `saga-complete-${active.id}`, title: `${definition.shortTitle} · ${outcomeLabel}`, detail: record.summary, tone: outcome === 'transformative' ? 'good' : outcome === 'costly' ? 'bad' : 'neutral', cause: `${context.year}년까지 ${active.turningPoints.length}개의 전환점과 ${active.setbacks}회의 후퇴가 누적됐습니다.`, consequence: `${definition.legacy}. ${active.scars.length ? `남은 상처: ${active.scars.join(' · ')}` : '해결되지 않은 중대 상처는 없습니다.'}` }], politicalPower: outcome === 'transformative' ? 5 : 2, treasury: outcome === 'costly' ? -5 : 0, stability: outcome === 'transformative' ? 3 : outcome === 'costly' ? -1 : 1, legitimacy: outcome === 'transformative' ? 4 : outcome === 'costly' ? -2 : 2, unrest: outcome === 'transformative' ? -4 : outcome === 'costly' ? 3 : -1, publicConfidence: outcome === 'transformative' ? 5 : outcome === 'costly' ? -2 : 2, requiresDecision: false };
 }
@@ -352,9 +353,9 @@ export function advanceStrategicSagaWeek(state: StrategicSagaState, context: Str
     active.momentum = clamp(active.momentum - 8, -30, 40);
     active.reserveCommitted = false;
     active.approachId = null;
-    const turningPoint: SagaTurningPoint = { week: context.week, title: `${definition.acts[active.actIndex].title} 후퇴`, detail: `${scar}이(가) 제도적 상처로 남았습니다. 같은 막을 다른 방식으로 다시 수습해야 합니다.`, tone: 'bad' };
+    const turningPoint: SagaTurningPoint = { week: context.week, title: `${definition.acts[active.actIndex].title} 후퇴`, detail: `${withJosa(scar, '이/가')} 제도적 상처로 남았습니다. 같은 막을 다른 방식으로 다시 수습해야 합니다.`, tone: 'bad' };
     active.turningPoints = [turningPoint, ...active.turningPoints].slice(0, 30);
-    events.push({ id: `saga-setback-${active.id}-${active.setbacks}`, title: `${definition.shortTitle} · 국면 후퇴`, detail: `${scar}이(가) 남았습니다. 진행도는 일부 보존되지만 대응 원칙을 다시 선택해야 합니다.`, tone: 'bad', cause: `압력이 100에 도달하는 동안 진행은 ${Math.round(active.progress)}에 머물렀습니다.`, consequence: '실패는 게임을 끝내지 않습니다. 상처가 최종 결말과 이후 시대의 제도적 기억을 바꿉니다.' });
+    events.push({ id: `saga-setback-${active.id}-${active.setbacks}`, title: `${definition.shortTitle} · 국면 후퇴`, detail: `${withJosa(scar, '이/가')} 남았습니다. 진행도는 일부 보존되지만 대응 원칙을 다시 선택해야 합니다.`, tone: 'bad', cause: `압력이 100에 도달하는 동안 진행은 ${Math.round(active.progress)}에 머물렀습니다.`, consequence: '실패는 게임을 끝내지 않습니다. 상처가 최종 결말과 이후 시대의 제도적 기억을 바꿉니다.' });
     next.active = active;
     return { state: next, events, politicalPower: 0, treasury: -2, stability: -1, legitimacy: -1, unrest: 2, publicConfidence: -2, requiresDecision: true };
   }

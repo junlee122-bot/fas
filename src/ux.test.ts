@@ -25,10 +25,10 @@ describe('user experience guidance', () => {
     const readiness = deriveCommandReadiness(deriveUXActions(baseInput));
     expect(readiness).toMatchObject({
       state: 'blocked',
-      urgentCount: 3,
+      urgentCount: 2,
       recommendedCount: 2,
     });
-    expect(readiness.title).toContain('긴급 판단 3건');
+    expect(readiness.title).toContain('긴급 판단 2건');
   });
 
   it('clears the weekly preflight when no command task remains', () => {
@@ -43,7 +43,8 @@ describe('user experience guidance', () => {
 
   it('surfaces urgent blockers before recommended actions', () => {
     const actions = deriveUXActions(baseInput);
-    expect(actions.slice(0, 3).map((action) => action.id)).toEqual(['commander-skill', 'research-slot', 'idle-factories']);
+    expect(actions.slice(0, 2).map((action) => action.id)).toEqual(['commander-skill', 'research-slot']);
+    expect(actions.find((action) => action.id === 'idle-factories')).toMatchObject({ priority: 'info', title: '민수 공급 여력 5개' });
     expect(actions.every((action, index) => index === 0 || actions[index - 1].priority !== 'recommended' || action.priority !== 'urgent')).toBe(true);
     expect(actions.every((action) => action.reason && action.ifIgnored && action.resolution && action.instruction)).toBe(true);
   });

@@ -1,3 +1,4 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
 import {
   LONG_HORIZON_START_YEAR,
   runLongHorizonSession,
@@ -287,7 +288,7 @@ export function aggregateCenturySessions(sessions: LongHorizonSessionResult[], w
     current.total += longest;
     repeated.set(id, current);
   }));
-  const researchCompletionYears = sessions.flatMap((session) => session.researchCompleteWeek === null ? [] : [LONG_HORIZON_START_YEAR + Math.floor(session.researchCompleteWeek / 52)]);
+  const researchCompletionYears = sessions.flatMap((session) => session.researchCompleteWeek === null ? [] : [getCampaignYearForWeek(session.researchCompleteWeek)]);
   const eraTimeline = mergeEraMetrics(sessions);
   const byProfile = Object.fromEntries(profiles.map((profile) => {
     const matches = sessions.filter((session) => session.profile === profile);
@@ -366,7 +367,7 @@ export function aggregateCenturySessions(sessions: LongHorizonSessionResult[], w
   };
   return {
     generatedAt: new Date().toISOString(),
-    methodology: `${sessions.length} deterministic production-engine campaigns from 1942 to ${LONG_HORIZON_START_YEAR + weeksPlayed / 52}; ${totalWeeks.toLocaleString('en-US')} weekly state transitions across ${aggregate.nationCoverage} nations, ${aggregate.roleCoverage} roles and six behavior profiles.`,
+    methodology: `${sessions.length} deterministic production-engine campaigns from 1942 to ${getCampaignYearForWeek(weeksPlayed)}; ${totalWeeks.toLocaleString('en-US')} weekly state transitions across ${aggregate.nationCoverage} nations, ${aggregate.roleCoverage} roles and six behavior profiles.`,
     sessions,
     aggregate,
     findings: buildFindings(aggregate),

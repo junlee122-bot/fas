@@ -1,3 +1,4 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
 import type { EquipmentCategory, EquipmentEra, GameState, NationId } from './types';
 
 export type StrategicStageId = 'total-war' | 'reconstruction' | 'bipolar' | 'networked' | 'horizon';
@@ -855,7 +856,7 @@ export function applyStrategicPolicyToPortfolio(
       title: policyItem.title,
       route: policyItem.route,
       treasuryCost: Math.max(0, -effects.treasury),
-      summary: `${policyItem.reviewYears}년 검증 착수 · ${getPolicyEffectLabels(policyItem).join(' · ')}`,
+      summary: `${policyItem.reviewYears}년 검증 착수 · 기본 설계값(상한·체감 적용 전, 주요 항목): ${getPolicyEffectLabels(policyItem).join(' · ')} · 실제 즉시 변화는 당시 사건 기록에서 확인`,
     }].slice(-80),
   };
 }
@@ -934,7 +935,7 @@ export function applyArmsPolicyReviewToPortfolio(
       history: [...current.history, {
         id: `review-${week}-${schedule.policyId}`,
         week,
-        year: 1942 + Math.floor(week / 52),
+        year: getCampaignYearForWeek(week),
         kind: 'review' as const,
         title: `${title} 성과 검증`,
         route: policyItem?.route,

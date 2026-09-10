@@ -1,3 +1,4 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
 import { useState } from 'react';
 import {
   ArrowRight,
@@ -48,6 +49,17 @@ import {
 } from './dynasticPolitics';
 import type { EconomyState } from './economy';
 import { ElectionSituationRoom } from './ElectionSituationRoom';
+import { ConstitutionalJudiciaryBoard } from './ConstitutionalJudiciaryBoard';
+import { JusticeDocketBoard } from './JusticeDocketBoard';
+import { SovereignPowersBoard } from './SovereignPowersBoard';
+import type {
+  ConstitutionalContext,
+  JudicialOfficeId,
+  NominationDecisionId,
+  RatificationMethodId,
+} from './constitutionalJudiciary';
+import type { JusticeDecisionOptionId, JusticeContext } from './justiceSystem';
+import type { SovereignPowerContext, SovereignPowerId } from './sovereignPowers';
 import type { ElectionCampaignActionId, ReferendumTopicId } from './electoralPolitics';
 import {
   canFormalizeUnion,
@@ -59,6 +71,7 @@ import {
   getGenderLabel,
   getOrientationLabel,
   getPairKindLabel,
+  getPersonalLifeActivityAvailability,
   getPersonalRelationshipCandidates,
   getUnionFormLabel,
   getVisibilityLabel,
@@ -125,6 +138,10 @@ import {
 } from './nationManagement';
 import type { NationAgendaChoiceId } from './nationDevelopment';
 import type { CareerRole, DiplomaticRelation, GameState, GameTab, NationProfile, StaffMember, Territory } from './types';
+import { assessStrategicCadence, getStrategicTimeAdvanceOptions, type StrategicAdvanceWeeks } from './timeCadence';
+import { NationBudgetEditor, NationDeskNavigation, NationDeskOverview, resolveNationDeskView, type NationDeskView } from './NationDesk';
+import { getRoleTabMandates } from './roleMandate';
+import './NationManagementPanel.css';
 
 interface TransitionReadiness {
   score: number;
@@ -145,7 +162,9 @@ interface TransitionReadiness {
   };
 }
 
-interface NationManagementPanelProps {
+export interface NationManagementPanelProps {
+  initialView?: NationDeskView;
+  budgetAuthority?: boolean;
   phase: CampaignPhase;
   state: NationManagementState;
   game: GameState;
@@ -183,6 +202,14 @@ interface NationManagementPanelProps {
   onRequestMediaInterview: (topicId: MediaTopicId) => void;
   onAnswerMediaInterview: (responseId: InterviewResponseId) => void;
   onAnswerExposure: (responseId: ExposureResponseId) => void;
+  onOpenJusticeCase: (templateId: string) => void;
+  onJusticeDecision: (optionId: JusticeDecisionOptionId) => void;
+  onActivateConstitution: () => void;
+  onConstitutionClauseSelect: (clauseId: string) => void;
+  onConstitutionRatify: (methodId: RatificationMethodId) => void;
+  onJudicialNominate: (officeId: JudicialOfficeId, candidateId: string) => void;
+  onJudicialNominationDecision: (decisionId: NominationDecisionId) => void;
+  onSovereignPowerExercise: (powerId: SovereignPowerId, targetGrantId: string | null) => void;
   onLeadershipPrinciplesChange: (principles: LeadershipPrincipleId[]) => void;
   onPowerBlocPromise: (blocId: PowerBlocId) => void;
   onLegacyPathChange: (pathId: LegacyPathId) => void;
@@ -198,7 +225,7 @@ interface NationManagementPanelProps {
   onLaunchReferendum: (topicId: ReferendumTopicId) => void;
   onLaunchStrategicOperation: (operationId: string) => void;
   onLaunchNationalPlan: (planId: NationalPlanId) => void;
-  onAdvancePeriod: (weeks: 4 | 13) => void;
+  onAdvancePeriod: (weeks: StrategicAdvanceWeeks) => void;
   periodAdvanceRemaining: number;
   onCancelPeriodAdvance: () => void;
   onNavigate: (tab: GameTab) => void;
@@ -225,6 +252,8 @@ function SignedValue({ value, suffix = '' }: { value: number; suffix?: string })
 }
 
 export function NationManagementPanel({
+  initialView = 'overview',
+  budgetAuthority,
   phase,
   state,
   game,
@@ -262,6 +291,14 @@ export function NationManagementPanel({
   onRequestMediaInterview,
   onAnswerMediaInterview,
   onAnswerExposure,
+  onOpenJusticeCase,
+  onJusticeDecision,
+  onActivateConstitution,
+  onConstitutionClauseSelect,
+  onConstitutionRatify,
+  onJudicialNominate,
+  onJudicialNominationDecision,
+  onSovereignPowerExercise,
   onLeadershipPrinciplesChange,
   onPowerBlocPromise,
   onLegacyPathChange,
@@ -284,6 +321,9 @@ export function NationManagementPanel({
   onEnactCivilization,
   onNextWeek,
 }: NationManagementPanelProps) {
+  const [requestedView, setView] = useState<NationDeskView>(initialView);
+  const view = resolveNationDeskView(phase, requestedView);
+  const canManageFiscal = (budgetAuthority ?? getRoleTabMandates(role).governance.mode === 'direct') && periodAdvanceRemaining === 0;
   const [selectedRecipientId, setSelectedRecipientId] = useState('');
   const [selectedDomainId, setSelectedDomainId] = useState('');
   const [selectedRankId, setSelectedRankId] = useState<NobleRankId>('baron');
@@ -331,7 +371,7 @@ export function NationManagementPanel({
   const selectedDomain = availableDomains.find((territory) => territory.id === selectedDomainId) ?? availableDomains[0] ?? null;
   const marriageCandidates = getMarriageCandidates(relations).filter((candidate) => !state.dynasty.marriages.some((marriage) => marriage.partnerNationId === candidate.nationId));
   const selectedMarriage = marriageCandidates.find((candidate) => candidate.nationId === selectedMarriageNationId) ?? marriageCandidates[0] ?? null;
-  const currentYear = 1942 + Math.floor(game.week / 52);
+  const currentYear = getCampaignYearForWeek(game.week);
   const personalLifeContext: PersonalLifeContext = {
     week: game.week,
     year: currentYear,
@@ -349,6 +389,7 @@ export function NationManagementPanel({
   ]);
   const selectedPersonalCandidate = personalCandidates.find((candidate) => candidate.id === selectedPersonalCandidateId) ?? personalCandidates[0] ?? null;
   const activePersonalRelationship = state.personalLife.activeRelationship;
+  const personalActivity = getPersonalLifeActivityAvailability(state.personalLife, game.week);
   const currentFamilyLaw = getFamilyLaw(state.personalLife.familyLawId);
   const eraFamilyClimate = getEraFamilyClimate(currentYear);
   const unionEligibility = canFormalizeUnion(state.personalLife, selectedUnionForm);
@@ -378,6 +419,16 @@ export function NationManagementPanel({
   const availableStrategicOperations = getAvailableStrategicOperations(state.strategicContinuity, role, currentYear);
   const activeStrategicDefinition = strategicOperationDefinitions.find((definition) => definition.id === state.strategicContinuity.active?.id) ?? null;
   const activePlanDefinition = nationalPlanDefinitions.find((definition) => definition.id === state.nationalPlanning.active?.id) ?? null;
+  const timeCadenceContext = {
+    year: currentYear,
+    unrest: state.unrest,
+    activeElection: Boolean(state.electoral.activeCampaign),
+    publicHealthPressure,
+    activeStrategicOperation: Boolean(activeStrategicDefinition),
+    activeNationalPlan: Boolean(activePlanDefinition),
+  };
+  const timeAdvanceOptions = getStrategicTimeAdvanceOptions(timeCadenceContext);
+  const timeCadenceAssessment = assessStrategicCadence(timeCadenceContext);
   const powerNetworkContext: PowerNetworkContext = {
     week: game.week,
     year: currentYear,
@@ -463,6 +514,60 @@ export function NationManagementPanel({
     intelligentsiaSupport: blocById.get('intelligentsia')?.support ?? 50,
     securitySupport: blocById.get('security')?.support ?? 50,
   };
+  const justiceContext: JusticeContext = {
+    week: game.week,
+    year: currentYear,
+    phase,
+    nationId: nation.id,
+    role,
+    politicalPower: game.politicalPower,
+    treasury: game.treasury,
+    stability: game.stability,
+    intelNetwork: game.intelNetwork,
+    legitimacy: state.legitimacy,
+    unrest: state.unrest,
+    institutionalCapacity: state.institutionalCapacity,
+    mediaFreedom: state.mediaRelations.freedom,
+    pressTrust: state.mediaRelations.pressTrust,
+    activeElection: Boolean(state.electoral.activeCampaign),
+    strategyId: state.strategyId,
+  };
+  const constitutionalContext: ConstitutionalContext = {
+    week: game.week,
+    year: currentYear,
+    nationId: nation.id,
+    role,
+    politicalPower: game.politicalPower,
+    treasury: game.treasury,
+    stability: game.stability,
+    legitimacy: state.legitimacy,
+    institutionalCapacity: state.institutionalCapacity,
+    publicConfidence: economy.publicConfidence,
+  };
+  const sovereignContext: SovereignPowerContext = {
+    week: game.week,
+    year: currentYear,
+    nationId: nation.id,
+    role,
+    formId: state.dynasty.formId,
+    constitution: state.constitutionalJudiciary,
+    dynasty: state.dynasty,
+    politicalPower: game.politicalPower,
+    treasury: game.treasury,
+    stability: game.stability,
+    legitimacy: state.legitimacy,
+    unrest: state.unrest,
+    publicConfidence: economy.publicConfidence,
+    institutionalCapacity: state.institutionalCapacity,
+    mediaFreedom: state.mediaRelations.freedom,
+    justiceIndependence: state.justice.independence,
+  };
+
+  const workspaceHeader = <header className="nation-desk-header"><div><span className="nation-desk-eyebrow">{nation.code} / 제{game.week + 1}주 · {phase === 'war' ? '전시 국가 운영' : '전후 국가 운영'}</span><h1>{nation.shortName} 국정 데스크</h1><p>{role.title} · {worldlineTitle}</p></div>
+    {phase === 'nation' ? <button type="button" disabled={periodAdvanceRemaining > 0} onClick={onNextWeek}>국정 1주 진행<ChevronRight size={18} /></button> : <button type="button" onClick={() => onNavigate('map')}>전황으로 돌아가기<ChevronRight size={18} /></button>}
+  </header>;
+  const workspaceNavigation = <NationDeskNavigation phase={phase} view={view} onChange={setView} />;
+  const workspaceOverview = view === 'overview' ? <NationDeskOverview phase={phase} state={state} game={game} economy={economy} nation={nation} readiness={readiness} formatMoney={formatMoney} onViewChange={setView} /> : null;
 
   if (phase === 'war') {
     const pillarRows = [
@@ -474,8 +579,13 @@ export function NationManagementPanel({
       { label: '주권·대표성', value: readiness.pillars.sovereignty, detail: '해방·복원·독립 뒤 통치할 정치 기반' },
     ];
     return (
-      <div className="nation-management nation-transition-planner">
-        <section className="nation-transition-hero">
+      <div className="nation-management nation-desk-shell nation-transition-planner" data-nation-view={view}>
+        {workspaceHeader}
+        {workspaceNavigation}
+        {workspaceOverview}
+
+        {view === 'transition' ? <>
+<section className="nation-transition-hero">
           <div>
             <span className="eyebrow">WAR TO STATE · 연속 캠페인</span>
             <h2>{readiness.transitionLabel}</h2>
@@ -487,8 +597,10 @@ export function NationManagementPanel({
             <em>{readiness.eligible ? '협상 종전 가능' : '국가 기반 보강 필요'}</em>
           </div>
         </section>
+        </> : null}
 
-        <div className="nation-transition-grid">
+        {view === 'transition' ? <>
+<div className="nation-transition-grid">
           <section className="nation-surface transition-pillars">
             <header><div><span>전환 조건</span><h3>전쟁에서 국가로</h3></div><small>{readiness.threshold}점 이상 · 안정도 {readiness.stabilityFloor} 이상</small></header>
             <div className="transition-pillar-list">
@@ -520,8 +632,10 @@ export function NationManagementPanel({
             </div>
           </section>
         </div>
+        </> : null}
 
-        <section className="nation-surface wartime-media-desk">
+        {view === 'media' ? <>
+<section className="nation-surface wartime-media-desk">
           <header><div><span>전시 언론 데스크</span><h3>보직·소속 집단·사생활을 둘러싼 질문도 전쟁 중 계속됩니다</h3></div><small>{currentMediaLaw.name} · 자유 {Math.round(state.mediaRelations.freedom)}</small></header>
           <div className="wartime-media-summary">
             <article><Newspaper /><span>언론 신뢰</span><strong>{Math.round(state.mediaRelations.pressTrust)}</strong></article>
@@ -556,8 +670,45 @@ export function NationManagementPanel({
             </div>
           ) : null}
         </section>
+        </> : null}
 
-        <PowerNetworkBoard
+        {view === 'constitution' ? <>
+<ConstitutionalJudiciaryBoard
+          compact
+          state={state.constitutionalJudiciary}
+          context={constitutionalContext}
+          formatMoney={formatMoney}
+          onActivate={onActivateConstitution}
+          onClauseSelect={onConstitutionClauseSelect}
+          onRatify={onConstitutionRatify}
+          onNominate={onJudicialNominate}
+          onNominationDecision={onJudicialNominationDecision}
+        />
+        </> : null}
+
+        {view === 'sovereign' ? <>
+<SovereignPowersBoard
+          compact
+          state={state.sovereignPowers}
+          context={sovereignContext}
+          formatMoney={formatMoney}
+          onExercise={onSovereignPowerExercise}
+        />
+        </> : null}
+
+        {view === 'justice' ? <>
+<JusticeDocketBoard
+          compact
+          state={state.justice}
+          context={justiceContext}
+          formatMoney={formatMoney}
+          onOpenCase={onOpenJusticeCase}
+          onDecision={onJusticeDecision}
+        />
+        </> : null}
+
+        {view === 'power' ? <>
+<PowerNetworkBoard
           compact
           state={state.powerNetwork}
           context={powerNetworkContext}
@@ -569,8 +720,10 @@ export function NationManagementPanel({
           onRivalAction={onRivalAction}
           onOpportunityChoice={onPowerOpportunityChoice}
         />
+        </> : null}
 
-        <StrategicSagaBoard
+        {view === 'saga' ? <>
+<StrategicSagaBoard
           compact
           state={state.strategicSaga}
           context={strategicSagaContext}
@@ -579,8 +732,10 @@ export function NationManagementPanel({
           onApproach={onStrategicSagaApproach}
           onReserve={onStrategicSagaReserve}
         />
+        </> : null}
 
-        <SocialistWorldBoard
+        {view === 'socialist' ? <>
+<SocialistWorldBoard
           compact
           state={state.socialistWorld}
           context={socialistWorldContext}
@@ -589,14 +744,17 @@ export function NationManagementPanel({
           onSettlement={onSocialistSettlement}
           onMethod={onSocialistTransitionMethod}
         />
+        </> : null}
 
-        <section className="nation-surface transition-routes">
+        {view === 'transition' ? <>
+<section className="nation-surface transition-routes">
           <header><div><span>두 개의 종전 경로</span><h3>같은 나라, 다른 출발선</h3></div><small>{worldlineTitle}</small></header>
           <div>
             <article className="preferred"><CheckCircle2 /><h4>완전 승전 체제</h4><p>승전국의 외교 영향력과 국민적 위임을 얻지만, 넓어진 점령지·동원 해제·전쟁 부채를 동시에 관리해야 합니다.</p><b>전쟁 승리 화면에서 선택</b></article>
             <article><Scale /><h4>{readiness.transitionLabel}</h4><p>{readiness.transitionDescription}</p><b>{readiness.eligible ? '현재 선택 가능' : `준비도 ${Math.max(0, readiness.threshold - readiness.score)}점 추가 필요`}</b></article>
           </div>
         </section>
+        </> : null}
       </div>
     );
   }
@@ -609,21 +767,15 @@ export function NationManagementPanel({
   ];
 
   return (
-    <div className="nation-management nation-live-government">
-      <section className="nation-government-hero">
-        <div>
-          <span className="eyebrow">{nation.code} NATIONAL GOVERNMENT · {transitionReasonLabel[state.transitionReason]}</span>
-          <h2>{nation.shortName} 국가 운영 내각</h2>
-          <p>{worldlineTitle} · 영토 확장보다 국민의 삶, 제도의 지속성, 경제와 외교에서 국가의 성과를 증명해야 합니다.</p>
-        </div>
-        <div className="nation-hero-scores">
-          <div><span>국가 성과</span><strong>{state.nationalScore}</strong><small>산업·교육·복지·제도 종합</small></div>
-          <div><span>국민 위임</span><strong>{state.mandateScore}</strong><small>다음 평가까지 {electionWeeks}주</small></div>
-          <button onClick={onNextWeek}>국정 1주 진행 <ChevronRight size={17} /></button>
-        </div>
-      </section>
+    <div className="nation-management nation-desk-shell nation-live-government" data-nation-view={view}>
+      {workspaceHeader}
+      {workspaceNavigation}
+      {workspaceOverview}
 
-      <section className="nation-kpi-grid">
+
+
+      {view === 'simulation' ? <>
+<section className="nation-kpi-grid">
         {[
           ['고용', state.employment, Factory, false],
           ['복지', state.welfare, HeartHandshake, false],
@@ -636,8 +788,10 @@ export function NationManagementPanel({
           return <article key={label as string} className={danger && Number(value) > 55 ? 'warning' : ''}><MetricIcon /><span>{label as string}</span><strong>{Math.round(Number(value))}</strong><MetricBar value={Number(value)} danger={Boolean(danger)} /></article>;
         })}
       </section>
+      </> : null}
 
-      <section className="nation-surface national-agenda-board" aria-labelledby="national-agenda-title">
+      {view === 'agenda' ? <>
+<section className="nation-surface national-agenda-board" aria-labelledby="national-agenda-title">
         <header>
           <div><span>국가 고유 의제</span><h3 id="national-agenda-title">{activeAgenda?.title ?? '다음 구조 의제 준비 중'}</h3></div>
           <small>{activeAgenda ? `결론까지 ${Math.max(0, activeAgenda.expiresWeek - game.week)}주` : `다음 의제까지 ${Math.max(0, state.agenda.nextIssueWeek - game.week)}주`}</small>
@@ -662,8 +816,10 @@ export function NationManagementPanel({
           <p className="continuity-empty-state">국가마다 다른 주기로 외교·지역·헌정·독립·사회경제 의제가 열립니다. 장기 진행은 의제나 위기가 생기면 자동으로 멈춥니다.</p>
         )}
       </section>
+      </> : null}
 
-      <PowerNetworkBoard
+      {view === 'power' ? <>
+<PowerNetworkBoard
         state={state.powerNetwork}
         context={powerNetworkContext}
         staff={staff}
@@ -674,8 +830,10 @@ export function NationManagementPanel({
         onRivalAction={onRivalAction}
         onOpportunityChoice={onPowerOpportunityChoice}
       />
+      </> : null}
 
-      <StrategicSagaBoard
+      {view === 'saga' ? <>
+<StrategicSagaBoard
         state={state.strategicSaga}
         context={strategicSagaContext}
         staff={staff}
@@ -683,8 +841,10 @@ export function NationManagementPanel({
         onApproach={onStrategicSagaApproach}
         onReserve={onStrategicSagaReserve}
       />
+      </> : null}
 
-      <SocialistWorldBoard
+      {view === 'socialist' ? <>
+<SocialistWorldBoard
         state={state.socialistWorld}
         context={socialistWorldContext}
         staff={staff}
@@ -692,8 +852,10 @@ export function NationManagementPanel({
         onSettlement={onSocialistSettlement}
         onMethod={onSocialistTransitionMethod}
       />
+      </> : null}
 
-      <section className="nation-surface structural-pressure-board" aria-labelledby="structural-pressure-title">
+      {view === 'pressure' ? <>
+<section className="nation-surface structural-pressure-board" aria-labelledby="structural-pressure-title">
         <header>
           <div><span>사회 불안 구조</span><h3 id="structural-pressure-title">사라지는 수치가 아니라 계속 재생되는 갈등</h3></div>
           <small>현재 {state.unrest.toFixed(1)} · 구조 목표 {state.structuralPressure.targetUnrest.toFixed(1)} · 최소 {state.structuralPressure.floor}</small>
@@ -718,11 +880,13 @@ export function NationManagementPanel({
           })}
         </div>
       </section>
+      </> : null}
 
-      <NationalSimulationOverview
+      {view === 'simulation' ? <>
+<NationalSimulationOverview
         snapshot={nationalSimulation}
         phase="nation"
-        year={1942 + Math.floor(game.week / 52)}
+        year={getCampaignYearForWeek(game.week)}
         nationId={nation.id}
         role={role}
         game={game}
@@ -730,21 +894,33 @@ export function NationManagementPanel({
         onNavigate={onNavigate}
         onEnactCivilization={onEnactCivilization}
       />
+      </> : null}
 
-      <section className="nation-surface continuity-command-board">
+      {view === 'continuity' ? <>
+<section className="nation-surface continuity-command-board">
         <header>
-          <div><span>장기 지휘 주기</span><h3>한 주의 결재를 1·4·13주 국가전략으로 연결</h3></div>
+          <div><span>가변 지휘 주기</span><h3>위기에는 주·월, 안정기에는 분기·연 단위로 위임</h3></div>
           <small>{currentYear}년 · {role.title} 권한 · {role.branch === 'military' ? '군사' : role.branch === 'intelligence' ? '정보' : '정치'} 계통</small>
         </header>
 
         <div className="period-advance-strip">
           <div>
             <CalendarClock />
-            <span><strong>기간 진행</strong><small>위기·선거·중간평가가 발생하면 자동으로 멈춥니다.</small></span>
+            <span><strong>기간 진행 · {timeCadenceAssessment.label}</strong><small>{timeCadenceAssessment.summary}</small></span>
           </div>
-          <button onClick={onNextWeek} disabled={periodAdvanceRemaining > 0}>1주</button>
-          <button onClick={() => onAdvancePeriod(4)} disabled={periodAdvanceRemaining > 0}>4주</button>
-          <button onClick={() => onAdvancePeriod(13)} disabled={periodAdvanceRemaining > 0}>13주</button>
+          <button onClick={onNextWeek} disabled={periodAdvanceRemaining > 0}><strong>1주</strong><small>직접 결재</small></button>
+          {timeAdvanceOptions.map((option) => (
+            <button
+              key={option.weeks}
+              className={option.recommended ? 'recommended-period' : ''}
+              onClick={() => onAdvancePeriod(option.weeks)}
+              disabled={periodAdvanceRemaining > 0 || option.disabled}
+              title={option.reason ?? `${option.weeks}주 동안 주간 엔진을 자동 집행하며 중요 사건에서 정지합니다.`}
+            >
+              <strong>{option.label}</strong>
+              <small>{option.recommended ? '추천 · ' : ''}{option.detail}</small>
+            </button>
+          ))}
           {periodAdvanceRemaining > 0 && <button className="cancel-period-advance" onClick={onCancelPeriodAdvance}><TimerReset size={16} /> 중지 · {periodAdvanceRemaining}주 남음</button>}
         </div>
 
@@ -818,8 +994,10 @@ export function NationManagementPanel({
           ))}
         </div>
       </section>
+      </> : null}
 
-      <ElectionSituationRoom
+      {view === 'elections' ? <>
+<ElectionSituationRoom
         state={state.electoral}
         nation={state}
         game={game}
@@ -829,8 +1007,10 @@ export function NationManagementPanel({
         onCampaignAction={onElectionCampaignAction}
         onLaunchReferendum={onLaunchReferendum}
       />
+      </> : null}
 
-      <div className="nation-government-grid">
+      {view === 'budget' ? <>
+<div className="nation-government-grid">
         <section className="nation-surface fiscal-cabinet">
           <header><div><span>주간 재정</span><h3>세입·지출 조정</h3></div><CircleDollarSign size={20} /></header>
           <div className="fiscal-summary">
@@ -840,14 +1020,15 @@ export function NationManagementPanel({
             <div><span>최근 수지</span><strong>{latestReport ? formatMoney(latestReport.fiscalBalance, { signed: true }) : '첫 결산 전'}</strong></div>
           </div>
           <div className="fiscal-controls">
-            <div><span><b>조세 부담</b><small>세입 증가 · 고용과 지지 부담</small></span><div><button aria-label="조세 부담 5 낮추기" onClick={() => onTaxChange(-5)} disabled={state.taxBurden <= 20}><Minus /></button><strong>{state.taxBurden}</strong><button aria-label="조세 부담 5 높이기" onClick={() => onTaxChange(5)} disabled={state.taxBurden >= 80}><Plus /></button></div></div>
-            <div><span><b>공공지출</b><small>정책 효과 증가 · 부채와 물가 부담</small></span><div><button aria-label="공공지출 5 낮추기" onClick={() => onSpendingChange(-5)} disabled={state.spendingLevel <= 25}><Minus /></button><strong>{state.spendingLevel}</strong><button aria-label="공공지출 5 높이기" onClick={() => onSpendingChange(5)} disabled={state.spendingLevel >= 85}><Plus /></button></div></div>
+            <div><span><b>조세 부담</b><small>세입 증가 · 고용과 지지 부담</small></span><div><button aria-label="조세 부담 5 낮추기" onClick={() => { if (canManageFiscal) onTaxChange(-5); }} disabled={!canManageFiscal || state.taxBurden <= 20}><Minus /></button><strong>{state.taxBurden}</strong><button aria-label="조세 부담 5 높이기" onClick={() => { if (canManageFiscal) onTaxChange(5); }} disabled={!canManageFiscal || state.taxBurden >= 80}><Plus /></button></div></div>
+            <div><span><b>공공지출</b><small>정책 효과 증가 · 부채와 물가 부담</small></span><div><button aria-label="공공지출 5 낮추기" onClick={() => { if (canManageFiscal) onSpendingChange(-5); }} disabled={!canManageFiscal || state.spendingLevel <= 25}><Minus /></button><strong>{state.spendingLevel}</strong><button aria-label="공공지출 5 높이기" onClick={() => { if (canManageFiscal) onSpendingChange(5); }} disabled={!canManageFiscal || state.spendingLevel >= 85}><Plus /></button></div></div>
           </div>
+          <p className="nation-desk-meta">조세·총지출의 ±5 버튼은 기존 정책 설정을 즉시 변경합니다. 아래 부처별 배분은 초안 검토 후 별도 승인하며, 실제 수입·지출은 다음 주에 결산됩니다.</p>
           <button className="economy-deep-link" onClick={() => onNavigate('economy')}>채권·세제·기업 투자 상세 관리 <ChevronRight size={15} /></button>
         </section>
 
         <section className="nation-surface national-objectives">
-          <header><div><span>국가 운영 목표</span><h3>정복이 아닌 지속 가능한 승리</h3></div><ShieldCheck size={20} /></header>
+          <header><div><span>국가 운영 참고선</span><h3>지속성을 읽는 네 지표</h3></div><ShieldCheck size={20} /></header>
           <div>
             {objectiveRows.map((objective) => (
               <article key={objective.label}>
@@ -856,28 +1037,17 @@ export function NationManagementPanel({
               </article>
             ))}
           </div>
-          <p>선거·국민 위임, 경제 안정, 공공서비스, 외교적 생존이 새 승리 조건입니다. 군사력은 억지력과 안보 비용으로 남지만 영토 점령은 더 이상 주간 진행의 중심이 아닙니다.</p>
+          <p>위 값은 운영 참고선이며 네 지표의 동시 달성으로 승리나 보상이 확정되지는 않습니다. 실제 선거·국민 평가·도전과제는 각각의 조건으로 판정됩니다. 군사력은 억지력과 안보 비용으로 계속 남습니다.</p>
         </section>
       </div>
+      </> : null}
 
-      <section className="nation-surface ministry-budget-board">
-        <header><div><span>내각 예산안</span><h3>100%의 한정된 자원을 어디에 배분할 것인가</h3></div><small>한 부처를 +5% 하면 여력이 가장 큰 다른 부처에서 자동 조정됩니다.</small></header>
-        <div className="ministry-budget-grid">
-          {nationBudgetDefinitions.map((definition) => {
-            const Icon = budgetIcons[definition.id];
-            return (
-              <article key={definition.id}>
-                <div className="ministry-title"><Icon /><span><small>{definition.ministry}</small><strong>{definition.name}</strong></span><b>{state.budget[definition.id]}%</b></div>
-                <p>{definition.description}</p>
-                <small className="ministry-effect">{definition.primaryEffect}</small>
-                <div className="ministry-control"><button aria-label={`${definition.name} 예산 5퍼센트포인트 낮추기`} onClick={() => onBudgetChange(definition.id, -5)} disabled={state.budget[definition.id] <= 5}><Minus /></button><MetricBar value={(state.budget[definition.id] / 45) * 100} /><button aria-label={`${definition.name} 예산 5퍼센트포인트 높이기`} onClick={() => onBudgetChange(definition.id, 5)} disabled={state.budget[definition.id] >= 45}><Plus /></button></div>
-              </article>
-            );
-          })}
-        </div>
-      </section>
+      {view === 'budget' ? <>
+<NationBudgetEditor state={state} nation={nation} role={role} week={game.week} phase={phase} busy={periodAdvanceRemaining > 0} authorized={budgetAuthority} onBudgetChange={onBudgetChange} />
+      </> : null}
 
-      <section className="nation-surface national-strategy-board">
+      {view === 'strategy' ? <>
+<section className="nation-surface national-strategy-board">
         <header><div><span>국가 발전 노선</span><h3>내각 전체가 따를 장기 전략</h3></div><small>현재: {currentStrategy.name}</small></header>
         <div className="national-strategy-grid">
           {nationStrategies.map((strategy) => (
@@ -887,8 +1057,10 @@ export function NationManagementPanel({
           ))}
         </div>
       </section>
+      </> : null}
 
-      <section className="nation-surface personal-life-board">
+      {view === 'personal' ? <>
+<section className="nation-surface personal-life-board">
         <header>
           <div><span>개인·가족·혼인</span><h3>한 사람의 삶도 세계선의 일부입니다</h3></div>
           <small>{currentYear}년 · {currentFamilyLaw.name}</small>
@@ -925,6 +1097,7 @@ export function NationManagementPanel({
           <div><strong>이 시대의 조건</strong><p>{eraFamilyClimate.detail}</p></div>
           <div><strong>설계 원칙</strong><p>성적 지향 자체에는 페널티가 없습니다. 위험은 시대의 법, 관계 공개 범위, 국가의 제도 역량에서 발생하며 개혁으로 바꿀 수 있습니다.</p></div>
         </div>
+        <p className="personal-activity-budget" role="status">개인·가족 활동 {personalActivity.remaining}/{personalActivity.limit}회 남음 · {personalActivity.reason} 가족법 개혁은 국정 업무로 별도 처리합니다.</p>
 
         {!activePersonalRelationship ? (
           <div className="personal-profile-editor">
@@ -978,7 +1151,7 @@ export function NationManagementPanel({
                 <small>가상 복합 인물 · 실존 인물의 확인되지 않은 사생활이나 성적 지향을 사용하지 않습니다.</small>
               </div>
             ) : <p className="personal-empty-state">현재 설정과 맞는 후보가 없습니다. 관계 프로필에서 지향 또는 공개 설정을 조정하십시오.</p>}
-            <button type="button" disabled={!selectedPersonalCandidate || game.politicalPower < 4 || game.treasury < 8} onClick={() => selectedPersonalCandidate && onStartPersonalRelationship(selectedPersonalCandidate.id)}>교제 시작 <small>정치 4 · {formatMoney(8)}</small></button>
+            <button type="button" disabled={!personalActivity.allowed || !selectedPersonalCandidate || game.politicalPower < 4 || game.treasury < 8} title={personalActivity.reason} onClick={() => selectedPersonalCandidate && onStartPersonalRelationship(selectedPersonalCandidate.id)}>교제 시작 <small>정치 4 · {formatMoney(8)}</small></button>
           </div>
         ) : null}
 
@@ -1004,21 +1177,21 @@ export function NationManagementPanel({
                   <label>관계 형태<select value={selectedUnionForm} onChange={(event) => setSelectedUnionForm(event.target.value as UnionForm)}><option value="marriage">법률혼</option><option value="civil-partnership">시민결합</option><option value="domestic-partnership">동거 동반자</option><option value="private-commitment">비공개 서약</option></select></label>
                   <label>공개 범위<select value={selectedRelationshipVisibility} onChange={(event) => setSelectedRelationshipVisibility(event.target.value as RelationshipVisibility)}><option value="public">공개</option><option value="private">비공개</option><option value="secret">비밀</option></select></label>
                 </div>
-                <p className={unionEligibility.allowed ? 'union-eligible' : 'union-blocked'}>{unionEligibility.allowed ? `체결 가능 · ${unionEligibility.reason}` : `체결 불가 · ${unionEligibility.reason}`}</p>
-                <button type="button" disabled={!unionEligibility.allowed} onClick={() => onFormalizeRelationship(selectedUnionForm, selectedRelationshipVisibility)}>{getUnionFormLabel(selectedUnionForm)} 확정</button>
+                <p className={unionEligibility.allowed && personalActivity.allowed ? 'union-eligible' : 'union-blocked'}>{!personalActivity.allowed ? personalActivity.reason : unionEligibility.allowed ? `체결 가능 · ${unionEligibility.reason}` : `체결 불가 · ${unionEligibility.reason}`}</p>
+                <button type="button" disabled={!personalActivity.allowed || !unionEligibility.allowed} title={personalActivity.reason} onClick={() => onFormalizeRelationship(selectedUnionForm, selectedRelationshipVisibility)}>{getUnionFormLabel(selectedUnionForm)} 확정</button>
               </div>
             ) : (
               <div className="family-plan-control">
                 <div className="personal-section-heading"><Home /><span><small>HOUSEHOLD</small><strong>가족 형태와 양육 계획</strong></span></div>
                 <label>가족 계획<select value={selectedFamilyPlanId} onChange={(event) => setSelectedFamilyPlanId(event.target.value as FamilyPlanId)}>{familyPlanDefinitions.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></label>
                 <p>{familyPlanDefinitions.find((plan) => plan.id === selectedFamilyPlanId)?.description}</p>
-                <button type="button" disabled={selectedFamilyPlanId === 'adoption' && !currentFamilyLaw.jointAdoption} onClick={() => onFamilyPlanChange(selectedFamilyPlanId)}>가족 계획 적용</button>
+                <button type="button" disabled={!personalActivity.allowed || selectedFamilyPlanId === activePersonalRelationship.familyPlan || (selectedFamilyPlanId === 'adoption' && !currentFamilyLaw.jointAdoption)} title={selectedFamilyPlanId === activePersonalRelationship.familyPlan ? '현재 적용 중인 가족 계획입니다.' : personalActivity.reason} onClick={() => onFamilyPlanChange(selectedFamilyPlanId)}>가족 계획 적용</button>
                 <small>현재: {familyPlanDefinitions.find((plan) => plan.id === activePersonalRelationship.familyPlan)?.name} · 부양 가족 {activePersonalRelationship.dependents}명</small>
               </div>
             )}
 
             <div className="relationship-actions">
-              {personalLifeActionDefinitions.map((action) => <button type="button" key={action.id} className={action.id === 'separate' ? 'danger' : ''} onClick={() => onPersonalLifeAction(action.id)}><strong>{action.name}</strong><span>{action.description}</span><small>{action.cost}</small></button>)}
+              {personalLifeActionDefinitions.map((action) => <button type="button" key={action.id} className={action.id === 'separate' ? 'danger' : ''} disabled={!personalActivity.allowed} title={personalActivity.reason} onClick={() => onPersonalLifeAction(action.id)}><strong>{action.name}</strong><span>{action.description}</span><small>{action.cost}</small></button>)}
             </div>
           </div>
         ) : null}
@@ -1027,8 +1200,10 @@ export function NationManagementPanel({
           <div className="personal-history-ledger"><h4>개인사 기록</h4>{state.personalLife.history.slice(0, 6).map((record) => <article key={record.id}><span><strong>{record.title}</strong><small>{record.detail}</small></span><b>제{record.week + 1}주</b></article>)}</div>
         ) : null}
       </section>
+      </> : null}
 
-      <section className="nation-surface media-relations-board">
+      {view === 'media' ? <>
+<section className="nation-surface media-relations-board">
         <header>
           <div><span>언론·평판 상황실</span><h3>질문을 피하는 것이 아니라, 누가 서사를 만드는지 관리합니다</h3></div>
           <small>{currentYear}년 · {currentMediaLaw.name}</small>
@@ -1119,8 +1294,42 @@ export function NationManagementPanel({
 
         {state.mediaRelations.history.length > 0 && <div className="media-history-ledger"><h4>언론 대응 기록</h4>{state.mediaRelations.history.slice(0, 8).map((record) => <article key={record.id} className={record.tone}><span><strong>{record.title}</strong><small>{record.detail}</small></span><b>제{record.week + 1}주</b></article>)}</div>}
       </section>
+      </> : null}
 
-      <section className="nation-surface dynastic-politics-board">
+      {view === 'constitution' ? <>
+<ConstitutionalJudiciaryBoard
+        state={state.constitutionalJudiciary}
+        context={constitutionalContext}
+        formatMoney={formatMoney}
+        onActivate={onActivateConstitution}
+        onClauseSelect={onConstitutionClauseSelect}
+        onRatify={onConstitutionRatify}
+        onNominate={onJudicialNominate}
+        onNominationDecision={onJudicialNominationDecision}
+      />
+      </> : null}
+
+      {view === 'sovereign' ? <>
+<SovereignPowersBoard
+        state={state.sovereignPowers}
+        context={sovereignContext}
+        formatMoney={formatMoney}
+        onExercise={onSovereignPowerExercise}
+      />
+      </> : null}
+
+      {view === 'justice' ? <>
+<JusticeDocketBoard
+        state={state.justice}
+        context={justiceContext}
+        formatMoney={formatMoney}
+        onOpenCase={onOpenJusticeCase}
+        onDecision={onJusticeDecision}
+      />
+      </> : null}
+
+      {view === 'dynasty' ? <>
+<section className="nation-surface dynastic-politics-board">
         <header>
           <div><span>헌정·왕실 운영</span><h3>국가체제, 작위, 영지와 왕위계승</h3></div>
           <small>{currentGovernmentForm.name} · {dynasticAuthority ? '직접 결재 가능' : `${role.title} 권한 밖`}</small>
@@ -1188,8 +1397,11 @@ export function NationManagementPanel({
           </div>
         )}
       </section>
+      </> : null}
 
-      {latestReport && (
+      {view === 'records' ? <>
+        {!latestReport ? <section className="nation-surface"><h3>아직 확정된 국정 결산이 없습니다</h3><p>첫 주간 결산 뒤 실제 원인·결과·재정 수지를 이곳에서 확인할 수 있습니다. 열람으로 결산을 생성하지 않습니다.</p></section> : null}
+{latestReport && (
         <section className="nation-surface nation-weekly-causality">
           <header><div><span>제{latestReport.week + 1}주 국정 결산</span><h3>무엇을 선택했고, 무엇이 달라졌는가</h3></div><strong>{formatMoney(latestReport.fiscalBalance, { signed: true })}</strong></header>
           <div className="causality-columns">
@@ -1200,6 +1412,7 @@ export function NationManagementPanel({
           {latestReport.events.map((event) => <article className={`nation-policy-event ${event.tone}`} key={event.id}><span>{event.title}</span><strong>{event.detail}</strong><p><b>발생 원인</b> {event.cause}</p><p><b>향후 영향</b> {event.consequence}</p></article>)}
         </section>
       )}
+      </> : null}
     </div>
   );
 }

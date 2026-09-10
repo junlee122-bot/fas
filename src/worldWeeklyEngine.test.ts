@@ -102,6 +102,27 @@ describe('world weekly issue generator', () => {
     expect(lead?.signals[0]).toMatchObject({ label: '안정도', value: '-3', tone: 'negative' });
   });
 
+  it('routes cabinet and staff drama from the weekly paper back to organization management', () => {
+    const event: WarEvent = {
+      id: 202,
+      week: 4,
+      title: '참모진 현안 — 처칠–케인스 노선 충돌',
+      detail: '각료회의에서 전시 재정의 우선순위를 두고 공개적인 책임 공방이 벌어졌습니다.',
+      tone: 'bad',
+      trace: {
+        domain: 'management', decision: '대응 대기', trigger: '지속 관계 악화', factors: ['관계 34'],
+        effects: [{ label: '조직 결속', value: '-4', tone: 'negative' }], ongoing: ['언론 노출 위험이 커집니다.'],
+        nextActions: ['조직 운영에서 중재하십시오.'], certainty: 'developing',
+      },
+    };
+    const issue = generateWorldWeeklyIssue(createContext({ events: [event] }));
+    const article = issue.articles.find((candidate) => candidate.sourceEventId === 202);
+
+    expect(article?.category).toBe('society');
+    expect(article?.actionTab).toBe('organization');
+    expect(article?.actionLabel).toContain('조직 운영');
+  });
+
   it('is deterministic and keeps a de-duplicated 104-week archive', () => {
     const context = createContext();
     const first = generateWorldWeeklyIssue(context);

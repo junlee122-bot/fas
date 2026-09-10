@@ -1,0 +1,68 @@
+.command-desk { color:var(--ui-text,#edf0ec); max-width:1440px; margin:0 auto; }
+.command-desk-header { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:10px 0 28px; }
+.command-desk-header > div { max-width:880px; }
+.game-shell.design-v2 .command-desk .command-desk-kicker { font-size:12px; font-weight:600; color:var(--ui-accent,#c7a16c); letter-spacing:.08em; margin:0 0 12px; }
+.command-desk-kicker span { padding:0 10px; color:#62717d; }
+.game-shell.design-v2 .command-desk h1 { font-size:clamp(26px,2.5vw,36px); font-weight:650; line-height:1.2; margin:0 0 12px; letter-spacing:-.05em; }
+.game-shell.design-v2 .command-desk-header p { font-size:14px; color:var(--ui-muted); line-height:1.6; margin:0; }
+.command-desk-divider { padding:0 8px; }
+.command-desk-briefing { flex-shrink:0; display:flex; gap:10px; align-items:center; border:1px solid var(--ui-border); background:var(--ui-surface); color:var(--ui-text); padding:12px 16px; border-radius:8px; }
+.command-desk-main { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(290px,1fr); gap:20px; }
+.command-desk-decision { display:flex; flex-direction:column; position:relative; min-height:300px; padding:28px; border-radius:10px; background:var(--ui-paper,#f1f2ed); color:var(--ui-ink,#1c2831); }
+.command-desk-paper-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.game-shell.design-v2 .command-desk .command-desk-paper-heading span { font-size:12px; color:#596772; letter-spacing:.03em; }
+.command-desk-paper-heading span:last-child { border:1px solid #c4ccc8; padding:5px 9px; border-radius:4px; }
+.command-desk-decision.urgent .command-desk-paper-heading span:last-child { border-color:#b26746; color:#8d4328; }
+.game-shell.design-v2 .command-desk-decision h2 { color:#17232c; font-size:clamp(22px,2vw,28px); line-height:1.35; margin:22px 0 12px; letter-spacing:-.035em; }
+.game-shell.design-v2 .command-desk-decision p { color:#50606b; font-size:16px; line-height:1.7; margin:0 0 20px; max-width:720px; }
+.command-desk-checkpoint { display:grid; grid-template-columns:72px minmax(0,1fr); gap:10px; border-left:2px solid #b8a078; padding:2px 0 2px 12px; margin-bottom:22px; }
+.game-shell.design-v2 .command-desk-checkpoint span { color:#65737b; font-size:12px; line-height:1.6; }
+.game-shell.design-v2 .command-desk-checkpoint strong { color:#34434d; font-size:14px; font-weight:500; line-height:1.6; }
+.game-shell.design-v2 .command-desk-primary { display:flex; width:fit-content; align-items:center; justify-content:space-between; min-width:180px; gap:24px; padding:13px 18px; margin-top:auto; border:1px solid #202e38; border-radius:6px; background:#202e38; color:#fff; font-size:14px; font-weight:600; }
+.command-desk-paper-footer { display:flex; align-items:center; gap:8px; margin-top:22px; padding-top:17px; border-top:1px solid #d5dad4; }
+.game-shell.design-v2 .command-desk-paper-footer span { font-size:12px; color:#64716d; }
+.command-desk-objective { padding:24px; border:1px solid var(--ui-border); border-radius:10px; background:var(--ui-surface); }
+.command-desk-objective > header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.game-shell.design-v2 .command-desk-objective > header span { font-size:12px; color:var(--ui-muted); letter-spacing:.04em; }
+.command-desk-objective > header b { color:var(--ui-accent); font-size:24px; }
+.game-shell.design-v2 .command-desk-objective > header small { font-size:12px; color:var(--ui-muted); }
+.game-shell.design-v2 .command-desk-objective h2 { font-size:20px; line-height:1.5; margin:12px 0 14px; }
+.command-desk-progress { height:3px; background:#34434e; margin-bottom:20px; border-radius:2px; overflow:hidden; }
+.command-desk-progress i { display:block; height:100%; background:var(--ui-accent); }
+.command-desk-task-list { display:grid; gap:4px; }
+.command-desk-task-list > :is(button,div) { display:flex; width:100%; gap:12px; align-items:center; text-align:left; padding:12px 0; background:none; border:0; border-bottom:1px solid #ffffff0b; color:var(--ui-text); }
+.command-desk-task-list > :is(button,div) svg { flex-shrink:0; color:#758795; }
+.command-desk-task-list > :is(button,div).done svg { color:#82bda8; }
+.command-desk-task-list span { flex:1; }
+.game-shell.design-v2 .command-desk-task-list span { font-size:14px; line-height:1.55; }
+.game-shell.design-v2 .command-desk details { color:var(--ui-muted); font-size:14px; margin-top:14px; }
+.game-shell.design-v2 .command-desk summary { min-height:36px; cursor:pointer; font-size:12px; line-height:1.6; padding:9px 0; }
+.game-shell.design-v2 .command-desk details p { font-size:14px; line-height:1.7; }
+.command-desk-activities { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin:20px 0 28px; }
+.command-desk-activities > button { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:18px 20px; text-align:left; background:#151e27; border:1px solid var(--ui-border); border-radius:8px; color:var(--ui-text); }
+.command-desk-activities > button > span:first-child { display:grid; gap:9px; }
+.game-shell.design-v2 .command-desk-activities small { font-size:13px; color:var(--ui-muted); }
+.game-shell.design-v2 .command-desk-activities strong { font-size:28px; line-height:1; font-weight:550; }
+.game-shell.design-v2 .command-desk-activities em { font-size:12px; margin-left:7px; font-weight:400; color:var(--ui-muted); }
+.game-shell.design-v2 .command-desk-activity-detail { display:flex; align-items:center; gap:10px; font-size:12px; color:#abb8bf; }
+.command-desk-bottom { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(290px,1fr); gap:24px; }
+.command-desk-bottom section > header { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--ui-border); padding-bottom:16px; margin-bottom:3px; gap:12px; }
+.game-shell.design-v2 .command-desk-bottom h2 { margin:0; font-size:17px; }
+.game-shell.design-v2 .command-desk-bottom header > :is(span,button) { color:var(--ui-muted); font-size:12px; }
+.command-desk-inbox > button { display:flex; gap:12px; width:100%; padding:16px 0; align-items:center; text-align:left; background:none; border:0; border-bottom:1px solid #ffffff0b; color:var(--ui-text); }
+.command-desk-inbox > button > i { width:5px; height:5px; background:var(--ui-accent); border-radius:50%; flex-shrink:0; }
+.command-desk-inbox > button > i.urgent { background:#e0997d; }
+.command-desk-inbox > button > span { flex:1; display:grid; gap:6px; }
+.game-shell.design-v2 .command-desk-inbox strong { font-size:14px; font-weight:500; }
+.game-shell.design-v2 .command-desk-inbox small { font-size:12px; color:var(--ui-muted); }
+.command-desk-inbox nav { display:flex; flex-wrap:wrap; gap:8px; padding:15px 0; }
+.command-desk-inbox nav button, .command-desk-journal header button { display:flex; align-items:center; gap:7px; padding:8px; background:none; border:0; color:var(--ui-muted); }
+.game-shell.design-v2 .command-desk-inbox nav button { font-size:12px; }
+.command-desk-journal > div { display:grid; grid-template-columns:48px minmax(0,1fr); gap:10px; padding:16px 0; border-bottom:1px solid #ffffff0b; }
+.game-shell.design-v2 .command-desk-journal > div span { font-size:12px; color:#8293a0; padding-top:2px; }
+.game-shell.design-v2 .command-desk-journal > div p { font-size:14px; line-height:1.6; margin:0; color:#bec9d1; }
+.command-desk button { cursor:pointer; }
+.command-desk button:hover { filter:brightness(1.1); }
+.command-desk button:focus-visible { outline:3px solid #99c1d6; outline-offset:3px; }
+@media(max-width:1100px) { .command-desk-main,.command-desk-bottom { grid-template-columns:minmax(0,1fr); } .command-desk-activity-detail { max-width:100px; } }
+@media(max-width:600px) { .command-desk-header { display:block; padding-top:8px; } .command-desk-briefing { margin-top:16px; } .command-desk-decision,.command-desk-objective { padding:20px; } .command-desk-activities { gap:8px; } .command-desk-activities > button { padding:14px 10px; display:block; } .game-shell.design-v2 .command-desk-activity-detail { display:none; } .game-shell.design-v2 .command-desk-activities small { font-size:12px; } .command-desk-checkpoint { grid-template-columns:1fr; gap:4px; } }

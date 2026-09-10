@@ -1,4 +1,5 @@
 import type { CareerRole, NationId, StaffDepartment } from './types';
+import { withJosa } from './koreanGrammar';
 
 export type SocialistModelId =
   | 'popular-front'
@@ -457,7 +458,7 @@ export function startSocialistTransition(state: SocialistWorldState, modelId: So
     sponsor,
     setbacks: 0,
     scars: [],
-    turningPoints: [{ week: context.week, title: `${definition.shortName} 전환회의`, detail: `${sponsor.name}이(가) 노동·농민·시민·당 조직의 대표권을 조정하기 시작했습니다.`, tone: 'neutral' }],
+    turningPoints: [{ week: context.week, title: `${definition.shortName} 전환회의`, detail: `${withJosa(sponsor.name, '이/가')} 노동·농민·시민·당 조직의 대표권을 조정하기 시작했습니다.`, tone: 'neutral' }],
   };
   return { state: { ...state, active, stage: 'coalition', conventionAvailable: false, lastUpdatedWeek: context.week }, title: `${definition.shortName} 전환회의 개막`, detail: '첫 단계인 혁명 연합 구성에서 제도 합의를 선택한 뒤 진행 방식을 정해야 합니다.', politicalPowerDelta: -8, treasuryDelta: -10, stabilityDelta: -1, publicConfidenceDelta: 1, nationDelta: { ...zeroNationDelta(), legitimacy: 1, unrest: 1 } };
 }
@@ -653,7 +654,7 @@ export function advanceSocialistWorldWeek(state: SocialistWorldState, context: S
   active.mandate = clamp(active.mandate + (preview.mandateChange > 0 ? .12 : preview.mandateChange < 0 ? -.1 : 0));
   if (active.contradiction >= 100 && active.progress < 100) {
     const scar = scarFor(active.targetModelId, active.stageIndex);
-    const point: SocialistTurningPoint = { week: context.week, title: `${stageLabels[active.stageIndex]} 위기`, detail: `${scar}이(가) 남았고 같은 단계를 다른 방식으로 재협상해야 합니다.`, tone: 'bad' };
+    const point: SocialistTurningPoint = { week: context.week, title: `${stageLabels[active.stageIndex]} 위기`, detail: `${withJosa(scar, '이/가')} 남았고 같은 단계를 다른 방식으로 재협상해야 합니다.`, tone: 'bad' };
     active.setbacks += 1;
     active.scars = active.scars.includes(scar) ? active.scars : [scar, ...active.scars].slice(0, 8);
     active.progress = Math.max(30, active.progress - 20);

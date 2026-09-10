@@ -1,3 +1,4 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
 import { useEffect, useMemo, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import { AlertTriangle, ArrowRight, BadgeCheck, Landmark, LockKeyhole, ShieldAlert, ShieldCheck, Users, X } from 'lucide-react';
@@ -212,7 +213,7 @@ export function PoliticalCrisisModal({
                 <div className="coup-history-list">
                   {state.history.slice(0, 8).map((record) => (
                     <article className={`outcome-${record.outcome}`} key={record.id}>
-                      <time>{1942 + Math.floor(record.week / 52)}년</time>
+                      <time>{getCampaignYearForWeek(record.week)}년</time>
                       <span><strong>{record.title}</strong><small>{record.crisisLabel} · {resolveFactionName(record.leadingFactionId)} · {record.responseName}</small></span>
                       <em>{record.outcome === 'prevented' ? '저지' : record.outcome === 'compromise' ? '타협' : '체제 전환'}</em>
                     </article>

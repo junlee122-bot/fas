@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   advanceEconomyWeek,
+  advanceEconomyMarketWeek,
   buyIndustrialStake,
   calculateEconomyLedger,
   createEconomyState,
@@ -32,6 +33,42 @@ const game: GameState = {
 const context = { week: 5, nationId: 'britain' as const, game, staffWeeklyCost: 18, economyAdvisorBonus: 10 };
 
 describe('wartime economy', () => {
+  it('advances postwar quotations without settling taxes, borrowing or treasury effects', () => {
+    const state = createEconomyState('britain');
+    const invested = buyIndustrialStake(state, getAvailableCompanies('britain')[0].id, 100)!.state;
+    const settled = { ...invested, lastLedger: calculateEconomyLedger(invested, context) };
+    const before = structuredClone(settled);
+    const market = advanceEconomyMarketWeek(settled, { week: 400, nationId: 'britain', game });
+    expect(market.state.marketPrices).not.toEqual(settled.marketPrices);
+    expect(market.state.previousPrices).toEqual(settled.marketPrices);
+    expect(market.event).not.toBeNull();
+    expect(market.state.eventHistory[0]).toEqual(market.event);
+    expect(market.state.debt).toBe(settled.debt);
+    expect(market.state.inflation).toBe(settled.inflation);
+    expect(market.state.publicConfidence).toBe(settled.publicConfidence);
+    expect(market.state.holdings).toEqual(settled.holdings);
+    expect(market.state.monetarySystem).toEqual(settled.monetarySystem);
+    expect(market.state.lastLedger).toEqual(settled.lastLedger);
+    expect(market).not.toHaveProperty('gameDelta');
+    expect(market).not.toHaveProperty('treasuryDelta');
+    expect(settled).toEqual(before);
+  });
+
+  it('shares exactly one market update and one fiscal settlement with the wartime tick', () => {
+    const state = createEconomyState('britain');
+    const eventContext = { ...context, week: 8 };
+    const market = advanceEconomyMarketWeek(state, eventContext);
+    const full = advanceEconomyWeek(state, eventContext);
+    expect(full.state.marketPrices).toEqual(market.state.marketPrices);
+    expect(full.state.previousPrices).toEqual(market.state.previousPrices);
+    expect(full.state.eventHistory).toEqual(market.state.eventHistory);
+    expect(full.state.debt).toBe(state.debt + full.ledger.financingRaised);
+    expect(full.gameDelta.treasury).toBeCloseTo(
+      full.ledger.operatingRevenue + full.ledger.financingRaised - full.ledger.totalExpenses + (full.event?.treasuryImpact ?? 0),
+      5,
+    );
+  });
+
   it('separates real revenue, debt financing, expenses, and monthly projection', () => {
     const state = createEconomyState('britain');
     const ledger = calculateEconomyLedger(state, context);

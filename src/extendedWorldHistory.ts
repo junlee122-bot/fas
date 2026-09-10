@@ -5,6 +5,7 @@ import type {
   WorldHistoryVariant,
   WorldMetric,
 } from './worldHistory';
+import { withJosa } from './koreanGrammar';
 
 type Pattern = 'integration' | 'conflict' | 'revolution' | 'economy' | 'technology' | 'rights' | 'health' | 'environment' | 'security';
 type Citation = readonly [string, string];
@@ -82,8 +83,8 @@ function makeEvent(spec: Spec): WorldHistoryEvent {
     sourceUrl: citation[1],
     variants: [
       variant('historical', outcomes[0], copy[pattern][0], `${outcomes[0]}의 제도와 미해결 문제가 다음 세대로 이어진다.`, deltas[pattern][0]),
-      variant('institutional', outcomes[1], copy[pattern][1], `${outcomes[1]}이(가) 협력 규칙과 행위자 구성을 바꾼다.`, deltas[pattern][1]),
-      variant('transformative', outcomes[2], copy[pattern][2], `${outcomes[2]}이(가) 새로운 블록과 장기 위기선을 만든다.`, deltas[pattern][2]),
+      variant('institutional', outcomes[1], copy[pattern][1], `${withJosa(outcomes[1], '이/가')} 협력 규칙과 행위자 구성을 바꾼다.`, deltas[pattern][1]),
+      variant('transformative', outcomes[2], copy[pattern][2], `${withJosa(outcomes[2], '이/가')} 새로운 블록과 장기 위기선을 만든다.`, deltas[pattern][2]),
     ],
   };
 }

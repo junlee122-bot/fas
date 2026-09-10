@@ -1,7 +1,10 @@
 import type { CareerRole, NationId } from './types';
+import { withJosa } from './koreanGrammar';
 
 export type GovernmentFormId =
   | 'parliamentary-republic'
+  | 'presidential-republic'
+  | 'semi-presidential-republic'
   | 'constitutional-monarchy'
   | 'crown-state'
   | 'imperial-federation'
@@ -117,6 +120,18 @@ export const governmentForms: GovernmentFormDefinition[] = [
     description: '선거와 의회를 통치 정통성의 중심에 두며 왕실 특권과 세습 영지를 인정하지 않습니다.',
     politicalCost: 18, treasuryCost: 40, minimumLegitimacy: 35, stabilityDelta: 3, legitimacyDelta: 4, unrestDelta: -3,
     strength: '국민 위임과 제도 역량', risk: '분열 의회와 단기 정책 경쟁',
+  },
+  {
+    id: 'presidential-republic', name: '대통령 공화국', doctrine: '직선 위임·권력분립', monarchy: false, titleSystem: false,
+    description: '대통령과 의회가 별도의 국민 위임과 임기를 가지며 탄핵·거부권·사법심사로 서로 견제합니다.',
+    politicalCost: 28, treasuryCost: 55, minimumLegitimacy: 40, stabilityDelta: 2, legitimacyDelta: 4, unrestDelta: 1,
+    strength: '명확한 행정부 임기와 직접 위임', risk: '분점정부·탄핵정치·개인 권력 집중',
+  },
+  {
+    id: 'semi-presidential-republic', name: '이원집정부 공화국', doctrine: '대통령·총리 권한분담', monarchy: false, titleSystem: false,
+    description: '대통령은 외교·안보를, 의회책임 총리는 내정을 담당하며 동거정부 규칙으로 권한 충돌을 조정합니다.',
+    politicalCost: 32, treasuryCost: 65, minimumLegitimacy: 42, stabilityDelta: 1, legitimacyDelta: 5, unrestDelta: 0,
+    strength: '위기 지도력과 의회 책임의 결합', risk: '대통령·총리 간 이중 권력과 책임 전가',
   },
   {
     id: 'constitutional-monarchy', name: '입헌군주국', doctrine: '왕관과 의회의 이중 정통성', monarchy: true, titleSystem: true,
@@ -402,7 +417,7 @@ export function setSuccessionLaw(state: DynasticPoliticsState, lawId: Succession
     legitimacyDelta: 2,
     unrestDelta: lawId === 'primogeniture' ? 1 : 0,
     title: '왕위계승법 확정',
-    detail: `${getSuccessionLawName(lawId)}을(를) 왕위계승 원칙으로 공포했습니다. 계승 안정 +${securityGain}, 정치력 -16, 국고 -24M.`,
+    detail: `${withJosa(getSuccessionLawName(lawId), '을/를')} 왕위계승 원칙으로 공포했습니다. 계승 안정 +${securityGain}, 정치력 -16, 국고 -24M.`,
   };
 }
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { getCampaignWeekForYear, getCampaignYearForWeek } from './campaignCalendar';
 import type { GeneratedWorldEvent, WorldHistoryEvent } from './worldHistory';
 import { worldHistoryEvents } from './worldHistory';
 import {
@@ -47,8 +48,10 @@ describe('in-campaign world flashpoints', () => {
     const berlin = timelineEntry(eventById('berlin-crisis'));
     const forecast = forecastNextWorldFlashpoint([berlin], 0, []);
     expect(forecast?.entry.event.id).toBe('berlin-crisis');
-    expect(forecast?.decisionWeek).toBe(323);
-    expect(forecast?.weeksUntil).toBe(323);
+    const firstEligibleWindow = Math.ceil(getCampaignWeekForYear(1948) / WORLD_FLASHPOINT_INTERVAL_WEEKS) * WORLD_FLASHPOINT_INTERVAL_WEEKS;
+    expect(forecast?.decisionWeek).toBe(firstEligibleWindow);
+    expect(forecast?.weeksUntil).toBe(firstEligibleWindow);
+    expect(getCampaignYearForWeek(firstEligibleWindow - WORLD_FLASHPOINT_INTERVAL_WEEKS)).toBe(1947);
     expect(forecast?.campaignYear).toBe(1948);
   });
 

@@ -1,3 +1,4 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
 import { useMemo, useState } from 'react';
 import { AlertTriangle, ArrowRight, BookOpenText, BrainCircuit, CheckCircle2, Clock3, Crown, Gauge, Landmark, Route, ShieldAlert, Sparkles, Users } from 'lucide-react';
 import {
@@ -134,7 +135,7 @@ export function StrategicSagaBoard({ state, context, staff, compact = false, onS
           {!compact && active.turningPoints.length > 0 && (
             <details className="saga-chronicle">
               <summary><BookOpenText size={16} /> 인과관계 연대기 {active.turningPoints.length}건</summary>
-              <div>{active.turningPoints.slice(0, 8).map((point) => <article key={`${point.week}-${point.title}`} className={point.tone}><span>{1942 + Math.floor(point.week / 52)}년</span><strong>{point.title}</strong><p>{point.detail}</p></article>)}</div>
+              <div>{active.turningPoints.slice(0, 8).map((point) => <article key={`${point.week}-${point.title}`} className={point.tone}><span>{getCampaignYearForWeek(point.week)}년</span><strong>{point.title}</strong><p>{point.detail}</p></article>)}</div>
             </details>
           )}
         </>

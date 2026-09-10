@@ -1,3 +1,4 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
 import { Award, CheckCircle2, Eye, Package, ShieldAlert, Star, Swords, Target, TrendingUp, X } from 'lucide-react';
 import { useState } from 'react';
 import { assessBattleRecognition, getDecorationOptions } from './frontLegacy';
@@ -26,7 +27,7 @@ const phaseIcons: Record<BattlePhase['id'], React.ReactNode> = {
 
 export function BattleReportModal({ report, nationId, onRecognize, onClose }: BattleReportModalProps) {
   const recognition = assessBattleRecognition(report);
-  const battleYear = 1942 + Math.floor(report.week / 52);
+  const battleYear = getCampaignYearForWeek(report.week);
   const decorationOptions = getDecorationOptions(nationId, battleYear, recognition.maximumTier);
   const [battleName, setBattleName] = useState(report.battleName ?? recognition.suggestedBattleName);
   const [decorationId, setDecorationId] = useState(report.decoration?.id ?? '');

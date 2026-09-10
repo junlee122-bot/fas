@@ -3,6 +3,7 @@ import { getDynasticWeeklyEffects, getGovernmentForm } from './dynasticPolitics'
 import { getNationDevelopmentProfile, type PoliticalRuptureKind } from './nationDevelopment';
 import type { CampaignPhase, NationManagementState } from './nationManagement';
 import type { CareerRole, GameState, NationId } from './types';
+import { withJosa } from './koreanGrammar';
 
 export type PoliticalFactionKind = 'civilian' | 'military' | 'security' | 'party' | 'royal' | 'regional' | 'resistance' | 'labor' | 'colonial';
 export type CoupRiskTier = 'stable' | 'watch' | 'dangerous' | 'critical';
@@ -70,7 +71,7 @@ export interface PoliticalCrisisContext {
   phase: CampaignPhase;
   game: Pick<GameState, 'stability' | 'warSupport' | 'treasury' | 'victoryScore' | 'intelNetwork' | 'enemyPressure' | 'politicalPower' | 'commandPoints'>;
   economy: Pick<EconomyState, 'debt' | 'inflation' | 'publicConfidence'>;
-  nation: Pick<NationManagementState, 'unrest' | 'legitimacy' | 'mandateScore' | 'dynasty' | 'electoral'>;
+  nation: Pick<NationManagementState, 'unrest' | 'legitimacy' | 'mandateScore' | 'dynasty' | 'electoral' | 'sovereignPowers'>;
   averageSupply: number;
   staffLoyalty: number;
   staffOverload: number;
@@ -329,6 +330,7 @@ export function assessCoupRisk(state: PoliticalCrisisState, context: PoliticalCr
     { id: 'elite', label: '엘리트 충성·정부 신임', contribution: Math.max(0, 66 - context.staffLoyalty) * 0.2 + Math.max(0, context.staffOverload - 70) * 0.12 + Math.max(0, 58 - context.councilTrust) * 0.2, detail: `참모 충성 ${Math.round(context.staffLoyalty)} · 과부하 ${Math.round(context.staffOverload)} · 지도부 신임 ${Math.round(context.councilTrust)}` },
     { id: 'factions', label: `${leadingFaction.shortName} 동원력`, contribution: Math.max(0, lead.grievance - 25) * 0.22 + Math.max(0, lead.organization - 55) * 0.13 + Math.max(0, 42 - weakestRelationEntry[1]) * 0.22, detail: `불만 ${Math.round(lead.grievance)} · 조직력 ${Math.round(lead.organization)} · 최저 관계 ${Math.round(weakestRelationEntry[1])}` },
     { id: 'succession', label: governmentForm.monarchy ? '왕위계승·궁정 균형' : '헌정 연속성', contribution: context.phase === 'nation' ? dynasticEffects.coupRisk : 0, detail: governmentForm.monarchy ? `계승 안정 ${Math.round(context.nation.dynasty.successionSecurity)} · 궁정 결속 ${Math.round(context.nation.dynasty.courtUnity)} · 영지 부담 ${Math.round(context.nation.dynasty.estateBurden)}` : '비왕정 체제로 왕위 찬탈 위험은 없습니다.' },
+    { id: 'office-powers', label: '권한 남용·복종 균열', contribution: Math.max(0, 58 - context.nation.sovereignPowers.constitutionalConvention) * 0.12 + Math.max(0, 52 - context.nation.sovereignPowers.militaryObedience) * 0.14 + Math.max(0, context.nation.sovereignPowers.aristocraticLeverage - 58) * 0.13 + Math.max(0, context.nation.sovereignPowers.patronagePressure - 65) * 0.09, detail: `헌정 관례 ${Math.round(context.nation.sovereignPowers.constitutionalConvention)} · 군 복종 ${Math.round(context.nation.sovereignPowers.militaryObedience)} · 귀족 지레버리지 ${Math.round(context.nation.sovereignPowers.aristocraticLeverage)} · 후원 압력 ${Math.round(context.nation.sovereignPowers.patronagePressure)}` },
     { id: 'election', label: activeElection ? '선거 불복·정치 양극화' : '선거제도 신뢰', contribution: context.phase === 'nation' ? Math.max(0, 52 - context.nation.electoral.electoralIntegrity) * 0.18 + Math.max(0, (activeElection?.polarization ?? 0) - 55) * 0.14 : 0, detail: activeElection ? `절차 신뢰 ${activeElection.integrity.toFixed(1)} · 양극화 ${activeElection.polarization.toFixed(1)} · ${activeElection.stage}` : `선거 신뢰 ${context.nation.electoral.electoralIntegrity.toFixed(1)} · 진행 중 선거 없음` },
     { id: 'intelligence', label: '방첩 억제력', contribution: -Math.max(0, context.game.intelNetwork - 45) * 0.11, detail: `정보망 ${Math.round(context.game.intelNetwork)}가 사전 적발 가능성을 높입니다.` },
   ].map((trigger) => ({ ...trigger, contribution: round(trigger.contribution) }));
@@ -405,7 +407,7 @@ export function advancePoliticalCrisisWeek(state: PoliticalCrisisState, context:
   const roll = deterministicPercent(`${state.nationId}:${context.week}:${state.attempts}:${assessment.leadingFaction.id}`);
   const shouldTrigger = context.week >= 6 && cooldownReady && assessment.weeklyChance > 0 && roll < assessment.weeklyChance;
   const notices: string[] = [];
-  if (state.lastRiskTier !== assessment.tier) notices.push(`정치 위기 단계가 ${getCoupRiskLabel(assessment.tier)}(으)로 변경됐습니다.`);
+  if (state.lastRiskTier !== assessment.tier) notices.push(`정치 위기 단계가 ${withJosa(getCoupRiskLabel(assessment.tier), '으로/로')} 변경됐습니다.`);
   if (!shouldTrigger) return { state: nextState, assessment, incident: null, notices };
   const detectionScore = clamp(context.game.intelNetwork * 0.55 + context.staffLoyalty * 0.25 + context.councilTrust * 0.2 - assessment.leadingFaction.baseOrganization * 0.25);
   const detected = deterministicPercent(`${state.nationId}:detect:${context.week}:${state.attempts}`) < detectionScore;
@@ -576,7 +578,7 @@ export function resolveCoupAttempt(state: PoliticalCrisisState, incident: CoupIn
     },
     outcome,
     title,
-    detail: `${leader.name}이 핵심 국가기관을 장악해 ${successor}을(를) 세웠습니다. 이 사건은 ${development.crisis.kind}의 결과이며 캠페인은 끝나지 않으며, 사용자는 새 권력구조 속에서 보직과 영향력을 다시 확보해야 합니다.`,
+    detail: `${leader.name}이 핵심 국가기관을 장악해 ${withJosa(successor, '을/를')} 세웠습니다. 이 사건은 ${development.crisis.kind}의 결과이며 캠페인은 끝나지 않으며, 사용자는 새 권력구조 속에서 보직과 영향력을 다시 확보해야 합니다.`,
     gameDelta: { ...directCosts, stability: -14, warSupport: -7, politicalPower: -18, commandPoints: -10, treasury: -80 },
     careerDelta: { reputation: -12, councilTrust: -18, legacy: -2 },
     nationDelta: { unrest: 14, legitimacy: -16, mandateScore: -12 },
@@ -618,7 +620,7 @@ export function applyCoupPrevention(state: PoliticalCrisisState, context: Politi
   return {
     state: { ...state, factionStandings, relations, lastPreventionWeek: context.week, lastOutcome: `${action.name} 실시` },
     gameDelta,
-    detail: `${action.name}을(를) 실시했습니다. ${assessment.leadingFaction.shortName}의 위험 요인을 중심으로 다음 주 쿠데타 계산이 갱신됩니다.`,
+    detail: `${withJosa(action.name, '을/를')} 실시했습니다. ${assessment.leadingFaction.shortName}의 위험 요인을 중심으로 다음 주 쿠데타 계산이 갱신됩니다.`,
   };
 }
 

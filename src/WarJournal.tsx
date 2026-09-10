@@ -1,11 +1,14 @@
+import { getCampaignDateForWeek } from './campaignCalendar';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ArrowRight, Check, ChevronDown, CircleDot, Fingerprint, Minus, Radio, Search, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { categorizeWarEvent, filterWarEvents, getWarEventTrace, summarizeJournalComparisons, summarizeJournalProgress } from './journal';
 import type { JournalFilter } from './journal';
 import type { WarEvent } from './types';
+import type { WorldChangeProfile } from './worldChangeVisualization';
 
 interface WarJournalProps {
   events: WarEvent[];
+  worldChanges: WorldChangeProfile;
   worldline: {
     code: string;
     outcomeId: string;
@@ -33,11 +36,11 @@ const certaintyLabels = { confirmed: '확정 결과', developing: '진행 중', 
 const comparisonLabels = { matched: '예상 일치', better: '예상 상회', worse: '예상 하회', variance: '확률 변동' } as const;
 
 function formatJournalDate(week: number) {
-  const date = new Date(Date.UTC(1942, 9, 25 + week * 7));
+  const date = getCampaignDateForWeek(week);
   return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(date);
 }
 
-export function WarJournal({ events, worldline, onClose }: WarJournalProps) {
+export function WarJournal({ events, worldChanges, worldline, onClose }: WarJournalProps) {
   const [activeFilter, setActiveFilter] = useState<JournalFilter>('all');
   const [query, setQuery] = useState('');
   const [openId, setOpenId] = useState<number | null>(events[0]?.id ?? null);
@@ -101,6 +104,31 @@ export function WarJournal({ events, worldline, onClose }: WarJournalProps) {
               <li><small>분기 횟수</small>{worldline.divergenceCount}회</li>
             </ul>
             <em title={worldline.legacySignature}>보직·국가 프로그램·결정·국가계획이 바뀔 때 이 지문과 결말 후보가 즉시 다시 계산됩니다.</em>
+          </div>
+        </section>
+        <section className={`journal-visible-world ${worldChanges.stage}`} aria-label="플레이로 실제 달라진 세계">
+          <header>
+            <span><Radio size={15} /><strong>화면에 나타난 변화</strong><small>{worldChanges.editorialLabel}</small></span>
+            <em>{worldChanges.visibleChangeCount}개 신호</em>
+          </header>
+          <div className="journal-visible-world-summary">
+            <strong>{worldChanges.headline}</strong>
+            <p>{worldChanges.summary}</p>
+          </div>
+          <div className="journal-change-domain-counts">
+            <span><small>영토·도시</small><strong>{worldChanges.territoryChanges.length}</strong></span>
+            <span><small>외교관계</small><strong>{worldChanges.relationChanges.length}</strong></span>
+            <span><small>인물·조직</small><strong>{worldChanges.organizationChanges.length}</strong></span>
+          </div>
+          <div className="journal-visible-change-list">
+            {worldChanges.recentSignals.slice(0, 4).map((signal) => (
+              <article className={signal.tone} key={signal.id}>
+                <span>{signal.domain === 'territory' ? '지도' : signal.domain === 'diplomacy' ? '외교' : signal.domain === 'organization' ? '조직' : signal.domain === 'technology' ? '기술' : signal.domain === 'intelligence' ? '정보' : '사회'}</span>
+                <div><strong>{signal.title}</strong><small>{signal.before} → {signal.after}</small></div>
+                <p>{signal.detail}</p>
+              </article>
+            ))}
+            {worldChanges.recentSignals.length === 0 ? <p className="journal-visible-world-empty">아직 확정된 구조 변화가 없습니다. 첫 정책·작전·인사 결과부터 전후 비교가 이곳에 쌓입니다.</p> : null}
           </div>
         </section>
         {comparisonSummary.total > 0 && (

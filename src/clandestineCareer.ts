@@ -1,3 +1,4 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
 import type { CareerBranch, CareerRole, GameState, NationId } from './types';
 
 export type ClandestineStatus =
@@ -259,7 +260,7 @@ const clandestineEras: Array<{
 ];
 
 export function getClandestineEraForWeek(week: number) {
-  const year = 1942 + Math.floor(Math.max(0, week) / 52);
+  const year = getCampaignYearForWeek(week);
   return clandestineEras.find((era) => year >= era.startYear && year <= era.endYear) ?? clandestineEras[clandestineEras.length - 1];
 }
 
@@ -692,7 +693,7 @@ function pushMessage(
 
 function createMission(state: ClandestineCareerState, role: CareerRole, week: number): ClandestineMission {
   const era = getClandestineEraForWeek(week);
-  const year = 1942 + Math.floor(Math.max(0, week) / 52);
+  const year = getCampaignYearForWeek(week);
   const eligible = missionTemplates.filter((template) =>
     (!template.branch || template.branch === role.branch)
     && (template.fromYear === undefined || year >= template.fromYear)

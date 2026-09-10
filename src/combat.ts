@@ -119,6 +119,10 @@ export function resolveBattle({
   randomRolls,
 }: BattleInput): BattleReport {
   const terrain = terrainDefense[target.terrain] ?? 8;
+  // Sixty supply preserves the previous baseline; attrition now weakens the
+  // defender's fire, deployment and reserves in subsequent weekly battles.
+  const defenderSupply = Number.isFinite(target.supply) ? Math.max(0, Math.min(100, target.supply)) : 60;
+  const supplyDefense = (defenderSupply - 60) * .2;
   const modifiers = stanceModifiers[stance];
   const rolls = randomRolls.map(clampRoll) as [number, number, number, number];
   const mobilityBonus = division.type === 'armor' ? 10 : division.type === 'airborne' || division.type === 'marine' ? 6 : 2;
@@ -133,21 +137,21 @@ export function resolveBattle({
   const approach = makePhase(
     'approach',
     division.organization * .28 + division.supply * .34 + commander.logistics * .25 + division.strength * .1 + modifiers.approach + priorityBonus + momentum + rolls[1] * 10,
-    42 + enemyPressure * .25 + terrain * .9 + target.value * 1.25 + (1 - rolls[1]) * 8,
+    42 + enemyPressure * .25 + terrain * .9 + target.value * 1.25 + supplyDefense * .6 + (1 - rolls[1]) * 8,
   );
   momentum = clampMomentum(momentum + approach.delta * .38);
 
   const engagement = makePhase(
     'engagement',
     division.strength * .36 + division.organization * .23 + commander.attack * .24 + division.experience * .12 + doctrineBonus + policyAttackBonus + modifiers.engagement + momentum + rolls[2] * 12,
-    50 + enemyPressure * .29 + terrain + target.value * 1.8 + (1 - rolls[2]) * 10,
+    50 + enemyPressure * .29 + terrain + target.value * 1.8 + supplyDefense + (1 - rolls[2]) * 10,
   );
   momentum = clampMomentum(momentum + engagement.delta * .46);
 
   const exploitation = makePhase(
     'exploitation',
     division.strength * .19 + division.supply * .19 + commander.command * .2 + commander.attack * .14 + mobilityBonus + modifiers.exploitation + priorityBonus + momentum + rolls[3] * 11,
-    40 + enemyPressure * .27 + terrain * .72 + target.value * 1.35 + (1 - rolls[3]) * 9,
+    40 + enemyPressure * .27 + terrain * .72 + target.value * 1.35 + supplyDefense * .8 + (1 - rolls[3]) * 9,
   );
 
   const phases: BattleReport['phases'] = [reconnaissance, approach, engagement, exploitation];

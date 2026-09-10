@@ -1,3 +1,4 @@
+import { getCampaignDateForWeek } from './campaignCalendar';
 import type { EconomyState } from './economy';
 import { deriveFrontSummaries } from './mapPresentation';
 import { getNewsMediaEraForWeek } from './newsMediaEvolution';
@@ -17,6 +18,7 @@ import type {
   WarEvent,
 } from './types';
 import type { GeneratedWorldline } from './worldHistory';
+import type { WorldChangeDomain, WorldChangeProfile, WorldChangeTone, WorldEditorialTone } from './worldChangeVisualization';
 
 export type WorldNewsCategory = 'front' | 'diplomacy' | 'economy' | 'society' | 'science' | 'intelligence';
 export type WorldNewsConfidence = 'confirmed' | 'assessed' | 'rumor';
@@ -67,6 +69,24 @@ export interface WorldWeeklyIssue {
   leadArticleId: string;
   articles: WorldNewsArticle[];
   metrics: WorldWeeklyMetrics;
+  changePulse: WorldWeeklyChangePulse;
+}
+
+export interface WorldWeeklyChangePulse {
+  headline: string;
+  summary: string;
+  editorialTone: WorldEditorialTone;
+  editorialLabel: string;
+  signals: Array<{
+    id: string;
+    domain: WorldChangeDomain;
+    title: string;
+    before: string;
+    after: string;
+    detail: string;
+    tone: WorldChangeTone;
+    actionTab: GameTab;
+  }>;
 }
 
 export interface WorldWeeklyContext {
@@ -83,6 +103,7 @@ export interface WorldWeeklyContext {
   research: ResearchProject[];
   operations: CovertOperation[];
   worldline: Pick<GeneratedWorldline, 'code' | 'title' | 'primaryBloc' | 'rivalBloc' | 'rivalryName'>;
+  worldChange?: WorldChangeProfile;
 }
 
 export const worldNewsCategoryMeta: Record<WorldNewsCategory, { label: string; desk: string; tab: GameTab; action: string }> = {
@@ -101,7 +122,7 @@ const signed = (value: number, digits = 0) => `${value >= 0 ? '+' : ''}${value.t
 const formatNumber = (value: number) => new Intl.NumberFormat('ko-KR').format(Math.round(value));
 
 function campaignDate(week: number) {
-  const date = new Date(Date.UTC(1942, 9, 25 + week * 7));
+  const date = getCampaignDateForWeek(week);
   return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(date);
 }
 
@@ -109,6 +130,7 @@ function categoryForEvent(event: WarEvent): WorldNewsCategory {
   const text = `${event.title} ${event.detail}`;
   if (/보건|감염|유행|병상|민생|피로|배급|사망|방역/.test(text)) return 'society';
   if (/연구|과학|기술|장비 개발|시제품|원자|핵/.test(text)) return 'science';
+  if (/참모진|참모|사임|각료회의|지도부 신임|승계 경쟁|공로 배분|노선 충돌|조직 갈등/.test(text)) return 'society';
   if (/정보|암호|첩보|비밀|스파이|요원|공작|CIA|울트라/.test(text)) return 'intelligence';
   if (/외교|동맹|관계|협상|회담|조약|전후질서|국제/.test(text)) return 'diplomacy';
   if (/재정|경제|국채|시장|기업|산업|생산|공장|물가|인플레이션/.test(text) || event.trace?.domain === 'management') return 'economy';
@@ -148,6 +170,7 @@ function inferRegion(event: WarEvent, territories: Territory[]) {
 function articleFromEvent(event: WarEvent, context: WorldWeeklyContext, category: WorldNewsCategory): WorldNewsArticle {
   const meta = worldNewsCategoryMeta[category];
   const tone = toneForEvent(event);
+  const isStaffStory = /참모진|참모|사임|각료회의|지도부 신임|승계 경쟁|공로 배분|노선 충돌|조직 갈등/.test(`${event.title} ${event.detail}`);
   const signals = (event.trace?.effects ?? []).slice(0, 3).map((effect) => ({
     label: effect.label,
     value: effect.value,
@@ -165,8 +188,8 @@ function articleFromEvent(event: WarEvent, context: WorldWeeklyContext, category
     priority: eventPriority(event, category),
     tone,
     signals: signals.length > 0 ? signals : [{ label: '판정', value: event.tone === 'good' ? '유리' : event.tone === 'bad' ? '불리' : '전개 중', tone }],
-    actionTab: meta.tab,
-    actionLabel: meta.action,
+    actionTab: isStaffStory ? 'organization' : meta.tab,
+    actionLabel: isStaffStory ? '조직 운영에서 대응' : meta.action,
     sourceEventId: event.id,
   };
 }
@@ -342,6 +365,19 @@ export function generateWorldWeeklyIssue(context: WorldWeeklyContext): WorldWeek
   const relationAverage = context.relations.length
     ? Math.round(context.relations.reduce((sum, relation) => sum + relation.value, 0) / context.relations.length)
     : 50;
+  const fallbackDomain: Record<WorldNewsCategory, WorldChangeDomain> = {
+    front: 'territory', diplomacy: 'diplomacy', economy: 'society', society: 'society', science: 'technology', intelligence: 'intelligence',
+  };
+  const fallbackSignals = articles.slice(0, 4).map((article) => ({
+    id: `weekly-change-${article.id}`,
+    domain: fallbackDomain[article.category],
+    title: article.headline,
+    before: article.cause,
+    after: article.signals[0]?.value ?? '전개 중',
+    detail: article.consequence,
+    tone: article.tone === 'positive' ? 'positive' as const : article.tone === 'negative' ? 'negative' as const : 'contested' as const,
+    actionTab: article.actionTab,
+  }));
   return {
     id: `world-weekly-${context.nation.id}-${context.week}`,
     week: context.week,
@@ -361,6 +397,28 @@ export function generateWorldWeeklyIssue(context: WorldWeeklyContext): WorldWeek
       healthRisk: context.publicHealth.activeOutbreak ? 100 : context.publicHealth.weeklyRisk * 100,
       eventCount: weeklyEvents.length,
       intelligence: context.game.intelNetwork,
+    },
+    changePulse: context.worldChange ? {
+      headline: context.worldChange.headline,
+      summary: context.worldChange.summary,
+      editorialTone: context.worldChange.editorialTone,
+      editorialLabel: context.worldChange.editorialLabel,
+      signals: context.worldChange.recentSignals.length > 0 ? context.worldChange.recentSignals.slice(0, 4).map((signal) => ({
+        id: signal.id,
+        domain: signal.domain,
+        title: signal.title,
+        before: signal.before,
+        after: signal.after,
+        detail: signal.detail,
+        tone: signal.tone,
+        actionTab: signal.actionTab,
+      })) : fallbackSignals,
+    } : {
+      headline: lead.headline,
+      summary: '이번 주 기사에서 확인된 변화를 원인·현재 결과·다음 영향으로 연결했습니다.',
+      editorialTone: 'frontline',
+      editorialLabel: '주간 주요 사건 중심 편집',
+      signals: fallbackSignals,
     },
   };
 }
@@ -382,5 +440,21 @@ export function normalizeWorldWeeklyIssues(value: unknown): WorldWeeklyIssue[] {
     // The issue date, not the current save date, owns the format. This also migrates
     // old saves so their 1940s archive remains a newspaper after later media transitions.
     media: getNewsMediaEraForWeek(issue.week),
+    changePulse: issue.changePulse ?? {
+      headline: issue.articles.find((article) => article.id === issue.leadArticleId)?.headline ?? '지난 7일의 세계 변화',
+      summary: '이 호가 발행될 당시의 기사와 수치를 바탕으로 복원한 변화 기록입니다.',
+      editorialTone: 'frontline' as const,
+      editorialLabel: '기록 보존판',
+      signals: issue.articles.slice(0, 4).map((article) => ({
+        id: `migrated-change-${article.id}`,
+        domain: article.category === 'front' ? 'territory' as const : article.category === 'diplomacy' ? 'diplomacy' as const : article.category === 'science' ? 'technology' as const : article.category === 'intelligence' ? 'intelligence' as const : 'society' as const,
+        title: article.headline,
+        before: article.cause,
+        after: article.signals[0]?.value ?? '기록됨',
+        detail: article.consequence,
+        tone: article.tone === 'positive' ? 'positive' as const : article.tone === 'negative' ? 'negative' as const : 'contested' as const,
+        actionTab: article.actionTab,
+      })),
+    },
   })).sort((left, right) => right.week - left.week).slice(0, 104);
 }

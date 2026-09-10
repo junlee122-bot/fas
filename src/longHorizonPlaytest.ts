@@ -1,3 +1,4 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
 import {
   careerRoles,
   createCampaignDivisions,
@@ -1619,7 +1620,7 @@ export function runLongHorizonSession(
       ...nationState.agenda.history.slice(0, 24).map((record) => `${record.issueId}:${record.choiceId}:${record.decidedWeek}`),
     ].join('|'),
   });
-  const endingYear = LONG_HORIZON_START_YEAR + weeksPlayed / 52;
+  const endingYear = getCampaignYearForWeek(weeksPlayed);
   const laterEraCandidatesAt2020List = createLaterEraCandidates(nation.id, Math.floor(endingYear), getHistoricalHorizon(weeksPlayed, completedDecisions));
   const laterEraCandidatesAt2020 = laterEraCandidatesAt2020List.length;
   const missedPostwarCandidateArrivals = laterEraCandidatesAt2020List.filter((candidate) => !discoveredLaterEraIds.has(candidate.personId)).length;
@@ -1736,7 +1737,7 @@ export function aggregateLongHorizonSessions(sessions: LongHorizonSessionResult[
   }));
   const endingCounts = new Map<string, number>();
   sessions.forEach((session) => endingCounts.set(session.finalEndingId, (endingCounts.get(session.finalEndingId) ?? 0) + 1));
-  const researchCompletionYears = sessions.flatMap((session) => session.researchCompleteWeek === null ? [] : [LONG_HORIZON_START_YEAR + Math.floor(session.researchCompleteWeek / 52)]);
+  const researchCompletionYears = sessions.flatMap((session) => session.researchCompleteWeek === null ? [] : [getCampaignYearForWeek(session.researchCompleteWeek)]);
   const byProfile = Object.fromEntries(profiles.map((profile) => {
     const matches = sessions.filter((session) => session.profile === profile);
     const profileWeeks = matches.reduce((sum, session) => sum + session.weeksPlayed, 0);
@@ -1798,7 +1799,7 @@ export function aggregateLongHorizonSessions(sessions: LongHorizonSessionResult[
   };
   return {
     generatedAt: new Date().toISOString(),
-    methodology: `${sessionCount} deterministic production-engine campaigns from 1942 to ${LONG_HORIZON_START_YEAR + weeksPlayed / 52}; ${totalWeeks.toLocaleString('en-US')} simulated weeks across nations, roles and six behavior profiles.`,
+    methodology: `${sessionCount} deterministic production-engine campaigns from 1942 to ${getCampaignYearForWeek(weeksPlayed)}; ${totalWeeks.toLocaleString('en-US')} simulated weeks across nations, roles and six behavior profiles.`,
     sessions,
     aggregate,
     findings: findingsFor(aggregate),

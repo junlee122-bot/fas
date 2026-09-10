@@ -1,3 +1,4 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
 import type { CareerRole, NationId } from './types';
 
 export type ExecutiveModelId = 'presidential' | 'semi-presidential' | 'parliamentary' | 'assembly' | 'crown-parliament';
@@ -260,7 +261,7 @@ const eraActionNames: Record<ElectionMediaEraId, Partial<Record<ElectionCampaign
 };
 
 export function getElectionEraProfile(week: number): ElectionEraProfile {
-  const year = 1942 + Math.floor(Math.max(0, week) / 52);
+  const year = getCampaignYearForWeek(week);
   return year < 1950 ? electionEraProfiles[0] : year < 1980 ? electionEraProfiles[1] : year < 2005 ? electionEraProfiles[2] : year < 2030 ? electionEraProfiles[3] : electionEraProfiles[4];
 }
 

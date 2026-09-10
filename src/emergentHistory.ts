@@ -7,6 +7,7 @@ import type {
   StrategicPolicy,
   WarEvent,
 } from './types';
+import { withJosa } from './koreanGrammar';
 
 export type HistoryForce = 'military' | 'industry' | 'diplomacy' | 'civic' | 'liberation' | 'intelligence';
 export type EmergentWorldMetric = 'deterrence' | 'multipolarity' | 'decolonization' | 'rights' | 'prosperity' | 'instability';
@@ -277,7 +278,7 @@ export function deriveEmergentHistory(input: EmergentHistoryInput): EmergentHist
   const resolvedChoiceCount = (input.completedDecisions ?? []).filter((decision) => decision.startsWith('world-flashpoint:')).length
     + (input.events ?? []).filter((event) => event.trace?.certainty === 'confirmed' && ['history', 'diplomacy', 'management'].includes(event.trace.domain)).length;
   const title = `${historyForceLabels[dominantForce]} 중심의 역사 · ${historyForceLabels[secondaryForce]} 보조 흐름`;
-  const summary = `${historyForceDescriptions[dominantForce]}의 영향이 가장 강하며, ${historyForceDescriptions[secondaryForce]}이(가) 이를 보완하거나 충돌합니다. 미래는 선언문이 아니라 다음 행동으로 계속 바뀝니다.`;
+  const summary = `${historyForceDescriptions[dominantForce]}의 영향이 가장 강하며, ${withJosa(historyForceDescriptions[secondaryForce], '이/가')} 이를 보완하거나 충돌합니다. 미래는 선언문이 아니라 다음 행동으로 계속 바뀝니다.`;
   const signature = forceOrder.map((force) => `${force}:${forces[force]}`).join('|');
 
   return {

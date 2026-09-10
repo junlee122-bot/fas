@@ -1,3 +1,4 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
 import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import {
@@ -12,6 +13,8 @@ import { achievementCategoryDestinations, achievementCategoryLabels } from './ac
 import type { AchievementDefinition, AchievementProgress } from './achievements';
 import type { CivilizationPath, CivilizationProgram } from './civilizationSystems';
 import { calculateProductionGains } from './engine';
+import { EnemyIntentBrief } from './EnemyIntentBrief';
+import type { EnemyIntentReport } from './enemyStrategy';
 import { getEquipmentNode } from './equipment';
 import { GameIcon } from './GameIcon';
 import { KoreaCommandCenter } from './KoreaCommandCenter';
@@ -73,10 +76,12 @@ interface CommandDashboardProps {
   objectiveProgress: number;
   relationAverage: number;
   battleVictories: number;
+  enemyIntent: EnemyIntentReport;
   achievement?: AchievementDefinition;
   achievementProgress?: AchievementProgress;
   achievementTracked?: boolean;
   onNavigate: (tab: GameTab) => void;
+  onFocusEnemyTarget: (territoryId: string) => void;
   onEnactCivilization: (program: CivilizationProgram, path: CivilizationPath) => void;
   onSelectNationalProgram: (programId: string) => void;
   onAction: (action: UXAction) => void;
@@ -123,10 +128,12 @@ export function CommandDashboard({
   objectiveProgress,
   relationAverage,
   battleVictories,
+  enemyIntent,
   achievement,
   achievementProgress,
   achievementTracked = false,
   onNavigate,
+  onFocusEnemyTarget,
   onEnactCivilization,
   onSelectNationalProgram,
   onAction,
@@ -307,7 +314,7 @@ export function CommandDashboard({
       <NationalSimulationOverview
         snapshot={nationalSimulation}
         phase="war"
-        year={1942 + Math.floor(game.week / 52)}
+        year={getCampaignYearForWeek(game.week)}
         nationId={nation.id}
         role={role}
         game={game}
@@ -365,6 +372,12 @@ export function CommandDashboard({
             {frontTerritories.slice(0, 3).map((territory) => <button key={territory.id} onClick={() => onNavigate('map')}><i className={territory.supply < 45 ? 'critical' : ''} /><strong>{territory.name}</strong><small>보급 {territory.supply}% · 가치 {territory.value}</small><ChevronRight size={13} /></button>)}
             {frontTerritories.length === 0 && <p>현재 전구에 직접 접촉 중인 아군 전선이 없습니다.</p>}
           </div>
+          <EnemyIntentBrief
+            report={enemyIntent}
+            compact
+            onOpenMap={() => onNavigate('map')}
+            onFocusTarget={enemyIntent.targetId ? () => onFocusEnemyTarget(enemyIntent.targetId as string) : undefined}
+          />
         </section>
 
         <section className="portal-card portal-operation">

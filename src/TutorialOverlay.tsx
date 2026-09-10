@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, CircleHelp, X } from 'lucide-react';
 import { getCivilianOrigin, getCivilianProfession } from './civilianCareer';
 import type { CareerRole, CivilianCareerState, GameTab, NationId } from './types';
@@ -54,10 +54,10 @@ function buildTutorialSteps(nationId: NationId, role: TutorialOverlayProps['role
     ];
   }
   const opening: TutorialStep[] = nationId === 'korea' ? [
-    { title: '충칭의 독립운동 지휘부에서 시작합니다', detail: '현재 행정·외교 본부는 충칭의 대한민국 임시정부입니다. 조선 본토는 일제 점령지이므로 본부와 영토를 구분해 읽으십시오.', action: '충칭 지휘부 확인', tab: 'command', target: '[data-tour="command-hero"]' },
-    { title: '해방 준비는 네 축으로 나뉩니다', detail: '연합국 승인, 국내 공작망, 한국광복군, 귀환·건국 준비 가운데 가장 약한 축을 먼저 보완하십시오.', action: '해방 준비도 확인', tab: 'command', target: '[data-tour="korea-command-center"]' },
+    { title: '충칭의 독립운동 지휘부에서 시작합니다', detail: '현재 행정·외교 본부는 충칭의 대한민국 임시정부입니다. 조선 본토는 일제 점령지이므로 본부와 영토를 구분해 읽으십시오.', action: '충칭 지휘부 확인', tab: 'command', target: '.role-focus-briefing' },
+    { title: '해방 준비는 네 축으로 나뉩니다', detail: '연합국 승인, 국내 공작망, 한국광복군, 귀환·건국 준비 가운데 가장 약한 축을 먼저 보완하십시오.', action: '해방 준비도 확인', tab: 'command', target: '.role-focus-briefing' },
   ] : [
-    { title: '지휘 본부에서 시작합니다', detail: '긴급 결재와 준비도 경고, 이번 주 목표를 먼저 확인하십시오. 지도는 작전 판단이 필요할 때 엽니다.', action: '지휘 본부 확인', tab: 'command', target: '[data-tour="command-dashboard"]' },
+    { title: '내 보직의 지휘 본부에서 시작합니다', detail: '국가 전체 메뉴가 아니라 현재 보직이 직접 책임지는 업무와 이번 주 최우선 행동부터 확인하십시오. 지도는 작전 판단이 필요할 때 엽니다.', action: '내 보직 브리핑 확인', tab: 'command', target: '.role-focus-briefing' },
   ];
   return [
     ...opening,
@@ -65,22 +65,28 @@ function buildTutorialSteps(nationId: NationId, role: TutorialOverlayProps['role
     { title: `TIER ${role.tier} 권한을 확인합니다`, detail: `${role.scope}. 잠긴 결정은 직접 집행하지 않고 상신·설득·위임 요청으로 처리합니다.`, action: '권한 범위 보기', tab: 'organization', target: '[data-tour="organization-tab"]' },
     ...getRoleSteps(role),
     { title: nationId === 'korea' ? '한반도와 충칭을 구분해 봅니다' : '전황 지도는 판단이 필요할 때 엽니다', detail: nationId === 'korea' ? '한반도 점령 상태, 만주 연락선, 중국 내 거점과 국내정진 경로는 서로 다른 좌표와 지휘선을 가집니다.' : '위험 전선과 인접 관계를 확인하고 지휘 목표를 정할 때 지역 지도를 사용하십시오.', action: '전황 지도 이해', tab: 'map', target: '[data-tour="map-tab"]' },
-    { title: '결정이 역사를 갈라놓습니다', detail: '미래를 프롬프트로 작성하지 않습니다. 군사·정치·정보·경제 결정이 누적되어 세계선과 인물의 선택을 바꿉니다.', action: '역사 흐름 확인', tab: 'command', target: '[data-tour="history-flow"]' },
+    { title: '결정이 역사를 갈라놓습니다', detail: '미래를 프롬프트로 작성하지 않습니다. 군사·정치·정보·경제 결정이 누적되어 세계선과 인물의 선택을 바꿉니다.', action: '역사 흐름 확인', tab: 'command', target: '.role-focus-briefing' },
     { title: '결정을 마치고 한 주를 진행합니다', detail: '결산에서 무엇이 왜 바뀌었는지 확인하면 첫 지휘 주기가 완성됩니다.', action: '튜토리얼 완료', tab: 'command', target: '[data-tour="next-week"]' },
   ];
 }
 
 export function TutorialOverlay({ nationId, role, civilian, onNavigate, onComplete }: TutorialOverlayProps) {
   const [index, setIndex] = useState(0);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const steps = useMemo(
     () => buildTutorialSteps(nationId, role, civilian),
     [civilian?.originId, civilian?.professionId, nationId, role.branch, role.scope, role.tier, role.title],
   );
   const step = steps[index] ?? steps[0];
   const progress = `${index + 1}/${steps.length}`;
+  const navigateToStep = useEffectEvent((tab: GameTab) => onNavigate(tab));
 
   useEffect(() => {
-    onNavigate(step.tab);
+    closeButtonRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    navigateToStep(step.tab);
     const timer = window.setTimeout(() => {
       const target = document.querySelector(step.target);
       target?.classList.add('tutorial-target');
@@ -90,7 +96,7 @@ export function TutorialOverlay({ nationId, role, civilian, onNavigate, onComple
       window.clearTimeout(timer);
       document.querySelector(step.target)?.classList.remove('tutorial-target');
     };
-  }, [onNavigate, step]);
+  }, [step]);
 
   const next = () => {
     if (index === steps.length - 1) onComplete(true);
@@ -98,11 +104,11 @@ export function TutorialOverlay({ nationId, role, civilian, onNavigate, onComple
   };
 
   return (
-    <aside className="tutorial-overlay" role="dialog" aria-modal="false" aria-labelledby="tutorial-title">
-      <header><span><CircleHelp size={16} /> {civilian ? 'FIRST CIVILIAN WEEK · 공식 권한 없음' : `FIRST COMMAND · ${branchLabels[role.branch]} TIER ${role.tier}`}</span><button onClick={() => onComplete(false)} aria-label="튜토리얼 건너뛰기"><X size={16} /></button></header>
+    <aside className="tutorial-overlay" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
+      <header><span><CircleHelp size={16} /> {civilian ? 'FIRST CIVILIAN WEEK · 공식 권한 없음' : `FIRST COMMAND · ${branchLabels[role.branch]} TIER ${role.tier}`}</span><button ref={closeButtonRef} onClick={() => onComplete(false)} aria-label="튜토리얼 건너뛰기"><X size={16} /></button></header>
       <div className="tutorial-progress"><i style={{ width: `${(index + 1) / steps.length * 100}%` }} /><span>{progress}</span></div>
       <main><em>STEP {index + 1} · {role.title}</em><h2 id="tutorial-title">{step.title}</h2><p>{step.detail}</p></main>
-      <footer><button disabled={index === 0} onClick={() => setIndex((current) => Math.max(0, current - 1))}><ArrowLeft size={14} /> 이전</button><button className="tutorial-next" onClick={next}>{index === steps.length - 1 ? <CheckCircle2 size={14} /> : null}{step.action}{index < steps.length - 1 ? <ArrowRight size={14} /> : null}</button></footer>
+      <footer><button disabled={index === 0} onClick={() => setIndex((current) => Math.max(0, current - 1))}><ArrowLeft size={14} /> 이전</button><button className="tutorial-next" onClick={next} aria-label={index === steps.length - 1 ? '완료하고 창간호 읽기' : `다음 안내: ${steps[index + 1].title}`}>{index === steps.length - 1 ? <CheckCircle2 size={14} /> : null}{index === steps.length - 1 ? '완료하고 창간호 읽기' : '다음 안내'}{index < steps.length - 1 ? <ArrowRight size={14} /> : null}</button></footer>
       <small>언제든 설정 또는 <kbd>?</kbd> 야전 교범에서 다시 시작할 수 있습니다.</small>
     </aside>
   );

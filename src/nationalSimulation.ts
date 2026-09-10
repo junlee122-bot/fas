@@ -164,7 +164,11 @@ export function deriveNationalSimulation(input: NationalSimulationInput): Nation
     nationManagement,
   } = input;
   const averageSupply = average(divisions.map((division) => division.supply));
-  const activeFactories = production.reduce((total, line) => total + line.assigned, 0);
+  const activeFactories = production.reduce((total, line) => total + Math.max(0, Number.isFinite(line.assigned) ? line.assigned : 0), 0);
+  // All production lines are military allocations. Unassigned capacity serves the
+  // civilian economy; moving a factory between military lines does not free it.
+  const militaryFactoryShare = game.factories > 0 ? clamp(activeFactories / game.factories, 0, 1) : 1;
+  const civilianCapacityContribution = (0.5 - militaryFactoryShare) * 24;
   const completedResearch = research.filter((project) => project.complete).length;
   const hasPolicy = (id: string) => selectedPolicies.some((policy) => policy.id === id);
   const welfarePolicy = hasPolicy('society-welfare');
@@ -209,7 +213,7 @@ export function deriveNationalSimulation(input: NationalSimulationInput): Nation
     marketGood('fuel', '연료', game.fuel * 0.82 + averageSupply * 0.18 - game.enemyPressure * 0.13, economy.inflation, '비축량·전선 소모·해상 접근', 'industry'),
     marketGood('steel', '철강·공업재', game.steel * 0.58 + game.factories * 0.72 - activeFactories * 0.42, economy.inflation, '철강 비축·가동 공장·생산 배정', 'industry'),
     marketGood('transport', '수송력', stockpile.trucks / 7 + stockpile.convoys / 2.2 + game.navalPower * 0.28 - game.enemyPressure * 0.16, economy.inflation, '트럭·선단·제해권', 'map'),
-    marketGood('consumer', '민간 소비재', economy.publicConfidence * 0.62 + game.stability * 0.28 - economy.inflation * 1.45 - game.warSupport * 0.1 + (balancedEconomy ? 8 : 0), economy.inflation, '민간 신뢰·전시 동원·인플레이션', 'economy'),
+    marketGood('consumer', '민간 소비재', economy.publicConfidence * 0.62 + game.stability * 0.28 - economy.inflation * 1.45 - game.warSupport * 0.1 + civilianCapacityContribution + (balancedEconomy ? 8 : 0), economy.inflation, '민수 생산 여력·민간 신뢰·전시 동원·인플레이션', 'economy'),
     marketGood('medicine', '의약품·병상', publicHealth.medicalCapacity * 0.68 + publicHealth.preparedness * 0.24 - activeOutbreakPenalty, economy.inflation, '의료 역량·대비도·유행 부하', 'health'),
   ];
   const marketAccess = round(average(goods.map((good) => good.availability)));

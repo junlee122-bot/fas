@@ -1,5 +1,7 @@
 import {
   Atom,
+  ArrowLeft,
+  ArrowRight,
   BookOpen,
   BriefcaseBusiness,
   Building2,
@@ -19,14 +21,13 @@ import {
   Save,
   Scale,
   Shield,
-  Star,
   Stethoscope,
   UserRound,
   Users,
   Wrench,
   Zap,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useCallback, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import { CAREER_TIER_COUNT, careerRoles, getCareerStarCount, getNation, nations } from './campaign';
 import {
   CIVILIAN_POSSIBILITY_BASE,
@@ -36,8 +37,12 @@ import {
   getCivilianProfession,
 } from './civilianCareer';
 import { getHistoricalFlag } from './historicalFlags';
+import { withJosa } from './koreanGrammar';
 import { KoreaCampaignBrief } from './KoreaCampaignBrief';
 import { NationFlag } from './NationFlag';
+import europeMap from './assets/european-theater-war-department-1944.jpg';
+import asiaMap from './assets/far-east-milrose-1943.jpg';
+import './CampaignSetup.css';
 import type {
   CampaignStartMode,
   CareerBranch,
@@ -49,7 +54,7 @@ import type {
 
 type Doctrine = 'coalition' | 'methodical' | 'maneuver';
 
-interface CampaignSetupProps {
+export interface CampaignSetupProps {
   nationId: NationId;
   roleId: string;
   startMode: CampaignStartMode;
@@ -97,12 +102,6 @@ const doctrineChoices = [
   { id: 'maneuver' as const, icon: <Zap size={17} />, title: '속도와 충격', detail: '연료 +22K · 지휘 점수 +8' },
 ];
 
-function withInstrumentalParticle(label: string) {
-  const code = label.charCodeAt(label.length - 1) - 0xac00;
-  const finalConsonant = code >= 0 && code <= 11171 ? code % 28 : 0;
-  return `${label}${finalConsonant !== 0 && finalConsonant !== 8 ? '으로' : '로'}`;
-}
-
 const civilianProfessionIcons: Record<CivilianProfessionId, ReactNode> = {
   intellectual: <BookOpen size={17} />,
   scientist: <Atom size={17} />,
@@ -118,188 +117,242 @@ const civilianProfessionIcons: Record<CivilianProfessionId, ReactNode> = {
   clergy: <Church size={17} />,
 };
 
-export function CampaignSetup({
-  nationId,
-  roleId,
-  startMode,
-  civilianProfessionId,
-  civilianOriginId,
-  doctrine,
-  hasSave,
-  hasManualSaves,
-  onNationChange,
-  onRoleChange,
-  onStartModeChange,
-  onCivilianProfessionChange,
-  onCivilianOriginChange,
-  onDoctrineChange,
-  onStart,
-  onContinue,
-  onManageSaves,
-}: CampaignSetupProps) {
+export type CampaignSetupStep = 1 | 2 | 3;
+
+export interface CampaignSetupViewProps extends CampaignSetupProps {
+  step: CampaignSetupStep;
+  branch: CareerBranch;
+  onStepChange: (step: CampaignSetupStep) => void;
+  onBranchChange: (branch: CareerBranch) => void;
+  stepHeadingRef?: Ref<HTMLHeadingElement>;
+}
+
+const stepLabels = ['국가 선택', '삶과 보직', '최종 취임'] as const;
+const stepDescriptions = [
+  '같은 1942년, 서로 다른 출발점입니다. 국가와 시작 전구를 먼저 확인하십시오.',
+  '한 사람의 권한과 책임을 정합니다. 다른 분야의 보직은 탭에서 살펴볼 수 있습니다.',
+  '선택을 검토하고 첫 방향을 정하십시오. 시작 버튼을 누르기 전까지 캠페인은 변경되지 않습니다.',
+] as const;
+
+function doctrineTitle(id: Doctrine, civilian: boolean) {
+  return civilian ? id === 'coalition' ? '연대와 설득' : id === 'methodical' ? '전문성과 준비' : '행동과 돌파'
+    : doctrineChoices.find((choice) => choice.id === id)?.title ?? '선택 필요';
+}
+
+function navigateTabs<T extends string>(event: KeyboardEvent<HTMLButtonElement>, choices: readonly T[], active: T, select: (choice: T) => void) {
+  let index = choices.indexOf(active);
+  if (event.key === 'ArrowRight' || event.key === 'ArrowDown') index = (index + 1) % choices.length;
+  else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') index = (index - 1 + choices.length) % choices.length;
+  else if (event.key === 'Home') index = 0;
+  else if (event.key === 'End') index = choices.length - 1;
+  else return;
+  event.preventDefault();
+  select(choices[index]);
+  event.currentTarget.closest('[role="tablist"]')?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[index]?.focus();
+}
+
+function trapDialogFocus(event: KeyboardEvent<HTMLDivElement>) {
+  if (event.key !== 'Tab') return;
+  const controls = event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled):not([tabindex="-1"]), select:not(:disabled), summary, a[href]');
+  const first = controls[0];
+  const last = controls[controls.length - 1];
+  if (!first || !last) return;
+  const active = event.currentTarget.ownerDocument.activeElement;
+  if (event.shiftKey && (active === first || !Array.from(controls).some((item) => item === active))) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && active === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
+/** The only internal state is navigation. Draft changes remain explicit parent callbacks. */
+export function CampaignSetup(props: CampaignSetupProps) {
+  const [step, setStep] = useState<CampaignSetupStep>(1);
+  const [branchChoice, setBranchChoice] = useState<CareerBranch | null>(null);
+  const focusHeading = useCallback((node: HTMLHeadingElement | null) => { node?.focus(); }, []);
+  const selectedBranch = careerRoles.find((role) => role.id === props.roleId && role.nationId === props.nationId)?.branch ?? 'politics';
+  const changeStep = (next: CampaignSetupStep) => {
+    setStep(next);
+  };
+  return <CampaignSetupView {...props} step={step} branch={branchChoice ?? selectedBranch}
+    onStepChange={changeStep} stepHeadingRef={focusHeading}
+    onBranchChange={setBranchChoice}
+    onNationChange={(id) => { setBranchChoice(null); props.onNationChange(id); }} />;
+}
+
+/** Controlled presentation also allows every stage to be verified without creating a campaign. */
+export function CampaignSetupView(props: CampaignSetupViewProps) {
+  const { nationId, roleId, startMode, civilianProfessionId, civilianOriginId, doctrine, hasSave, hasManualSaves,
+    onNationChange, onRoleChange, onStartModeChange, onCivilianProfessionChange, onCivilianOriginChange,
+    onDoctrineChange, onStart, onContinue, onManageSaves, step, branch, onStepChange, onBranchChange, stepHeadingRef } = props;
   const nation = getNation(nationId);
   const historicalFlag = getHistoricalFlag(nationId);
   const roles = careerRoles.filter((role) => role.nationId === nationId);
-  const selectedRole = roles.find((role) => role.id === roleId) ?? roles[1];
-  const selectedProfession = getCivilianProfession(civilianProfessionId);
-  const selectedOrigin = getCivilianOrigin(civilianOriginId);
+  const selectedRole = roles.find((role) => role.id === roleId);
+  const visibleRoles = roles.filter((role) => role.branch === branch);
+  const profession = getCivilianProfession(civilianProfessionId);
+  const origin = getCivilianOrigin(civilianOriginId);
   const isCivilian = startMode === 'civilian';
+  const validNation = nations.some((item) => item.id === nationId);
+  const validLife = isCivilian
+    ? civilianProfessions.some((item) => item.id === civilianProfessionId) && civilianOrigins.some((item) => item.id === civilianOriginId)
+    : Boolean(selectedRole);
+  const validChoice = validNation && validLife && doctrineChoices.some((choice) => choice.id === doctrine);
+  const canProceed = validNation && (step === 1 || (validChoice && (isCivilian || selectedRole?.branch === branch)));
+  const lifeLabel = isCivilian ? profession.name : selectedRole?.title ?? '보직을 선택하십시오';
+  const selectedBranchRole = selectedRole?.branch === branch ? selectedRole : undefined;
+  const roleDescription = selectedBranchRole ?? (step === 3 ? selectedRole : undefined);
+  const record = roleDescription ? <div className="campaign-onboarding__dossier">
+    <span className="campaign-onboarding__eyebrow">1942 · 실제 재직 기록</span>
+    <h3>{roleDescription.historicalHolderName}</h3>
+    <p className="campaign-onboarding__label">{roleDescription.historicalOffice}</p>
+    <p>{roleDescription.historicalBasis}</p>
+    <p>{roleDescription.replacementEffect}</p>
+    <dl className="campaign-onboarding__facts">
+      <div><dt>담당 범위</dt><dd>{roleDescription.scope}</dd></div>
+      <div><dt>초기 권한</dt><dd>{roleDescription.authority}</dd></div>
+      <div><dt>활동 위장</dt><dd>{roleDescription.coverIdentity}</dd></div>
+    </dl>
+    <div className="campaign-onboarding__responsibility"><span className="campaign-onboarding__label">이 자리에서 기대하는 일</span><p>{roleDescription.expectation}</p></div>
+    {nationId === 'korea' ? <KoreaCampaignBrief role={roleDescription} /> : null}
+  </div> : null;
 
-  return (
-    <div className="modal-backdrop campaign-setup-backdrop">
-      <div className="campaign-setup-modal" role="dialog" aria-modal="true" aria-labelledby="campaign-setup-title">
-        <header className="setup-header">
-          <div>
-            <span className="eyebrow">IRON DOMINION · ALTERNATE HISTORY CAREER</span>
-            <h1 id="campaign-setup-title">{isCivilian ? '1942년, 어떤 삶에서 역사를 시작하겠습니까?' : '1942년, 누구의 자리에 앉겠습니까?'}</h1>
-            <p>{isCivilian
-              ? '공식 보직 없이 한 사람의 시민으로 시작합니다. 생계와 검열을 견디며 지식·직업·공동체를 쌓고, 언론·학계·기업·저항운동·정부로 진입하거나 끝까지 독립적인 영향력을 유지하십시오.'
-              : '1942년 실존 재직자 한 명의 보직을 사용자가 직접 대체합니다. 밀려난 전임자와 실제 참모·지휘관을 설득하고 경쟁하며 원래 역사에 없던 세계를 만드십시오.'}</p>
-          </div>
-          <div className="setup-era"><Globe2 size={21} /><span>유럽 ↔ 아시아·태평양<strong>양대 전구 동시 진행</strong></span></div>
-        </header>
-
-        <div className="setup-body">
-          <section className="setup-nations">
-            <div className="setup-section-title"><span>01</span><div><strong>플레이 진영</strong><small>{nations.length}개 국가·망명정부·독립운동</small></div></div>
-            <div className="nation-choice-grid">
-              {nations.map((item) => (
-                <button
-                  key={item.id}
-                  className={nationId === item.id ? 'selected' : ''}
-                  aria-pressed={nationId === item.id}
-                  onClick={() => onNationChange(item.id)}
-                >
-                  <NationFlag nationId={item.id} size="compact" decorative />
-                  <span><strong>{item.shortName}</strong><small>{nationStatusLabels[item.status]} · {item.defaultTheater === 'asia' ? '아시아' : '유럽'}</small></span>
-                  {nationId === item.id && <CheckCircle2 size={15} />}
-                </button>
-              ))}
-            </div>
-            <div className="nation-brief" style={{ borderColor: nation.accent }}>
-              <div><NationFlag nationId={nation.id} size="standard" /><span><strong>{nation.name}</strong><small>{nation.challenge}</small></span></div>
-              <p>{nation.summary}</p>
-              {nation.id === 'korea' && !isCivilian && <KoreaCampaignBrief role={selectedRole} />}
-              <div className="historical-flag-record">
-                <span>1942 FLAG RECORD</span>
-                <strong>{historicalFlag.name}</strong>
-                <small>{historicalFlag.period} · {historicalFlag.kindLabel}</small>
-                <p>{historicalFlag.historicalNote}</p>
-              </div>
-              <small className="nation-historical-basis">사료 기준 · {nation.historicalBasis}</small>
-            </div>
-          </section>
-
-          <section className="setup-career">
-            <div className="campaign-start-tabs" role="tablist" aria-label="캠페인 시작 방식">
-              <button type="button" role="tab" aria-selected={!isCivilian} className={!isCivilian ? 'selected' : ''} onClick={() => onStartModeChange('office')}>
-                <BriefcaseBusiness size={17} /><span><strong>보직을 맡아 시작</strong><small>실존 재직자의 자리를 대체</small></span>
-              </button>
-              <button type="button" role="tab" aria-selected={isCivilian} className={isCivilian ? 'selected' : ''} onClick={() => onStartModeChange('civilian')}>
-                <UserRound size={17} /><span><strong>일반인으로 시작</strong><small>직업과 관계망을 처음부터 구축</small></span>
-              </button>
-            </div>
-
-            {!isCivilian ? (
-              <>
-                <div className="setup-section-title"><span>02</span><div><strong>취임 보직</strong><small>3단계에서 5단계로 확장된 커리어 피라미드</small></div></div>
-                <div className="role-tier-guide" aria-label="5단계 보직 등급 안내">
-                  <span><strong>★★★★★</strong> 국가 최고위</span><i>→</i><span><strong>★★★☆☆</strong> 중간관리</span><i>→</i><span><strong>★☆☆☆☆</strong> 현장 실무</span>
-                </div>
-                <div className="role-choice-groups">
-                  {branchOrder.map((branch) => (
-                    <section className="role-choice-group" key={branch} aria-labelledby={`role-group-${branch}`}>
-                      <header id={`role-group-${branch}`}>{branchIcons[branch]}<strong>{branchLabels[branch]}</strong><small>{roles.filter((role) => role.branch === branch).length}개 보직</small></header>
-                      <div className="role-choice-list">
-                        {roles.filter((role) => role.branch === branch).map((role) => {
-                          const stars = getCareerStarCount(role.tier);
-                          return (
-                            <button key={role.id} className={roleId === role.id ? 'selected' : ''} aria-pressed={roleId === role.id} aria-label={`${role.title}, ${stars}성 보직, ${role.historicalHolderName} 대체`} onClick={() => onRoleChange(role.id)}>
-                              <i>{branchIcons[role.branch]}</i>
-                              <span><small>TIER {role.tier}/{CAREER_TIER_COUNT} · {branchLabels[role.branch]}</small><strong>{role.title}</strong><em>{role.scope} · 권한 {role.authority}</em><b>대체할 실존 인물 · {role.historicalHolderName}</b></span>
-                              <div className="role-tier" title={`${stars}성 보직`}>{'★'.repeat(stars)}{'☆'.repeat(CAREER_TIER_COUNT - stars)}</div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  ))}
-                </div>
-                <div className="historical-seat-brief">
-                  <span>1942 HISTORICAL SEAT</span>
-                  <div><strong>{selectedRole.historicalHolderName}</strong><small>{selectedRole.historicalOffice}</small></div>
-                  <p>{selectedRole.historicalBasis} {selectedRole.replacementEffect}</p>
-                  <em>활동 위장 · {selectedRole.coverIdentity}</em>
-                </div>
-                <div className="career-ladder-note"><BriefcaseBusiness size={16} /><span><strong>5급에서 1급까지 네 번 승진할 수 있습니다.</strong>같은 분야의 바로 위 보직으로 이동하며, 최고위층 진입 시 국가 전체 인사권이 열립니다. 신임을 잃으면 해임·쿠데타 위험도 커집니다.</span></div>
-              </>
-            ) : (
-              <div className="civilian-setup-flow">
-                <div className="setup-section-title"><span>02</span><div><strong>민간 직업</strong><small>{civilianProfessions.length}개 직업 · 공식 권한 0에서 시작</small></div></div>
-                <div className="civilian-profession-grid">
-                  {civilianProfessions.map((profession) => (
-                    <button
-                      type="button"
-                      key={profession.id}
-                      className={profession.id === civilianProfessionId ? 'selected' : ''}
-                      aria-pressed={profession.id === civilianProfessionId}
-                      onClick={() => onCivilianProfessionChange(profession.id)}
-                    >
-                      <i>{civilianProfessionIcons[profession.id]}</i>
-                      <span><small>{profession.category}</small><strong>{profession.name}</strong><em>{profession.summary}</em></span>
-                      {profession.id === civilianProfessionId && <CheckCircle2 size={15} />}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="setup-section-title compact"><span>03</span><div><strong>출신 배경</strong><small>초기 인맥·생계·독립성·감시 위험을 결정</small></div></div>
-                <div className="civilian-origin-grid">
-                  {civilianOrigins.map((origin) => (
-                    <button type="button" key={origin.id} className={origin.id === civilianOriginId ? 'selected' : ''} aria-pressed={origin.id === civilianOriginId} onClick={() => onCivilianOriginChange(origin.id)}>
-                      <strong>{origin.name}</strong><small>{origin.summary}</small><em>{origin.advantage}</em>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="civilian-path-preview">
-                  <span>YOUR CIVILIAN PATH</span>
-                  <div><strong>{selectedProfession.name}</strong><small>{selectedOrigin.name}</small></div>
-                  <p>{selectedProfession.historicalBasis}</p>
-                  <ul>
-                    <li><b>일상</b>{selectedProfession.vocation}</li>
-                    <li><b>강점</b>{selectedProfession.strengths.join(' · ')}</li>
-                    <li><b>위험</b>{selectedProfession.risk}</li>
-                  </ul>
-                  <em>기본 조합 {CIVILIAN_POSSIBILITY_BASE.toLocaleString('ko-KR')}개에서 시작하며, 주간 행동의 순서·성공·제도권 진입 시점에 따라 세계선이 다시 갈라집니다.</em>
-                </div>
-              </div>
-            )}
-
-            <div className="setup-section-title compact"><span>{isCivilian ? '04' : '03'}</span><div><strong>{isCivilian ? '삶의 원칙' : '지휘 철학'}</strong><small>{isCivilian ? '민간 활동의 첫 방향' : '취임 시 초기 보너스'}</small></div></div>
-            <div className="setup-doctrines">
-              {doctrineChoices.map((choice) => (
-                <button key={choice.id} className={doctrine === choice.id ? 'selected' : ''} aria-pressed={doctrine === choice.id} onClick={() => onDoctrineChange(choice.id)}>
-                  {choice.icon}<span><strong>{isCivilian
-                    ? choice.id === 'coalition' ? '연대와 설득' : choice.id === 'methodical' ? '전문성과 준비' : '행동과 돌파'
-                    : choice.title}</strong><small>{isCivilian
-                      ? choice.id === 'coalition' ? '인맥·공공 신뢰 중심' : choice.id === 'methodical' ? '전문성·생계 기반 중심' : '평판·변화 속도 중심'
-                      : choice.detail}</small></span>
-                </button>
-              ))}
-            </div>
-          </section>
+  return <div className="campaign-onboarding">
+    <div className="campaign-onboarding__window" role="dialog" aria-modal="true" aria-labelledby="campaign-onboarding-title"
+      aria-describedby="campaign-onboarding-description" onKeyDown={trapDialogFocus} data-step={step}>
+      <header className="campaign-onboarding__header">
+        <div className="campaign-onboarding__brand"><Globe2 size={23} aria-hidden="true" /><span>IRON DOMINION<small>1942 / 새 캠페인</small></span></div>
+        <div className="campaign-onboarding__resume" aria-label="저장 캠페인">
+          {hasManualSaves ? <button type="button" onClick={onManageSaves}><Save size={16} aria-hidden="true" />체크포인트 관리</button> : null}
+          {hasSave ? <button type="button" className="campaign-onboarding__continue" onClick={onContinue}><Play size={16} aria-hidden="true" />저장 캠페인 계속</button> : null}
+        </div>
+      </header>
+      <nav className="campaign-onboarding__steps" aria-label="캠페인 생성 단계">
+        <ol>{stepLabels.map((label, index) => <li key={label} aria-current={step === index + 1 ? 'step' : undefined} data-complete={step > index + 1}>
+          <span aria-hidden="true">{step > index + 1 ? <CheckCircle2 size={18} /> : '0' + (index + 1)}</span><strong>{label}</strong>
+        </li>)}</ol>
+      </nav>
+      <main className="campaign-onboarding__body" key={step}>
+        <div className="campaign-onboarding__intro"><span className="campaign-onboarding__eyebrow">CAMPAIGN SETUP / 0{step}</span>
+          <h1 id="campaign-onboarding-title" ref={stepHeadingRef} tabIndex={-1}>{stepLabels[step - 1]}</h1>
+          <p id="campaign-onboarding-description">{stepDescriptions[step - 1]}</p>
         </div>
 
-        <footer className="setup-footer">
-          <div className="alternate-history-promise"><MapPinned size={18} /><span><strong>역사는 미리 작성하지 않습니다.</strong>{isCivilian ? '직업 활동·인맥·공개 발언·지하조직 참여·제도권 진입이 누적되어 자연스럽게 다른 세계를 만듭니다.' : '취임 뒤의 정책·인사·작전·외교·연구 선택이 누적되어 자연스럽게 다른 세계를 만듭니다.'}</span></div>
-          <div className="setup-actions">
-            {hasManualSaves && <button className="manual-save-button" onClick={onManageSaves}><Save size={15} /> 체크포인트 관리</button>}
-            {hasSave && <button className="continue-button" onClick={onContinue}><Save size={15} /> 저장 캠페인 계속</button>}
-            <button className="start-button" onClick={onStart}><Play size={15} fill="currentColor" /> {nation.shortName} · {isCivilian ? `${withInstrumentalParticle(selectedProfession.name)} 시작` : '취임'}</button>
+        {step === 1 ? <div className="campaign-onboarding__nation-layout">
+          <section className="campaign-onboarding__nation-rail" aria-label="플레이 진영 선택">
+            <div className="campaign-onboarding__section-heading"><h2>플레이 진영</h2><span>{nations.length}개 출발점</span></div>
+            <div className="campaign-onboarding__nation-list">{nations.map((item) => <button type="button" key={item.id}
+              aria-pressed={nationId === item.id} onClick={() => onNationChange(item.id)} aria-label={item.shortName + ', ' + nationStatusLabels[item.status]}>
+              <NationFlag nationId={item.id} size="compact" decorative />
+              <span><strong>{item.shortName}</strong><small>{nationStatusLabels[item.status]}</small></span>
+              {nationId === item.id ? <CheckCircle2 size={18} aria-hidden="true" /> : <span className="campaign-onboarding__nation-code">{item.code}</span>}
+            </button>)}</div>
+          </section>
+          <article className="campaign-onboarding__nation-detail" aria-label="선택한 진영 기록">
+            <figure className="campaign-onboarding__map">
+              <img src={nation.defaultTheater === 'asia' ? asiaMap : europeMap} alt="" />
+              <figcaption><MapPinned size={15} aria-hidden="true" />{nation.defaultTheater === 'asia' ? '아시아·태평양' : '유럽'} · 기록 지도 / 실제 작전 상황 아님</figcaption>
+            </figure>
+            <div className="campaign-onboarding__nation-copy">
+              <div className="campaign-onboarding__nation-title"><NationFlag nationId={nation.id} size="large" /><div>
+                <span className="campaign-onboarding__eyebrow">{nationStatusLabels[nation.status]}</span><h2>{nation.name}</h2></div></div>
+              <p className="campaign-onboarding__lead">{nation.summary}</p>
+              <div className="campaign-onboarding__challenge"><span className="campaign-onboarding__label">시작 시 마주할 과제</span><p>{nation.challenge}</p></div>
+              <dl className="campaign-onboarding__facts"><div><dt>시작 전구</dt><dd>{nation.defaultTheater === 'asia' ? '아시아·태평양' : '유럽'}</dd></div>
+                <div><dt>플레이 범위</dt><dd>양대 전구 동시 진행</dd></div></dl>
+              <details className="campaign-onboarding__archive"><summary>국기와 역사적 출발점 확인</summary><div>
+                <strong>{historicalFlag.name}</strong><small>{historicalFlag.period} · {historicalFlag.kindLabel}</small>
+                <p>{historicalFlag.historicalNote}</p><p>사료 기준 · {nation.historicalBasis}</p>
+              </div></details>
+            </div>
+          </article>
+        </div> : null}
+
+        {step === 2 ? <>
+          <div className="campaign-onboarding__mode-tabs" role="tablist" aria-label="캠페인 시작 방식">
+            {(['office', 'civilian'] as const).map((mode) => <button type="button" key={mode} role="tab" id={'campaign-mode-' + mode}
+              aria-controls="campaign-mode-panel" aria-selected={startMode === mode} tabIndex={startMode === mode ? 0 : -1}
+              onClick={() => onStartModeChange(mode)} onKeyDown={(event) => navigateTabs(event, ['office', 'civilian'], mode, onStartModeChange)}>
+              {mode === 'office' ? <BriefcaseBusiness size={22} aria-hidden="true" /> : <UserRound size={22} aria-hidden="true" />}
+              <span><strong>{mode === 'office' ? '보직을 맡아 시작' : '일반인으로 시작'}</strong><small>{mode === 'office' ? '실존 재직자의 자리와 책임을 대체' : '공식 권한 0 · 직업과 관계망부터 구축'}</small></span>
+            </button>)}
           </div>
-        </footer>
-        <Star className="setup-watermark" size={190} />
-      </div>
+          <section id="campaign-mode-panel" role="tabpanel" aria-labelledby={'campaign-mode-' + startMode}>
+            {!isCivilian ? <>
+              <div className="campaign-onboarding__branch-tabs" role="tablist" aria-label="보직 분야">{branchOrder.map((item) => <button type="button" key={item}
+                role="tab" id={'campaign-branch-' + item} aria-controls="campaign-branch-panel" aria-selected={branch === item} tabIndex={branch === item ? 0 : -1}
+                onClick={() => onBranchChange(item)} onKeyDown={(event) => navigateTabs(event, branchOrder, item, onBranchChange)}>
+                {branchIcons[item]}{branchLabels[item]}<small>{roles.filter((role) => role.branch === item).length}</small>
+              </button>)}</div>
+              <div className="campaign-onboarding__career-layout" id="campaign-branch-panel" role="tabpanel" aria-labelledby={'campaign-branch-' + branch}>
+                <div><div className="campaign-onboarding__section-heading"><h2>{branchLabels[branch]}</h2><span>1급 최고위 ↔ 5급 현장</span></div>
+                  <div className="campaign-onboarding__role-list">{visibleRoles.map((role) => {
+                    const stars = getCareerStarCount(role.tier);
+                    return <button type="button" key={role.id} aria-pressed={role.id === roleId}
+                      aria-label={role.title + ', ' + stars + '성 보직, ' + role.historicalHolderName + ' 대체'} onClick={() => onRoleChange(role.id)}>
+                      <span className="campaign-onboarding__rank" aria-hidden="true">{role.tier}<small>급</small></span>
+                      <span className="campaign-onboarding__role-copy"><strong>{role.title}</strong><small>{role.scope}</small><span>대체 인물 · {role.historicalHolderName}</span></span>
+                      <span className="campaign-onboarding__stars" aria-hidden="true">{'★'.repeat(stars)}{'☆'.repeat(CAREER_TIER_COUNT - stars)}</span>
+                    </button>;
+                  })}</div>
+                  <p className="campaign-onboarding__note">같은 분야에서 네 번의 승진 기회가 열립니다. 최고위층의 인사권에는 신임과 해임 위험이 따릅니다.</p>
+                </div>
+                {record ?? <div className="campaign-onboarding__dossier campaign-onboarding__empty"><BriefcaseBusiness size={30} aria-hidden="true" /><h3>이 분야의 자리를 선택하십시오</h3><p>역사적 재직자, 담당 범위, 첫 책임이 이곳에 표시됩니다.</p></div>}
+              </div>
+            </> : <div className="campaign-onboarding__career-layout">
+              <section><div className="campaign-onboarding__section-heading"><h2>민간 직업</h2><span>{civilianProfessions.length}개 직업</span></div>
+                <div className="campaign-onboarding__profession-list">{civilianProfessions.map((item) => <button type="button" key={item.id}
+                  aria-pressed={civilianProfessionId === item.id} onClick={() => onCivilianProfessionChange(item.id)}>
+                  {civilianProfessionIcons[item.id]}<span><small>{item.category}</small><strong>{item.name}</strong></span>
+                </button>)}</div>
+              </section>
+              <div className="campaign-onboarding__dossier"><span className="campaign-onboarding__eyebrow">공식 보직 없이 시작</span><h3>{profession.name}</h3>
+                <p>{profession.summary}</p><dl className="campaign-onboarding__facts"><div><dt>일상 활동</dt><dd>{profession.vocation}</dd></div>
+                  <div><dt>강점</dt><dd>{profession.strengths.join(' · ')}</dd></div><div><dt>감수할 위험</dt><dd>{profession.risk}</dd></div></dl>
+                <label className="campaign-onboarding__origin-label" htmlFor="campaign-origin">출신 배경</label>
+                <select id="campaign-origin" value={civilianOriginId} onChange={(event) => onCivilianOriginChange(event.target.value as CivilianOriginId)}>
+                  {civilianOrigins.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}
+                </select><p>{origin.summary}</p><p className="campaign-onboarding__note">{origin.advantage}</p>
+                <details className="campaign-onboarding__archive"><summary>직업의 역사적 근거와 가능성</summary><div><p>{profession.historicalBasis}</p><p>기본 조합 {CIVILIAN_POSSIBILITY_BASE.toLocaleString('ko-KR')}개. 행동의 순서와 제도권 진입 시점에 따라 경로가 달라집니다.</p></div></details>
+              </div>
+            </div>}
+          </section>
+        </> : null}
+
+        {step === 3 ? <div className="campaign-onboarding__review-layout">
+          <section className="campaign-onboarding__review"><div className="campaign-onboarding__section-heading"><h2>{isCivilian ? '시작할 삶' : '취임 기록'}</h2><span>1942</span></div>
+            <div className="campaign-onboarding__review-identity"><NationFlag nationId={nationId} size="large" /><div><span className="campaign-onboarding__label">{nation.name}</span><h3>{lifeLabel}</h3></div></div>
+            <dl className="campaign-onboarding__facts"><div><dt>시작 방식</dt><dd>{isCivilian ? '일반인 · 공식 권한 0' : '실존 재직자 대체'}</dd></div>
+              <div><dt>{isCivilian ? '출신 배경' : '대체할 인물'}</dt><dd>{isCivilian ? origin.name : selectedRole?.historicalHolderName ?? '선택 필요'}</dd></div>
+              <div><dt>{isCivilian ? '첫 활동' : '담당 범위'}</dt><dd>{isCivilian ? profession.vocation : selectedRole?.scope ?? '선택 필요'}</dd></div></dl>
+            <button type="button" className="campaign-onboarding__text-button" onClick={() => onStepChange(2)}><ArrowLeft size={16} aria-hidden="true" />삶과 보직 다시 선택</button>
+            {!isCivilian ? record : <div className="campaign-onboarding__responsibility"><span className="campaign-onboarding__label">유지하거나 넓힐 영향력</span><p>언론·학계·기업·저항운동·정부에 진입하거나, 끝까지 독립적인 활동을 이어갈 수 있습니다.</p><p>{profession.risk}</p></div>}
+          </section>
+          <section className="campaign-onboarding__principles"><div className="campaign-onboarding__section-heading"><h2>{isCivilian ? '삶의 원칙' : '지휘 철학'}</h2></div>
+            <p>{isCivilian ? '민간 활동의 첫 방향을 선택하십시오.' : '취임과 함께 적용할 초기 보너스를 선택하십시오.'}</p>
+            <div className="campaign-onboarding__doctrines">{doctrineChoices.map((choice) => <button type="button" key={choice.id}
+              aria-pressed={doctrine === choice.id} onClick={() => onDoctrineChange(choice.id)}>{choice.icon}<span><strong>{doctrineTitle(choice.id, isCivilian)}</strong>
+                <small>{isCivilian ? choice.id === 'coalition' ? '인맥·공공 신뢰 중심' : choice.id === 'methodical' ? '전문성·생계 기반 중심' : '평판·변화 속도 중심' : choice.detail}</small></span>
+              {doctrine === choice.id ? <CheckCircle2 size={18} aria-hidden="true" /> : null}
+            </button>)}</div>
+            <div className="campaign-onboarding__commit-note"><CheckCircle2 size={20} aria-hidden="true" /><p>확인한 선택으로 새 캠페인을 시작합니다. 이후의 정책·관계·작전과 주간 행동이 실제 세계에 누적됩니다.</p></div>
+            {!validChoice ? <p className="campaign-onboarding__validation" role="alert">현재 국가에 맞는 유효한 보직 또는 민간 경로를 다시 선택하십시오.</p> : null}
+          </section>
+        </div> : null}
+      </main>
+      <footer className="campaign-onboarding__footer">
+        <div className="campaign-onboarding__selection" aria-label="현재 선택 요약"><NationFlag nationId={nationId} size="compact" decorative />
+          <div><small>현재 선택 · 아직 시작 전</small><strong>{nation.shortName} <span>/</span> {lifeLabel}</strong><span>{step === 3 ? doctrineTitle(doctrine, isCivilian) : isCivilian ? origin.name : selectedRole ? branchLabels[selectedRole.branch] : '2단계에서 보직을 선택합니다'}</span></div>
+        </div>
+        <div className="campaign-onboarding__actions"><button type="button" data-action="back" disabled={step === 1} onClick={() => { if (step > 1) onStepChange((step - 1) as CampaignSetupStep); }}><ArrowLeft size={16} aria-hidden="true" />이전</button>
+          {step < 3 ? <button type="button" className="campaign-onboarding__primary" data-action="next" disabled={!canProceed}
+            onClick={() => { if (canProceed) onStepChange((step + 1) as CampaignSetupStep); }}>{step === 1 ? '삶과 보직 선택' : '최종 선택 확인'}<ArrowRight size={17} aria-hidden="true" /></button>
+            : <button type="button" className="campaign-onboarding__primary" data-action="start" disabled={!validChoice}
+              onClick={() => { if (validChoice) onStart(); }}><Play size={17} fill="currentColor" aria-hidden="true" />{nation.shortName} · {isCivilian ? withJosa(profession.name, '으로/로') + ' 시작' : '취임'}</button>}
+        </div>
+      </footer>
     </div>
-  );
+  </div>;
 }

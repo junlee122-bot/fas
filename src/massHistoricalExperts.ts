@@ -1,6 +1,7 @@
 import type { HistoricalExpertProfile } from './historicalExperts';
 import type { NationId, PersonnelDiscipline } from './types';
 import { wikidataHistoricalFigureSeeds } from './wikidataHistoricalFigures.generated';
+import { withJosa } from './koreanGrammar';
 
 const nationalityByNation: Record<NationId, string> = {
   britain: '영국', usa: '미국', ussr: '소련', germany: '독일', japan: '일본', china: '중국', india: '인도',
@@ -43,7 +44,7 @@ export const massHistoricalExperts: HistoricalExpertProfile[] = wikidataHistoric
     office1942: `${occupation} · 1942년 활동·소속 정밀조사 필요`,
     affiliation: `${nationality} 인물·전문가 기록 풀`,
     wartimeLocation: `${nationality} 및 해외 활동권 · 1942년 소재 조사 필요`,
-    summary: `${name}은(는) Wikidata ${qid}에서 ${nationality} 국적, ${birthYear}년생으로 확인되는 실존 인물입니다. 전시 보직에 임명하려면 조사 단계에서 1942년 실제 활동과 소속을 추가 검증해야 합니다.`,
+    summary: `${withJosa(name, '은/는')} Wikidata ${qid}에서 ${nationality} 국적, ${birthYear}년생으로 확인되는 실존 인물입니다. 전시 보직에 임명하려면 조사 단계에서 1942년 실제 활동과 소속을 추가 검증해야 합니다.`,
     historicalConstraint: '신원·국적·생년은 연결된 구조화 자료로 확인되지만 1942년 직책·정치적 입장·전시 소재는 심층조사 전까지 확정하지 않습니다.',
     expertise: [occupation, '인물 네트워크 조사', '전시 활용성 평가'],
     networks: [`${nationality} 공공 인물 기록망`, '전문 분야 연락망'],

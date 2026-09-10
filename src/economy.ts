@@ -1,6 +1,7 @@
 import type { GameState, NationId } from './types';
 import { advanceMonetarySystem, createMonetarySystem, normalizeMonetarySystem } from './currency';
 import type { MonetarySystemState } from './currency';
+import { getCampaignYearForWeek } from './campaignCalendar';
 
 export type TaxPolicyId = 'relief' | 'balanced' | 'total-war';
 export type BondProgramId = 'none' | 'savings' | 'institutional' | 'central-bank';
@@ -302,7 +303,9 @@ export function calculateEconomyLedger(state: EconomyState, context: EconomyCont
   };
 }
 
-function sectorSignal(company: HistoricalCompany, context: EconomyContext) {
+export type EconomyMarketContext = Pick<EconomyContext, 'week' | 'nationId' | 'game'>;
+
+function sectorSignal(company: HistoricalCompany, context: EconomyMarketContext) {
   const game = context.game;
   if (company.sector === 'aircraft') return (game.airPower - 50) / 900 + (game.enemyPressure - 50) / 1300;
   if (company.sector === 'shipbuilding' || company.sector === 'transport') return (game.navalPower - 50) / 900 - Math.max(0, game.enemyPressure - 72) / 900;
@@ -311,7 +314,7 @@ function sectorSignal(company: HistoricalCompany, context: EconomyContext) {
   return (game.factories - 25) / 900 + (game.stability - 50) / 1800;
 }
 
-function createMonthlyEvent(state: EconomyState, context: EconomyContext, prices: Record<string, number>): EconomicEvent | null {
+function createMonthlyEvent(state: EconomyState, context: EconomyMarketContext): EconomicEvent | null {
   if (context.week === 0 || context.week % 4 !== 0) return null;
   const companies = getAvailableCompanies(context.nationId);
   if (companies.length === 0) return null;
@@ -329,8 +332,12 @@ function createMonthlyEvent(state: EconomyState, context: EconomyContext, prices
   return { id: `contract-${context.week}-${selected.id}`, title: `${selected.name} 신규 조달계약`, detail: '생산능력·납기 신뢰도가 인정되어 장기 조달계약과 설비투자가 승인됐습니다.', companyId: selected.id, priceImpact: contractBoost, treasuryImpact: 5, inflationImpact: 0.08, confidenceImpact: 2, tone: 'good' };
 }
 
-export function advanceEconomyWeek(state: EconomyState, context: EconomyContext) {
-  const monetaryResult = advanceMonetarySystem(state.monetarySystem, context.nationId, 1942 + Math.floor(context.week / 52));
+/**
+ * Updates market quotations and their news history only. Event macroeconomic impacts
+ * are returned as metadata, not applied: the caller owns its phase's fiscal model.
+ * No taxes, borrowing, dividends, treasury delta, or ledger settlement occur here.
+ */
+export function advanceEconomyMarketWeek(state: EconomyState, context: EconomyMarketContext) {
   const previousPrices = { ...state.marketPrices };
   const marketPrices = Object.fromEntries(getAvailableCompanies(context.nationId).map((company) => {
     const current = state.marketPrices[company.id] ?? company.basePrice;
@@ -340,9 +347,24 @@ export function advanceEconomyWeek(state: EconomyState, context: EconomyContext)
     const next = current * (1 + sectorSignal(company, context) + confidence + noise - inflationPenalty);
     return [company.id, roundMoney(clamp(next, 5, 500))];
   }));
-  const event = createMonthlyEvent(state, context, marketPrices);
+  const event = createMonthlyEvent(state, context);
   if (event?.companyId && marketPrices[event.companyId]) marketPrices[event.companyId] = roundMoney(marketPrices[event.companyId] * (1 + event.priceImpact));
-  const provisional = { ...state, monetarySystem: monetaryResult.state, marketPrices, previousPrices };
+  return {
+    state: {
+      ...state,
+      marketPrices,
+      previousPrices,
+      eventHistory: event ? [event, ...state.eventHistory].slice(0, 24) : state.eventHistory,
+    },
+    event,
+  };
+}
+
+export function advanceEconomyWeek(state: EconomyState, context: EconomyContext) {
+  const monetaryResult = advanceMonetarySystem(state.monetarySystem, context.nationId, getCampaignYearForWeek(context.week));
+  const marketResult = advanceEconomyMarketWeek(state, context);
+  const { event } = marketResult;
+  const provisional = { ...marketResult.state, monetarySystem: monetaryResult.state };
   const ledger = calculateEconomyLedger(provisional, context);
   const taxStability = state.taxPolicy === 'relief' ? 0.2 : state.taxPolicy === 'total-war' ? -0.3 : 0;
   const controlInflation = state.priceControl === 'comprehensive' ? -0.22 : state.priceControl === 'targeted' ? -0.06 : 0.18;
@@ -359,7 +381,6 @@ export function advanceEconomyWeek(state: EconomyState, context: EconomyContext)
     inflation: roundMoney(clamp(state.inflation + controlInflation + bondInflation + (event?.inflationImpact ?? 0), 0, 100)),
     publicConfidence: roundMoney(clamp(state.publicConfidence + confidenceDelta + taxStability + (event?.confidenceImpact ?? 0), 0, 100)),
     lastLedger: resolvedLedger,
-    eventHistory: event ? [event, ...state.eventHistory].slice(0, 24) : state.eventHistory,
   };
   return {
     state: nextState,

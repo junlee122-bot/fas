@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRightLeft,
@@ -46,6 +46,7 @@ import {
 } from './recruitment';
 import type { RecruitmentOffer, TalentMarketSort } from './recruitment';
 import { RecruitmentNegotiation } from './RecruitmentNegotiation';
+import { StaffNarrativeBoard } from './StaffNarrativeBoard';
 import {
   assessStaffPromise,
   calculateCandidateSeatFit,
@@ -57,6 +58,7 @@ import {
   staffMeetingOptions,
 } from './staffManagement';
 import type { StaffMeetingTopic } from './staffManagement';
+import type { StaffNarrativeState } from './staffNarrative';
 import {
   calculateStaffSuitability,
   getStaffAuthorityProfile,
@@ -79,8 +81,11 @@ import type {
   Stockpile,
   SupplyPolicy,
 } from './types';
+import './OrganizationPanel.css';
 
-interface OrganizationPanelProps {
+export type OrganizationWorkspace = 'squad' | 'market';
+
+export interface OrganizationPanelProps {
   game: GameState;
   nation: NationProfile;
   role: CareerRole;
@@ -99,6 +104,7 @@ interface OrganizationPanelProps {
   priorityDivisionId: string;
   selectedPolicies: string[];
   developmentFocusId: string | null;
+  staffNarrative: StaffNarrativeState;
   formatMoney: (value: number, options?: { signed?: boolean; exact?: boolean }) => string;
   onMeetStaff: (id: string, topic: StaffMeetingTopic) => void;
   onToggleDelegation: (id: string) => void;
@@ -114,7 +120,12 @@ interface OrganizationPanelProps {
   onApproachCandidate: (candidateId: string) => void;
   onRecruitCandidate: (candidateId: string, offer: RecruitmentOffer) => void;
   onRenewStaff: (staffId: string) => void;
+  onResolveStaffNarrative: (storylineId: string, optionId: string) => void;
   onOpenCareerMarket: () => void;
+  workspace?: OrganizationWorkspace;
+  onWorkspaceChange?: (workspace: OrganizationWorkspace) => void;
+  hideWorkspaceNavigation?: boolean;
+  onOpenDeliveryPledges?: (staffId: string) => void;
 }
 
 const departmentLabels: Record<StaffDepartment, string> = {
@@ -250,6 +261,7 @@ export function OrganizationPanel({
   priorityDivisionId,
   selectedPolicies,
   developmentFocusId,
+  staffNarrative,
   formatMoney,
   onMeetStaff,
   onToggleDelegation,
@@ -265,7 +277,12 @@ export function OrganizationPanel({
   onApproachCandidate,
   onRecruitCandidate,
   onRenewStaff,
+  onResolveStaffNarrative,
   onOpenCareerMarket,
+  workspace: controlledWorkspace,
+  onWorkspaceChange,
+  hideWorkspaceNavigation = false,
+  onOpenDeliveryPledges,
 }: OrganizationPanelProps) {
   const [talentQuery, setTalentQuery] = useState('');
   const [disciplineFilter, setDisciplineFilter] = useState<PersonnelDiscipline | 'all'>('all');
@@ -273,14 +290,23 @@ export function OrganizationPanel({
   const [talentSort, setTalentSort] = useState<TalentMarketSort>('recommended');
   const [talentPage, setTalentPage] = useState(0);
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
-  const [staffView, setStaffView] = useState<'planner' | 'roster' | 'responsibilities' | 'dynamics'>('planner');
-  const [workspace, setWorkspace] = useState<'squad' | 'market'>('squad');
+  const [staffView, setStaffView] = useState<'planner' | 'roster' | 'responsibilities' | 'dynamics'>('roster');
+  const [internalWorkspace, setInternalWorkspace] = useState<OrganizationWorkspace>('squad');
+  const workspace = controlledWorkspace ?? internalWorkspace;
+  const setWorkspace = (value: OrganizationWorkspace) => {
+    if (controlledWorkspace === undefined) setInternalWorkspace(value);
+    onWorkspaceChange?.(value);
+  };
+  const [selectedStaffIdentity, setSelectedStaffIdentity] = useState<{ id: string; personId: string } | null>(null);
+  const detailId = useId();
+  const reportId = useId();
   const [negotiatingCandidateId, setNegotiatingCandidateId] = useState<string | null>(null);
-  const [meetingStaffId, setMeetingStaffId] = useState<string | null>(null);
+  const [meetingStaffIdentity, setMeetingStaffIdentity] = useState<{ id: string; personId: string } | null>(null);
   const [recruitmentOffer, setRecruitmentOffer] = useState<RecruitmentOffer>(defaultRecruitmentOffer);
   const authority = useMemo(() => getStaffAuthorityProfile(role), [role]);
   const [selectedStaffDepartment, setSelectedStaffDepartment] = useState<StaffDepartment>(() => authority.managedDepartments[0]);
   const manageableDepartments = useMemo(() => new Set(authority.managedDepartments), [authority]);
+  const manageableStaffIds = useMemo(() => new Set(staff.filter((member) => manageableDepartments.has(member.department)).map((member) => member.id)), [manageableDepartments, staff]);
   const delegatedCount = staff.filter((member) => member.delegated).length;
   const managedDelegatedCount = staff.filter((member) => member.delegated && manageableDepartments.has(member.department)).length;
   const weeklyPayroll = staff.reduce((total, member) => total + member.weeklyCost, 0);
@@ -288,7 +314,6 @@ export function OrganizationPanel({
   const economyAdvisor = staff.find((member) => member.department === 'economy');
   const scienceBonus = scienceAdvisor?.delegated ? Math.max(2, Math.round((scienceAdvisor.ability + scienceAdvisor.influence) / 62)) : 0;
   const economyBonus = economyAdvisor?.delegated ? Math.max(8, Math.round((economyAdvisor.ability + economyAdvisor.influence) / 12)) : 0;
-  const expertCount = candidates.filter((candidate) => candidate.birthYear).length;
   const shortlistCount = candidates.filter((candidate) => candidate.status === 'shortlisted').length;
   const scoutingCount = candidates.filter((candidate) => candidate.status === 'scouting').length;
   const laterEraCount = candidates.filter((candidate) => candidate.historicalEra && candidate.historicalEra !== 'wartime').length;
@@ -320,7 +345,7 @@ export function OrganizationPanel({
   const visibleCandidates = filteredCandidates.slice(visibleTalentPage * talentPageSize, (visibleTalentPage + 1) * talentPageSize);
   const selectedCandidate = candidates.find((candidate) => candidate.id === selectedCandidateId) ?? null;
   const negotiatingCandidate = candidates.find((candidate) => candidate.id === negotiatingCandidateId) ?? null;
-  const meetingStaff = staff.find((member) => member.id === meetingStaffId) ?? null;
+  const meetingStaff = staff.find((member) => member.id === meetingStaffIdentity?.id && member.personId === meetingStaffIdentity.personId) ?? null;
   const selectedCandidateScore = selectedCandidate ? recruitmentScore(selectedCandidate, careerReputation) : 0;
   const selectedCandidateChance = selectedCandidate ? recruitmentChance(selectedCandidate, careerReputation) : 0;
   const selectedCandidateUnavailable = selectedCandidate?.status === 'signed' || selectedCandidate?.status === 'lost';
@@ -340,6 +365,11 @@ export function OrganizationPanel({
     ? staffOverview.relationships.filter((relationship) => relationship.kind === 'tension' || relationship.kind === 'rivalry').slice(0, 4)
     : [...staffOverview.relationships].sort((left, right) => right.affinity - left.affinity).slice(0, 3);
   const selectedSeatPlan = staffOverview.seats.find((seat) => seat.department === selectedStaffDepartment) ?? staffOverview.seats[0];
+  const selectedStaff = staff.find((member) => member.id === selectedStaffIdentity?.id && member.personId === selectedStaffIdentity.personId)
+    ?? staff.find((member) => manageableDepartments.has(member.department)) ?? staff[0] ?? null;
+  const selectedStaffManaged = selectedStaff ? manageableDepartments.has(selectedStaff.department) : false;
+  const selectedStaffDynamics = staffOverview.dynamics.find((record) => record.member.id === selectedStaff?.id);
+  const selectedStaffRenewalCost = selectedStaff ? getStaffRenewalCost(selectedStaff) : 0;
   const selectedCandidateFit = selectedCandidate ? calculateCandidateSeatFit(selectedCandidate, selectedCandidate.department) : null;
   const recruitmentPriorities = [...staffOverview.seats].filter((seat) => seat.manageable).sort((left, right) => right.needScore - left.needScore).slice(0, 3);
   const rankedStaff = useMemo(() => staff
@@ -362,68 +392,45 @@ export function OrganizationPanel({
   const revealCandidateReport = (candidateId: string) => {
     setSelectedCandidateId(candidateId);
     setWorkspace('market');
-    window.setTimeout(() => document.getElementById('staff-recruitment-hub')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+    window.setTimeout(() => document.getElementById(reportId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
   };
   const openNegotiation = (candidate: StaffCandidate) => {
     setSelectedCandidateId(candidate.id);
     setRecruitmentOffer(defaultRecruitmentOffer);
     setNegotiatingCandidateId(candidate.id);
   };
+  const openStaffMeeting = (staffId: string) => {
+    const member = staff.find((person) => person.id === staffId);
+    if (!member || !manageableDepartments.has(member.department)) return;
+    setMeetingStaffIdentity({ id: member.id, personId: member.personId });
+  };
+  const selectStaffById = (staffId: string) => {
+    const member = staff.find((person) => person.id === staffId);
+    if (member) setSelectedStaffIdentity({ id: member.id, personId: member.personId });
+  };
 
   return (
-    <div className={`organization-grid workspace-${workspace}`}>
-      <nav className="organization-workspace-switch" aria-label="조직 운영 작업공간">
+    <div className={`organization-grid organization-panel-v2 workspace-${workspace}`}>
+      {!hideWorkspaceNavigation && <nav className="organization-workspace-switch" aria-label="조직 운영 작업공간">
         <button type="button" className={workspace === 'squad' ? 'active' : ''} aria-pressed={workspace === 'squad'} onClick={() => setWorkspace('squad')}><UsersRound size={18} /><span><strong>참모 스쿼드</strong><small>보직·위임·계약·조직 분위기</small></span><em>{staff.length}</em></button>
         <button type="button" className={workspace === 'market' ? 'active' : ''} aria-pressed={workspace === 'market'} onClick={() => setWorkspace('market')}><Search size={18} /><span><strong>후보 시장</strong><small>탐색·조사·접촉·협상·영입</small></span><em>{shortlistCount + scoutingCount || candidates.length}</em></button>
-        <button type="button" className={careerOfferCount > 0 ? 'career-offer-arrived' : ''} onClick={onOpenCareerMarket}><BriefcaseBusiness size={18} /><span><strong>내 국제 경력</strong><small>{careerStatusLabel} · 외국 제안·구직·망명·이중공작</small></span><em>{careerOfferCount}</em></button>
-        <p>{workspace === 'squad' ? '현재 참모진을 FM의 선수단처럼 배치하고 책임·관계·성장을 관리합니다.' : '외부 실존 인물을 검색하고 조사 보고서에서 영입 가능성과 위험을 비교합니다.'}</p>
-      </nav>
+      </nav>}
       <section className="management-card staff-card">
-        <div className="management-heading">
-          <div><span>{workspace === 'squad' ? 'STAFF SQUAD' : 'GLOBAL TALENT MARKET'}</span><h3>{workspace === 'squad' ? '참모진·책임 관리' : '후보 조사·영입 센터'}</h3></div>
-          <em>{workspace === 'squad' ? `${authority.managedDepartments.length}/${staff.length}개 보직 관리 · 주급 ${formatMoney(weeklyPayroll)}` : `${candidates.length}명 접촉 가능 · 관심 ${shortlistCount} · 조사 중 ${scoutingCount}`}</em>
+        <div className="management-heading org-workspace-heading">
+          <div><span>{workspace === 'squad' ? 'STAFF SQUAD' : 'TALENT MARKET'}</span><h3>{workspace === 'squad' ? '참모 스쿼드' : '후보 시장'}</h3><p>{workspace === 'squad' ? '명단에서 한 명을 선택하고, 상태를 확인한 뒤 조치하십시오.' : '후보를 찾고 조사 보고서에서 정보·비용·임명 권한을 확인하십시오.'}</p></div>
+          <button type="button" className={`org-career-link ${careerOfferCount > 0 ? 'has-offers' : ''}`} aria-label={`내 국제 경력 · ${careerStatusLabel} · 제안 ${careerOfferCount}건`} onClick={onOpenCareerMarket}><BriefcaseBusiness size={16} /><span><span className="org-career-label">내 국제 경력</span><small><span className="org-career-status">{careerStatusLabel} · </span>제안 {careerOfferCount}건</small></span></button>
         </div>
         {workspace === 'squad' && <>
-        <div className="staff-management-hero">
-          <div className="staff-command-identity">
-            <span className="staff-command-icon">{role.tier === 1 ? <Crown size={22} /> : <BriefcaseBusiness size={22} />}</span>
-            <span><small>{campaignPhase === 'war' ? 'WAR OFFICE · 1942' : nation.status === 'sovereign' ? 'POSTWAR GOVERNMENT' : 'FOUNDING GOVERNMENT'}</small><strong>{role.title}</strong><em>{authority.label} · {role.scope}</em></span>
-          </div>
-          <div className="staff-authority-summary">
-            <span><small>직접 관리</small><strong>{authority.managedDepartments.length}<em> / {staff.length}</em></strong></span>
-            <span><small>책임 위임</small><strong>{managedDelegatedCount}<em> / {authority.maxDelegations}</em></strong></span>
-            <span><small>전체 위임 현황</small><strong>{delegatedCount}<em>석</em></strong></span>
-          </div>
-          <p>{authority.summary} <b>{authority.restrictionReason}</b></p>
+        <div className="org-squad-summary" aria-label="참모진 핵심 현황">
+          <span><small>현재 재직 / 직접 관리</small><strong>{staff.length}명 / {manageableStaffIds.size}명</strong></span>
+          <span><small>전체 참모 주급</small><strong>{formatMoney(weeklyPayroll)}</strong></span>
+          <span><small>계약 만료 임박 · 13주 이내</small><strong>{staffOverview.expiringContracts}명</strong></span>
         </div>
-        <div className="replacement-seat-card compact">
-          <span>HISTORICAL REPLACEMENT</span>
-          <div><strong>{role.historicalHolderName}</strong><small>{role.historicalOffice}</small></div>
-          <p>당신이 이 실존 인물의 자리를 대체했습니다. 시작 직함에서 부여받은 인사권 범위는 정권이 바뀌어도 지휘계통으로 유지되며, 보직 명칭과 책임만 시대에 맞게 개편됩니다.</p>
-        </div>
-        <section className="staff-weekly-briefing" aria-label="참모진 주간 브리핑">
-          <header><span><ClipboardList size={16} /><strong>이번 주 참모진 브리핑</strong><small>뎁스·계약·사기·업무량을 한 번에 진단합니다.</small></span><em>{staffOverview.topNeed ? `최우선 보강: ${departmentLabels[staffOverview.topNeed.department]}` : '보강 필요 없음'}</em></header>
-          <div className="staff-briefing-kpis">
-            <span><HeartHandshake size={15} /><small>조직 분위기</small><strong>{staffOverview.atmosphere}</strong><Meter value={staffOverview.atmosphere} tone={staffOverview.atmosphere < 55 ? 'red' : 'blue'} /></span>
-            <span><Layers3 size={15} /><small>보직 뎁스</small><strong>{staffOverview.roleCoverage}</strong><Meter value={staffOverview.roleCoverage} tone={staffOverview.roleCoverage < 55 ? 'red' : 'gold'} /></span>
-            <span><ShieldCheck size={15} /><small>지도부 지지</small><strong>{staffOverview.leadershipSupport}</strong><Meter value={staffOverview.leadershipSupport} tone={staffOverview.leadershipSupport < 55 ? 'red' : 'blue'} /></span>
-            <span className={staffOverview.expiringContracts ? 'warning' : ''}><CalendarClock size={15} /><small>13주 내 만료</small><strong>{staffOverview.expiringContracts}</strong><em>명</em></span>
-            <span className={staffOverview.overloadedStaff ? 'warning' : ''}><AlertTriangle size={15} /><small>과부하 참모</small><strong>{staffOverview.overloadedStaff}</strong><em>명</em></span>
-            <span className={staffOverview.brokenPromises ? 'warning' : ''}><HeartHandshake size={15} /><small>위반된 임명 약속</small><strong>{staffOverview.brokenPromises}</strong><em>건</em></span>
-          </div>
-          <div className="staff-recruitment-priorities">
-            {recruitmentPriorities.map((plan, index) => (
-              <button type="button" key={plan.department} onClick={() => { setSelectedStaffDepartment(plan.department); setStaffView('planner'); }}>
-                <i>{index + 1}</i><span><small>{plan.priority === 'top' ? 'TOP PRIORITY' : plan.priority === 'standard' ? 'STANDARD' : 'MONITOR'}</small><strong>{getStaffSeatTitle(plan.department, campaignPhase, nation.status)}</strong><em>{plan.warning}</em></span><b>{plan.needScore}</b>
-              </button>
-            ))}
-          </div>
-        </section>
         <nav className="staff-management-tabs" aria-label="참모 관리 보기">
-          <button type="button" className={staffView === 'planner' ? 'active' : ''} aria-pressed={staffView === 'planner'} onClick={() => setStaffView('planner')}><LayoutGrid size={15} /> 보직 계획</button>
-          <button type="button" className={staffView === 'roster' ? 'active' : ''} aria-pressed={staffView === 'roster'} onClick={() => setStaffView('roster')}><List size={15} /> 참모 명단</button>
+          <button type="button" className={staffView === 'roster' ? 'active' : ''} aria-pressed={staffView === 'roster'} onClick={() => setStaffView('roster')}><List size={15} /> 명단·개인 관리</button>
+          <button type="button" className={staffView === 'planner' ? 'active' : ''} aria-pressed={staffView === 'planner'} onClick={() => setStaffView('planner')}><LayoutGrid size={15} /> 보직 배치</button>
           <button type="button" className={staffView === 'responsibilities' ? 'active' : ''} aria-pressed={staffView === 'responsibilities'} onClick={() => setStaffView('responsibilities')}><ShieldCheck size={15} /> 책임 위임</button>
-          <button type="button" className={staffView === 'dynamics' ? 'active' : ''} aria-pressed={staffView === 'dynamics'} onClick={() => setStaffView('dynamics')}><HeartHandshake size={15} /> 분위기·계약</button>
+          <button type="button" className={staffView === 'dynamics' ? 'active' : ''} aria-pressed={staffView === 'dynamics'} onClick={() => setStaffView('dynamics')}><HeartHandshake size={15} /> 분위기·계약{staffNarrative.activeStorylines.length > 0 && <em>{staffNarrative.activeStorylines.length}</em>}</button>
         </nav>
 
         {staffView === 'planner' && (
@@ -450,7 +457,7 @@ export function OrganizationPanel({
                       <span className="staff-seat-person"><i style={{ borderColor: nation.accent }}>{member ? initials(member.name) : '—'}</i><span><b>{member?.name ?? '공석'}</b><small>{member?.specialty ?? '후보 영입 필요'}</small></span></span>
                       <span className="staff-seat-fit"><em>{suitability?.label ?? '공석'}</em><b>{suitability?.score ?? 0}</b><Meter value={suitability?.score ?? 0} tone={(suitability?.score ?? 0) < 55 ? 'red' : (suitability?.score ?? 0) < 75 ? 'gold' : 'blue'} /></span>
                       <span className="staff-seat-planning"><em className={plan?.priority}>{plan?.priority === 'top' ? '최우선 보강' : plan?.priority === 'standard' ? '보강 검토' : '안정'}</em><small>뎁스 {plan?.depthScore ?? 0} · 내부/외부 각 3명</small></span>
-                      <span className={`staff-seat-duty ${member?.delegated ? 'delegated' : ''}`}>{member?.delegated ? '주간 책임 위임' : '사용자 직접 결재'}</span>
+                      <span className={`staff-seat-duty ${member?.delegated ? 'delegated' : ''} ${manageable ? '' : 'superior'}`}>{!manageable ? '상급기관 결재 · 보고만' : member?.delegated ? '주간 책임 위임' : '사용자 직접 결재'}</span>
                     </button>
                   );
                 })}
@@ -493,32 +500,57 @@ export function OrganizationPanel({
         )}
 
         {staffView === 'roster' && (
-          <div className="staff-table" role="table" aria-label="직속 참모진">
-            {staff.map((member) => {
-              const manageable = manageableDepartments.has(member.department);
-              return (
-                <article className={`staff-row ${manageable ? '' : 'staff-row-locked'}`} role="row" key={member.id}>
-                  <div className="staff-identity">
-                    <span className="staff-avatar" style={{ borderColor: nation.accent }}>{initials(member.name)}</span>
-                    <div>
-                      <strong>{member.name}</strong>
-                      <small>{getStaffSeatTitle(member.department, campaignPhase, nation.status)} · {departmentLabels[member.department]}</small>
-                      <em>{member.historicalOffice} · {member.affiliation}</em>
-                    </div>
-                  </div>
-                  <div className="staff-rating"><span>현재 / 잠재</span><strong>{member.ability} <small>/ {member.potential}</small></strong><Meter value={member.ability} /></div>
-                  <div className="staff-rating"><span>충성도</span><strong>{member.loyalty}</strong><Meter value={member.loyalty} tone={member.loyalty < 55 ? 'red' : 'gold'} /></div>
-                  <div className="staff-rating"><span>업무량</span><strong>{member.workload}%</strong><Meter value={member.workload} tone={member.workload > 75 ? 'red' : 'blue'} /></div>
-                  <div className="staff-rating"><span>등급 {member.grade} · 성장</span><strong>{member.development}%</strong><Meter value={member.development} tone="gold" /></div>
-                  <div className="staff-actions">
-                    <button disabled={!manageable} onClick={() => setMeetingStaffId(member.id)} title={manageable ? '면담 의제와 예상 효과 선택' : authority.restrictionReason}><MessageSquare size={13} /> 면담</button>
-                    <button disabled={!manageable} className={member.delegated ? 'active' : ''} onClick={() => onToggleDelegation(member.id)}><Check size={13} /> {member.delegated ? '위임 중' : '직접 결재'}</button>
-                    <button disabled={!manageable} className={developmentFocusId === member.id ? 'active' : ''} onClick={() => onSetDevelopmentFocus(member.id)}><Star size={13} /> {developmentFocusId === member.id ? '육성 중' : '육성'}</button>
-                    <button disabled={!manageable || member.development < 100 || member.grade >= 3} title={!manageable ? authority.restrictionReason : member.grade >= 3 ? '이미 최고 등급입니다.' : member.development < 100 ? `성장도 100%가 필요합니다. 현재 ${member.development}%` : '정치력과 재정을 사용해 승급합니다.'} onClick={() => onUpgradeStaff(member.id)}><RefreshCw size={13} /> 승급</button>
-                  </div>
-                </article>
-              );
-            })}
+          <div className="org-squad-layout">
+            <section className="org-roster" aria-label="현재 참모 명단">
+              <header><span><UsersRound size={16} /><strong>현재 재직자</strong></span><small>{staff.length}명 · 인물을 선택해 상세 보기</small></header>
+              <label className="org-mobile-staff-picker"><span>참모 선택 <small>재직 {staff.length}명</small></span><select aria-label="참모 선택" aria-controls={detailId} value={selectedStaff?.id ?? ''} disabled={!staff.length} onChange={(event) => selectStaffById(event.target.value)}>
+                {!staff.length && <option value="">현재 재직자가 없습니다</option>}
+                {staff.map((member) => <option key={`${member.id}:${member.personId}`} value={member.id}>{member.name} · {getStaffSeatTitle(member.department, campaignPhase, nation.status)}{manageableDepartments.has(member.department) ? '' : ' · 열람 전용'}</option>)}
+              </select></label>
+              <div className="org-roster-list">
+                {staff.map((member) => {
+                  const manageable = manageableDepartments.has(member.department);
+                  const selected = selectedStaff?.id === member.id && selectedStaff.personId === member.personId;
+                  return <button type="button" key={`${member.id}:${member.personId}`} className={`org-roster-person ${selected ? 'selected' : ''}`} aria-pressed={selected} aria-controls={detailId} onClick={() => selectStaffById(member.id)}>
+                    <i className="org-person-monogram" aria-hidden="true">{initials(member.name)}</i>
+                    <span className="org-roster-person-copy"><strong>{member.name}</strong><small>{getStaffSeatTitle(member.department, campaignPhase, nation.status)}</small><em>{manageable ? member.delegated ? '직접 관리 · 위임 중' : '직접 관리 · 직접 결재' : '상급기관 관리 · 열람'}</em></span>
+                    <span className="org-roster-ability"><small>능력</small><b>{member.ability}</b></span>
+                  </button>;
+                })}
+                {!staff.length && <p className="org-empty">현재 재직 중인 참모가 없습니다. 후보 시장에서 인사권에 맞는 후보를 확인하십시오.</p>}
+              </div>
+              <button type="button" className="org-market-link" onClick={() => setWorkspace('market')}><Search size={16} /> 후보 시장에서 보강 <ChevronRight size={16} /></button>
+            </section>
+            <section className="org-person-detail" id={detailId} aria-label={selectedStaff ? `${selectedStaff.name} 참모 상세` : '참모 상세'}>
+              {selectedStaff ? <>
+                <header className="org-person-heading">
+                  <i className="org-person-monogram large" title="이름 머리글자 · 인물 사진 아님" aria-hidden="true">{initials(selectedStaff.name)}</i>
+                  <div><small>{getStaffSeatTitle(selectedStaff.department, campaignPhase, nation.status)}</small><h4>{selectedStaff.name}</h4><p>{selectedStaff.specialty}</p></div>
+                  <span className={`org-access-tag ${selectedStaffManaged ? 'managed' : 'locked'}`}>{selectedStaffManaged ? <ShieldCheck size={14} /> : <LockKeyhole size={14} />}{selectedStaffManaged ? '직접 관리' : '열람 전용'}</span>
+                </header>
+                <div className="org-person-ratings" aria-label="선택한 참모 상태">
+                  <span><small>현재 / 잠재 능력</small><strong>{selectedStaff.ability} / {selectedStaff.potential}</strong><Meter value={selectedStaff.ability} /></span>
+                  <span><small>사기</small><strong>{getStaffMorale(selectedStaff)}</strong><Meter value={getStaffMorale(selectedStaff)} tone={getStaffMorale(selectedStaff) < 50 ? 'red' : 'blue'} /></span>
+                  <span><small>충성도</small><strong>{Math.round(selectedStaff.loyalty)}</strong><Meter value={selectedStaff.loyalty} tone={selectedStaff.loyalty < 55 ? 'red' : 'gold'} /></span>
+                  <span><small>업무량</small><strong>{Math.round(selectedStaff.workload)}%</strong><Meter value={selectedStaff.workload} tone={selectedStaff.workload > 75 ? 'red' : 'blue'} /></span>
+                  <span><small>등급 {selectedStaff.grade} · 성장</small><strong>{selectedStaff.development}%</strong><Meter value={selectedStaff.development} tone="gold" /></span>
+                  <span><small>주급 / 잔여 계약</small><strong>{formatMoney(selectedStaff.weeklyCost)} / {selectedStaffDynamics?.contractWeeks ?? '미확인'}주</strong></span>
+                </div>
+                {selectedStaffDynamics && <div className={`org-person-commitment ${selectedStaffDynamics.promise.state}`}><span><HeartHandshake size={15} /><strong>임명 합의 · {selectedStaffDynamics.promise.label}</strong></span><p>{selectedStaffDynamics.promise.summary}</p><small>역할 만족 {selectedStaffDynamics.roleSatisfaction} · 지도부 수용 {selectedStaffDynamics.buyIn} · 계약 {contractRiskLabels[selectedStaffDynamics.contractRisk]}</small></div>}
+                {!selectedStaffManaged && <p className="org-authority-notice"><LockKeyhole size={16} />{authority.restrictionReason} 이 인물은 열람만 가능하며, 아래 관리 조치는 실행할 수 없습니다.</p>}
+                <div className="org-person-actions" aria-label="선택한 참모 관리 조치">
+                  <button type="button" disabled={!selectedStaffManaged} onClick={() => openStaffMeeting(selectedStaff.id)}><MessageSquare size={16} /> 면담 의제 선택</button>
+                  <button type="button" disabled={!selectedStaffManaged || (!selectedStaff.delegated && managedDelegatedCount >= authority.maxDelegations)} className={selectedStaff.delegated ? 'active' : ''} title={!selectedStaffManaged ? authority.restrictionReason : !selectedStaff.delegated && managedDelegatedCount >= authority.maxDelegations ? '현재 보직의 책임 위임 한도에 도달했습니다.' : '위임 상태를 변경합니다.'} onClick={() => onToggleDelegation(selectedStaff.id)}><Check size={16} /> {selectedStaff.delegated ? '위임 회수' : managedDelegatedCount >= authority.maxDelegations ? '위임 한도 도달' : '책임 위임'}</button>
+                  <button type="button" disabled={!selectedStaffManaged} className={developmentFocusId === selectedStaff.id ? 'active' : ''} onClick={() => onSetDevelopmentFocus(selectedStaff.id)}><Star size={16} /> {developmentFocusId === selectedStaff.id ? '육성 대상으로 지정됨' : '육성 대상으로 지정'}</button>
+                  <button type="button" disabled={!selectedStaffManaged || selectedStaff.development < 100 || selectedStaff.grade >= 3} title={!selectedStaffManaged ? authority.restrictionReason : selectedStaff.grade >= 3 ? '이미 최고 등급입니다.' : selectedStaff.development < 100 ? `성장도 100%가 필요합니다. 현재 ${selectedStaff.development}%` : '정치력과 재정을 사용해 승급합니다.'} onClick={() => onUpgradeStaff(selectedStaff.id)}><RefreshCw size={16} /> 승급</button>
+                  {selectedStaffDynamics && <button type="button" disabled={!selectedStaffManaged || selectedStaffDynamics.contractRisk === 'secure' || game.politicalPower < 4 || game.treasury < selectedStaffRenewalCost} title={`2년 재계약 · 정치력 4 · 보너스 ${formatMoney(selectedStaffRenewalCost)}`} onClick={() => onRenewStaff(selectedStaff.id)}><CalendarClock size={16} /> {selectedStaffDynamics.contractRisk === 'secure' ? '계약 안정' : `재계약 · 4PP + ${formatMoney(selectedStaffRenewalCost)}`}</button>}
+                  <button type="button" onClick={() => { setSelectedStaffDepartment(selectedStaff.department); setStaffView('planner'); }}><ArrowRightLeft size={16} /> 보직 배치 비교</button>
+                  {onOpenDeliveryPledges && campaignPhase === 'nation' && selectedStaffManaged && <button type="button" className="org-pledge-link" onClick={() => onOpenDeliveryPledges(selectedStaff.id)}><Target size={16} /> 이 참모의 이행 약속 열기</button>}
+                </div>
+                <p className="org-read-only-note">인물 선택과 상세 열람에는 비용이나 성과 보상이 없습니다. 면담은 의제를 고른 뒤 실행하며, 위임·육성·승급·재계약은 해당 버튼에서 요청합니다.</p>
+                <details className="org-disclosure org-person-background"><summary><ClipboardList size={16} /><span>경력·전문 분야와 역사 자료</span><ChevronRight size={16} /></summary><div className="org-disclosure-body"><p>{selectedStaff.historicalOffice} · {selectedStaff.affiliation}</p><p>{selectedStaff.summary}</p>{selectedStaff.expertise?.length ? <p>전문 분야: {selectedStaff.expertise.join(' · ')}</p> : null}{selectedStaff.historicalConstraint && <p>역사적 제약: {selectedStaff.historicalConstraint}</p>}{selectedStaff.friction && <p>조직 마찰: {selectedStaff.friction}</p>}{selectedStaff.networks?.length ? <p>인맥: {selectedStaff.networks.join(' · ')}</p> : null}{selectedStaff.appointmentEffect && <p>임명 효과: {selectedStaff.appointmentEffect}</p>}{selectedStaff.sourceUrl && <a href={selectedStaff.sourceUrl} target="_blank" rel="noreferrer"><ExternalLink size={15} /> {selectedStaff.sourceLabel ?? '역사 자료 보기'}</a>}</div></details>
+              </> : <div className="org-empty"><UsersRound size={28} /><h4>선택할 재직자가 없습니다</h4><p>없는 인물을 대신 표시하지 않습니다. 실제 임명 후 이곳에서 관리할 수 있습니다.</p></div>}
+            </section>
           </div>
         )}
 
@@ -547,6 +579,17 @@ export function OrganizationPanel({
           <section className="staff-dynamics-board" aria-label="참모진 분위기와 계약">
             <header><span><HeartHandshake size={17} /><strong>조직 위계·관계·역할 만족도·계약</strong></span><em>사기 {staffOverview.atmosphere} · 지지 {staffOverview.leadershipSupport} · 결속 {staffOverview.teamCohesion}</em></header>
             <p>참모는 영향력과 능력에 따라 지도부·핵심·지원 계층을 형성합니다. 소속·전문 분야·공동 책임으로 쌓인 관계와 영향 블록의 결속, 임명 약속과 계약 상태가 매주 사기와 역할 만족에 반영됩니다.</p>
+            <details className="org-disclosure"><summary><MessageSquare size={16} /><span>참모 현안과 기존 처리 기록 <small>{staffNarrative.activeStorylines.length}건의 활성 현안</small></span><ChevronRight size={16} /></summary><div className="org-disclosure-body">
+            <StaffNarrativeBoard
+              state={staffNarrative}
+              staff={staff}
+              week={game.week}
+              politicalPower={game.politicalPower}
+              manageableStaffIds={manageableStaffIds}
+              onResolve={onResolveStaffNarrative}
+              onMeet={openStaffMeeting}
+            />
+            </div></details>
             <div className="staff-social-dynamics">
               <section className="staff-influence-blocs">
                 <header><span><UsersRound size={14} /><strong>영향 블록</strong></span><em>관계 기반 내부 결속</em></header>
@@ -594,62 +637,80 @@ export function OrganizationPanel({
           </section>
         )}
 
+        <details className="org-disclosure org-authority-disclosure">
+          <summary><ShieldCheck size={16} /><span>인사권과 현재 지휘계통 <small>{authority.label} · 직접 관리 {authority.managedDepartments.length}개 보직</small></span><ChevronRight size={16} /></summary>
+          <div className="org-disclosure-body">
+        <div className="staff-management-hero">
+          <div className="staff-command-identity">
+            <span className="staff-command-icon">{role.tier === 1 ? <Crown size={22} /> : <BriefcaseBusiness size={22} />}</span>
+            <span><small>{campaignPhase === 'war' ? 'WAR OFFICE' : nation.status === 'sovereign' ? 'POSTWAR GOVERNMENT' : 'FOUNDING GOVERNMENT'}</small><strong>{role.title}</strong><em>{authority.label} · {role.scope}</em></span>
+          </div>
+          <div className="staff-authority-summary">
+            <span><small>직접 관리</small><strong>{authority.managedDepartments.length}<em> / {staff.length}</em></strong></span>
+            <span><small>책임 위임</small><strong>{managedDelegatedCount}<em> / {authority.maxDelegations}</em></strong></span>
+            <span><small>전체 위임 현황</small><strong>{delegatedCount}<em>석</em></strong></span>
+          </div>
+          <p>{authority.summary} <b>{authority.restrictionReason}</b></p>
+        </div>
+        <div className="replacement-seat-card compact">
+          <span>HISTORICAL REPLACEMENT</span>
+          <div><strong>{role.historicalHolderName}</strong><small>{role.historicalOffice}</small></div>
+          <p>당신이 이 실존 인물의 자리를 대체했습니다. 시작 직함에서 부여받은 인사권 범위는 정권이 바뀌어도 지휘계통으로 유지되며, 보직 명칭과 책임만 시대에 맞게 개편됩니다.</p>
+        </div>
+          </div>
+        </details>
+        <details className="org-disclosure org-briefing-disclosure">
+          <summary><ClipboardList size={16} /><span>주간 진단과 보강 우선순위 <small>사기 {staffOverview.atmosphere} · 과부하 {staffOverview.overloadedStaff}명 · 약속 위반 {staffOverview.brokenPromises}건</small></span><ChevronRight size={16} /></summary>
+          <div className="org-disclosure-body">
+        <section className="staff-weekly-briefing" aria-label="참모진 주간 브리핑">
+          <header><span><ClipboardList size={16} /><strong>이번 주 참모진 브리핑</strong><small>뎁스·계약·사기·업무량을 한 번에 진단합니다.</small></span><em>{staffOverview.topNeed ? `최우선 보강: ${departmentLabels[staffOverview.topNeed.department]}` : '보강 필요 없음'}</em></header>
+          <div className="staff-briefing-kpis">
+            <span><HeartHandshake size={15} /><small>조직 분위기</small><strong>{staffOverview.atmosphere}</strong><Meter value={staffOverview.atmosphere} tone={staffOverview.atmosphere < 55 ? 'red' : 'blue'} /></span>
+            <span><Layers3 size={15} /><small>보직 뎁스</small><strong>{staffOverview.roleCoverage}</strong><Meter value={staffOverview.roleCoverage} tone={staffOverview.roleCoverage < 55 ? 'red' : 'gold'} /></span>
+            <span><ShieldCheck size={15} /><small>지도부 지지</small><strong>{staffOverview.leadershipSupport}</strong><Meter value={staffOverview.leadershipSupport} tone={staffOverview.leadershipSupport < 55 ? 'red' : 'blue'} /></span>
+            <span className={staffOverview.expiringContracts ? 'warning' : ''}><CalendarClock size={15} /><small>13주 내 만료</small><strong>{staffOverview.expiringContracts}</strong><em>명</em></span>
+            <span className={staffOverview.overloadedStaff ? 'warning' : ''}><AlertTriangle size={15} /><small>과부하 참모</small><strong>{staffOverview.overloadedStaff}</strong><em>명</em></span>
+            <span className={staffOverview.brokenPromises ? 'warning' : ''}><HeartHandshake size={15} /><small>위반된 임명 약속</small><strong>{staffOverview.brokenPromises}</strong><em>건</em></span>
+          </div>
+          <div className="staff-recruitment-priorities">
+            {recruitmentPriorities.map((plan, index) => (
+              <button type="button" key={plan.department} onClick={() => { setSelectedStaffDepartment(plan.department); setStaffView('planner'); }}>
+                <i>{index + 1}</i><span><small>{plan.priority === 'top' ? 'TOP PRIORITY' : plan.priority === 'standard' ? 'STANDARD' : 'MONITOR'}</small><strong>{getStaffSeatTitle(plan.department, campaignPhase, nation.status)}</strong><em>{plan.warning}</em></span><b>{plan.needScore}</b>
+              </button>
+            ))}
+          </div>
+        </section>
+          </div>
+        </details>
         </>}
 
         {workspace === 'market' && (<div className="recruitment-hub" id="staff-recruitment-hub">
-          <div className="recruitment-title">
-            <div><span>GLOBAL TALENT MARKET · 1942</span><strong>실존 인물 영입 센터</strong></div>
-            <em>검증 DB {historicalExperts.length.toLocaleString('ko-KR')}명 · 1940년대 정밀 프로필 {wartimeHistoricalExperts.length}명 · 현재 접촉권 {candidates.length}명 · 조사→접촉→포섭→보직 교체</em>
-          </div>
-          <div className="talent-coverage-audit" aria-label="국가별 실존 인물 데이터 범위">
-            <span><small>플레이 권역</small><strong>{Object.keys(historicalExpertCoverage).length}개</strong></span>
-            <span><small>국가별 최소 인물</small><strong>{minimumHistoricalExpertsPerNation}명</strong></span>
-            <span><small>{nation.name} 소속 실존 인물</small><strong>{historicalExpertCoverage[nation.id]}명</strong></span>
-            <span><small>{nation.name} 1940년대 정밀 인물</small><strong>{wartimeHistoricalExpertCoverage[nation.id]}명</strong></span>
-            <span><small>현재 시대 접촉 가능</small><strong>{candidates.length}명</strong></span>
-          </div>
-          <section className="recruitment-objectives" aria-label="보직별 충원 포커스">
-            <header><Target size={15} /><span><strong>충원 포커스</strong><small>보직 계획의 약점을 인재 조사 목표로 자동 연결합니다.</small></span></header>
-            <div>{recruitmentPriorities.map((plan) => (
-              <button type="button" className={selectedStaffDepartment === plan.department ? 'active' : ''} key={plan.department} onClick={() => { setSelectedStaffDepartment(plan.department); setDisciplineFilter(getStaffSeatDefinition(plan.department).preferredDisciplines[0]); setTalentScope('available'); setTalentPage(0); }}>
-                <span><small>{plan.priority === 'top' ? '최우선' : plan.priority === 'standard' ? '일반' : '관찰'} · 필요도 {plan.needScore}</small><strong>{getStaffSeatTitle(plan.department, campaignPhase, nation.status)}</strong></span><em>내부 {plan.internalDepth[1]?.score ?? 0} · 외부 {plan.externalDepth[0]?.score ?? 0}</em>
-              </button>
-            ))}</div>
-          </section>
-          <section className="recruitment-guide" aria-label="인재 영입 절차">
-            <header><ClipboardList size={16} /><span><strong>영입은 이렇게 진행합니다</strong><small>조사 결과는 후보 카드의 ‘보고서’ 버튼을 누르면 바로 아래 전용 패널에 모입니다.</small></span></header>
-            <ol>
-              <li><i>1</i><span><strong>후보 찾기</strong><small>이름·직책·전공으로 검색</small></span></li>
-              <li><i>2</i><span><strong>조사 · 2PP</strong><small>즉시 정보 +8, 매주 +18{staff.some((member) => member.department === 'personnel' && member.delegated) ? ' + 위임 5' : ''}</small></span></li>
-              <li><i>3</i><span><strong>관심·접촉</strong><small>정보 30%부터 접촉 · 관계 상승</small></span></li>
-              <li><i>4</i><span><strong>조건 협상</strong><small>권한·임기·보수·약속 설계</small></span></li>
-              <li><i>5</i><span><strong>임명·계약 관리</strong><small>만족도·사기·재계약 추적</small></span></li>
-            </ol>
-            <p><b>공개 기준</b> 임명 효과 45% · 제안 55% · 정확한 능력 65% · 정확한 잠재력 85%. 조사 중인 후보는 다음 주에도 자동 갱신됩니다.</p>
-          </section>
+          <div className="org-squad-summary" aria-label="후보 시장 현황"><span><small>현재 시장 등록</small><strong>{candidates.length}명</strong></span><span><small>관심 명단</small><strong>{shortlistCount}명</strong></span><span><small>조사 진행 중</small><strong>{scoutingCount}명</strong></span></div>
+          <div className="org-market-filterbar">
           <div className="talent-toolbar">
-            <label><Search size={13} /><input value={talentQuery} onChange={(event) => { setTalentQuery(event.target.value); setTalentPage(0); }} placeholder="이름·직책·기관·전문 분야 검색" /></label>
-            <div className="talent-filter-list" aria-label="인재 분야 필터">
+            <label className="org-talent-search"><Search size={18} /><span className="org-sr-only">후보 이름·직책·기관·전문 분야 검색</span><input value={talentQuery} onChange={(event) => { setTalentQuery(event.target.value); setTalentPage(0); }} placeholder="이름·직책·기관·전문 분야 검색" /></label>
+            <label className="org-discipline-select"><span>전문 분야</span><select value={disciplineFilter} onChange={(event) => { setDisciplineFilter(event.target.value as PersonnelDiscipline | 'all'); setTalentPage(0); }}>
               {disciplineFilters.map((discipline) => (
-                <button className={disciplineFilter === discipline ? 'active' : ''} key={discipline} onClick={() => { setDisciplineFilter(discipline); setTalentPage(0); }}>
+                <option value={discipline} key={discipline}>
                   {discipline === 'all' ? '전체' : disciplineLabels[discipline]}
-                </button>
+                </option>
               ))}
-            </div>
-            <span>{filteredCandidates.length}명 · {visibleTalentPage + 1}/{talentPageCount}쪽</span>
+            </select></label>
           </div>
           <div className="talent-market-controls">
             <div className="talent-scope-list" aria-label="인재 시장 보기 필터">
-              <span><ListFilter size={11} /> 빠른 보기</span>
-              {(Object.keys(talentScopeLabels) as TalentMarketScope[]).map((scope) => {
+              <ListFilter size={16} /><label><span>시장 범위</span><select value={talentScope} onChange={(event) => { setTalentScope(event.target.value as TalentMarketScope); setTalentPage(0); }}>{(Object.keys(talentScopeLabels) as TalentMarketScope[]).map((scope) => {
                 const count = scope === 'shortlisted' ? shortlistCount : scope === 'scouting' ? scoutingCount : scope === 'wartime' ? wartimeCuratedCount : scope === 'later' ? laterEraCount : scope === 'deep' ? deepProfileCount : null;
-                return <button type="button" className={talentScope === scope ? 'active' : ''} key={scope} onClick={() => { setTalentScope(scope); setTalentPage(0); }}>{talentScopeLabels[scope]}{count !== null && <em>{count}</em>}</button>;
-              })}
+                return <option value={scope} key={scope}>{talentScopeLabels[scope]}{count !== null ? ` (${count})` : ''}</option>;
+              })}</select></label>
             </div>
             <label className="talent-sort"><ArrowUpDown size={11} /><span>정렬</span><select value={talentSort} onChange={(event) => { setTalentSort(event.target.value as TalentMarketSort); setTalentPage(0); }}>{(Object.keys(talentSortLabels) as TalentMarketSort[]).map((sort) => <option value={sort} key={sort}>{talentSortLabels[sort]}</option>)}</select></label>
           </div>
+          </div>
+          <p className="org-market-result-count" role="status">검색 결과 {filteredCandidates.length}명 · {visibleTalentPage + 1}/{talentPageCount}쪽 · 후보 선택·보고서 열람에는 비용이나 성과 보상이 없습니다.</p>
+          <div className={`org-market-results ${selectedCandidate ? 'has-report' : ''}`}>
           {selectedCandidate && (
-            <section className="candidate-report" role="region" aria-label={`${selectedCandidate.name} 조사 보고서`}>
+            <section className="candidate-report" id={reportId} role="region" aria-label={`${selectedCandidate.name} 조사 보고서`}>
               <header>
                 <span><ClipboardList size={16} /><small>PERSONNEL DOSSIER · 정보 신뢰도 {selectedCandidate.knowledge}%</small><strong>{selectedCandidate.name} 조사 보고서</strong></span>
                 <button type="button" onClick={() => setSelectedCandidateId(null)} aria-label="조사 보고서 닫기"><X size={15} /></button>
@@ -678,6 +739,7 @@ export function OrganizationPanel({
               <div className="candidate-report-actions">
                 <button disabled={selectedCandidateUnavailable || selectedCandidate.knowledge >= 100} onClick={() => onScoutCandidate(selectedCandidate.id)}><Search size={12} /> 조사 계속 · 2PP</button>
                 <button disabled={selectedCandidateUnavailable || selectedCandidate.knowledge < 30} onClick={() => onApproachCandidate(selectedCandidate.id)}><MessageSquare size={12} /> 비밀 접촉 · 4PP</button>
+                <button disabled={selectedCandidateUnavailable || selectedCandidate.knowledge < 35} className={selectedCandidate.status === 'shortlisted' ? 'active' : ''} onClick={() => onToggleShortlist(selectedCandidate.id)}><Star size={12} /> {selectedCandidate.status === 'shortlisted' ? '관심 명단에서 제외' : '관심 명단에 추가'}</button>
                 <button title={selectedCandidateManaged ? '권한·임기·보수·보직 약속을 조정해 제안합니다.' : authority.restrictionReason} disabled={!selectedCandidateManaged || selectedCandidateUnavailable || selectedCandidate.knowledge < 55} onClick={() => openNegotiation(selectedCandidate)}>{selectedCandidateManaged ? <HeartHandshake size={12} /> : <LockKeyhole size={12} />} 조건 협상 열기</button>
                 {selectedCandidate.sourceUrl && <a href={selectedCandidate.sourceUrl} target="_blank" rel="noreferrer"><ExternalLink size={11} /> 역사 자료</a>}
               </div>
@@ -697,13 +759,15 @@ export function OrganizationPanel({
               const manageable = manageableDepartments.has(candidate.department);
               const seatFit = calculateCandidateSeatFit(candidate, candidate.department);
               return (
-                <article className={`candidate-card ${candidate.status} ${isExpert ? 'historical-expert' : ''} ${manageable ? '' : 'authority-locked'}`} key={candidate.id}>
+                <article className={`candidate-card org-candidate-row ${candidate.status} ${selectedCandidate?.id === candidate.id ? 'selected' : ''} ${isExpert ? 'historical-expert' : ''} ${manageable ? '' : 'authority-locked'}`} key={candidate.id}>
                   <header>
                     <span>{isExpert ? (candidate.department === 'science' ? <Atom size={10} /> : <Landmark size={10} />) : null}{departmentLabels[candidate.department]} · {candidate.discipline ? disciplineLabels[candidate.discipline] : '군사'}</span>
-                    <em>{manageable ? statusLabels[candidate.status] : <><LockKeyhole size={9} /> 열람만 가능</>}</em>
+                    <em>{manageable ? statusLabels[candidate.status] : <><LockKeyhole size={12} /> 임명 권한 없음</>}</em>
                   </header>
-                  <strong>{candidate.name}</strong>
-                  <small>{candidate.historicalOffice}</small>
+                  <div className="org-candidate-identity"><i className="org-person-monogram" aria-hidden="true">{initials(candidate.name)}</i><span><strong>{candidate.name}</strong><small>{candidate.historicalOffice}</small></span></div>
+                  <div className="org-candidate-comparison"><span><small>정보 / 능력</small><strong>{candidate.knowledge}% / {ability}</strong></span><span><small>계약금 / 주급</small><strong>{formatMoney(candidate.signingCost)} / {formatMoney(candidate.weeklyCost)}</strong></span></div>
+                  <button className="open-candidate-report" type="button" aria-label={`${candidate.name} 조사 보고서`} aria-pressed={selectedCandidate?.id === candidate.id} aria-controls={selectedCandidate?.id === candidate.id ? reportId : undefined} onClick={() => revealCandidateReport(candidate.id)}><ClipboardList size={16} /> 조사 보고서 <ChevronRight size={16} /></button>
+                  <details className="org-candidate-more"><summary>경력·영입 조건과 빠른 조치 <ChevronRight size={14} /></summary><div className="org-candidate-more-body">
                   {isExpert && <div className={`historical-verification ${laterEra ? 'later-era' : identityOnly ? 'identity-only' : 'deep-profile'}`}><ShieldCheck size={10} /> {laterEra ? `${candidate.marketEntryYear}년 등장 · 실제 인물 / 가상 임명 분리` : identityOnly ? '신원·직업 확인 · 1940년대 경력 조사 필요' : '1940년대 경력 심층 검증'}</div>}
                   {isExpert && <div className="expert-identity"><span>{candidate.nationality} · {candidate.birthYear}년생</span><em>{candidate.wartimeLocation}</em></div>}
                   {laterEra && candidate.alternateHistoryEntry && <div className="later-era-arrival"><RefreshCw size={10} /><span>가속 세계선 조기 발탁</span><em>세대 기준 {candidate.generationUnlockYear}년</em></div>}
@@ -725,13 +789,13 @@ export function OrganizationPanel({
                   <p>정보 {candidate.knowledge}% · 관심 {candidate.knowledge >= 45 ? `${candidate.interest}%` : '?'} · 계약금 {formatMoney(candidate.signingCost)} · 주급 {formatMoney(candidate.weeklyCost)}</p>
                   {candidate.sourceUrl && <a className="historical-source-link" href={candidate.sourceUrl} target="_blank" rel="noreferrer"><ExternalLink size={10} /> {candidate.sourceLabel ?? '역사 자료 보기'}</a>}
                   <div className="recruitment-forecast"><strong>{chance}%</strong><span>예상 합의율<small>설득 {score}/72</small></span></div>
-                  <button className="open-candidate-report" type="button" onClick={() => setSelectedCandidateId(candidate.id)}><ClipboardList size={11} /> 조사 보고서 보기 <em>{candidate.knowledge}%</em></button>
                   <div className="candidate-actions">
                     <button disabled={unavailable || candidate.knowledge >= 100} title="정치력 2를 사용해 정보를 수집합니다." onClick={() => { setSelectedCandidateId(candidate.id); onScoutCandidate(candidate.id); }}><Search size={10} /> 조사</button>
                     <button disabled={unavailable || candidate.knowledge < 35} className={candidate.status === 'shortlisted' ? 'active' : ''} onClick={() => onToggleShortlist(candidate.id)}><Star size={10} /> 관심</button>
                     <button disabled={unavailable || candidate.knowledge < 30} title="정치력 4로 비밀 접촉합니다." onClick={() => onApproachCandidate(candidate.id)}><MessageSquare size={10} /> 접촉</button>
                     <button disabled={!manageable || unavailable || candidate.knowledge < 55} title={manageable ? '권한·임기·보수·보직 약속을 조정합니다.' : authority.restrictionReason} onClick={() => openNegotiation(candidate)}>{manageable ? <HeartHandshake size={10} /> : <LockKeyhole size={10} />} 협상</button>
                   </div>
+                  </div></details>
                 </article>
               );
             })}
@@ -744,6 +808,39 @@ export function OrganizationPanel({
               <button type="button" disabled={visibleTalentPage >= talentPageCount - 1} onClick={() => setTalentPage((current) => Math.min(talentPageCount - 1, current + 1))}>다음 <ChevronRight size={13} /></button>
             </nav>
           )}
+          </div>
+          <details className="org-disclosure org-market-guide"><summary><ClipboardList size={16} /><span>조사·접촉·협상 절차와 충원 목표 <small>조사 2PP · 접촉 4PP · 임명은 조건 합의 후</small></span><ChevronRight size={16} /></summary><div className="org-disclosure-body">
+          <div className="recruitment-title">
+            <div><span>GLOBAL TALENT MARKET</span><strong>실존 인물 영입 센터</strong></div>
+            <em>등록 DB {historicalExperts.length.toLocaleString('ko-KR')}명 · 1940년대 정밀 프로필 {wartimeHistoricalExperts.length}명 · 현재 시장 {candidates.length}명 · 조사→접촉→포섭→보직 교체</em>
+          </div>
+          <div className="talent-coverage-audit" aria-label="국가별 실존 인물 데이터 범위">
+            <span><small>플레이 권역</small><strong>{Object.keys(historicalExpertCoverage).length}개</strong></span>
+            <span><small>국가별 최소 인물</small><strong>{minimumHistoricalExpertsPerNation}명</strong></span>
+            <span><small>{nation.name} 소속 실존 인물</small><strong>{historicalExpertCoverage[nation.id]}명</strong></span>
+            <span><small>{nation.name} 1940년대 정밀 인물</small><strong>{wartimeHistoricalExpertCoverage[nation.id]}명</strong></span>
+            <span><small>현재 시대 접촉 가능</small><strong>{candidates.length}명</strong></span>
+          </div>
+          <section className="recruitment-objectives" aria-label="보직별 충원 포커스">
+            <header><Target size={15} /><span><strong>충원 포커스</strong><small>보직 계획의 약점을 인재 조사 목표로 자동 연결합니다.</small></span></header>
+            <div>{recruitmentPriorities.map((plan) => (
+              <button type="button" className={selectedStaffDepartment === plan.department ? 'active' : ''} key={plan.department} onClick={() => { setSelectedStaffDepartment(plan.department); setDisciplineFilter(getStaffSeatDefinition(plan.department).preferredDisciplines[0]); setTalentScope('available'); setTalentPage(0); }}>
+                <span><small>{plan.priority === 'top' ? '최우선' : plan.priority === 'standard' ? '일반' : '관찰'} · 필요도 {plan.needScore}</small><strong>{getStaffSeatTitle(plan.department, campaignPhase, nation.status)}</strong></span><em>내부 {plan.internalDepth[1]?.score ?? 0} · 외부 {plan.externalDepth[0]?.score ?? 0}</em>
+              </button>
+            ))}</div>
+          </section>
+          <section className="recruitment-guide" aria-label="인재 영입 절차">
+            <header><ClipboardList size={16} /><span><strong>영입은 이렇게 진행합니다</strong><small>후보의 ‘조사 보고서’ 버튼으로 비용과 공개된 정보를 비교하십시오. 보고서 열람은 무료입니다.</small></span></header>
+            <ol>
+              <li><i>1</i><span><strong>후보 찾기</strong><small>이름·직책·전공으로 검색</small></span></li>
+              <li><i>2</i><span><strong>조사 · 2PP</strong><small>즉시 정보 +8, 매주 +18{staff.some((member) => member.department === 'personnel' && member.delegated) ? ' + 위임 5' : ''}</small></span></li>
+              <li><i>3</i><span><strong>관심·접촉</strong><small>정보 30%부터 접촉 · 관계 상승</small></span></li>
+              <li><i>4</i><span><strong>조건 협상</strong><small>권한·임기·보수·약속 설계</small></span></li>
+              <li><i>5</i><span><strong>임명·계약 관리</strong><small>만족도·사기·재계약 추적</small></span></li>
+            </ol>
+            <p><b>공개 기준</b> 임명 효과 45% · 제안 55% · 정확한 능력 65% · 정확한 잠재력 85%. 조사 중인 후보는 다음 주에도 자동 갱신됩니다.</p>
+          </section>
+          </div></details>
         </div>)}
         {negotiatingCandidate && (
           <RecruitmentNegotiation
@@ -765,15 +862,15 @@ export function OrganizationPanel({
           const morale = getStaffMorale(meetingStaff);
           const satisfaction = getStaffRoleSatisfaction(meetingStaff);
           return (
-            <div className="staff-meeting-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setMeetingStaffId(null); }}>
-              <section className="staff-meeting-modal" role="dialog" aria-modal="true" aria-labelledby="staff-meeting-title">
+            <div className="staff-meeting-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setMeetingStaffIdentity(null); }}>
+              <section className="staff-meeting-modal" role="dialog" aria-modal="true" aria-labelledby="staff-meeting-title" onKeyDown={(event) => { if (event.key === 'Escape') setMeetingStaffIdentity(null); }}>
                 <header>
                   <span><MessageSquare size={22} /><small>ONE-TO-ONE MEETING</small><strong id="staff-meeting-title">{meetingStaff.name} 면담</strong></span>
-                  <button type="button" aria-label="면담 창 닫기" onClick={() => setMeetingStaffId(null)}><X size={16} /></button>
+                  <button type="button" autoFocus aria-label="면담 창 닫기" onClick={() => setMeetingStaffIdentity(null)}><X size={16} /></button>
                 </header>
                 <div className="staff-meeting-status">
                   <span><small>사기</small><strong>{morale}</strong><Meter value={morale} tone={morale < 50 ? 'red' : 'blue'} /></span>
-                  <span><small>충성</small><strong>{meetingStaff.loyalty}</strong><Meter value={meetingStaff.loyalty} tone={meetingStaff.loyalty < 50 ? 'red' : 'gold'} /></span>
+                  <span><small>충성</small><strong>{Math.round(meetingStaff.loyalty)}</strong><Meter value={meetingStaff.loyalty} tone={meetingStaff.loyalty < 50 ? 'red' : 'gold'} /></span>
                   <span><small>역할 만족</small><strong>{satisfaction}</strong><Meter value={satisfaction} tone={satisfaction < 50 ? 'red' : 'gold'} /></span>
                   <span><small>지도부 수용</small><strong>{buyIn}</strong><Meter value={buyIn} tone={buyIn < 58 ? 'red' : 'blue'} /></span>
                 </div>
@@ -784,9 +881,9 @@ export function OrganizationPanel({
                 </div>
                 <div className="staff-meeting-options">
                   {staffMeetingOptions.map((option) => {
-                    const unavailable = completedThisWeek || game.politicalPower < option.cost;
+                    const unavailable = !manageableStaffIds.has(meetingStaff.id) || completedThisWeek || game.politicalPower < option.cost;
                     return (
-                      <button type="button" className={option.risk} key={option.id} disabled={unavailable} onClick={() => { onMeetStaff(meetingStaff.id, option.id); setMeetingStaffId(null); }}>
+                      <button type="button" className={option.risk} key={option.id} disabled={unavailable} onClick={() => { onMeetStaff(meetingStaff.id, option.id); setMeetingStaffIdentity(null); }}>
                         <i>{option.id === 'wellbeing' ? <HeartHandshake size={16} /> : option.id === 'workload' ? <ClipboardList size={16} /> : option.id === 'career' ? <Star size={16} /> : <Target size={16} />}</i>
                         <span><small>{option.risk === 'safe' ? '안전한 의제' : option.risk === 'balanced' ? '성장 의제' : `요구적 의제 · 수용 기준 ${buyIn}/58`}</small><strong>{option.label}</strong><p>{option.summary}</p><em>{option.forecast}</em></span>
                         <b>{option.cost} PP</b>
@@ -794,13 +891,16 @@ export function OrganizationPanel({
                     );
                   })}
                 </div>
-                <footer><small>면담 결과는 진행 결과 분석실과 주간 조직 수치에 즉시 기록됩니다.</small><button type="button" onClick={() => setMeetingStaffId(null)}>취소</button></footer>
+                <footer><small>면담 결과는 진행 결과 분석실과 주간 조직 수치에 즉시 기록됩니다.</small><button type="button" onClick={() => setMeetingStaffIdentity(null)}>취소</button></footer>
               </section>
             </div>
           );
         })()}
       </section>
 
+      {workspace === 'squad' && <details className="org-disclosure org-operations-disclosure">
+        <summary><ClipboardList size={16} /><span>조직 운용 설정 <small>편제 우선 지원 · 조달 우선순위 · 보급 운영 · 국가 운영 원칙</small></span><ChevronRight size={16} /></summary>
+        <div className="org-operations-grid">
       <section className="management-card formations-card">
         <div className="management-heading">
           <div><span>FIRST TEAM</span><h3>핵심 편제</h3></div>
@@ -891,6 +991,8 @@ export function OrganizationPanel({
           })}
         </div>
       </section>
+        </div>
+      </details>}
     </div>
   );
 }

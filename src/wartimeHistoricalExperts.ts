@@ -1,5 +1,6 @@
 import type { HistoricalExpertProfile } from './historicalExperts';
 import type { NationId, PersonnelAvailability, PersonnelDiscipline } from './types';
+import { withJosa } from './koreanGrammar';
 
 type Citation = readonly [label: string, url: string];
 
@@ -241,7 +242,7 @@ function materialize(seed: WartimeFigureSeed, index: number): HistoricalExpertPr
     office1942: seed.wartimeOffice,
     affiliation: seed.affiliation,
     wartimeLocation: seed.location,
-    summary: `${seed.name}은(는) 1940년대 ${seed.affiliation}에서 활동한 실존 인물입니다. 게임에서는 실제 전시 경력과 조직망을 바탕으로 ${seed.appointmentTitle} 후보가 되며, 임명 이후의 능력치와 대체역사 행보는 플레이 결과입니다.`,
+    summary: `${withJosa(seed.name, '은/는')} 1940년대 ${seed.affiliation}에서 활동한 실존 인물입니다. 게임에서는 실제 전시 경력과 조직망을 바탕으로 ${seed.appointmentTitle} 후보가 되며, 임명 이후의 능력치와 대체역사 행보는 플레이 결과입니다.`,
     historicalConstraint: seed.constraint,
     expertise: seed.expertise,
     networks: seed.networks,

@@ -1,4 +1,5 @@
 import type { DiplomaticRelation, NationId } from './types';
+import { withJosa } from './koreanGrammar';
 
 export type ExchangePolicy = 'open' | 'managed' | 'restricted' | 'blockaded';
 export type CurrencyBacking = 'continuity' | 'foreign-reserve' | 'state-credit';
@@ -408,7 +409,7 @@ export function restoreHistoricalCurrency(system: MonetarySystemState, nationId:
       year,
       fromCurrencyId: currentId,
       toCurrencyId: historical.id,
-      note: `${year}년 역사 기본 통화 ${historical.name}(으)로 복귀했습니다.`,
+      note: `${year}년 역사 기본 통화 ${withJosa(historical.name, '으로/로')} 복귀했습니다.`,
     }, ...system.transitionHistory].slice(0, 20),
   };
 }
@@ -423,7 +424,7 @@ export function advanceMonetarySystem(system: MonetarySystemState, nationId: Nat
     year,
     fromCurrencyId: system.activeCurrencyId,
     toCurrencyId: historical.id,
-    note: historical.transitionNote ?? `${previous.name}에서 ${historical.name}(으)로 통화 명칭과 발권체계를 변경했습니다.`,
+    note: historical.transitionNote ?? `${previous.name}에서 ${withJosa(historical.name, '으로/로')} 통화 명칭과 발권체계를 변경했습니다.`,
   };
   return {
     state: { ...system, activeCurrencyId: historical.id, transitionHistory: [transition, ...system.transitionHistory].slice(0, 20) },

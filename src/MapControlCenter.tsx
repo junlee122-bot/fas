@@ -1,6 +1,8 @@
 import {
+  CalendarClock,
   CloudRain,
   Eye,
+  GitBranch,
   Info,
   Layers3,
   ListFilter,
@@ -15,6 +17,7 @@ import {
 } from 'lucide-react';
 import type { StrategicMapRegionDefinition } from './mapRegions';
 import type { MapLabelMode } from './mapPresentation';
+import type { StrategicFrontChronologyEntry } from './strategicMapData';
 import type { MapLayer, TheaterId, Territory } from './types';
 
 const mapLayerOptions: Array<{ id: MapLayer; label: string; shortcut: string; icon: typeof Map }> = [
@@ -22,6 +25,7 @@ const mapLayerOptions: Array<{ id: MapLayer; label: string; shortcut: string; ic
   { id: 'supply', label: '보급', shortcut: '2', icon: Shield },
   { id: 'weather', label: '기상', shortcut: '3', icon: CloudRain },
   { id: 'intelligence', label: '정보', shortcut: '4', icon: Eye },
+  { id: 'history', label: '변화', shortcut: '5', icon: GitBranch },
 ];
 
 const labelModeOptions: Array<{ id: MapLabelMode; label: string; description: string }> = [
@@ -40,6 +44,8 @@ interface MapControlCenterProps {
   cityCount: number;
   frontCount: number;
   activeContactCount: number;
+  campaignYear: number;
+  frontTimeline: StrategicFrontChronologyEntry[];
   layer: MapLayer;
   layerMeta: Record<MapLayer, { key: string; label: string; description: string }>;
   labelMode: MapLabelMode;
@@ -68,6 +74,8 @@ export function MapControlCenter({
   cityCount,
   frontCount,
   activeContactCount,
+  campaignYear,
+  frontTimeline,
   layer,
   layerMeta,
   labelMode,
@@ -85,6 +93,14 @@ export function MapControlCenter({
   onToggleIntel,
   onToggleFocus,
 }: MapControlCenterProps) {
+  const activeFronts = frontTimeline.filter((front) => front.visible);
+  const alternateFronts = frontTimeline.filter((front) => front.state === 'diverged-early' || front.state === 'alternate-continuation');
+  const scheduledFronts = frontTimeline
+    .filter((front) => front.state === 'scheduled')
+    .sort((a, b) => a.startYear - b.startYear || a.name.localeCompare(b.name, 'ko'));
+  const nextFront = scheduledFronts[0];
+  const postwarMap = frontTimeline.length > 0 && frontTimeline.every((front) => front.state === 'postwar-legacy');
+
   return (
     <>
       <header className={`map-command-center${filtersOpen ? ' filters-open' : ''}${legendOpen ? ' legend-open' : ''}`}>
@@ -108,6 +124,14 @@ export function MapControlCenter({
               {focusMode ? <Minimize2 size={15} /> : <Maximize2 size={15} />}<span>{focusMode ? '집중 종료' : '집중 모드'}</span>
             </button>
           </div>
+        </div>
+
+        <div className="map-front-timeline" aria-label={`${campaignYear}년 전선 시간선`}>
+          <span className="map-front-timeline-year"><CalendarClock size={13} /><b>{campaignYear}</b><small>{postwarMap ? '전후 지도' : '전시 오버레이'}</small></span>
+          <span className="active"><b>{activeFronts.length}</b><small>현재 전선</small></span>
+          <span className={alternateFronts.length > 0 ? 'alternate' : ''}><b>{alternateFronts.length}</b><small>역사 이탈</small></span>
+          <span><b>{scheduledFronts.length}</b><small>아직 미형성</small></span>
+          {nextFront ? <em title={`${nextFront.name} · ${nextFront.reason}`}><strong>다음 역사 창</strong><b>{nextFront.name}</b><small>{nextFront.startYear}년 · D-{nextFront.yearsUntil}년</small></em> : <em><strong>{postwarMap ? '전시 전선 보관됨' : '모든 전선 시간축 반영'}</strong><b>{postwarMap ? '현대 위기 지도로 전환' : '현재 세계선 추적 중'}</b></em>}
         </div>
 
         {filtersOpen && (
@@ -164,6 +188,7 @@ export function MapControlCenter({
               <span><i className="dot neutral" /> 중립국</span>
               <span><i className="front-symbol" /> 적 접촉선</span>
               <span><i className="route-symbol" /> 선택 지역 연결</span>
+              <span><i className="history-symbol" /> 캠페인 이후 변화</span>
             </div>
             <p>휠로 확대하고 빈 지도를 드래그해 이동합니다. 지역을 선택하면 하단 카드에서 보급·전선 접촉·주둔 전력을 확인할 수 있습니다.</p>
           </div>

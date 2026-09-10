@@ -7,6 +7,7 @@ interface CommanderDevelopmentPanelProps {
   development: CommanderDevelopment;
   division: Division;
   commandPoints: number;
+  managementLockedReason?: string;
   onUnlockSkill: (skillId: CommanderSkillId) => void;
   onRestCommander: () => void;
 }
@@ -23,6 +24,7 @@ export function CommanderDevelopmentPanel({
   development,
   division,
   commandPoints,
+  managementLockedReason,
   onUnlockSkill,
   onRestCommander,
 }: CommanderDevelopmentPanelProps) {
@@ -35,7 +37,7 @@ export function CommanderDevelopmentPanel({
     <section className="commander-development-panel">
       <header>
         <div><span>OFFICER DEVELOPMENT</span><h3>지휘관 성장과 전투 유산</h3></div>
-        <em>{availablePoints > 0 ? `특기 ${availablePoints}개 선택 가능` : `복무 레벨 ${level.level}`}</em>
+        <em>{managementLockedReason ?? (availablePoints > 0 ? `특기 ${availablePoints}개 선택 가능` : `복무 레벨 ${level.level}`)}</em>
       </header>
 
       <div className="officer-progress-card">
@@ -51,7 +53,7 @@ export function CommanderDevelopmentPanel({
           <div><dt>승률</dt><dd>{winRate}%</dd></div>
           <div><dt>피로</dt><dd className={development.fatigue >= 65 ? 'warning' : ''}>{development.fatigue}%</dd></div>
         </dl>
-        <button onClick={onRestCommander} disabled={commandPoints < 6 || development.fatigue < 10} title={development.fatigue < 10 ? '피로도 10 이상일 때 휴양할 수 있습니다.' : commandPoints < 6 ? '지휘 점수 6이 필요합니다.' : '피로도 22를 회복합니다.'}>
+        <button onClick={onRestCommander} disabled={Boolean(managementLockedReason) || commandPoints < 6 || development.fatigue < 10} title={managementLockedReason ?? (development.fatigue < 10 ? '피로도 10 이상일 때 휴양할 수 있습니다.' : commandPoints < 6 ? '지휘 점수 6이 필요합니다.' : '피로도 22를 회복합니다.')}>
           <BedDouble size={14} /> 참모 휴양 <em>6 CP</em>
         </button>
       </div>
@@ -59,7 +61,7 @@ export function CommanderDevelopmentPanel({
       <div className="officer-skill-grid">
         {commanderSkills.map((skill) => {
           const selected = development.skills.includes(skill.id);
-          const unavailable = !selected && availablePoints <= 0;
+          const unavailable = !selected && (Boolean(managementLockedReason) || availablePoints <= 0);
           return (
             <button
               key={skill.id}
@@ -67,7 +69,7 @@ export function CommanderDevelopmentPanel({
               aria-pressed={selected}
               disabled={selected || unavailable}
               onClick={() => onUnlockSkill(skill.id)}
-              title={selected ? '이미 습득한 지휘 특기입니다.' : unavailable ? '복무 레벨을 올려 특기 점수를 획득하십시오.' : `${skill.title}: ${skill.effect}`}
+              title={selected ? '이미 습득한 지휘 특기입니다.' : managementLockedReason ?? (unavailable ? '복무 레벨을 올려 특기 점수를 획득하십시오.' : `${skill.title}: ${skill.effect}`)}
             >
               <i>{selected ? <Check size={14} /> : unavailable ? <LockKeyhole size={13} /> : skillIcons[skill.id]}</i>
               <span><strong>{skill.title}</strong><small>{skill.description}</small><em>{selected ? '습득 완료' : skill.effect}</em></span>

@@ -1,3 +1,4 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
 import type { GameState, Stockpile } from './types';
 import type { GeneratedWorldEvent, WorldHistoryCategory, WorldHistoryVariant } from './worldHistory';
 
@@ -28,7 +29,7 @@ export interface WorldFlashpointForecast extends WorldFlashpointSelection {
 const round = (value: number) => Math.round(value);
 
 export function getCampaignYear(week: number) {
-  return 1942 + Math.floor(Math.max(0, week) / 52);
+  return getCampaignYearForWeek(week);
 }
 
 export function getWorldFlashpointDecisionId(eventId: string, variantId: string, week: number) {

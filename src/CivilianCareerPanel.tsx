@@ -1,3 +1,4 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
 import {
   ArrowRight,
   BookOpen,
@@ -74,7 +75,7 @@ export function CivilianCareerPanel({
   const profession = getCivilianProfession(state.professionId);
   const origin = getCivilianOrigin(state.originId);
   const readiness = getCivilianInstitutionReadiness(state);
-  const currentYear = 1942 + Math.floor(week / 52);
+  const currentYear = getCampaignYearForWeek(week);
 
   return (
     <div className="civilian-career-home">

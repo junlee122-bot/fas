@@ -1,3 +1,4 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
 import {
   advanceClandestineCareerWeek,
   createClandestineCareerState,
@@ -282,7 +283,7 @@ function addCount<Key extends string>(record: Partial<Record<Key, number>>, key:
 }
 
 function getYear(week: number) {
-  return CLANDESTINE_PLAYTEST_START_YEAR + Math.floor(week / 52);
+  return getCampaignYearForWeek(week);
 }
 
 function getEra(year: number) {

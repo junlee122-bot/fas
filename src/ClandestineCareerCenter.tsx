@@ -1,3 +1,4 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
@@ -372,7 +373,7 @@ export function ClandestineCareerCenter({
             <div>
               {state.careerChapters.map((chapter, index) => (
                 <article className={index === 0 ? 'active' : ''} key={chapter.id}>
-                  <time>{1942 + Math.floor(chapter.startedWeek / 52)}년{chapter.endedWeek === null ? '–현재' : `–${1942 + Math.floor(chapter.endedWeek / 52)}년`}</time>
+                  <time>{getCampaignYearForWeek(chapter.startedWeek)}년{chapter.endedWeek === null ? '–현재' : `–${getCampaignYearForWeek(chapter.endedWeek)}년`}</time>
                   <strong>{chapter.eraLabel}</strong>
                   <p>{chapter.summary}</p>
                   <span>성공 {chapter.missionsResolved} · 실패·거부 {chapter.missionsFailed} · 방첩 위기 {chapter.incidents}</span>

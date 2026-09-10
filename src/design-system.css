@@ -1,0 +1,183 @@
+/* Command Edition: one visual language, with the map and game state left intact. */
+.game-shell.design-v2 {
+  --ui-bg:#10161d; --ui-surface:#18212b; --ui-raised:#202c38; --ui-paper:#f1f2ed;
+  --ui-ink:#1c2831; --ui-text:#edf0ec; --ui-muted:#9dacb8; --ui-accent:#c7a16c; --ui-border:#34424c;
+  --gold:var(--ui-accent); --gold-bright:#ead2a9; --text:var(--ui-text); --muted:var(--ui-muted);
+  --line:var(--ui-border); --line-bright:#53626e; --font-display:var(--font-ui);
+  --command-header:88px; --command-rail:224px;
+  color:var(--ui-text); background:var(--ui-bg); font-size:16px;
+}
+.game-shell.design-v2::after { display:none; }
+.game-shell.design-v2 :where(button,summary,a,input,select,textarea):focus-visible { outline:2px solid #ecd0a0; outline-offset:3px; }
+.game-shell.design-v2 :where(button,summary) { touch-action:manipulation; }
+.game-shell.design-v2 .topbar { height:var(--command-header); grid-template-columns:250px minmax(0,1fr) auto; background:#131c25; border-bottom:1px solid var(--ui-border); box-shadow:none; gap:0; }
+.game-shell.design-v2 .brand-block { position:relative; gap:10px; padding:0 14px; border-right:1px solid var(--ui-border); }
+.game-shell.design-v2 .brand-copy { display:flex; flex-direction:column; gap:6px; }
+.game-shell.design-v2 .brand-copy strong { font-family:var(--font-ui); font-size:14px; font-weight:750; letter-spacing:.03em; }
+.game-shell.design-v2 .brand-copy span { font-size:10px; letter-spacing:.04em; line-height:1.3; }
+.game-shell.design-v2 .brand-copy .compact-campaign-date,.game-shell.design-v2 .compact-time-settings { display:none; }
+.game-shell.design-v2 .brand-mark { display:none; }
+.game-shell.design-v2 .menu-button { flex:0 0 40px; width:40px; height:44px; border:0; background:transparent; }
+.game-shell.design-v2 .command-utilities { margin-left:auto; }
+.game-shell.design-v2 .command-utilities > summary { display:grid; place-items:center; width:30px; min-height:44px; list-style:none; cursor:pointer; border-radius:6px; color:var(--ui-muted); }
+.game-shell.design-v2 summary::-webkit-details-marker { display:none; }
+.game-shell.design-v2 .command-utilities[open] > summary { color:var(--ui-text); background:var(--ui-raised); }
+.game-shell.design-v2 .command-utilities-panel { position:absolute; left:12px; top:calc(100% + 8px); z-index:80; width:310px; max-width:calc(100vw - 24px); padding:12px; display:grid; gap:8px; background:var(--ui-surface); border:1px solid var(--ui-border); border-radius:10px; box-shadow:0 20px 65px #0008; }
+.game-shell.design-v2 .command-utilities-panel :is(.career-rank-chip,.campaign-phase-chip,.political-crisis-chip,.health-command-chip,.world-weekly-chip) { display:flex; min-width:0; width:100%; height:auto; min-height:56px; padding:10px 12px; background:var(--ui-raised); border:1px solid var(--ui-border); border-radius:6px; text-align:left; align-items:center; gap:12px; }
+.game-shell.design-v2 .command-utilities-panel .career-rank-chip { flex-direction:column; align-items:flex-start; gap:4px; }
+.game-shell.design-v2 .command-utilities-panel :is(small,strong,span) { display:block; font-size:14px; white-space:normal; color:var(--ui-text); }
+.game-shell.design-v2 .command-utilities-panel small { color:var(--ui-muted); font-size:12px; }
+.game-shell.design-v2 .resource-row { min-width:0; padding:8px 10px; gap:4px; border:0; background:none; }
+.game-shell.design-v2 .resource-scroll-track { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:6px; min-width:0; overflow:visible; flex:1; }
+.game-shell.design-v2 .resource-chip { display:flex; align-items:center; min-width:0; gap:6px; padding:8px 4px; border:0; border-radius:6px; background:none; }
+.game-shell.design-v2 .resource-chip.priority { background:#c7a16c12; box-shadow:none; border:0; }
+.game-shell.design-v2 .resource-chip > .game-icon { display:none; }
+.game-shell.design-v2 .resource-chip > div { width:100%; min-width:0; }
+.game-shell.design-v2 .resource-value-line { display:block; min-width:0; }
+.game-shell.design-v2 .resource-chip strong { display:block; font-size:16px; font-weight:650; white-space:normal; word-break:break-word; line-height:1.3; text-overflow:clip; overflow:visible; letter-spacing:-.03em; }
+.game-shell.design-v2 .resource-chip .resource-label { display:block; overflow:visible; white-space:normal; font-size:11px; color:var(--ui-muted); line-height:1.35; margin-top:4px; }
+.game-shell.design-v2 .resource-chip .resource-label::after { content:none; }
+.game-shell.design-v2 .resource-chip .resource-delta { display:none; }
+.game-shell.design-v2 .status-overview-trigger { width:36px; min-width:36px; height:44px; align-self:center; padding:0; justify-content:center; border:1px solid var(--ui-border); border-radius:6px; background:none; color:var(--ui-muted); }
+.game-shell.design-v2 .status-overview-trigger span { display:none; }
+.game-shell.design-v2 .time-controls { gap:4px; padding:10px 14px; border-left:1px solid var(--ui-border); }
+.game-shell.design-v2 .weather { display:none; }
+.game-shell.design-v2 .date-block { display:flex; min-width:90px; margin:0 8px 0 0; padding:0; flex-direction:column; gap:5px; }
+.game-shell.design-v2 .date-block strong { font-size:14px; }
+.game-shell.design-v2 .date-block span { font-size:11px; color:var(--ui-muted); }
+.game-shell.design-v2 .speed-button { min-width:32px; width:32px; height:44px; border:0; border-radius:6px; font-size:12px; background:transparent; }
+.game-shell.design-v2 .speed-button.active { background:var(--ui-raised); color:var(--ui-accent); }
+.game-shell.design-v2 .speed-button.next { display:flex; align-items:center; justify-content:center; width:auto; min-width:112px; padding:0 12px; gap:8px; background:var(--ui-accent); border:0; color:var(--ui-ink); }
+.game-shell.design-v2 .speed-button.next span { font-size:13px; font-weight:750; white-space:normal; }
+.game-shell.design-v2 .speed-button.next .game-icon { color:var(--ui-ink); }
+.game-shell.design-v2 .time-cadence-trigger { height:44px; background:var(--ui-raised); border-color:var(--ui-border); border-radius:6px; }
+.game-shell.design-v2 .left-rail { top:var(--command-header); bottom:0; width:var(--command-rail); background:#131c25; border-right:1px solid var(--ui-border); padding:0; box-shadow:none; }
+.game-shell.design-v2 .nation-emblem { padding:18px 20px; min-height:70px; gap:12px; justify-content:flex-start; border-bottom:1px solid var(--ui-border); }
+.game-shell.design-v2 .nation-emblem .historical-flag { width:36px; height:25px; }
+.game-shell.design-v2 .nation-emblem small { display:block; font-size:13px; color:var(--ui-text); }
+.game-shell.design-v2 .primary-nav { padding:10px 12px 20px; gap:0; overflow-y:auto; }
+.game-shell.design-v2 .primary-nav-group-label { display:block; padding:17px 10px 8px; font-size:11px; line-height:1.3; letter-spacing:.07em; color:#8394a3; }
+.game-shell.design-v2 .primary-nav button { display:flex; min-height:64px; width:100%; padding:10px; gap:12px; border:0; border-radius:7px; background:transparent; text-align:left; box-shadow:none; }
+.game-shell.design-v2 .primary-nav button::before,.game-shell.design-v2 .primary-nav button::after { display:none; }
+.game-shell.design-v2 .primary-nav button:hover { background:#202c3880; }
+.game-shell.design-v2 .primary-nav button.active { background:#c7a16c17; box-shadow:inset 3px 0 var(--ui-accent); }
+.game-shell.design-v2 .nav-icon-plate { display:grid; place-items:center; width:26px; height:30px; flex:0 0 26px; background:none; border:0; clip-path:none; box-shadow:none; }
+.game-shell.design-v2 .primary-nav .nav-copy { display:flex; flex:1; min-width:0; flex-direction:column; align-items:flex-start; gap:4px; }
+.game-shell.design-v2 .nav-copy strong { display:block; font-size:15px; font-weight:600; line-height:1.25; color:#cdd7de; }
+.game-shell.design-v2 .primary-nav .active .nav-copy strong { color:#ead2a9; }
+.game-shell.design-v2 .nav-copy small { display:block; font-size:11px; color:#97a8b5; line-height:1.3; }
+.game-shell.design-v2 .nav-mandate-label { display:none; }
+.game-shell.design-v2 .nav-work-badge { position:static; width:20px; min-width:20px; height:20px; line-height:20px; font-size:10px; align-self:center; background:none; border:0; color:var(--ui-accent); }
+.game-shell.design-v2 .rail-support { flex:0 0 auto; border-top:1px solid var(--ui-border); }
+.game-shell.design-v2 .rail-support > summary { cursor:pointer; padding:17px 22px; min-height:52px; color:var(--ui-muted); font-size:13px; }
+.game-shell.design-v2 .rail-bottom { position:static; width:auto; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); max-height:260px; overflow-y:auto; border:0; padding:0 10px 10px; background:none; }
+.game-shell.design-v2 .rail-bottom button { display:flex; justify-content:flex-start; gap:8px; min-height:48px; height:auto; padding:8px; border:0; background:none; font-size:12px; }
+.game-shell.design-v2 .rail-bottom button span { display:block; font-size:12px; }
+.game-shell.design-v2 .rail-bottom .rail-achievement-count,.game-shell.design-v2 .rail-bottom .rail-crisis-count { display:none; }
+.game-shell.design-v2 .rail-visibility-toggle { top:calc(var(--command-header) + 10px); left:calc(var(--command-rail) - 1px); width:32px; height:44px; border:1px solid var(--ui-border); border-left:0; border-radius:0 6px 6px 0; background:var(--ui-surface); }
+.game-shell.design-v2 .war-room { top:var(--command-header); left:var(--command-rail); bottom:0; background:var(--ui-bg); }
+.game-shell.design-v2.navigation-collapsed .war-room,.game-shell.design-v2.navigation-collapsed .rail-visibility-toggle { left:0; }
+.game-shell.design-v2 .command-deck { background:var(--ui-bg); box-shadow:none; border:0; }
+.game-shell.design-v2 .deck-context-bar { display:flex; min-height:62px; padding:12px 28px 12px 42px; gap:16px; border-bottom:1px solid var(--ui-border); background:var(--ui-bg); }
+.game-shell.design-v2 .deck-context-title { flex:1; gap:10px; }
+.game-shell.design-v2 .deck-context-title > .game-icon { display:none; }
+.game-shell.design-v2 .deck-context-title > span { display:flex; flex-direction:row; gap:12px; align-items:center; flex-wrap:wrap; }
+.game-shell.design-v2 .deck-context-title em { color:var(--ui-muted); font-size:11px; }
+.game-shell.design-v2 .deck-context-title strong { color:var(--ui-text); font-size:16px; }
+.game-shell.design-v2 .deck-context-title small { display:none; }
+.game-shell.design-v2 .deck-guide { position:relative; }
+.game-shell.design-v2 .deck-guide > summary { cursor:pointer; min-height:44px; display:flex; align-items:center; font-size:12px; color:var(--ui-muted); }
+.game-shell.design-v2 .deck-route { display:flex; flex-direction:column; align-items:stretch; gap:12px; position:absolute; z-index:8; top:100%; right:0; width:280px; padding:18px; background:var(--ui-surface); border:1px solid var(--ui-border); border-radius:8px; box-shadow:0 16px 48px #0007; }
+.game-shell.design-v2 .deck-route li { padding:0; gap:10px; }
+.game-shell.design-v2 .deck-route li::before { display:none; }
+.game-shell.design-v2 .deck-route span { font-size:14px; white-space:normal; line-height:1.5; }
+.game-shell.design-v2 .deck-context-actions > button { min-height:40px; font-size:12px; padding:0 10px; border:1px solid var(--ui-border); color:var(--ui-muted); background:none; border-radius:6px; }
+.game-shell.design-v2 .deck-context-actions kbd { font-size:9px; }
+.game-shell.design-v2 .deck-content { padding:24px 32px 48px; background:var(--ui-bg); overflow-x:hidden; }
+.game-shell.design-v2 .deck-content :where(p,span,em,dt,label) { font-size:14px; line-height:1.6; }
+.game-shell.design-v2 .deck-content small { font-size:12px; line-height:1.5; }
+.game-shell.design-v2 .deck-content strong { font-size:15px; line-height:1.4; }
+.game-shell.design-v2 .deck-content button { min-height:44px; font-size:14px; }
+.game-shell.design-v2 .deck-content :where(input,select,textarea) { font-size:14px; min-height:44px; }
+.game-shell.design-v2 .deck-content :where(h2) { font-size:22px; line-height:1.3; }
+.game-shell.design-v2 .deck-content :where(h3) { font-size:18px; line-height:1.4; }
+.game-shell.design-v2 .field-workspace-switch { display:flex; gap:20px; padding:0; margin:0 auto 28px; border:0; border-bottom:1px solid var(--ui-border); border-radius:0; background:none; max-width:1440px; }
+.game-shell.design-v2 .field-workspace-switch button { flex:0 1 auto; display:flex; flex-direction:column; gap:4px; align-items:flex-start; padding:4px 8px 16px; border:0; border-radius:0; background:none; color:var(--ui-muted); min-width:0; }
+.game-shell.design-v2 .field-workspace-switch button[aria-pressed=true] { box-shadow:0 2px var(--ui-accent); background:none; color:var(--ui-text); }
+.game-shell.design-v2 .field-workspace-switch strong { font-size:15px; color:inherit; }
+.game-shell.design-v2 .field-workspace-switch span { font-size:12px; color:var(--ui-muted); }
+.game-shell.design-v2 .command-desk .command-desk-activities strong { font-size:28px; }
+.game-shell.design-v2 .workspace-crisis-ribbon { margin:12px 28px 0; padding:12px 16px; background:#6c3b2924; border:1px solid #785d46; border-radius:7px; }
+.game-shell.design-v2 .workspace-crisis-ribbon strong { font-size:14px; }
+.game-shell.design-v2 .workspace-crisis-ribbon small,.game-shell.design-v2 .workspace-crisis-ribbon em { font-size:12px; }
+.game-shell.design-v2.high-contrast { --ui-muted:#c0cbd3; --ui-border:#6b7d8c; --ui-accent:#ebc58c; }
+.game-shell.design-v2.map-focus-mode .war-room { top:0; left:0; bottom:0; }
+@media (max-width:1400px) and (min-width:901px) {
+  .game-shell.design-v2 { --command-header:140px; }
+  .game-shell.design-v2 .topbar { grid-template-columns:250px minmax(0,1fr); grid-template-rows:68px 72px; }
+  .game-shell.design-v2 .brand-block { grid-column:1; grid-row:1; }
+  .game-shell.design-v2 .time-controls { grid-column:2; grid-row:1; justify-content:flex-end; border:0; }
+  .game-shell.design-v2 .resource-row { grid-column:1/-1; grid-row:2; border-top:1px solid var(--ui-border); padding:4px 24px; }
+  .game-shell.design-v2 .resource-chip { padding:7px 16px; }
+  .game-shell.design-v2 .resource-chip strong { font-size:18px; }
+  .game-shell.design-v2 .resource-chip > .game-icon { display:grid; width:28px; height:28px; flex-shrink:0; }
+}
+@media (max-width:1100px) {
+  .game-shell.design-v2 .deck-content { padding:20px 22px 40px; }
+  .game-shell.design-v2 .deck-context-title em { display:none; }
+  .game-shell.design-v2 .deck-context-actions .autosave-indicator { width:40px; padding:0; justify-content:center; }
+  .game-shell.design-v2 .deck-context-actions .autosave-indicator span { display:none; }
+  .game-shell.design-v2 .deck-context-actions kbd { display:none; }
+}
+@media (max-width:900px) {
+  .game-shell.design-v2 { --command-header:150px; --command-rail:260px; }
+  .game-shell.design-v2 .topbar { grid-template-columns:minmax(0,1fr) auto; grid-template-rows:66px 84px; }
+  .game-shell.design-v2 .brand-block { grid-row:1; grid-column:1; padding:0 8px; border:0; gap:4px; }
+  .game-shell.design-v2 .brand-copy strong { font-size:12px; }
+  .game-shell.design-v2 .brand-copy span { font-size:9px; }
+  .game-shell.design-v2 .brand-copy .brand-timeline { display:none; }
+  .game-shell.design-v2 .brand-copy .compact-campaign-date { display:block; font-size:10px; white-space:nowrap; }
+  .game-shell.design-v2 .compact-time-settings { display:grid; gap:10px; padding:12px; }
+  .game-shell.design-v2 .compact-time-settings > div { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .game-shell.design-v2 .compact-time-settings button { min-height:44px; font-size:13px; border:1px solid var(--ui-border); background:var(--ui-raised); color:var(--ui-text); border-radius:6px; }
+  .game-shell.design-v2 .compact-time-settings button[aria-pressed=true] { border-color:var(--ui-accent); color:var(--ui-accent); }
+  .game-shell.design-v2 .menu-button { width:34px; flex-basis:34px; }
+  .game-shell.design-v2 .time-controls { grid-row:1; grid-column:2; padding:8px; border:0; }
+  .game-shell.design-v2 .time-controls > .speed-button:not(.next),.game-shell.design-v2 .time-controls .time-cadence-trigger { display:none; }
+  .game-shell.design-v2 .date-block { min-width:0; margin-right:6px; }
+  .game-shell.design-v2 .date-block strong { font-size:11px; }
+  .game-shell.design-v2 .date-block span { font-size:10px; }
+  .game-shell.design-v2 .speed-button.next { min-width:82px; padding:0 8px; max-width:130px; }
+  .game-shell.design-v2 .speed-button.next span { font-size:12px; }
+  .game-shell.design-v2 .speed-button.next .game-icon { display:none; }
+  .game-shell.design-v2 .resource-row { grid-row:2; grid-column:1/-1; border-top:1px solid var(--ui-border); padding:6px 10px; }
+  .game-shell.design-v2 .resource-scroll-track { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .game-shell.design-v2 .resource-chip { display:flex; padding:8px; }
+  .game-shell.design-v2 .resource-chip:nth-child(n+4) { display:none; }
+  .game-shell.design-v2 .resource-chip strong { font-size:16px; }
+  .game-shell.design-v2 .resource-chip .resource-label { font-size:11px; }
+  .game-shell.design-v2 .resource-chip.priority .resource-label { max-width:none; }
+  .game-shell.design-v2 .status-overview-trigger { width:32px; min-width:32px; }
+  .game-shell.design-v2 .left-rail { top:var(--command-header); bottom:64px; z-index:50; }
+  .game-shell.design-v2 .war-room { left:0; top:var(--command-header); bottom:64px; }
+  .game-shell.design-v2 .rail-visibility-toggle { display:none; }
+  .game-shell.design-v2 .mobile-navigation-scrim { top:var(--command-header); bottom:64px; }
+  .game-shell.design-v2 .mobile-command-dock { height:64px; padding-bottom:env(safe-area-inset-bottom); background:#131c25; border-top:1px solid var(--ui-border); }
+  .game-shell.design-v2 .mobile-command-dock button { min-height:52px; background:none; border:0; }
+  .game-shell.design-v2 .mobile-command-dock button span { font-size:11px; }
+  .game-shell.design-v2 .deck-context-bar { min-height:56px; padding:6px 16px; gap:10px; }
+  .game-shell.design-v2 .deck-context-title strong { font-size:15px; }
+  .game-shell.design-v2 .deck-guide { display:none; }
+  .game-shell.design-v2 .deck-content { padding:18px 16px 32px; }
+  .game-shell.design-v2 .field-workspace-switch { gap:4px; margin-bottom:20px; }
+  .game-shell.design-v2 .field-workspace-switch button { flex:1; min-height:44px; justify-content:center; padding:6px 4px 10px; }
+  .game-shell.design-v2 .deck-content .field-workspace-switch strong { font-size:14px; }
+  .game-shell.design-v2 .field-workspace-switch span { display:none; }
+  .game-shell.design-v2 .workspace-crisis-ribbon { margin:8px 16px 0; }
+  .game-shell.design-v2 .workspace-crisis-ribbon em { display:none; }
+}
+@media (max-width:480px) {
+  .game-shell.design-v2 .brand-copy { max-width:120px; }
+  .game-shell.design-v2 .date-block { display:none; }
+  .game-shell.design-v2 .command-utilities { margin-left:2px; }
+}

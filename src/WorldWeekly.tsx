@@ -116,7 +116,7 @@ export function WorldWeekly({ issues, onNavigate, onClose }: WorldWeeklyProps) {
   };
 
   return (
-    <div className={`world-weekly-backdrop media-${issue.media.id}`} role="dialog" aria-modal="true" aria-labelledby="world-weekly-title">
+    <div className={`world-weekly-backdrop media-${issue.media.id} editorial-${issue.changePulse.editorialTone}`} role="dialog" aria-modal="true" aria-labelledby="world-weekly-title">
       <div className="world-weekly-shell">
         <aside className="world-weekly-archive" aria-label="세계 주보 지난 호">
           <div className="weekly-archive-brand">{mediaIcons[issue.media.id]}<span><strong>{issue.media.masthead}</strong><small>{issue.media.archiveLabel}</small></span></div>
@@ -147,6 +147,21 @@ export function WorldWeekly({ issues, onNavigate, onClose }: WorldWeeklyProps) {
             <div>{mediaIcons[issue.media.id]}<span><small>MEDIA EVOLUTION · {issue.media.startYear}–{issue.media.endYear}</small><strong>{issue.media.medium}</strong></span></div>
             <p><b>{issue.media.newsroom}</b>{issue.media.interaction}</p>
             <em>{issue.media.nextTransitionYear ? `${issue.media.nextTransitionYear}년 다음 매체 전환` : '2060년까지 이어지는 현재 매체'}</em>
+          </section>
+
+          <section className={`weekly-world-change ${issue.changePulse.editorialTone}`} aria-label="지난 호 이후 실제로 달라진 세계">
+            <header><span><Activity size={16} /><small>THE WORLD HAS CHANGED</small><strong>{issue.changePulse.headline}</strong></span><em>{issue.changePulse.editorialLabel}</em></header>
+            <p>{issue.changePulse.summary}</p>
+            <div>
+              {issue.changePulse.signals.map((signal) => (
+                <button type="button" className={signal.tone} key={signal.id} onClick={() => navigate(signal.actionTab)}>
+                  <span>{signal.domain === 'territory' ? '지도' : signal.domain === 'diplomacy' ? '외교' : signal.domain === 'organization' ? '조직' : signal.domain === 'technology' ? '기술' : signal.domain === 'intelligence' ? '정보' : '사회'}</span>
+                  <strong>{signal.title}</strong>
+                  <small>{signal.before} → {signal.after}</small>
+                  <ChevronRight size={13} />
+                </button>
+              ))}
+            </div>
           </section>
 
           <section className="weekly-metrics" aria-label="이번 주 세계 핵심 수치">

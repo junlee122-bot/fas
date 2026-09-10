@@ -9,6 +9,176 @@ export interface StrategicFrontDefinition {
   sourceUrl: string;
 }
 
+export type StrategicFrontTimeState = 'not-formed' | 'historical-window' | 'alternate-continuation';
+
+export type StrategicFrontChronologyState =
+  | 'scheduled'
+  | 'historical-window'
+  | 'diverged-early'
+  | 'alternate-continuation'
+  | 'dormant'
+  | 'postwar-legacy';
+
+export interface StrategicFrontChronologyEntry extends StrategicFrontDefinition {
+  state: StrategicFrontChronologyState;
+  visible: boolean;
+  activeContactCount: number;
+  diverged: boolean;
+  yearsUntil: number | null;
+  startYear: number;
+  endYear: number;
+  statusLabel: string;
+  reason: string;
+  territoryIds: string[];
+}
+
+export interface StrategicFrontChronologyContext {
+  year: number;
+  phase: 'war' | 'nation';
+  territories: Territory[];
+  baselineTerritories?: Territory[];
+  activeTargetIds?: string[];
+}
+
+export function getStrategicFrontYears(historicalWindow: string): { start: number; end: number } {
+  const years = historicalWindow.match(/\d{4}/g)?.map(Number) ?? [];
+  const start = years[0] ?? 1942;
+  return { start, end: years[1] ?? start };
+}
+
+export function getStrategicFrontTimeState(front: StrategicFrontDefinition, year: number): StrategicFrontTimeState {
+  const { start, end } = getStrategicFrontYears(front.historicalWindow);
+  if (year < start) return 'not-formed';
+  return year <= end ? 'historical-window' : 'alternate-continuation';
+}
+
+export function isStrategicFrontVisible(front: StrategicFrontDefinition, year: number): boolean {
+  return getStrategicFrontTimeState(front, year) !== 'not-formed';
+}
+
+const frontChronologyLabels: Record<StrategicFrontChronologyState, string> = {
+  scheduled: '형성 전',
+  'historical-window': '역사적 활성',
+  'diverged-early': '조기 형성',
+  'alternate-continuation': '대체역사 지속',
+  dormant: '종결·잠복',
+  'postwar-legacy': '전후 기록',
+};
+
+function countFrontContacts(memberIds: Set<string>, territories: Territory[]): number {
+  const byId = new Map(territories.map((territory) => [territory.id, territory]));
+  const contacts = new Set<string>();
+  memberIds.forEach((territoryId) => {
+    const territory = byId.get(territoryId);
+    if (!territory || territory.controller === 'neutral') return;
+    territory.neighbors.forEach((neighborId) => {
+      const neighbor = byId.get(neighborId);
+      if (!neighbor || neighbor.controller === 'neutral' || neighbor.controller === territory.controller) return;
+      const contactId = [territory.id, neighbor.id].sort().join(':');
+      contacts.add(contactId);
+    });
+  });
+  return contacts.size;
+}
+
+export function deriveStrategicFrontChronology(
+  fronts: StrategicFrontDefinition[],
+  context: StrategicFrontChronologyContext,
+): StrategicFrontChronologyEntry[] {
+  const baselineById = new Map((context.baselineTerritories ?? []).map((territory) => [territory.id, territory]));
+  const activeTargetIds = new Set(context.activeTargetIds ?? []);
+
+  return fronts.map((front) => {
+    const { start, end } = getStrategicFrontYears(front.historicalWindow);
+    const territoryIds = context.territories.filter((territory) => territory.frontId === front.id).map((territory) => territory.id);
+    const memberIds = new Set(territoryIds);
+    const activeContactCount = countFrontContacts(memberIds, context.territories);
+    const controlChanged = context.territories.some((territory) => {
+      if (!memberIds.has(territory.id)) return false;
+      const baseline = baselineById.get(territory.id);
+      return Boolean(baseline && baseline.controller !== territory.controller);
+    });
+    const isTargeted = territoryIds.some((territoryId) => activeTargetIds.has(territoryId));
+    const diverged = controlChanged || isTargeted;
+
+    let state: StrategicFrontChronologyState;
+    let visible: boolean;
+    let reason: string;
+    if (context.phase === 'nation') {
+      state = 'postwar-legacy';
+      visible = false;
+      reason = `${end}년까지의 전시 전선 기록입니다. 현재 국가 운영 지도에서는 국경·위기 지표로 대체됩니다.`;
+    } else if (context.year < start && diverged) {
+      state = 'diverged-early';
+      visible = true;
+      reason = `통제권 변화 또는 승인된 작전 때문에 역사 기록보다 ${start - context.year}년 먼저 형성됐습니다.`;
+    } else if (context.year < start) {
+      state = 'scheduled';
+      visible = false;
+      reason = `현재 세계선에서는 아직 전선이 아닙니다. 역사적 형성 시점은 ${start}년입니다.`;
+    } else if (context.year <= end) {
+      state = 'historical-window';
+      visible = true;
+      reason = `${front.historicalWindow} 역사 범위와 현재 캠페인 연도가 일치합니다.`;
+    } else if (activeContactCount > 0 || diverged) {
+      state = 'alternate-continuation';
+      visible = true;
+      reason = activeContactCount > 0
+        ? `역사적 종결 연도 이후에도 ${activeContactCount}개 적 접촉선이 남아 전선이 계속됩니다.`
+        : '전투는 잦아들었지만 캠페인에서 바뀐 통제권 때문에 대체역사 전선으로 남아 있습니다.';
+    } else {
+      state = 'dormant';
+      visible = false;
+      reason = `${end}년 이후 적 접촉과 통제권 변화가 없어 작전 지도에서 종결 처리됐습니다.`;
+    }
+
+    return {
+      ...front,
+      state,
+      visible,
+      activeContactCount,
+      diverged,
+      yearsUntil: state === 'scheduled' ? start - context.year : null,
+      startYear: start,
+      endYear: end,
+      statusLabel: frontChronologyLabels[state],
+      reason,
+      territoryIds,
+    };
+  });
+}
+
+const periodTerritoryNames: Record<string, { before: number; name: string; region?: string; historicalNote?: string }> = {
+  normandy: { before: 1944, name: '캉·노르망디 점령지', region: '점령 프랑스', historicalNote: '1942년에는 상륙전선이 아니라 독일 점령하 프랑스 해안으로 표시됩니다.' },
+  cherbourg: { before: 1944, name: '셰르부르 군항', region: '점령 프랑스' },
+  saint_lo: { before: 1944, name: '생로', region: '점령 프랑스' },
+  monte_cassino: { before: 1944, name: '몬테카시노', region: '이탈리아 왕국', historicalNote: '몬테카시노 전투와 구스타프선의 작전명은 1944년에 활성화됩니다.' },
+  anzio: { before: 1944, name: '안치오 항구', region: '이탈리아 왕국', historicalNote: '1944년 상륙 이전에는 교두보가 아닌 해안 도시입니다.' },
+  salerno: { before: 1943, name: '살레르노 항구', region: '이탈리아 왕국' },
+  new_guinea: { before: 1943, name: '부나·고나 전구', historicalNote: '현재 연도의 파푸아 작전 상황을 반영한 명칭입니다.' },
+};
+
+export function getPeriodAppropriateTerritory(
+  territory: Territory,
+  year: number,
+  fronts: StrategicFrontDefinition[] = strategicFronts,
+  visibleFrontIds?: ReadonlySet<string>,
+): Territory {
+  const front = territory.frontId ? fronts.find((item) => item.id === territory.frontId) : undefined;
+  const frontVisible = !front || (visibleFrontIds ? visibleFrontIds.has(front.id) : isStrategicFrontVisible(front, year));
+  const periodName = periodTerritoryNames[territory.id];
+  return {
+    ...territory,
+    ...(periodName && year < periodName.before ? {
+      name: periodName.name,
+      region: periodName.region ?? territory.region,
+      historicalNote: periodName.historicalNote ?? territory.historicalNote,
+    } : {}),
+    frontId: frontVisible ? territory.frontId : undefined,
+    siteType: !frontVisible && territory.siteType === 'front' ? 'region' : territory.siteType,
+  };
+}
+
 const EUROPE_SOURCE = 'https://history.army.mil/Research/Reference-Topics/Army-Campaigns/Brief-Summaries/World-War-II/World-War-II-European-African-Middle-Eastern-Theater/';
 const ASIA_SOURCE = 'https://history.army.mil/Research/Reference-Topics/Army-Campaigns/Brief-Summaries/World-War-II/World-War-II-Asiatic-Pacific-Theater/';
 
@@ -38,7 +208,7 @@ export const strategicFronts: StrategicFrontDefinition[] = [
   { id: 'cotentin-front', name: '코탕탱·셰르부르 전선', theater: 'europe', commandArea: '셰르부르–생로–캉', historicalWindow: '1944', sourceUrl: EUROPE_SOURCE },
   { id: 'rhineland-front', name: '라인란트·서부방벽 전선', theater: 'europe', commandArea: '아헨–쾰른–프랑크푸르트', historicalWindow: '1944–1945', sourceUrl: EUROPE_SOURCE },
   { id: 'rzhev-vyazma', name: '르제프·뱌지마 돌출부', theater: 'europe', commandArea: '르제프–뱌지마–모스크바 서방', historicalWindow: '1941–1943', sourceUrl: EUROPE_SOURCE },
-  { id: 'kursk-orel', name: '쿠르스크·오룔 전선', theater: 'europe', commandArea: '오룔–쿠르스크–보로네시', historicalWindow: '1942–1943', sourceUrl: EUROPE_SOURCE },
+  { id: 'kursk-orel', name: '쿠르스크·오룔 전선', theater: 'europe', commandArea: '오룔–쿠르스크–보로네시', historicalWindow: '1943', sourceUrl: EUROPE_SOURCE },
   { id: 'donbas-azov', name: '돈바스·아조프 전선', theater: 'europe', commandArea: '드네프로페트롭스크–스탈리노–마리우폴', historicalWindow: '1941–1943', sourceUrl: EUROPE_SOURCE },
   { id: 'black-sea-coast', name: '흑해 북안 전선', theater: 'europe', commandArea: '오데사–니콜라예프–세바스토폴', historicalWindow: '1941–1944', sourceUrl: EUROPE_SOURCE },
   { id: 'kuban-caucasus', name: '쿠반·캅카스 산악전선', theater: 'europe', commandArea: '마이코프–그로즈니–바쿠', historicalWindow: '1942–1943', sourceUrl: EUROPE_SOURCE },
@@ -96,7 +266,7 @@ export const strategicFronts: StrategicFrontDefinition[] = [
 const baseEnhancements: Record<string, Partial<Territory>> = {
   britain: { name: '런던·남부 잉글랜드', frontId: 'british-isles', siteType: 'capital', labelTier: 1, historicalNote: '전시내각, 철도와 남부 방공망의 중심' },
   atlantic: { name: '서부접근로', frontId: 'atlantic-lifeline', siteType: 'sea', labelTier: 1 },
-  channel: { name: '도버·영불해협', frontId: 'channel-coast', siteType: 'sea', labelTier: 1 },
+  channel: { name: '영불해협 해역', frontId: 'channel-coast', siteType: 'sea', labelTier: 1, historicalNote: '표시 색은 해역의 작전 우세를 뜻하며 도버 또는 인접 도시의 주권을 뜻하지 않습니다.' },
   france: { name: '파리·중부 프랑스', frontId: 'occupied-france', siteType: 'capital', labelTier: 1 },
   lowlands: { name: '브뤼셀·벨기에', frontId: 'low-countries', siteType: 'city', labelTier: 2 },
   germany: { name: '베를린', frontId: 'reich-defense', siteType: 'capital', labelTier: 1 },

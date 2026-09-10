@@ -1,7 +1,7 @@
 export type Faction = 'allies' | 'axis' | 'neutral';
 export type DivisionType = 'infantry' | 'armor' | 'airborne' | 'marine';
 export type GameTab = 'command' | 'governance' | 'map' | 'organization' | 'economy' | 'health' | 'army' | 'industry' | 'research' | 'diplomacy' | 'intelligence';
-export type MapLayer = 'political' | 'supply' | 'weather' | 'intelligence';
+export type MapLayer = 'political' | 'supply' | 'weather' | 'intelligence' | 'history';
 export type TheaterId = 'europe' | 'asia';
 export type StrategicSiteType = 'capital' | 'city' | 'port' | 'fortress' | 'front' | 'island' | 'sea' | 'region';
 export type NationId = 'britain' | 'usa' | 'ussr' | 'germany' | 'japan' | 'china' | 'india' | 'freefrance' | 'italy' | 'korea' | 'vietnam' | 'indonesia' | 'philippines';
@@ -308,6 +308,12 @@ export interface BattlePhase {
 
 export interface BattleReport {
   id: string;
+  /** Stable issuing land order. Legacy reports may have no reliable link. */
+  orderId?: string;
+  orderCommandCost?: number;
+  appliedAirSupport?: number;
+  /** Actual raw-state deltas after clamps, not the combat model's requested loss. */
+  appliedLosses?: { strength: number; organization: number; supply: number };
   week: number;
   divisionId: string;
   divisionName: string;
@@ -437,6 +443,59 @@ export interface EquipmentPrototype {
   createdWeek: number;
 }
 
+export type WeaponMaintenanceDoctrine = 'preventive' | 'forward-repair' | 'depot-overhaul' | 'expedient';
+export type WeaponReplacementPolicy = 'balanced' | 'elite-first' | 'newest-first' | 'reserve-depth';
+export type WeaponModernizationPriority = 'critical' | 'standard' | 'monitor';
+export type WeaponWorkOrderType = 'field-trial' | 'depot-rebuild' | 'parts-standardization' | 'crew-conversion';
+export type WeaponReadinessStatus = 'ready' | 'watch' | 'strained' | 'grounded';
+
+export interface WeaponCategoryReadiness {
+  category: EquipmentCategory;
+  equipmentId: string | null;
+  operationalAvailability: number;
+  materialCondition: number;
+  sparePartsDays: number;
+  ammunitionDays: number;
+  crewProficiency: number;
+  standardization: number;
+  fieldConfidence: number;
+  repairBacklog: number;
+  readinessScore: number;
+  status: WeaponReadinessStatus;
+  trend: number;
+  weeksInService: number;
+  lastReviewWeek: number;
+}
+
+export interface WeaponWorkOrder {
+  id: string;
+  category: EquipmentCategory;
+  type: WeaponWorkOrderType;
+  startedWeek: number;
+  remainingWeeks: number;
+  totalWeeks: number;
+  status: 'active' | 'completed';
+}
+
+export interface WeaponReadinessHistory {
+  id: string;
+  week: number;
+  category: EquipmentCategory;
+  title: string;
+  summary: string;
+  outcome: 'positive' | 'mixed' | 'negative';
+}
+
+export interface WeaponReadinessState {
+  maintenanceDoctrine: WeaponMaintenanceDoctrine;
+  replacementPolicy: WeaponReplacementPolicy;
+  priorities: Record<EquipmentCategory, WeaponModernizationPriority>;
+  categories: Record<EquipmentCategory, WeaponCategoryReadiness>;
+  workOrders: WeaponWorkOrder[];
+  history: WeaponReadinessHistory[];
+  lastAdvancedWeek: number;
+}
+
 export interface EquipmentDevelopmentState {
   unlockedIds: string[];
   activeProjectId: string | null;
@@ -444,6 +503,7 @@ export interface EquipmentDevelopmentState {
   prototypes: EquipmentPrototype[];
   fieldedByCategory: Partial<Record<EquipmentCategory, string>>;
   divisionAssignments: Record<string, string>;
+  readiness: WeaponReadinessState;
 }
 
 export interface ResearchProject {
@@ -536,6 +596,7 @@ export interface WarEventTrace {
 
 export interface WarEvent {
   id: number;
+  nationId?: NationId;
   week: number;
   title: string;
   detail: string;
@@ -544,6 +605,11 @@ export interface WarEvent {
 }
 
 export interface Order {
+  /** Optional only for legacy saves/literals; new and normalized orders have IDs. */
+  id?: string;
+  commandId?: string;
+  commandCost?: number;
+  stopRequestedWeek?: number;
   divisionId: string;
   fromId: string;
   targetId: string;

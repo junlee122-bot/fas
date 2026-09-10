@@ -1,3 +1,4 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
 import { useId, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowRight, BookOpenText, Building2, Factory, Globe2, Landmark, Scale, Sprout, Users, Vote } from 'lucide-react';
 import {
@@ -163,7 +164,7 @@ export function SocialistWorldBoard({ state, context, staff, compact = false, on
           ) : (
             <div className="socialist-running-method"><span><strong>{adoptedSettlement?.shortName} · {methodPreviews.find((preview) => preview.id === active.methodId)?.name} 진행 중</strong><small>제도 합의와 집행 방법이 함께 계산됩니다. 다음 단계에서는 둘 다 다시 선택할 수 있으며 내부 모순이 먼저 100에 닿으면 상처가 남습니다.</small></span></div>
           )}
-          {!compact && active.turningPoints.length > 0 ? <details className="socialist-chronicle"><summary><BookOpenText /> 전환 연대기 {active.turningPoints.length}건</summary><div>{active.turningPoints.slice(0, 8).map((point) => <article key={`${point.week}-${point.title}`} className={point.tone}><span>{1942 + Math.floor(point.week / 52)}년</span><strong>{point.title}</strong><p>{point.detail}</p></article>)}</div></details> : null}
+          {!compact && active.turningPoints.length > 0 ? <details className="socialist-chronicle"><summary><BookOpenText /> 전환 연대기 {active.turningPoints.length}건</summary><div>{active.turningPoints.slice(0, 8).map((point) => <article key={`${point.week}-${point.title}`} className={point.tone}><span>{getCampaignYearForWeek(point.week)}년</span><strong>{point.title}</strong><p>{point.detail}</p></article>)}</div></details> : null}
         </div>
       ) : (
         <div className="socialist-model-room">

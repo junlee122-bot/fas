@@ -74,6 +74,7 @@ export interface PersonalLifeState {
   familyLawId: FamilyLawId;
   activeRelationship: PersonalRelationship | null;
   history: PersonalLifeHistoryRecord[];
+  lastActivityWeek: number | null;
 }
 
 export interface FamilyLawDefinition {
@@ -302,6 +303,7 @@ export function createPersonalLifeState(nationId: NationId): PersonalLifeState {
     familyLawId: 'restrictive-code',
     activeRelationship: null,
     history: [],
+    lastActivityWeek: null,
   };
 }
 
@@ -313,6 +315,13 @@ export function normalizePersonalLifeState(value: unknown, nationId: NationId): 
   const active = candidate.activeRelationship && typeof candidate.activeRelationship === 'object'
     ? candidate.activeRelationship
     : null;
+  const history = Array.isArray(candidate.history) ? candidate.history.slice(0, 80) : [];
+  const lastActivityWeek = typeof candidate.lastActivityWeek === 'number' && Number.isFinite(candidate.lastActivityWeek) && candidate.lastActivityWeek >= 0
+    ? Math.floor(candidate.lastActivityWeek)
+    : history.reduce<number | null>((latest, record) => {
+      const isActivity = /^(courtship-|union-|relationship-action-|separation-|family-plan-)/.test(record.id);
+      return isActivity && Number.isFinite(record.week) && record.week >= 0 ? Math.max(latest ?? 0, Math.floor(record.week)) : latest;
+    }, null);
   return {
     ...fallback,
     ...candidate,
@@ -321,7 +330,21 @@ export function normalizePersonalLifeState(value: unknown, nationId: NationId): 
     profile: { ...fallback.profile, ...(candidate.profile ?? {}) },
     familyLawId: validLaw ? candidate.familyLawId! : fallback.familyLawId,
     activeRelationship: active,
-    history: Array.isArray(candidate.history) ? candidate.history.slice(0, 80) : [],
+    history,
+    lastActivityWeek,
+  };
+}
+
+export function getPersonalLifeActivityAvailability(state: PersonalLifeState, week: number) {
+  const remaining = state.lastActivityWeek != null && state.lastActivityWeek >= week ? 0 : 1;
+  return {
+    allowed: remaining > 0,
+    remaining,
+    limit: 1,
+    nextAvailableWeek: remaining > 0 ? week : state.lastActivityWeek! + 1,
+    reason: remaining > 0
+      ? '이번 주 개인·가족 활동 1회 가능 · 교제·결합·돌봄·가족계획이 함께 사용합니다.'
+      : '이번 주 개인·가족 활동 시간을 사용했습니다. 다음 주에 다시 1회 활동할 수 있습니다.',
   };
 }
 
@@ -396,6 +419,7 @@ export function beginPersonalRelationship(
   context: PersonalLifeContext,
 ): PersonalLifeActionResult | null {
   if (!state.profile.configured || state.activeRelationship || context.politicalPower < 4 || context.treasury < 8) return null;
+  if (!getPersonalLifeActivityAvailability(state, context.week).allowed) return null;
   const pairKind = derivePairKind(state.profile.gender, candidate.gender);
   const bond = Math.round(clamp(48 + candidate.relationValue * .12 + candidate.publicStanding * .05, 50, 68));
   const relationship: PersonalRelationship = {
@@ -422,6 +446,7 @@ export function beginPersonalRelationship(
     state: {
       ...state,
       activeRelationship: relationship,
+      lastActivityWeek: context.week,
       history: addHistory(state, {
         id: `courtship-${context.week}-${candidate.id}`,
         week: context.week,
@@ -470,6 +495,7 @@ export function formalizePersonalUnion(
   const relationship = state.activeRelationship;
   const eligibility = canFormalizeUnion(state, unionForm);
   if (!relationship || !eligibility.allowed) return null;
+  if (!getPersonalLifeActivityAvailability(state, context.week).allowed) return null;
   const politicalCost = unionForm === 'marriage' ? 12 : unionForm === 'civil-partnership' ? 9 : 5;
   const treasuryCost = unionForm === 'marriage' ? 36 : unionForm === 'civil-partnership' ? 20 : unionForm === 'domestic-partnership' ? 12 : 6;
   if (context.politicalPower < politicalCost || context.treasury < treasuryCost) return null;
@@ -492,6 +518,7 @@ export function formalizePersonalUnion(
     state: {
       ...state,
       activeRelationship: nextRelationship,
+      lastActivityWeek: context.week,
       history: addHistory(state, {
         id: `union-${context.week}-${relationship.id}`,
         week: context.week,
@@ -563,6 +590,7 @@ export function reformFamilyLaw(state: PersonalLifeState, lawId: FamilyLawId, co
 export function resolvePersonalLifeAction(state: PersonalLifeState, actionId: PersonalLifeActionId, context: PersonalLifeContext): PersonalLifeActionResult | null {
   const relationship = state.activeRelationship;
   if (!relationship) return null;
+  if (!getPersonalLifeActivityAvailability(state, context.week).allowed) return null;
   const costs: Record<PersonalLifeActionId, [number, number]> = {
     'spend-time': [0, 6],
     'discuss-boundaries': [2, 0],
@@ -578,6 +606,7 @@ export function resolvePersonalLifeAction(state: PersonalLifeState, actionId: Pe
       state: {
         ...state,
         activeRelationship: null,
+        lastActivityWeek: context.week,
         history: addHistory(state, {
           id: `separation-${context.week}-${relationship.id}`,
           week: context.week,
@@ -618,6 +647,7 @@ export function resolvePersonalLifeAction(state: PersonalLifeState, actionId: Pe
     state: {
       ...state,
       activeRelationship: nextRelationship,
+      lastActivityWeek: context.week,
       history: addHistory(state, {
         id: `relationship-action-${context.week}-${actionId}`,
         week: context.week,
@@ -639,6 +669,7 @@ export function resolvePersonalLifeAction(state: PersonalLifeState, actionId: Pe
 export function chooseFamilyPlan(state: PersonalLifeState, familyPlan: FamilyPlanId, context: PersonalLifeContext): PersonalLifeActionResult | null {
   const relationship = state.activeRelationship;
   if (!relationship || relationship.stage === 'courtship') return null;
+  if (relationship.familyPlan === familyPlan || !getPersonalLifeActivityAvailability(state, context.week).allowed) return null;
   const law = getFamilyLaw(state.familyLawId);
   if (familyPlan === 'adoption' && !law.jointAdoption) return null;
   const politicalCost = familyPlan === 'adoption' ? 8 : familyPlan === 'guardianship' ? 5 : 2;
@@ -650,6 +681,7 @@ export function chooseFamilyPlan(state: PersonalLifeState, familyPlan: FamilyPla
     state: {
       ...state,
       activeRelationship: { ...relationship, familyPlan, dependents, bond: clamp(relationship.bond + (dependents ? 3 : 1)), strain: clamp(relationship.strain + (dependents ? 4 : -2)) },
+      lastActivityWeek: context.week,
       history: addHistory(state, {
         id: `family-plan-${context.week}-${familyPlan}`,
         week: context.week,

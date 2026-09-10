@@ -1,0 +1,113 @@
+/* Component scope outranks the four-class legacy/Command Edition deck rules. */
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition { display: grid; gap: 24px; width: 100%; max-width: 1440px; min-width: 0; margin-inline: auto; color: var(--ui-text, #edf0ec); font-size: 16px; line-height: 1.7; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition :where(section, article, aside, div, header, nav, label) { min-width: 0; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition :where(h1, h2, h3, h4, p, span, small, strong, dt, dd, li) { overflow-wrap: anywhere; white-space: normal; max-height: none; -webkit-line-clamp: unset; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition :where(h1, h2, h3, h4) { font-family: inherit; color: var(--ui-text, #edf0ec); letter-spacing: -.03em; line-height: 1.4; margin: 0 0 14px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition h1 { font-size: 30px; margin: 8px 0; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition h2 { font-size: 23px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition h3 { font-size: 19px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition :where(p, dd, li) { font-size: 16px; line-height: 1.75; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition p { margin: 0 0 16px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition :where(span, dt, label) { font-size: 14px; line-height: 1.6; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition strong { font-size: 16px; line-height: 1.5; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition :where(small, .ids-meta, .ids-eyebrow) { font-size: 12px; line-height: 1.65; color: var(--ui-muted, #9dacb8); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-eyebrow { display: block; margin-bottom: 7px; letter-spacing: .06em; color: var(--ui-accent, #c7a16c); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition :where(button, select, summary) { min-height: 44px; height: auto; font: inherit; font-size: 14px; line-height: 1.55; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; max-width: 100%; padding: 12px 16px; border: 1px solid var(--ui-border, #34424c); border-radius: 8px; color: var(--ui-text, #edf0ec); background: var(--ui-raised, #202c38); text-align: left; cursor: pointer; white-space: normal; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition button:hover:not(:disabled) { background: #2b3a47; border-color: var(--ui-accent, #c7a16c); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition button:disabled { opacity: .45; cursor: not-allowed; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition :where(button, select, summary, a):focus-visible { outline: 3px solid var(--ui-accent, #c7a16c); outline-offset: 3px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition [tabindex='-1'] { scroll-margin-block-start: 24px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition [tabindex='-1']:focus { outline: 2px solid var(--ui-accent, #c7a16c); outline-offset: 5px; border-radius: 3px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition svg { flex-shrink: 0; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-header p { margin: 0; color: var(--ui-muted, #9dacb8); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-status { font-size: 12px; color: var(--ui-accent, #c7a16c); padding: 9px 13px; flex-shrink: 0; border: 1px solid var(--ui-border, #34424c); border-radius: 8px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-authority { display: flex; align-items: flex-start; gap: 12px; padding: 16px 20px; margin: 0; border: 1px solid #77624b; border-radius: 8px; background: #c7a16c0a; color: #d8c2a4; font-size: 14px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-authority svg { margin-top: 3px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-workspaces { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; border-bottom: 1px solid var(--ui-border, #34424c); padding-bottom: 18px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-workspaces button { justify-content: flex-start; background: transparent; border-color: transparent; min-height: 52px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-workspaces button[aria-pressed='true'] { color: var(--ui-accent, #c7a16c); background: #c7a16c12; border-color: var(--ui-accent, #c7a16c); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-workspace-title { margin: 0; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-surface { border: 1px solid var(--ui-border, #34424c); border-radius: 8px; background: var(--ui-surface, #18212b); padding: 26px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-priority { display: flex; align-items: center; gap: 30px; padding: 28px; border-radius: 8px; background: var(--ui-paper, #f1f2ed); color: var(--ui-ink, #1c2831); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-priority > div { flex: 1; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-priority h2 { color: var(--ui-ink, #1c2831); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-priority p { color: #4c5e68; margin: 0; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-priority .ids-eyebrow { color: #69573c; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-priority button { flex-shrink: 0; background: #20313c; color: #fff; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; margin: 24px 0; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-metrics > div { min-width: 0; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-metrics dt { color: var(--ui-muted, #9dacb8); margin-bottom: 6px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-metrics dd { font-size: 28px; font-weight: 600; line-height: 1.35; margin: 0 0 8px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-meter { height: 5px; width: 100%; overflow: hidden; border-radius: 5px; background: var(--ui-border, #34424c); margin: 14px 0 8px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-meter > span { display: block; height: 100%; background: var(--ui-accent, #c7a16c); border-radius: inherit; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-personal-link { display: flex; align-items: flex-start; gap: 20px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-personal-link > svg { color: var(--ui-accent, #c7a16c); margin-top: 4px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-personal-link > div { flex: 1; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-personal-link > button { flex-shrink: 0; align-self: center; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-planning-layout { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 24px; align-items: start; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-desktop-choice { display: grid; gap: 8px; padding: 3px; max-height: 580px; overflow-y: auto; scrollbar-width: thin; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-desktop-choice button { flex-direction: column; align-items: flex-start; gap: 6px; min-height: 82px; padding: 16px; background: transparent; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-desktop-choice button[aria-pressed='true'] { border-color: var(--ui-accent, #c7a16c); background: #c7a16c12; box-shadow: inset 3px 0 var(--ui-accent, #c7a16c); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-mobile-choice { display: none; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition select { display: block; width: 100%; max-width: 100%; min-width: 0; margin: 9px 0 24px; padding: 12px 38px 12px 14px; border: 1px solid var(--ui-border, #34424c); border-radius: 8px; background: var(--ui-bg, #10161d); color: var(--ui-text, #edf0ec); text-overflow: ellipsis; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition :where(.ids-select-label, .ids-mobile-choice) { font-size: 14px; color: var(--ui-muted, #9dacb8); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-operation-detail .ids-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-operation-detail .ids-metrics dd { font-size: 24px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-primary { color: var(--ui-ink, #1c2831); background: var(--ui-accent, #c7a16c); border-color: var(--ui-accent, #c7a16c); font-weight: 650; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-primary:hover:not(:disabled) { color: var(--ui-ink, #1c2831); background: #d6b383; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-review-note { display: block; margin-top: 12px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-disclosure { padding-block: 12px; margin-block: 18px; border-top: 1px solid var(--ui-border, #34424c); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition summary { display: flex; gap: 12px; align-items: center; list-style: none; cursor: pointer; color: var(--ui-muted, #9dacb8); padding: 10px 0; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition summary::before { content: '+'; flex: 0 0 16px; color: var(--ui-accent, #c7a16c); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition details[open] > summary::before { content: '−'; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-review { padding: 28px; background: #202b35; border: 1px solid var(--ui-accent, #c7a16c); border-radius: 8px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-review-comparison { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin: 28px 0; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-review-comparison > div { border-left: 2px solid var(--ui-accent, #c7a16c); padding-left: 16px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-review-comparison dt { color: var(--ui-muted, #9dacb8); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-review-comparison dd { margin: 10px 0; font-size: 22px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-review-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-warning { color: #edbf9e; font-size: 14px; padding: 16px; background: #8f532519; border: 1px solid #806247; border-radius: 8px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-report { border-top: 1px solid var(--ui-border, #34424c); padding-top: 24px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-report .ids-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-record-limit { display: flex; gap: 14px; padding: 20px; margin: 24px 0; border: 1px solid var(--ui-border, #34424c); border-radius: 8px; background: var(--ui-bg, #10161d); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-record-limit > svg { color: var(--ui-muted, #9dacb8); margin-top: 4px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-record-limit p { font-size: 14px; margin: 0; color: var(--ui-muted, #9dacb8); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-ethical-risk { padding: 16px 20px; border-left: 2px solid var(--ui-accent, #c7a16c); color: #d6c3af; background: #c7a16c08; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition a { display: inline-flex; align-items: center; min-height: 44px; color: var(--ui-accent, #c7a16c); font-size: 14px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-historical-person { display: grid; gap: 6px; border-top: 1px solid var(--ui-border, #34424c); padding: 16px 0; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-historical-person > span { color: var(--ui-muted, #9dacb8); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-lineage { list-style: none; margin: 22px 0; padding: 0; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-lineage li { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 20px; padding: 13px 0; border-bottom: 1px solid var(--ui-border, #34424c); }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-lineage li > span { color: var(--ui-muted, #9dacb8); font-size: 12px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-next-institution { padding: 20px; border: 1px dashed var(--ui-border, #34424c); border-radius: 8px; }
+.game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-empty { color: var(--ui-muted, #9dacb8); }
+@media (max-width: 1200px) {
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-planning-layout { grid-template-columns: 230px minmax(0, 1fr); gap: 20px; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-operation-detail .ids-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-personal-link { flex-wrap: wrap; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-personal-link > div { flex-basis: calc(100% - 48px); }
+}
+@media (max-width: 900px) {
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-planning-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-mobile-choice { display: block; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-mobile-choice select { margin-bottom: 0; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-desktop-choice { display: none; }
+}
+@media (max-width: 620px) {
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition { gap: 20px; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-header { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition h1 { font-size: 26px; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-workspaces { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition :where(.ids-surface, .ids-priority, .ids-review) { padding: 20px; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-priority { flex-direction: column; align-items: stretch; gap: 20px; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 12px; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-metrics dd { font-size: 24px; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-review-comparison { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-review-actions { flex-direction: column; align-items: stretch; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-review-actions button { width: 100%; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-personal-link > button { width: 100%; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-lineage li { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .game-shell.design-v2 .deck-content .intelligence-desk.command-edition .ids-record-limit { padding: 16px; }
+}

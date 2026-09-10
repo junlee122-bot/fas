@@ -1,3 +1,6 @@
+import { getCampaignYearForWeek } from './campaignCalendar';
+export { getCampaignYearForWeek } from './campaignCalendar';
+
 export type NewsMediaEraId =
   | 'wartime-press'
   | 'radio-wire'
@@ -121,11 +124,6 @@ const mediaEras: NewsMediaEra[] = [
     archiveLabel: '분산형 공공기록 원장',
   },
 ];
-
-export function getCampaignYearForWeek(week: number) {
-  const date = new Date(Date.UTC(1942, 9, 25 + Math.max(0, week) * 7));
-  return date.getUTCFullYear();
-}
 
 export function getNewsMediaEra(year: number): NewsMediaEra {
   return mediaEras.find((era) => year >= era.startYear && year <= era.endYear)
