@@ -255,7 +255,9 @@ export const careerRoles: CareerRole[] = nations.flatMap((nation) => {
 });
 
 const startingPositions: Record<NationId, [string, string, string]> = {
-  britain: ['britain', 'egypt', 'malta'], usa: ['hawaii', 'midway', 'coral_sea'], ussr: ['moscow', 'caucasus', 'soviet_far_east'],
+  // These are playable staging areas, not claims about the exact historical
+  // position of every named formation. Papua provides a land-based US start.
+  britain: ['britain', 'egypt', 'malta'], usa: ['hawaii', 'midway', 'port_moresby'], ussr: ['moscow', 'caucasus', 'soviet_far_east'],
   germany: ['germany', 'poland', 'ukraine'], japan: ['japan_home', 'manchuria', 'malaya'], china: ['china_interior', 'south_china', 'yunnan'],
   india: ['india', 'assam', 'ceylon'], freefrance: ['levant', 'britain', 'malta'], italy: ['italy', 'sicily', 'libya'],
   korea: ['china_interior', 'korea', 'manchuria'], vietnam: ['south_china', 'indochina', 'yunnan'],

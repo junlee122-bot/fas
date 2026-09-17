@@ -32,6 +32,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify land map geometry
+        run: |
+          npm run test:land-geography
+          npm run audit:land-geography
+
       - name: Build GitHub Pages site
         run: npm run build:pages
 

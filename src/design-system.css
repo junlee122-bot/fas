@@ -8,6 +8,10 @@
   color:var(--ui-text); background:var(--ui-bg); font-size:16px;
 }
 .game-shell.design-v2::after { display:none; }
+.game-shell.design-v2 .game-icon { --game-icon-cut:var(--ui-surface); }
+.game-shell.design-v2 :is(.topbar,.left-rail) .game-icon { --game-icon-cut:#131c25; }
+.game-shell.design-v2 .game-icon svg { filter:none; }
+.game-shell.design-v2 .speed-button.next .game-icon { --game-icon-cut:var(--ui-accent); }
 .game-shell.design-v2 :where(button,summary,a,input,select,textarea):focus-visible { outline:2px solid #ecd0a0; outline-offset:3px; }
 .game-shell.design-v2 :where(button,summary) { touch-action:manipulation; }
 .game-shell.design-v2 .topbar { height:var(--command-header); grid-template-columns:250px minmax(0,1fr) auto; background:#131c25; border-bottom:1px solid var(--ui-border); box-shadow:none; gap:0; }

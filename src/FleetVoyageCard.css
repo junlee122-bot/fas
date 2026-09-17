@@ -1,0 +1,15 @@
+.game-shell.design-v2 .fleet-voyage-card { padding: 20px; border: 1px solid #426170; border-radius: 9px; background: #10232d; color: #e0e9ec; min-width: 0; }
+.game-shell.design-v2 .fleet-voyage-card header { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.game-shell.design-v2 .fleet-voyage-card header > span { color: #b4c6cf; font-size: 14px; }
+.game-shell.design-v2 .fleet-voyage-card ol { list-style: none; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; padding: 0; margin: 0 0 18px; }
+.game-shell.design-v2 .fleet-voyage-card ol li { padding: 9px 6px; text-align: center; border-top: 3px solid #344e5c; color: #afc1cc; font-size: 13px; }
+.game-shell.design-v2 .fleet-voyage-card ol li.is-current { border-color: #a8d7df; color: #f0f7f8; background: #8abecf16; }
+.game-shell.design-v2 .fleet-voyage-card dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 0 0 16px; }
+.game-shell.design-v2 .fleet-voyage-card dt { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #b3c5ce; }
+.game-shell.design-v2 .fleet-voyage-card dd { margin: 7px 0; font-size: 17px; line-height: 1.5; overflow-wrap: anywhere; }
+.game-shell.design-v2 .fleet-voyage-card small { color: #b4c8d2; line-height: 1.7; }
+.game-shell.design-v2 .fleet-voyage-card p { font-size: 14px; line-height: 1.8; margin: 14px 0 0; }
+.game-shell.design-v2 .fv-range > span { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; }
+.game-shell.design-v2 .fv-range > div { height: 6px; background: #29424d; border-radius: 4px; overflow: hidden; margin-top: 10px; }
+.game-shell.design-v2 .fv-range i { display: block; height: 100%; background: #89bdb1; }
+@media (min-width: 2300px) { .game-shell.design-v2 .fleet-voyage-card { padding: 24px; } .game-shell.design-v2 .fleet-voyage-card dd { font-size: 20px; } }

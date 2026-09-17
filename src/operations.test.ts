@@ -1,6 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { advanceOperationWeek, battleTypeProfiles, createOperationOrder, getOperationOrderId, getOperationReports, inferBattleType, normalizeOperationOrder, normalizeOperationOrders, normalizeOperationStopReceipts, requestLandOperationStop } from './operations';
 import type { BattleReport, Division, Order, Territory } from './types';
+import { territories as campaignTerritories } from './data';
+
+describe('terminal receipt save compatibility', () => {
+  const legacy = { orderId: 'old-stop', week: 1, divisionId: 'division', targetId: 'target', reason: '중단 처리' };
+  it('preserves legacy stops without an outcome field and round-trips new terminal kinds', () => {
+    expect(normalizeOperationStopReceipts([legacy])).toEqual([legacy]);
+    for (const outcome of ['stopped', 'reinforced', 'invalidated'] as const) {
+      const receipt = { ...legacy, outcome, commandCost: 5 };
+      expect(normalizeOperationStopReceipts(JSON.parse(JSON.stringify([receipt])))).toEqual([receipt]);
+    }
+  });
+  it('does not mislabel an unknown future terminal kind as a legacy stop', () => {
+    expect(normalizeOperationStopReceipts([{ ...legacy, outcome: 'unknown-future-kind' }])).toEqual([]);
+  });
+});
 
 const origin: Territory = { id: 'rear', name: '출발지', region: '시험', x: 0, y: 0, controller: 'allies', value: 4, supply: 80, terrain: '평야', neighbors: ['target'], siteType: 'region' };
 const division: Division = { id: 'division', name: '시험사단', type: 'infantry', strength: 90, organization: 85, experience: 70, supply: 80, territoryId: 'rear', commanderId: 'commander', status: 'ready' };
@@ -21,11 +36,32 @@ function report(margin = 12): BattleReport {
 describe('multi-week operations', () => {
   it.each([
     [{ siteType: 'fortress', terrain: '요새 도시' }, 'siege'],
-    [{ siteType: 'island', terrain: '도서 산악' }, 'amphibious'],
+    [{ siteType: 'island', terrain: '도서 산악' }, 'mountain'],
     [{ siteType: 'front', terrain: '산악 정글' }, 'mountain'],
     [{ siteType: 'city', terrain: '공업 도시' }, 'urban'],
   ] as const)('classifies the target into a matching battle type', (overrides, expected) => {
     expect(inferBattleType(origin, target(overrides), division)).toBe(expected);
+  });
+
+  it.each([
+    ['normandy', 'calais', 'siege'],
+    ['messina', 'sicily', 'attrition'],
+    ['lingayen', 'philippines', 'urban'],
+    ['tunisia', 'sicily', 'amphibious'],
+  ] as const)('classifies %s–%s by the route instead of just the coastal label', (fromId, toId, expected) => {
+    const from = campaignTerritories.find((item) => item.id === fromId)!;
+    const to = campaignTerritories.find((item) => item.id === toId)!;
+    expect(inferBattleType(from, to, division)).toBe(expected);
+  });
+
+  it('preserves the profile and progress of an existing saved battle but uses the new rule for a missing profile', () => {
+    const from = campaignTerritories.find((item) => item.id === 'normandy')!;
+    const to = campaignTerritories.find((item) => item.id === 'calais')!;
+    const saved: Order = { divisionId: division.id, fromId: from.id, targetId: to.id, startedWeek: 0, battleType: 'amphibious', elapsedWeeks: 2, operationProgress: 65, operationRequired: 118 };
+    expect(normalizeOperationOrder(saved, from, to, division)).toMatchObject({ battleType: 'amphibious', elapsedWeeks: 2, operationProgress: 65, operationRequired: 118 });
+    expect(normalizeOperationOrder({ ...saved, battleType: undefined }, from, to, division).battleType).toBe('siege');
+    expect(createOperationOrder({ divisionId: division.id, fromId: from.id, targetId: to.id, startedWeek: 3 }, from, to, division).battleType).toBe('siege');
+    expect(saved.battleType).toBe('amphibious');
   });
 
   it('keeps a fortress assault active after its first successful week', () => {

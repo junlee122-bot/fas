@@ -30,6 +30,7 @@ interface FieldSelection {
 
 const number = (value: number | undefined) => value !== undefined && Number.isFinite(value) ? value.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : '자료 없음';
 const validWeek = (week: number, currentWeek: number) => Number.isInteger(week) && week >= 0 && week <= currentWeek;
+const terminalLabels = { stopped: '중단 완료', reinforced: '아군 집결 완료', invalidated: '명령 무효화' };
 
 /** Read-only: no predictions, enemy-strength fields, or fallback matching by names. */
 export function OperationFieldBoard(props: OperationFieldBoardProps) {
@@ -62,12 +63,13 @@ export function OperationFieldBoard(props: OperationFieldBoardProps) {
   const commander = division ? commanders.find((item) => item.id === division.commanderId) : undefined;
   const stopPending = order?.stopRequestedWeek !== undefined;
   const finalized = lastReport?.operationOutcome === 'victory' || lastReport?.operationOutcome === 'defeat';
+  const terminalLabel = stop ? terminalLabels[stop.outcome ?? 'stopped'] : undefined;
   const status = order ? stopPending ? '중단 대기' : (order.elapsedWeeks ?? 0) > 0 ? '교전 진행 중' : '승인됨 · 첫 결산 전'
-    : stop ? '중단 완료' : finalized ? lastReport.operationOutcome === 'victory' ? '작전 승리' : '작전 패배·철수' : '활성 명령 없음 · 종결 확인 불가';
+    : stop ? terminalLabel : finalized ? lastReport.operationOutcome === 'victory' ? '작전 승리' : '작전 패배·철수' : '활성 명령 없음 · 종결 확인 불가';
   const progress = order ? getOperationProgress(order) : stop?.progressPercent ?? (lastReport?.operationRequired
     ? Math.max(0, Math.min(100, Math.round((lastReport.operationProgress ?? 0) / lastReport.operationRequired * 100))) : undefined);
   const elapsedWeeks = order?.elapsedWeeks ?? stop?.elapsedWeeks ?? lastReport?.operationWeek;
-  const commandCost = order?.commandCost ?? lastReport?.orderCommandCost;
+  const commandCost = order?.commandCost ?? stop?.commandCost ?? lastReport?.orderCommandCost;
   const canStop = Boolean(order && division && phase === 'war' && commandableDivisionIds.has(order.divisionId)
     && !processingWeek && !stopPending && order.startedWeek <= week);
   const stopReason = !order ? '종료된 명령은 다시 중단할 수 없습니다.' : phase !== 'war' ? '국정에서는 전시 공세 명령을 집행하지 않습니다.'
@@ -116,7 +118,7 @@ export function OperationFieldBoard(props: OperationFieldBoardProps) {
           {!lastReport.appliedLosses ? <small>현재 부대 상태와 직접 대조된 적용량은 이 구기록에 없습니다. 계산 소모를 실제 차감량으로 단정하지 않습니다.</small> : null}
           {lastReport.appliedLosses ? <small>해당 교전 적용분입니다. 후속 회복·재보급은 별도 결산입니다.</small> : null}
         </section> : <p className="operation-field-empty">이 작전 ID에 연결된 교전 결산이 아직 없습니다. 다른 공세의 기록으로 채우지 않습니다.</p>}
-        {stop ? <p className="operation-field-stopped" role="status">제{stop.week + 1}주 중단 확정: {stop.reason}</p> : null}
+        {stop ? <p className="operation-field-stopped" role="status">제{stop.week + 1}주 {terminalLabel} 확정: {stop.reason}</p> : null}
         <div className="operation-field-actions"><p>{stopReason}</p>{order ? <button type="button" disabled={!canStop} onClick={() => { if (canStop) onStop(selected.orderId); }}>이 공세 중단 요청</button> : null}</div>
         <details className="operation-field-identity"><summary>기록 연결 확인</summary><p>작전 ID: {selected.orderId}</p>{lastReport ? <p>교전 보고서 ID: {lastReport.id}</p> : null}</details>
       </div> : null}

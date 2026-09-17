@@ -34,6 +34,8 @@ describe('simultaneous land operation scheduler', () => {
     const result = resolveLandOrdersWeek({ ...input, territories: [rear, { ...normandy, controller: 'allies' }, philippines] });
     expect(result.entries.map((entry) => entry.kind)).toEqual(['move', 'battle']);
     expect(result.orders.map((order) => order.divisionId)).toEqual(['second']);
+    const movement = result.entries[0];
+    expect(movement.kind === 'move' && movement.receipt).toMatchObject({ orderId: getOperationOrderId(firstOrder), outcome: 'reinforced', week: 1, elapsedWeeks: 0, progressPercent: 0 });
   });
   it('does not run one division twice and preserves a future order', () => {
     const result = resolveLandOrdersWeek({ ...input, orders: [firstOrder, { ...firstOrder, targetId: 'philippines' }, { ...secondOrder, startedWeek: 2 }] });
@@ -59,7 +61,7 @@ describe('simultaneous land operation scheduler', () => {
     const remote = { ...normandy, id: 'stalingrad', frontId: 'eastern-front' };
     const result = resolveLandOrdersWeek({
       ...input, orders: [{ ...firstOrder, targetId: remote.id }, firstOrder],
-      territories: [rear, normandy, remote], completedAirSupport: [support],
+      territories: [{ ...rear, neighbors: [...rear.neighbors, remote.id] }, normandy, remote], completedAirSupport: [support],
     });
     expect(result.entries.map((entry) => entry.kind)).toEqual(['battle', 'invalid']);
     const battle = result.entries[0];
@@ -72,7 +74,7 @@ describe('simultaneous land operation scheduler', () => {
     const result = resolveLandOrdersWeek({
       ...input,
       orders: [firstOrder, { ...firstOrder, divisionId: 'missing' }, { ...secondOrder, targetId: friendly.id }, { ...firstOrder, divisionId: future.id, startedWeek: 5 }],
-      divisions: [first, second, future], territories: [rear, normandy, friendly], completedAirSupport: [support],
+      divisions: [first, second, future], territories: [{ ...rear, neighbors: [...rear.neighbors, friendly.id] }, normandy, friendly], completedAirSupport: [support],
     });
     expect(result.entries.map((entry) => entry.kind)).toEqual(['battle', 'invalid', 'move']);
     const battle = result.entries[0];
@@ -184,5 +186,64 @@ describe('simultaneous land operation scheduler', () => {
     expect(result.entries[0].kind).toBe('battle');
     const next = resolveLandOrdersWeek({ ...input, week: 2, orders: result.orders });
     expect(next.entries[0].kind).toBe('stopped');
+  });
+
+  it.each(['neutral', 'not-adjacent', 'moved'] as const)('does not execute an invalidated %s assault or consume randomness', (change) => {
+    const random = () => { throw new Error('invalid order must not roll combat'); };
+    const result = resolveLandOrdersWeek({ ...input, orders: [firstOrder], random,
+      territories: [change === 'not-adjacent' ? { ...rear, neighbors: [] } : rear, change === 'neutral' ? { ...normandy, controller: 'neutral' } : normandy],
+      divisions: [change === 'moved' ? { ...first, territoryId: 'elsewhere' } : first],
+    });
+    expect(result.entries[0].kind).toBe('invalid');
+    const entry = result.entries[0];
+    expect(entry.kind === 'invalid' && entry.receipt).toMatchObject({ orderId: getOperationOrderId(firstOrder), outcome: 'invalidated', week: 1 });
+    expect(result.orders).toEqual([]);
+    expect(firstOrder.elapsedWeeks).toBe(0);
+  });
+
+  it('retains the paid cost and progress in a terminal receipt even without a battle report', () => {
+    const result = resolveLandOrdersWeek({ ...input, orders: [{ ...firstOrder, commandCost: 5, targetId: 'missing', operationProgress: 42, operationRequired: 170, elapsedWeeks: 2 }] });
+    const entry = result.entries[0];
+    expect(entry.kind === 'invalid' && entry.receipt).toMatchObject({ orderId: getOperationOrderId(firstOrder), outcome: 'invalidated', commandCost: 5, elapsedWeeks: 2, progressPercent: 25 });
+  });
+
+  it.each(['allies', 'axis'] as const)('invalidates saved land orders aimed at a %s sea zone before reinforcement or combat', (controller) => {
+    const sea: Territory = { ...normandy, id: 'channel', name: '영불해협 해역', siteType: 'sea', controller };
+    const origin = { ...rear, neighbors: [sea.id] };
+    const saved = { ...firstOrder, targetId: sea.id, commandCost: 5, elapsedWeeks: 3, operationProgress: 80 };
+    const before = JSON.stringify({ origin, sea, division: first, saved });
+    const result = resolveLandOrdersWeek({ ...input, orders: [saved], territories: [origin, sea],
+      random: () => { throw new Error('sea orders cannot roll land combat'); },
+    });
+    expect(result.orders).toEqual([]);
+    expect(result.entries).toHaveLength(1);
+    const entry = result.entries[0];
+    expect(entry.kind).toBe('invalid');
+    expect(entry.kind === 'invalid' && entry.receipt).toMatchObject({ outcome: 'invalidated', commandCost: 5, elapsedWeeks: 3, targetId: sea.id });
+    expect(JSON.stringify({ origin, sea, division: first, saved })).toBe(before);
+  });
+
+  it.each(['allies', 'axis'] as const)('blocks saved Tunisia–Sicily crossings even when Sicily is %s', (controller) => {
+    const origin = campaignTerritories.find((item) => item.id === 'tunisia')!;
+    const target = { ...campaignTerritories.find((item) => item.id === 'sicily')!, controller };
+    const division = { ...first, territoryId: origin.id };
+    const saved = createOperationOrder({ divisionId: division.id, fromId: origin.id, targetId: target.id, startedWeek: 0 }, origin, target, division);
+    const result = resolveLandOrdersWeek({ ...input, orders: [saved], divisions: [division], territories: [origin, target],
+      random: () => { throw new Error('sea crossings cannot roll land combat'); },
+    });
+    expect(result.entries.map((entry) => entry.kind)).toEqual(['invalid']);
+    expect(result.orders).toEqual([]);
+    expect(division.territoryId).toBe('tunisia');
+    expect(target.controller).toBe(controller);
+  });
+
+  it('does not execute a legacy order originating inside a sea zone or impede the other land front', () => {
+    const sea: Territory = { ...rear, id: 'channel', siteType: 'sea' };
+    const atSea = { ...first, territoryId: sea.id };
+    const saved = { ...firstOrder, fromId: sea.id };
+    const result = resolveLandOrdersWeek({ ...input, orders: [saved, secondOrder], divisions: [atSea, second], territories: [sea, rear, normandy, philippines] });
+    expect(result.entries.map((entry) => entry.kind)).toEqual(['invalid', 'battle']);
+    expect(result.orders.map((order) => order.divisionId)).toEqual([second.id]);
+    expect(atSea.territoryId).toBe('channel');
   });
 });

@@ -1,9 +1,16 @@
 import type { Faction, Territory } from './types';
 import type { StrategicFrontDefinition } from './strategicMapData';
+import { validateOffensiveTarget } from './mapCommand';
+import { classifyMapRoute, type MapRouteKind } from './mapRoutes';
 
 export interface MapConnection {
   from: Territory;
   to: Territory;
+  routeKind: MapRouteKind;
+  routeLabel: string;
+  isLandFront: boolean;
+  isSeaContact: boolean;
+  /** Hostile contact of either domain; not proof that a battle is active. */
   isFront: boolean;
 }
 
@@ -11,6 +18,15 @@ export interface FramedMapPoint {
   x: number;
   y: number;
   frame?: string;
+}
+
+export interface MapFrameTransfer {
+  fromPoint: FramedMapPoint & { frame: string };
+  toPoint: FramedMapPoint & { frame: string };
+}
+
+export interface CrossFrameMapConnection extends MapConnection, MapFrameTransfer {
+  id: string;
 }
 
 export interface FrontLabelAnchor {
@@ -62,6 +78,8 @@ export interface MapCamera {
 export interface FrontSummary extends StrategicFrontDefinition {
   territoryIds: string[];
   activeContacts: number;
+  landContacts: number;
+  seaContacts: number;
   controlled: number;
   hostile: number;
   neutral: number;
@@ -124,7 +142,9 @@ export function deriveVisibleMapLabelIds(
   zoom: number,
   padding = 7,
 ): Set<string> {
-  const safeZoom = Math.max(1, zoom);
+  // Callers may pass either legacy zoom or actual screen pixels per map unit.
+  // A narrow desktop viewport can legitimately have a scale below one.
+  const safeZoom = Number.isFinite(zoom) && zoom > 0 ? Math.max(.001, zoom) : 1;
   const accepted: Array<{ left: number; right: number; top: number; bottom: number }> = [];
   const visible = new Set<string>();
 
@@ -171,12 +191,18 @@ export function deriveMapConnections(territories: Territory[]): MapConnection[] 
   return territories.flatMap((territory) => territory.neighbors.flatMap((neighborId) => {
     const neighbor = territoryById.get(neighborId);
     if (!neighbor || territory.id.localeCompare(neighbor.id) >= 0) return [];
+    const route = classifyMapRoute(territory, neighbor);
+    const isHostileContact = territory.controller !== neighbor.controller
+      && territory.controller !== 'neutral'
+      && neighbor.controller !== 'neutral';
     return [{
       from: territory,
       to: neighbor,
-      isFront: territory.controller !== neighbor.controller
-        && territory.controller !== 'neutral'
-        && neighbor.controller !== 'neutral',
+      routeKind: route.kind,
+      routeLabel: route.label,
+      isLandFront: isHostileContact && route.kind === 'land',
+      isSeaContact: isHostileContact && route.kind !== 'land',
+      isFront: isHostileContact,
     }];
   }));
 }
@@ -195,6 +221,39 @@ export function deriveSameFrameMapConnections(
     return fromPoint !== undefined
       && toPoint !== undefined
       && getMapFrame(fromPoint) === getMapFrame(toPoint);
+  });
+}
+
+/**
+ * A transfer is a navigation relationship, not a line across two projections.
+ * Both endpoints are retained so the UI can show departure/arrival badges and
+ * focus the other frame for an adjacency or an approved operation.
+ */
+export function getCrossFrameMapTransfer(
+  fromId: string,
+  toId: string,
+  positions: Record<string, FramedMapPoint>,
+): MapFrameTransfer | null {
+  const fromPoint = positions[fromId];
+  const toPoint = positions[toId];
+  if (!fromPoint || !toPoint || getMapFrame(fromPoint) === getMapFrame(toPoint)) return null;
+  return {
+    fromPoint: { ...fromPoint, frame: getMapFrame(fromPoint) },
+    toPoint: { ...toPoint, frame: getMapFrame(toPoint) },
+  };
+}
+
+export function deriveCrossFrameMapConnections(
+  connections: MapConnection[],
+  positions: Record<string, FramedMapPoint>,
+): CrossFrameMapConnection[] {
+  return connections.flatMap((connection) => {
+    const transfer = getCrossFrameMapTransfer(connection.from.id, connection.to.id, positions);
+    return transfer ? [{
+      ...connection,
+      ...transfer,
+      id: [connection.from.id, connection.to.id].sort().join(':'),
+    }] : [];
   });
 }
 
@@ -271,8 +330,11 @@ export function deriveValidTargetIds(
   const territoryById = new Map(territories.map((territory) => [territory.id, territory]));
   const origin = territoryById.get(originId);
   return new Set(origin?.neighbors.filter((neighborId) => {
-    const controller = territoryById.get(neighborId)?.controller;
-    return controller !== undefined && controller !== playerFaction && controller !== 'neutral';
+    return validateOffensiveTarget({
+      origin,
+      target: territoryById.get(neighborId),
+      playerFaction,
+    }).allowed;
   }) ?? []);
 }
 
@@ -286,6 +348,8 @@ export function deriveFrontSummaries(
     const members = territories.filter((territory) => territory.frontId === front.id);
     const memberIds = new Set(members.map((territory) => territory.id));
     const activeContacts = connections.filter(({ from, to, isFront }) => isFront && (memberIds.has(from.id) || memberIds.has(to.id))).length;
+    const landContacts = connections.filter(({ from, to, isLandFront }) => isLandFront && (memberIds.has(from.id) || memberIds.has(to.id))).length;
+    const seaContacts = activeContacts - landContacts;
     const controlled = members.filter((territory) => territory.controller === playerFaction).length;
     const hostile = members.filter((territory) => territory.controller !== playerFaction && territory.controller !== 'neutral').length;
     const neutral = members.length - controlled - hostile;
@@ -304,6 +368,8 @@ export function deriveFrontSummaries(
       ...front,
       territoryIds: members.map((territory) => territory.id),
       activeContacts,
+      landContacts,
+      seaContacts,
       controlled,
       hostile,
       neutral,

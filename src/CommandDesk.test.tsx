@@ -226,4 +226,39 @@ describe('command desk objective evidence and callback boundaries', () => {
     expect(value.onNextWeek).not.toHaveBeenCalled();
     expect(value.onToggleExpanded).not.toHaveBeenCalled();
   });
+
+  it.each(['operations', 'meeting', 'sea-transport', 'logistics'])('preserves the %s workflow without confirming an order or advancing time', (id) => {
+    const tab = id === 'meeting' ? 'organization' : id === 'logistics' ? 'industry' : 'army';
+    const value = props({ activities: [{ id, tab, label: '진행 업무', value: 1, detail: '현재 기록' }] });
+    click(buttons(byClass(CommandDesk(value), 'command-desk-activities'))[0]);
+    expect(value.onActivity).toHaveBeenCalledExactlyOnceWith(id, tab);
+    expect(value.onAction).not.toHaveBeenCalled();
+    expect(value.onNextWeek).not.toHaveBeenCalled();
+  });
+
+  it('keeps a head of state’s military urgency visible without granting a locked mandate', () => {
+    const value = props({ role: roleFor('politics', 1), actions: [action('military-urgent', 'army', 'urgent'), action('cabinet', 'organization')] });
+    expect(renderToStaticMarkup(<CommandDesk {...value} />)).toContain('안건 military-urgent');
+    value.mandates = { ...value.mandates, army: { ...value.mandates.army, mode: 'locked' } };
+    expect(renderToStaticMarkup(<CommandDesk {...value} />)).not.toContain('안건 military-urgent');
+    callbacks(value).forEach((callback) => expect(callback).not.toHaveBeenCalled());
+  });
+
+  it('uses the current office as the heading and keeps artwork separate from event evidence', () => {
+    const value = props({ year: 1942 });
+    const html = renderToStaticMarkup(<CommandDesk {...value} />);
+    expect(html).toContain(`id="command-desk-title">${value.role.title}</h1>`);
+    expect(html).toContain('분위기 삽화 · 실제 사건 기록 아님');
+    expect(html).toContain('alt=""');
+    expect(html).toContain('확정 기록 첫째');
+    expect(html).not.toContain('당신의 지휘 데스크');
+    callbacks(value).forEach((callback) => expect(callback).not.toHaveBeenCalled());
+  });
+
+  it.each([undefined, NaN, 1935, 1960, 2060])('does not present wartime art as the world in year %s', (year) => {
+    const html = renderToStaticMarkup(<CommandDesk {...props({ year })} />);
+    expect(html).not.toContain('class="command-desk-art"');
+    expect(html).toContain('이번 주 결정');
+    expect(html).toContain('확정 기록 첫째');
+  });
 });

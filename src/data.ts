@@ -70,8 +70,9 @@ export const commanders: Commander[] = [
 export const initialDivisions: Division[] = [
   { id: '7arm', name: '제7 기갑사단 “사막의 쥐”', type: 'armor', strength: 88, organization: 91, experience: 78, supply: 82, territoryId: 'egypt', commanderId: 'montgomery', status: 'ready' },
   { id: '8army', name: '영국 제8군', type: 'infantry', strength: 94, organization: 86, experience: 72, supply: 88, territoryId: 'egypt', commanderId: 'alexander', status: 'ready' },
-  { id: '1arm', name: '미 제1 기갑사단', type: 'armor', strength: 81, organization: 74, experience: 52, supply: 76, territoryId: 'atlantic', commanderId: 'patton', status: 'ready' },
-  { id: '1inf', name: '미 제1 보병사단', type: 'infantry', strength: 90, organization: 79, experience: 60, supply: 80, territoryId: 'atlantic', commanderId: 'eisenhower', status: 'ready' },
+  // Playable land staging abstractions; not an exact historical order of battle.
+  { id: '1arm', name: '미 제1 기갑사단', type: 'armor', strength: 81, organization: 74, experience: 52, supply: 76, territoryId: 'belfast', commanderId: 'patton', status: 'ready' },
+  { id: '1inf', name: '미 제1 보병사단', type: 'infantry', strength: 90, organization: 79, experience: 60, supply: 80, territoryId: 'britain', commanderId: 'eisenhower', status: 'ready' },
   { id: '2nz', name: '뉴질랜드 제2사단', type: 'infantry', strength: 84, organization: 88, experience: 81, supply: 79, territoryId: 'malta', commanderId: 'freyberg', status: 'ready' },
   { id: '1air', name: '영국 제1 공수사단', type: 'airborne', strength: 76, organization: 83, experience: 66, supply: 72, territoryId: 'britain', commanderId: 'slim', status: 'ready' },
 ];

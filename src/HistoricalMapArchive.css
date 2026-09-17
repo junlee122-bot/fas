@@ -1,0 +1,17 @@
+.historical-map-archive { box-sizing: border-box; width: min(1600px, 94vw); height: 92dvh; max-width: none; max-height: none; padding: 0; border: 1px solid #776944; border-radius: 10px; background: #17201c; color: #e4e8df; box-shadow: 0 24px 100px #0009; }
+.historical-map-archive[open] { display: flex; flex-direction: column; gap: 0; }
+.historical-map-archive::backdrop { background: #060b0cdb; }
+.historical-map-archive > header { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 18px 24px; }
+.historical-map-archive header span { color: #cabc8b; font-size: 12px; }
+.historical-map-archive h2 { margin: 5px 0 0; font-size: 22px; }
+.historical-map-archive button, .historical-map-archive nav a { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 7px 13px; border: 1px solid #647166; border-radius: 5px; color: #e4e8df; background: #26322b; font: inherit; cursor: pointer; text-decoration: none; }
+.historical-map-archive button:disabled { opacity: .45; cursor: default; }
+.historical-map-archive button:focus-visible, .historical-map-archive a:focus-visible, .historical-map-archive-scroll:focus-visible { outline: 3px solid #e5c982; outline-offset: -3px; }
+.historical-map-archive > p { margin: 0; padding: 12px 24px; border-block: 1px solid #445146; background: #222c25; color: #c7cec4; font-size: 14px; line-height: 1.7; }
+.historical-map-archive > p strong { color: #f0d797; }
+.historical-map-archive nav { display: flex; align-items: center; gap: 10px; padding: 10px 24px; }
+.historical-map-archive nav output { width: 52px; text-align: center; font-variant-numeric: tabular-nums; }
+.historical-map-archive nav a { margin-left: auto; }
+.historical-map-archive-scroll { flex: 1; min-height: 0; overflow: auto; background: #0c1310; }
+.historical-map-archive-scroll img { display: block; max-width: none; height: auto; object-fit: contain; object-position: left top; }
+.historical-map-archive footer { display: flex; justify-content: space-between; gap: 16px; padding: 12px 24px; color: #bac5b8; font-size: 12px; }

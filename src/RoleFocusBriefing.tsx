@@ -4,6 +4,7 @@ import type { RoleTabMandate } from './roleMandate';
 import type { UXAction } from './ux';
 import { withJosa } from './koreanGrammar';
 import type { RoleCommandChainProfile, RoleCommandState, RoleOperationalScope } from './roleCommand';
+import { isCommandDeskActionVisible } from './commandDeskAccess';
 
 interface RoleFocusBriefingProps {
   role: CareerRole;
@@ -23,15 +24,7 @@ interface RoleFocusBriefingProps {
 
 export function RoleFocusBriefing({ role, mandates, tabs, actions, worldlineTitle, expanded, commandState, commandChain, operationalScope, onNavigate, onAction, onToggleExpanded, onNextWeek }: RoleFocusBriefingProps) {
   const directTabs = tabs.filter((tab) => mandates[tab.id].mode === 'direct' && tab.id !== 'command').slice(0, 4);
-  const roleActionTabs: Record<CareerRole['branch'], GameTab[]> = {
-    military: ['army', 'map', 'industry', 'research', 'organization'],
-    politics: ['governance', 'economy', 'diplomacy', 'health', 'industry', 'research', 'organization'],
-    intelligence: ['intelligence', 'map', 'diplomacy', 'research', 'organization'],
-  };
-  const matchedPrimaryAction = actions.find((action) => mandates[action.tab].mode === 'direct'
-    && roleActionTabs[role.branch].includes(action.tab)
-    && (action.id !== 'national-policy' || role.branch === 'politics' || role.archetype === 'head-of-state')
-    && (action.id !== 'political-crisis' || role.branch !== 'military' || role.tier <= 2));
+  const matchedPrimaryAction = actions.find((action) => isCommandDeskActionVisible(role, mandates, action));
   const primaryAction = matchedPrimaryAction?.id === 'idle-formations' && operationalScope.level !== 'national'
     ? { ...matchedPrimaryAction, title: `명령 대기 중인 예하 준비부대 ${operationalScope.divisionIds.length}개`, detail: `${operationalScope.label} 안에서 직접 지휘하는 부대만 명령하거나 훈련할 수 있습니다.` }
     : matchedPrimaryAction;

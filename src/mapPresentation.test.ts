@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { territories } from './data';
 import { getHistoricalMapPlacement } from './historicalMaps';
-import { clampMapCamera, deriveFrontLabelAnchors, deriveFrontSummaries, deriveMapConnections, deriveMapMarkerPresentation, deriveSameFrameMapConnections, deriveValidTargetIds, deriveVisibleMapLabelIds, getTerrainGlyphKind, MAX_MAP_ZOOM } from './mapPresentation';
+import { clampMapCamera, deriveCrossFrameMapConnections, deriveFrontLabelAnchors, deriveFrontSummaries, deriveMapConnections, deriveMapMarkerPresentation, deriveSameFrameMapConnections, deriveValidTargetIds, deriveVisibleMapLabelIds, getCrossFrameMapTransfer, getTerrainGlyphKind, MAX_MAP_ZOOM } from './mapPresentation';
 import { strategicFronts } from './strategicMapData';
 
 describe('map presentation model', () => {
@@ -23,6 +23,25 @@ describe('map presentation model', () => {
     expect([...targets]).toEqual(['tobruk']);
     expect(targets.has('alexandria')).toBe(false);
     expect(targets.has('egypt')).toBe(false);
+  });
+
+  it('separates land fronts, sea contacts and non-hostile crossings without losing links', () => {
+    const connections = deriveMapConnections(territories);
+    const connection = (a: string, b: string) => connections.find(({ from, to }) => [from.id, to.id].includes(a) && [from.id, to.id].includes(b));
+    expect(connection('egypt', 'libya')).toMatchObject({ isFront: true, isLandFront: true, isSeaContact: false, routeKind: 'land' });
+    expect(connection('britain', 'channel')).toMatchObject({ isFront: true, isLandFront: false, isSeaContact: true, routeKind: 'sea' });
+    expect(connection('japan_home', 'midway')).toMatchObject({ isFront: true, isLandFront: false, isSeaContact: true, routeKind: 'sea-crossing' });
+    expect(connection('tunisia', 'sicily')).toMatchObject({ isFront: false, isLandFront: false, isSeaContact: false, routeKind: 'sea-crossing' });
+    connections.forEach((item) => expect(Number(item.isLandFront) + Number(item.isSeaContact)).toBe(Number(item.isFront)));
+  });
+
+  it('breaks front totals into land and sea contacts instead of implying every island link is a land battle', () => {
+    const summaries = deriveFrontSummaries(territories, strategicFronts, 'allies');
+    summaries.forEach((front) => expect(front.activeContacts).toBe(front.landContacts + front.seaContacts));
+    const centralPacific = summaries.find((front) => front.id === 'central-pacific');
+    expect(centralPacific?.landContacts).toBe(0);
+    expect(centralPacific?.seaContacts).toBeGreaterThan(0);
+    expect(summaries.find((front) => front.id === 'egypt-suez')?.landContacts).toBeGreaterThan(0);
   });
 
   it('builds numerous named fronts from the same territories used by the map', () => {
@@ -119,6 +138,26 @@ describe('map presentation model', () => {
     expect(visible.has('selected-city')).toBe(true);
   });
 
+  it('uses screen scales below one for fixed-size labels in a narrow desktop map', () => {
+    const candidates = [
+      { id: 'a', x: 0, y: 0, text: 'A', width: 80, height: 18, priority: 20 },
+      { id: 'b', x: 100, y: 0, text: 'B', width: 80, height: 18, priority: 10 },
+    ];
+    expect([...deriveVisibleMapLabelIds(candidates, .5, 0)]).toEqual(['a']);
+    expect([...deriveVisibleMapLabelIds(candidates, 1, 0)]).toEqual(['a', 'b']);
+    expect([...deriveVisibleMapLabelIds(candidates, 2, 0)]).toEqual(['a', 'b']);
+  });
+
+  it('falls back to a neutral label scale for invalid measurements', () => {
+    const candidates = [
+      { id: 'a', x: 0, y: 0, text: 'A', width: 80, height: 18, priority: 20 },
+      { id: 'b', x: 60, y: 0, text: 'B', width: 80, height: 18, priority: 10 },
+    ];
+    [0, -1, Number.NaN, Number.POSITIVE_INFINITY].forEach((scale) => {
+      expect([...deriveVisibleMapLabelIds(candidates, scale, 0)]).toEqual(['a']);
+    });
+  });
+
   it('does not draw false straight routes between the main map and a printed inset', () => {
     const asia = territories.filter((territory) => territory.theater === 'asia');
     const positions = Object.fromEntries(asia.map((territory) => [territory.id, getHistoricalMapPlacement('asia', territory)]));
@@ -129,6 +168,40 @@ describe('map presentation model', () => {
     expect(keys).toContain('guam:midway');
     expect(keys).not.toContain('japan_home:midway');
     expect(keys).not.toContain('hokkaido:attu');
+  });
+
+  it('preserves every cross-frame adjacency as a renderable transfer instead of dropping it', () => {
+    const asia = territories.filter((territory) => territory.theater === 'asia');
+    const positions = Object.fromEntries(asia.map((territory) => [territory.id, getHistoricalMapPlacement('asia', territory)]));
+    const connections = deriveMapConnections(asia);
+    const direct = deriveSameFrameMapConnections(connections, positions);
+    const transfers = deriveCrossFrameMapConnections(connections, positions);
+    const keys = transfers.map((connection) => connection.id);
+
+    expect(direct.length + transfers.length).toBe(connections.length);
+    expect(new Set(keys).size).toBe(transfers.length);
+    expect(keys).toContain('japan_home:midway');
+    expect(keys).toContain('attu:hokkaido');
+    const hostile = transfers.find((connection) => connection.id === 'japan_home:midway')!;
+    expect(hostile.isFront).toBe(true);
+    expect(hostile.fromPoint).toMatchObject({ ...positions[hostile.from.id] });
+    expect(hostile.toPoint).toMatchObject({ ...positions[hostile.to.id] });
+    transfers.forEach((connection) => expect(connection.fromPoint.frame).not.toBe(connection.toPoint.frame));
+  });
+
+  it('retains directional endpoints for approved orders crossing frames', () => {
+    const positions = {
+      main: { x: 100, y: 200 },
+      inset: { x: 800, y: 400, frame: 'pacific-inset' },
+      neighbor: { x: 120, y: 220, frame: 'main' },
+    };
+    expect(getCrossFrameMapTransfer('inset', 'main', positions)).toEqual({
+      fromPoint: positions.inset,
+      toPoint: { ...positions.main, frame: 'main' },
+    });
+    expect(getCrossFrameMapTransfer('main', 'neighbor', positions)).toBeNull();
+    expect(getCrossFrameMapTransfer('missing', 'inset', positions)).toBeNull();
+    expect(getCrossFrameMapTransfer('main', 'missing', positions)).toBeNull();
   });
 
   it('anchors front names to same-frame hostile contact segments, not all-member centroids', () => {

@@ -607,6 +607,8 @@ export interface WarEvent {
 }
 
 export interface Order {
+  /** Redeployment must never become an attack if the friendly destination changes hands. */
+  intent?: 'offensive' | 'redeployment';
   /** Optional only for legacy saves/literals; new and normalized orders have IDs. */
   id?: string;
   commandId?: string;

@@ -3,8 +3,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { nations } from './campaign';
 import { createJointForcesState, forecastJointOperation, jointOperationTemplates, launchJointOperation, type JointForcesState, type JointOperationRecord } from './jointOperations';
-import { createJointCommandGuard, getJointBoardPlan, getJointForceSelectionReason, initialJointBoardSelection, JointOperationsBoard, JointOperationsBoardView, resolveJointSelection, type JointBoardSelection, type JointOperationsBoardProps } from './JointOperationsBoard';
+import { createInitialJointBoardSelection, createJointCommandGuard, getJointBoardPlan, getJointForceSelectionReason, getJointSeaEscortAssignment, initialJointBoardSelection, JointOperationsBoard, JointOperationsBoardView, resolveJointSelection, type JointBoardSelection, type JointOperationsBoardProps } from './JointOperationsBoard';
+import { territories } from './data';
+import { getJointMapContext } from './jointMapContext';
 import type { GameState, Stockpile } from './types';
+import type { SeaTransportOperation } from './seaTransport';
 
 const game: GameState = { week: 3, manpower: 1200, politicalPower: 82, fuel: 70, steel: 108, factories: 34, stability: 72, warSupport: 78, commandPoints: 48, treasury: 860, victoryScore: 66, airPower: 61, navalPower: 56, intelNetwork: 64, enemyPressure: 42 };
 const stockpile: Stockpile = { infantryEquipment: 5000, tanks: 400, aircraft: 900, convoys: 50, artillery: 300, trucks: 500 };
@@ -38,8 +41,208 @@ function airborneState() { const state = createJointForcesState('britain'); retu
 function record(id: string, endedWeek: number): JointOperationRecord {
   return { id, templateId: 'fighter-sweep', name: '기록 ' + id, theater: 'europe', startedWeek: 1, endedWeek, outcome: 'success', losses: id + ' 실제 손실', result: id + ' 확정 결과', worldEffect: id + ' 실제 세계 변화', objectiveId: 'channel-air-zone', objectiveName: '영불해협 제공권', campaignChanges: [id + ' 실제 구역 변화'] };
 }
+function reliefState() {
+  const state = createJointForcesState('britain');
+  const [active, joining] = state.fleets;
+  const operation = { id: 'sea-britain-relief', nationId: 'britain', escortFleetId: active.id, escortFleetName: active.name,
+    divisionName: '왕립 기갑원정군', fromName: '런던', targetName: '벨파스트', stage: 'sailing', elapsedWeeks: 3,
+    pendingEscortRelief: { fleetId: joining.id, fleetName: joining.name, previousFleetId: active.id, previousFleetName: active.name,
+      dispatchedWeek: 2, arrivalWeeks: 2, elapsedWeeks: 1, commandCost: 2, fuelCost: 8, source: 'reinforcement' },
+  } as SeaTransportOperation;
+  state.fleets[0] = { ...active, status: 'assigned', assignmentId: operation.id };
+  state.fleets[1] = { ...joining, status: 'assigned', assignmentId: operation.id };
+  return { state, operation, activeId: active.id, joiningId: joining.id };
+}
 
 describe('Command Edition joint workspace rendering', () => {
+  it('shows a transport escort as a real assignment and links to its voyage without new orders', () => {
+    const state = createJointForcesState('britain');
+    const operation = { id: 'sea-britain-test', nationId: 'britain', escortFleetId: state.fleets[0].id, divisionName: '왕립 기갑원정군', fromName: '런던', targetName: '벨파스트', stage: 'sailing', elapsedWeeks: 2 } as SeaTransportOperation;
+    state.fleets[0] = { ...state.fleets[0], status: 'assigned', assignmentId: operation.id };
+    const props = input({ view: 'naval', state, seaTransports: [operation], onOpenSeaTransport: vi.fn() });
+    const tree = present(props); const html = renderToStaticMarkup(tree);
+    expect(html).toContain('병력 수송 호위 — 왕립 기갑원정군');
+    expect(html).toContain('해상 항해');
+    expect(html).not.toContain('배속 기록 확인 필요');
+    expect(button(tree, '정비 전환').props.disabled).toBe(true);
+    invokeButton(tree, '호위 중인 수송 보기');
+    expect(props.onOpenSeaTransport).toHaveBeenCalledExactlyOnceWith(operation.id);
+    assertReadOnly(props);
+  });
+
+  it('does not let a stale ready flag bypass an escort assignment in force selection', () => {
+    const state = createJointForcesState('britain');
+    const fleet = { ...state.fleets[0], status: 'ready' as const, assignmentId: 'sea-test' };
+    const template = jointOperationTemplates.find((item) => item.id === 'amphibious-cover')!;
+    expect(getJointForceSelectionReason(fleet, template)).toContain('병력 수송 호위 중');
+    const props = input({ view: 'naval', state: { ...state, fleets: [fleet] } });
+    expect(button(present(props), '정비 전환').props.disabled).toBe(true);
+  });
+
+  it('joins pending escort details by actual assignment without applying protection or issuing orders', () => {
+    const { state, operation, joiningId } = reliefState();
+    const before = structuredClone({ state, operation });
+    const props = input({ view: 'naval', state, seaTransports: [operation], onOpenSeaTransport: vi.fn() });
+    const tree = present(props, { fleetId: joiningId });
+    const html = renderToStaticMarkup(tree);
+    expect(html).toContain('호위 합류 중 — 왕립 기갑원정군');
+    expect(html).toContain('접근 1/2주 · 합류까지 1주');
+    expect(html).toContain('일반 증원은 현장 합류 뒤 보호를 시작합니다');
+    expect(html).toContain('멀리 떨어진 고립 부대를 원격 보호하지 않습니다');
+    expect(html).not.toContain('배속 기록 확인 필요');
+    const refit = invokeButton(tree, '정비 전환');
+    expect(refit.props.disabled).toBe(true);
+    expect(refit.props.title).toBe('호위 합류 중에는 정비 전환 불가');
+    invokeButton(tree, '합류할 수송 보기');
+    expect(props.onOpenSeaTransport).toHaveBeenCalledExactlyOnceWith(operation.id);
+    expect({ state, operation }).toEqual(before);
+    assertReadOnly(props);
+  });
+
+  it('keeps the original escort visibly protecting the voyage until relief actually joins', () => {
+    const { state, operation, activeId } = reliefState();
+    const props = input({ view: 'naval', state, seaTransports: [operation] });
+    const tree = present(props, { fleetId: activeId });
+    const html = renderToStaticMarkup(tree);
+    expect(html).toContain('호위 중 · 교대 대기');
+    expect(html).toContain('현재 함대는 교대가 확정될 때까지 호위를 계속합니다');
+    expect(html).toContain(operation.pendingEscortRelief!.fleetName + ' 합류까지 1주');
+    expect(html).toContain('교대함대가 도착하지 못하면 현재 호위가 유지됩니다');
+    expect(button(tree, '정비 전환').props.title).toContain('교대함대 합류 전');
+    assertReadOnly(props);
+  });
+
+  it('identifies rescue escorts as travelling with the rescue convoy without negative arrival times', () => {
+    const { state, operation, joiningId } = reliefState();
+    operation.pendingEscortRelief = { ...operation.pendingEscortRelief!, source: 'rescue', elapsedWeeks: 2 };
+    const props = input({ view: 'naval', state, seaTransports: [operation] });
+    const html = renderToStaticMarkup(present(props, { fleetId: joiningId }));
+    expect(html).toContain('구조선과 함께 접근하는 함대입니다');
+    expect(html).toContain('합류까지 0주');
+    assertReadOnly(props);
+  });
+
+  it('rejects false escort joins from stale membership, another operation, another nation or air force', () => {
+    const { state, operation } = reliefState();
+    const fleet = state.fleets[1];
+    expect(getJointSeaEscortAssignment(fleet, [operation])).toMatchObject({ operation, role: 'joining' });
+    expect(getJointSeaEscortAssignment(state.fleets[0], [operation])).toMatchObject({ operation, role: 'active' });
+    expect(getJointSeaEscortAssignment({ ...fleet, assignmentId: 'sea-other' }, [operation])).toBeNull();
+    expect(getJointSeaEscortAssignment({ ...fleet, assignmentId: null }, [operation])).toBeNull();
+    expect(getJointSeaEscortAssignment(fleet, [operation], 'usa')).toBeNull();
+    expect(getJointSeaEscortAssignment(fleet, [{ ...operation, pendingEscortRelief: undefined }])).toBeNull();
+    expect(getJointSeaEscortAssignment({ ...state.airGroups[0], assignmentId: operation.id }, [operation])).toBeNull();
+  });
+
+  it('does not show a transport shortcut or invented mission for a mismatched pending assignment', () => {
+    const { state, operation, joiningId } = reliefState();
+    state.fleets[1].assignmentId = 'sea-unrelated';
+    const props = input({ view: 'naval', state, seaTransports: [operation], onOpenSeaTransport: vi.fn() });
+    const html = renderToStaticMarkup(present(props, { fleetId: joiningId }));
+    expect(html).toContain('배속 기록 확인 필요');
+    expect(html).not.toContain('합류할 수송 보기');
+    expect(props.onOpenSeaTransport).not.toHaveBeenCalled();
+    assertReadOnly(props);
+  });
+
+  it('explains both fleet locks in the joint planner even if a pending fleet has a stale ready flag', () => {
+    const { state, operation, joiningId } = reliefState();
+    state.fleets[1].status = 'ready';
+    const template = jointOperationTemplates.find((item) => item.id === 'amphibious-cover')!;
+    expect(getJointForceSelectionReason(state.fleets[1], template, [operation])).toContain('호위 합류 중');
+    expect(getJointForceSelectionReason(state.fleets[0], template, [operation])).toContain('귀항·급유');
+    const props = input({ state, seaTransports: [operation] });
+    const selected = { workspace: 'planning' as const, templateId: template.id, fleetIds: [joiningId] };
+    const tree = present(props, selected);
+    expect(renderToStaticMarkup(tree)).toContain('접근 중에도 별도 작전·정비에 중복 배속 불가');
+    expect(getJointBoardPlan(props, selection(selected)).canLaunch).toBe(false);
+    invokeButton(tree, '작전명령 승인');
+    assertReadOnly(props);
+  });
+
+  it('opens the exact player fleet from the map without assigning or approving any operation', () => {
+    const state = createJointForcesState('britain');
+    const target = state.fleets[1];
+    const before = structuredClone(state);
+    const props = input({ view: 'naval', state, initialFleetId: target.id });
+    const selected = createInitialJointBoardSelection(props);
+    expect(selected).toMatchObject({ workspace: 'overview', fleetId: target.id, fleetIds: [], airGroupIds: [], templateId: null, objectiveId: null });
+    const html = renderToStaticMarkup(<JointOperationsBoard {...props} />);
+    expect(html).toContain(target.name);
+    expect(html).toContain('data-joint-workspace="overview"');
+    expect(state).toEqual(before);
+    assertReadOnly(props);
+  });
+
+  it('ignores missing and opponent fleet navigation IDs instead of treating them as player selections', () => {
+    const state = createJointForcesState('britain');
+    for (const initialFleetId of [undefined, '', 'missing-fleet', state.opponent.fleets[0].id]) {
+      const props = input({ view: 'naval', state, initialFleetId });
+      const selected = createInitialJointBoardSelection(props);
+      expect(selected.fleetId).toBeNull();
+      expect(selected.fleetIds).toEqual([]);
+      expect(selected.airGroupIds).toEqual([]);
+      assertReadOnly(props);
+    }
+  });
+
+  it('keeps the inspected fleet separate from force assignment when a map operation context is present', () => {
+    const props = input();
+    props.initialFleetId = props.state.fleets[1].id;
+    props.mapContext = getJointMapContext(territories.find((item) => item.id === 'normandy')!, props.state);
+    const selected = createInitialJointBoardSelection(props);
+    expect(selected.fleetId).toBe(props.initialFleetId);
+    expect(selected.workspace).toBe('planning');
+    expect(selected.fleetIds).toEqual([]);
+    expect(getJointBoardPlan(props, selected).canLaunch).toBe(false);
+    assertReadOnly(props);
+  });
+
+  it('opens a mapped operation draft with the exact target but no selected forces or automatic launch', () => {
+    const props = input();
+    props.mapContext = getJointMapContext(territories.find((item) => item.id === 'normandy')!, props.state);
+    const selected = createInitialJointBoardSelection(props);
+    expect(selected).toMatchObject({ workspace: 'planning', templateId: 'amphibious-cover', objectiveId: 'normandy-landing-sector', fleetIds: [], airGroupIds: [] });
+    const html = renderToStaticMarkup(<JointOperationsBoard {...props} />);
+    expect(html).toContain('data-map-territory="normandy"');
+    expect(html).toContain('data-joint-workspace="planning"');
+    expect(html).toContain('value="normandy-landing-sector" selected=""');
+    expect(html).toContain('상륙·점령하지 않습니다');
+    expect(getJointBoardPlan(props, selected).canLaunch).toBe(false);
+    assertReadOnly(props);
+  });
+
+  it('retains unmapped map context while showing theater overview, not an invented landing plan', () => {
+    const props = input({ theater: 'asia', state: createJointForcesState('korea') });
+    props.mapContext = getJointMapContext(territories.find((item) => item.id === 'korea')!, props.state);
+    const html = renderToStaticMarkup(<JointOperationsBoard {...props} />);
+    expect(html).toContain('data-map-territory="korea"');
+    expect(html).toContain('이 전구 전체');
+    expect(html).toContain('data-joint-workspace="overview"');
+    expect(html).not.toContain('id="jcb-template"');
+    expect(createInitialJointBoardSelection(props).objectiveId).toBeNull();
+    assertReadOnly(props);
+  });
+
+  it('revalidates stale, incompatible and wrong-theater map preselection before mounting', () => {
+    const props = input();
+    const mapped = getJointMapContext(territories.find((item) => item.id === 'normandy')!, props.state);
+    for (const patch of [{ objectiveId: 'missing' }, { templateId: 'atlantic-lifeline' }, { theater: 'asia' as const }]) {
+      props.mapContext = { ...mapped, ...patch };
+      expect(createInitialJointBoardSelection(props).workspace).toBe('overview');
+      expect(createInitialJointBoardSelection(props).templateId).toBeNull();
+    }
+    assertReadOnly(props);
+  });
+
+  it('closes only map navigation context without dispatching a command', () => {
+    const props = input({ onDismissMapContext: vi.fn() });
+    props.mapContext = getJointMapContext(territories.find((item) => item.id === 'channel')!, props.state);
+    invokeButton(present(props), '지도 연결 닫기');
+    expect(props.onDismissMapContext).toHaveBeenCalledExactlyOnceWith();
+    assertReadOnly(props);
+  });
+
   it('lands on current theater information without mounting the planner, full roster or reports', () => {
     const props = input({ state: airborneState() });
     const before = structuredClone(props.state);

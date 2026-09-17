@@ -1,0 +1,92 @@
+{
+  "title": "IRON DOMINION physical geography basemap",
+  "dataset": "Natural Earth 1:10m physical vectors",
+  "version": "5.1.2",
+  "commit": "f1890d9f152c896d250a77557a5751a93d494776",
+  "copyright": "Public domain. Natural Earth contributors.",
+  "licenseUrl": "https://www.naturalearthdata.com/about/terms-of-use/",
+  "datasetUrl": "https://www.naturalearthdata.com/downloads/10m-physical-vectors/",
+  "repositoryUrl": "https://github.com/nvkelso/natural-earth-vector/tree/f1890d9f152c896d250a77557a5751a93d494776",
+  "projection": "Equidistant cylindrical, standard parallel at theater latitude midpoint; centered uniform fit in 1200×760 with 24px padding.",
+  "processing": "Unwrap antimeridian; clip rings and lines in geographic coordinates; project with src/geographicProjection.ts. No coordinate simplification; serialize to 0.001 map units. Exclude features classified as Reservoir to avoid presenting modern dams as 1942 terrain. No modern political boundaries.",
+  "limitations": [
+    "This is physical geography, not a reconstruction of 1942 coastlines or river engineering.",
+    "Natural Earth is a generalized world dataset, not a navigational chart or port approach survey.",
+    "No elevation or terrain relief is claimed by the physical land/river/lake layer."
+  ],
+  "sources": [
+    {
+      "layer": "land",
+      "file": "ne_10m_land.geojson",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/f1890d9f152c896d250a77557a5751a93d494776/geojson/ne_10m_land.geojson",
+      "sha256": "1ac90796408bc6ad6911d69448485d3c4dbf2190370080368a09976e1c9f7416",
+      "features": 11
+    },
+    {
+      "layer": "minorIslands",
+      "file": "ne_10m_minor_islands.geojson",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/f1890d9f152c896d250a77557a5751a93d494776/geojson/ne_10m_minor_islands.geojson",
+      "sha256": "8c933ca7a4760256bdc46408355706e39764b0fa01c160c28888b90b4faec29f",
+      "features": 2795
+    },
+    {
+      "layer": "reefs",
+      "file": "ne_10m_reefs.geojson",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/f1890d9f152c896d250a77557a5751a93d494776/geojson/ne_10m_reefs.geojson",
+      "sha256": "4dcfb7cb57e7c04108df66ca0ac1bb4125b2b40b6bb45d7d2aa589bd4e46dc57",
+      "features": 1043
+    },
+    {
+      "layer": "lakes",
+      "file": "ne_10m_lakes.geojson",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/f1890d9f152c896d250a77557a5751a93d494776/geojson/ne_10m_lakes.geojson",
+      "sha256": "2d036f53dedec578001c5c30c2959ee7d4eebc1306900fa4367c49929ec8f2d9",
+      "features": 1355
+    },
+    {
+      "layer": "rivers",
+      "file": "ne_10m_rivers_lake_centerlines.geojson",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/f1890d9f152c896d250a77557a5751a93d494776/geojson/ne_10m_rivers_lake_centerlines.geojson",
+      "sha256": "bb854a900ecbd3b408df46d5e16e3e0f974ba55993f9d8b5c26e855273c0905a",
+      "features": 1455
+    }
+  ],
+  "output": {
+    "europe": {
+      "file": "europe-natural-earth-10m.svg",
+      "bytes": 2653065,
+      "sha256": "740d0b49520866261bb69c3b7bd0a4c876dc0dacd55937927f25ba14e332d952",
+      "pathCharacters": {
+        "land": 1411951,
+        "minorIslands": 216012,
+        "reefs": 3312,
+        "lakes": 349834,
+        "rivers": 670808
+      },
+      "bounds": {
+        "west": -30,
+        "east": 65,
+        "north": 73,
+        "south": 23
+      }
+    },
+    "asia": {
+      "file": "asia-natural-earth-10m.svg",
+      "bytes": 3849112,
+      "sha256": "6f52b72dbc21a33d891bece85f771b88d15083a9fde78d72bac1f3b0cb956260",
+      "pathCharacters": {
+        "land": 1943497,
+        "minorIslands": 254206,
+        "reefs": 145858,
+        "lakes": 281327,
+        "rivers": 1223078
+      },
+      "bounds": {
+        "west": 60,
+        "east": 210,
+        "north": 65,
+        "south": -30
+      }
+    }
+  }
+}

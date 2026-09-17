@@ -95,12 +95,12 @@ export function deriveKoreaLiberationTracks(input: KoreaLiberationInput): KoreaL
   const force = clamp((input.averageStrength + input.averageSupply) / 2);
   const returnPlan = clamp(input.objectiveProgress);
   const homeland = input.territories.find((territory) => territory.id === 'korea');
-  const homelandStatus = homeland?.controller === 'allies' ? '한반도 거점을 확보했습니다.' : homeland?.controller === 'neutral' ? '한반도 지배권이 경합 중입니다.' : '조선 본토는 아직 일제 점령 아래 있습니다.';
+  const homelandStatus = homeland?.controller === 'allies' ? '한반도 거점은 연합 진영 통제입니다. 한국의 관할·주권 확정과는 별개입니다.' : homeland?.controller === 'neutral' ? '한반도 거점은 중립 상태입니다. 통제 국가는 지도 기록에서 확인하세요.' : homeland ? '한반도 거점은 추축 진영 통제입니다. 현재 통제 국가는 지도 기록에서 확인하세요.' : '한반도 거점의 현재 통제 기록을 확인할 수 없습니다.';
 
   return [
     {
-      id: 'recognition', label: '국제 승인', value: recognition,
-      detail: '외교·조직력과 임시정부 결속을 합산한 승인 기반',
+      id: 'recognition', label: '승인 교섭 준비', value: recognition,
+      detail: '정치·조직 결속의 준비도입니다. 실제 승인국은 외교의 정부 대표권 기록에서 확인합니다.',
       action: '승인 교섭', tab: 'diplomacy', icon: 'diplomacy',
       ...trackPresentation(recognition),
     },

@@ -1,4 +1,6 @@
 import type { GameState, NationId, TheaterId } from './types';
+import { createFleetNavigation, hasFleetNavigationReservation, normalizeFleetNavigation } from './navalNavigation';
+import type { FleetNavigationState } from './navalNavigation';
 
 export type FleetKind = 'carrier' | 'surface' | 'escort' | 'submarine' | 'coastal' | 'clandestine';
 export type AirGroupKind = 'fighter' | 'bomber' | 'maritime' | 'transport' | 'recon' | 'mixed';
@@ -39,6 +41,7 @@ export interface NavalTaskForce {
   status: JointForceStatus;
   assignmentId: string | null;
   historicalBasis: string;
+  navigation?: FleetNavigationState;
 }
 
 export interface AirGroup {
@@ -554,6 +557,7 @@ function createFleet(nationId: NationId, seed: NationForceSeed['fleets'][number]
     organization: minor ? 48 + index * 6 : 76 - index * 3,
     experience: minor ? 38 + index * 5 : 68 - index * 2,
     status: 'ready', assignmentId: null, historicalBasis,
+    navigation: createFleetNavigation({ location, kind }),
   };
 }
 
@@ -623,7 +627,10 @@ export function normalizeJointForcesState(value: unknown, nationId: NationId): J
   return {
     ...fallback,
     doctrine: candidate.doctrine && candidate.doctrine in jointDoctrineDefinitions ? candidate.doctrine : fallback.doctrine,
-    fleets: candidate.fleets.map((unit) => ({ ...fleetFallback.get(unit.id), ...unit })).filter((unit): unit is NavalTaskForce => Boolean(unit.id)),
+    fleets: candidate.fleets.filter((unit) => unit && typeof unit.id === 'string').map((unit): NavalTaskForce => {
+      const merged = { ...fleetFallback.get(unit.id), ...unit };
+      return { ...merged, navigation: normalizeFleetNavigation(unit.navigation, { ...merged, location: fleetFallback.get(unit.id)?.location ?? unit.location }) };
+    }).filter((unit): unit is NavalTaskForce => Boolean(unit.id)),
     airGroups: candidate.airGroups.map((unit) => ({ ...airFallback.get(unit.id), ...unit })).filter((unit): unit is AirGroup => Boolean(unit.id)),
     operations: Array.isArray(candidate.operations) ? candidate.operations.filter((operation) => operation?.status === 'active') : [],
     records: Array.isArray(candidate.records) ? candidate.records.slice(-40) : [],
@@ -632,7 +639,10 @@ export function normalizeJointForcesState(value: unknown, nationId: NationId): J
       ...candidateOpponent,
       doctrine: candidateOpponent.doctrine && candidateOpponent.doctrine in jointDoctrineDefinitions ? candidateOpponent.doctrine : fallback.opponent.doctrine,
       fleets: Array.isArray(candidateOpponent.fleets)
-        ? candidateOpponent.fleets.map((unit) => ({ ...opponentFleetFallback.get(unit.id), ...unit })).filter((unit): unit is NavalTaskForce => Boolean(unit.id))
+        ? candidateOpponent.fleets.filter((unit) => unit && typeof unit.id === 'string').map((unit): NavalTaskForce => {
+          const merged = { ...opponentFleetFallback.get(unit.id), ...unit };
+          return { ...merged, navigation: normalizeFleetNavigation(unit.navigation, { ...merged, location: opponentFleetFallback.get(unit.id)?.location ?? unit.location }) };
+        }).filter((unit): unit is NavalTaskForce => Boolean(unit.id))
         : fallback.opponent.fleets,
       airGroups: Array.isArray(candidateOpponent.airGroups)
         ? candidateOpponent.airGroups.map((unit) => ({ ...opponentAirFallback.get(unit.id), ...unit })).filter((unit): unit is AirGroup => Boolean(unit.id))
@@ -671,6 +681,11 @@ const historicalForces = (Object.keys(nationForceSeeds) as NationId[]).map(creat
 const historicalFleetSizes = new Map(historicalForces.flatMap((forces) => forces.fleets.map((unit) => [unit.id, unit.ships] as const)));
 const historicalAirSizes = new Map(historicalForces.flatMap((forces) => forces.airGroups.map((unit) => [unit.id, unit.aircraft] as const)));
 const availableCount = (count: number) => Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+const hasForceReservation = (unit: { status: JointForceStatus; assignmentId: string | null; navigation?: FleetNavigationState }) =>
+  unit.status === 'assigned' || Boolean(unit.assignmentId) || hasFleetNavigationReservation(unit);
+// Legacy rosters may lack an assignment ID. An explicit different owner, however,
+// is never overridden by an old joint-operation roster (notably sea transports).
+const belongsToOperation = (unit: { assignmentId: string | null }, operationId: string) => !unit.assignmentId || unit.assignmentId === operationId;
 
 function getForceStrength(template: JointOperationTemplate, fleets: NavalTaskForce[], airGroups: AirGroup[]): number {
   const ratios: number[] = [];
@@ -688,7 +703,7 @@ function getForceStrength(template: JointOperationTemplate, fleets: NavalTaskFor
 
 function getOperationStrength(operation: ActiveJointOperation, fleets: NavalTaskForce[], airGroups: AirGroup[]) {
   const template = jointOperationTemplates.find((item) => item.id === operation.templateId);
-  return template ? getForceStrength(template, fleets.filter((unit) => operation.fleetIds.includes(unit.id)), airGroups.filter((unit) => operation.airGroupIds.includes(unit.id))) : 0;
+  return template ? getForceStrength(template, fleets.filter((unit) => operation.fleetIds.includes(unit.id) && belongsToOperation(unit, operation.id)), airGroups.filter((unit) => operation.airGroupIds.includes(unit.id) && belongsToOperation(unit, operation.id))) : 0;
 }
 
 function currentOperationChance(operation: ActiveJointOperation, strength: number) {
@@ -734,13 +749,16 @@ export function forecastJointOperation(
   const requiresFleet = template.requiredFleetKinds.length > 0;
   const requiresAir = template.requiredAirKinds.length > 0;
   let warning: string | null = null;
-  if (requiresFleet && fleets.length === 0) warning = `${template.requiredFleetKinds.map((kind) => fleetKindLabels[kind]).join('·')} 중 하나가 필요합니다.`;
+  if (new Set(fleetIds).size !== fleetIds.length || new Set(airGroupIds).size !== airGroupIds.length) warning = '같은 함대·항공대를 중복 배속할 수 없습니다.';
+  else if (fleetIds.some((id) => !state.fleets.some((unit) => unit.id === id)) || airGroupIds.some((id) => !state.airGroups.some((unit) => unit.id === id))) warning = '선택한 함대·항공대 중 현재 편제에서 찾을 수 없는 부대가 있습니다.';
+  else if (requiresFleet && fleets.length === 0) warning = `${template.requiredFleetKinds.map((kind) => fleetKindLabels[kind]).join('·')} 중 하나가 필요합니다.`;
   else if (requiresFleet && !fleets.some((unit) => matchesFleet(template, unit))) warning = '선택한 함대 유형이 임무 요구와 맞지 않습니다.';
   else if (requiresAir && airGroups.length === 0) warning = `${template.requiredAirKinds.map((kind) => airKindLabels[kind]).join('·')} 중 하나가 필요합니다.`;
   else if (requiresAir && !airGroups.some((unit) => matchesAir(template, unit))) warning = '선택한 항공대 유형이 임무 요구와 맞지 않습니다.';
   else if (fleets.some((unit) => availableCount(unit.ships) === 0)) warning = '함정이 0척인 함대는 출격할 수 없습니다. 전력을 보충하거나 다른 함대를 선택하십시오.';
   else if (airGroups.some((unit) => availableCount(unit.aircraft) === 0)) warning = '항공기가 0대인 항공대는 출격할 수 없습니다. 전력을 보충하거나 다른 항공대를 선택하십시오.';
-  else if ([...fleets, ...airGroups].some((unit) => unit.status !== 'ready')) warning = '선택 전력 중 다른 임무에 배속됐거나 재편 중인 부대가 있습니다.';
+  else if ([...fleets, ...airGroups].some((unit) => unit.status !== 'ready' || hasForceReservation(unit))
+    || state.operations.some((operation) => operation.fleetIds.some((id) => fleetIds.includes(id)) || operation.airGroupIds.some((id) => airGroupIds.includes(id)))) warning = '선택 전력 중 다른 임무에 배속됐거나 재편 중인 부대가 있습니다.';
   else if (!objective) warning = '현재 전구에서 이 작전에 맞는 목표 구역을 찾을 수 없습니다.';
 
   const forceReadiness = [...fleets.map((unit) => (unit.readiness + unit.organization + unit.experience) / 3), ...airGroups.map((unit) => (unit.readiness + unit.serviceability + unit.experience) / 3)];
@@ -922,8 +940,8 @@ function operationDomain(kind: JointOperationKind): JointEngagementRecord['domai
 }
 
 function averageOperationReadiness(operation: ActiveJointOperation, fleets: NavalTaskForce[], airGroups: AirGroup[]) {
-  const assignedFleets = fleets.filter((unit) => operation.fleetIds.includes(unit.id));
-  const assignedAir = airGroups.filter((unit) => operation.airGroupIds.includes(unit.id));
+  const assignedFleets = fleets.filter((unit) => operation.fleetIds.includes(unit.id) && belongsToOperation(unit, operation.id));
+  const assignedAir = airGroups.filter((unit) => operation.airGroupIds.includes(unit.id) && belongsToOperation(unit, operation.id));
   const readiness = [
     ...assignedFleets.map((unit) => (unit.readiness + unit.organization) / 2),
     ...assignedAir.map((unit) => (unit.readiness + unit.serviceability) / 2),
@@ -946,8 +964,8 @@ function planOpponentOperation(
   context: JointOperationContext,
 ): { opponent: JointOpponentState; event: JointOperationEvent | null } {
   if (opponent.operations.length >= 2 || context.week - opponent.lastDecisionWeek < 3) return { opponent, event: null };
-  const readyFleets = opponent.fleets.filter((unit) => unit.status === 'ready' && availableCount(unit.ships) > 0);
-  const readyAir = opponent.airGroups.filter((unit) => unit.status === 'ready' && availableCount(unit.aircraft) > 0);
+  const readyFleets = opponent.fleets.filter((unit) => unit.status === 'ready' && !hasForceReservation(unit) && availableCount(unit.ships) > 0);
+  const readyAir = opponent.airGroups.filter((unit) => unit.status === 'ready' && !hasForceReservation(unit) && availableCount(unit.aircraft) > 0);
   const reactiveKinds = playerOperations.map((operation) => counterKinds[operation.kind]).flat();
   const templates = getAvailableJointOperationTemplates(context.theater)
     .filter((template) => (!template.requiredFleetKinds.length || readyFleets.some((unit) => matchesFleet(template, unit)))
@@ -1158,10 +1176,10 @@ export function advanceJointOperationsWeek(state: JointForcesState, context: Joi
     const engagementId = `engagement-${playerOperation.id}-${enemyOperation.id}`;
     if (state.engagements.some((item) => item.id === engagementId)) return;
     const domain = operationDomain(enemyOperation.kind) === operationDomain(playerOperation.kind) ? operationDomain(playerOperation.kind) : 'combined';
-    const playerAircraft = state.airGroups.filter((unit) => playerOperation.airGroupIds.includes(unit.id)).reduce((sum, unit) => sum + availableCount(unit.aircraft), 0);
-    const enemyAircraft = Math.max(0, opponent.airGroups.filter((unit) => enemyOperation.airGroupIds.includes(unit.id)).reduce((sum, unit) => sum + availableCount(unit.aircraft), 0) - (enemyAirLosses.get(enemyOperation.id) ?? 0));
-    const playerShips = state.fleets.filter((unit) => playerOperation.fleetIds.includes(unit.id)).reduce((sum, unit) => sum + availableCount(unit.ships), 0);
-    const enemyShips = Math.max(0, opponent.fleets.filter((unit) => enemyOperation.fleetIds.includes(unit.id)).reduce((sum, unit) => sum + availableCount(unit.ships), 0) - (enemyShipLosses.get(enemyOperation.id) ?? 0));
+    const playerAircraft = state.airGroups.filter((unit) => playerOperation.airGroupIds.includes(unit.id) && belongsToOperation(unit, playerOperation.id)).reduce((sum, unit) => sum + availableCount(unit.aircraft), 0);
+    const enemyAircraft = Math.max(0, opponent.airGroups.filter((unit) => enemyOperation.airGroupIds.includes(unit.id) && belongsToOperation(unit, enemyOperation.id)).reduce((sum, unit) => sum + availableCount(unit.aircraft), 0) - (enemyAirLosses.get(enemyOperation.id) ?? 0));
+    const playerShips = state.fleets.filter((unit) => playerOperation.fleetIds.includes(unit.id) && belongsToOperation(unit, playerOperation.id)).reduce((sum, unit) => sum + availableCount(unit.ships), 0);
+    const enemyShips = Math.max(0, opponent.fleets.filter((unit) => enemyOperation.fleetIds.includes(unit.id) && belongsToOperation(unit, enemyOperation.id)).reduce((sum, unit) => sum + availableCount(unit.ships), 0) - (enemyShipLosses.get(enemyOperation.id) ?? 0));
     const playerAirLoss = Math.min(playerAircraft, domain !== 'sea' ? (advantage === 'enemy' ? 4 : advantage === 'contested' ? 2 : 1) : 0);
     const enemyAirLoss = Math.min(enemyAircraft, domain !== 'sea' ? (advantage === 'player' ? 4 : advantage === 'contested' ? 2 : 1) : 0);
     const playerShipLoss = Math.min(playerShips, domain !== 'air' ? (advantage === 'enemy' ? 2 : advantage === 'contested' ? 1 : 0) : 0);
@@ -1215,8 +1233,8 @@ export function advanceJointOperationsWeek(state: JointForcesState, context: Joi
   const nextOperations = state.operations.map((operation) => {
     const template = jointOperationTemplates.find((item) => item.id === operation.templateId);
     if (!template) return operation;
-    const fleets = engagedFleets.filter((unit) => operation.fleetIds.includes(unit.id));
-    const airGroups = engagedAirGroups.filter((unit) => operation.airGroupIds.includes(unit.id));
+    const fleets = engagedFleets.filter((unit) => operation.fleetIds.includes(unit.id) && belongsToOperation(unit, operation.id));
+    const airGroups = engagedAirGroups.filter((unit) => operation.airGroupIds.includes(unit.id) && belongsToOperation(unit, operation.id));
     const averageReadiness = averageOperationReadiness(operation, state.fleets, state.airGroups);
     const forceStrength = getForceStrength(template, fleets, airGroups);
     const effectiveChance = currentOperationChance(operation, forceStrength);
@@ -1380,44 +1398,36 @@ export function advanceJointOperationsWeek(state: JointForcesState, context: Joi
 
   const activeFleetIds = new Set(nextOperations.flatMap((operation) => operation.fleetIds));
   const activeAirIds = new Set(nextOperations.flatMap((operation) => operation.airGroupIds));
+  const ownedOperationIds = new Set(state.operations.map((operation) => operation.id));
   const finalAirLosses = distributeFormationLosses(state.airGroups, playerAirLosses, (unit) => unit.aircraft);
   const nextFleets = state.fleets.map((unit) => {
+    if (unit.assignmentId && !ownedOperationIds.has(unit.assignmentId)) return unit;
     const wasCompleted = unit.assignmentId ? completedIds.has(unit.assignmentId) : false;
     const shipLoss = engagementFleetLosses.get(unit.id) ?? 0;
     if (activeFleetIds.has(unit.id)) return { ...unit, ships: Math.max(0, unit.ships - shipLoss), readiness: clamp(unit.readiness - 2), organization: clamp(unit.organization - 1) };
-    const nextReadiness = clamp(unit.readiness + (unit.status === 'refit' ? 7 : wasCompleted ? -4 : 2));
-    return {
-      ...unit,
-      ships: Math.max(0, unit.ships - shipLoss),
-      readiness: nextReadiness,
-      organization: clamp(unit.organization + (unit.status === 'refit' ? 6 : 2)),
-      status: unit.status === 'refit' && nextReadiness < 95 ? 'refit' as const : 'ready' as const,
-      assignmentId: null,
-    };
+    if (hasForceReservation(unit) && !wasCompleted) return unit;
+    return recoverUnassignedFleet({ ...unit, ships: Math.max(0, unit.ships - shipLoss) }, wasCompleted);
   });
   const nextAirGroups = state.airGroups.map((unit) => {
+    if (unit.assignmentId && !ownedOperationIds.has(unit.assignmentId)) return unit;
     const wasCompleted = unit.assignmentId ? completedIds.has(unit.assignmentId) : false;
     const unitLoss = finalAirLosses.get(unit.id) ?? 0;
     if (activeAirIds.has(unit.id)) return { ...unit, aircraft: Math.max(0, unit.aircraft - unitLoss), readiness: clamp(unit.readiness - 3), serviceability: clamp(unit.serviceability - 2) };
-    const nextServiceability = clamp(unit.serviceability + (unit.status === 'refit' ? 7 : 2));
-    return {
-      ...unit,
-      aircraft: Math.max(0, unit.aircraft - unitLoss),
-      readiness: clamp(unit.readiness + (unit.status === 'refit' ? 8 : wasCompleted ? -5 : 2)),
-      serviceability: nextServiceability,
-      status: unit.status === 'refit' && nextServiceability < 95 ? 'refit' as const : 'ready' as const,
-      assignmentId: null,
-    };
+    if (hasForceReservation(unit) && !wasCompleted) return unit;
+    return recoverUnassignedAirGroup({ ...unit, aircraft: Math.max(0, unit.aircraft - unitLoss) }, wasCompleted);
   });
   const activeEnemyFleetIds = new Set(nextEnemyOperations.flatMap((operation) => operation.fleetIds));
   const activeEnemyAirIds = new Set(nextEnemyOperations.flatMap((operation) => operation.airGroupIds));
+  const ownedEnemyOperationIds = new Set(opponent.operations.map((operation) => operation.id));
   const nextEnemyFleets = opponent.fleets.map((unit) => {
+    if (unit.assignmentId && !ownedEnemyOperationIds.has(unit.assignmentId) || hasFleetNavigationReservation(unit) && !unit.assignmentId) return unit;
     const completed = unit.assignmentId ? completedEnemyIds.has(unit.assignmentId) : false;
     const loss = engagementEnemyFleetLosses.get(unit.id) ?? 0;
     if (activeEnemyFleetIds.has(unit.id)) return { ...unit, ships: Math.max(0, unit.ships - loss), readiness: clamp(unit.readiness - 2), organization: clamp(unit.organization - 1) };
     return { ...unit, ships: Math.max(0, unit.ships - loss), readiness: clamp(unit.readiness + (completed ? -4 : 2)), organization: clamp(unit.organization + 2), status: 'ready' as const, assignmentId: null };
   });
   const nextEnemyAir = opponent.airGroups.map((unit) => {
+    if (unit.assignmentId && !ownedEnemyOperationIds.has(unit.assignmentId)) return unit;
     const completed = unit.assignmentId ? completedEnemyIds.has(unit.assignmentId) : false;
     const loss = engagementEnemyAirLosses.get(unit.id) ?? 0;
     if (activeEnemyAirIds.has(unit.id)) return { ...unit, aircraft: Math.max(0, unit.aircraft - loss), readiness: clamp(unit.readiness - 3), serviceability: clamp(unit.serviceability - 2) };
@@ -1484,10 +1494,71 @@ export function setJointDoctrine(state: JointForcesState, doctrine: JointDoctrin
 export function sendJointForceToRefit(state: JointForcesState, forceId: string): JointForcesState {
   const fleet = state.fleets.find((unit) => unit.id === forceId);
   const air = state.airGroups.find((unit) => unit.id === forceId);
-  if ((!fleet && !air) || fleet?.status === 'assigned' || air?.status === 'assigned') return state;
+  if ((!fleet && !air) || fleet && hasForceReservation(fleet) || air && hasForceReservation(air)
+    || state.operations.some((operation) => operation.fleetIds.includes(forceId) || operation.airGroupIds.includes(forceId))) return state;
   return {
     ...state,
     fleets: state.fleets.map((unit) => unit.id === forceId ? { ...unit, status: unit.status === 'refit' ? 'ready' : 'refit' } : unit),
     airGroups: state.airGroups.map((unit) => unit.id === forceId ? { ...unit, status: unit.status === 'refit' ? 'ready' : 'refit' } : unit),
+  };
+}
+
+function recoverUnassignedFleet(unit: NavalTaskForce, wasCompleted = false): NavalTaskForce {
+  const readiness = clamp(unit.readiness + (unit.status === 'refit' ? 7 : wasCompleted ? -4 : 2));
+  return { ...unit, readiness, organization: clamp(unit.organization + (unit.status === 'refit' ? 6 : 2)),
+    status: unit.status === 'refit' && readiness < 95 ? 'refit' : 'ready', assignmentId: null };
+}
+
+function recoverUnassignedAirGroup(unit: AirGroup, wasCompleted = false): AirGroup {
+  const serviceability = clamp(unit.serviceability + (unit.status === 'refit' ? 7 : 2));
+  return { ...unit, serviceability, readiness: clamp(unit.readiness + (unit.status === 'refit' ? 8 : wasCompleted ? -5 : 2)),
+    status: unit.status === 'refit' && serviceability < 95 ? 'refit' : 'ready', assignmentId: null };
+}
+
+/** National-week maintenance only; no enemy planning, combat, stocks or mission progress. */
+export function recoverPeacetimeJointForces(state: JointForcesState): JointForcesState {
+  const assignedFleetIds = new Set(state.operations.flatMap((operation) => operation.fleetIds));
+  const assignedAirIds = new Set(state.operations.flatMap((operation) => operation.airGroupIds));
+  return { ...state,
+    fleets: state.fleets.map((unit) => hasForceReservation(unit) || assignedFleetIds.has(unit.id) ? unit : recoverUnassignedFleet(unit)),
+    airGroups: state.airGroups.map((unit) => hasForceReservation(unit) || assignedAirIds.has(unit.id) ? unit : recoverUnassignedAirGroup(unit)),
+  };
+}
+
+/** Call after ordinary peacetime maintenance: a just-returned force must not heal in the same week. */
+export function standDownJointOperationsForPeace(state: JointForcesState, week: number): { state: JointForcesState; events: JointOperationEvent[] } {
+  if (!Number.isInteger(week) || week < 0) return { state, events: [] };
+  const operations = state.operations.filter((operation) => operation.startedWeek <= week);
+  if (!operations.length) return { state, events: [] };
+  const endedIds = new Set(operations.map((operation) => operation.id));
+  const result = '정전·국정 전환으로 전시 임무를 중단하고 귀환·정비 태세로 전환했습니다. 교전 패배 판정이 아닙니다.';
+  const worldEffect = '추가 교전·전과·경험·표적 변화를 발생시키지 않습니다. 기존 손실과 사용한 자원은 그대로 유지하며 환급하지 않습니다.';
+  const records: JointOperationRecord[] = operations.map((operation) => ({
+    id: `record-${operation.id}`, templateId: operation.templateId, name: operation.name, theater: operation.theater,
+    startedWeek: operation.startedWeek, endedWeek: week, outcome: 'setback',
+    losses: '정전 전환에 따른 추가 함정·항공기 손실 없음 · 기존 손실 유지', result, worldEffect,
+    objectiveId: operation.objectiveId, objectiveName: operation.objectiveName,
+    finalForceStrength: getOperationStrength(operation, state.fleets, state.airGroups),
+  }));
+  const reports: JointCommandMessage[] = operations.map((operation) => {
+    const lead = [...state.fleets, ...state.airGroups].find((unit) => unit.assignmentId === operation.id);
+    return { id: `peace-report-${operation.id}`, week, operationId: operation.id,
+      commander: lead?.commander ?? '합동참모본부', office: lead ? `${lead.name} 지휘부` : '합동참모본부',
+      subject: '정전 귀환·정비 보고', body: `${result} 다음 주부터 비배속 전력의 정비를 진행합니다.`,
+      status: 'resolved', response: 'report' };
+  });
+  // Explicit ownership wins over a stale roster: sea escorts are never stood down here.
+  const release = <T extends NavalTaskForce | AirGroup>(unit: T): T => unit.assignmentId && endedIds.has(unit.assignmentId)
+    ? { ...unit, status: 'refit', assignmentId: null } : unit;
+  return {
+    state: { ...state, fleets: state.fleets.map(release), airGroups: state.airGroups.map(release),
+      operations: state.operations.filter((operation) => !endedIds.has(operation.id)),
+      records: [...state.records, ...records].slice(-40),
+      commandMessages: [...state.commandMessages.map((message) => endedIds.has(message.operationId) && message.status === 'pending'
+        ? { ...message, status: 'resolved' as const, response: 'report' as const } : message), ...reports].slice(-30),
+    },
+    events: operations.map((operation) => ({ operationId: operation.id, title: `정전 귀환 — ${operation.name}`,
+      detail: `${operation.objectiveName ? `${operation.objectiveName} · ` : ''}${result}`, worldEffect,
+      tone: 'neutral', resolved: true, side: 'player' })),
   };
 }

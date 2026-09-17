@@ -1,5 +1,5 @@
 import type { EmergentHistoryProfile, HistoryForce } from './emergentHistory';
-import type { DiplomaticRelation, Faction, GameTab, StaffMember, Territory, WarEvent } from './types';
+import type { DiplomaticRelation, Faction, GameTab, NationId, StaffMember, Territory, WarEvent } from './types';
 
 export type WorldChangeTone = 'positive' | 'negative' | 'contested';
 export type WorldChangeDomain = 'territory' | 'diplomacy' | 'organization' | 'society' | 'technology' | 'intelligence';
@@ -9,7 +9,7 @@ export interface TerritoryWorldChange {
   id: string;
   territoryId: string;
   name: string;
-  kind: 'liberated' | 'occupied' | 'recovered' | 'scarred';
+  kind: 'control-changed' | 'attribution-changed' | 'supply-improved' | 'supply-declined';
   before: string;
   after: string;
   detail: string;
@@ -59,9 +59,28 @@ interface WorldChangeInput {
   playerFaction: Exclude<Faction, 'neutral'>;
 }
 
+export const territoryWorldChangeLabels: Readonly<Record<TerritoryWorldChange['kind'], string>> = {
+  'control-changed': '통제 진영 변경',
+  'attribution-changed': '게임 귀속 변경',
+  'supply-improved': '보급 개선',
+  'supply-declined': '보급 악화',
+};
+
+const factionLabels: Record<Faction, string> = { allies: '연합권', axis: '추축권', neutral: '중립권' };
+// Display names for the existing playable-game attribution IDs, not sovereignty.
+const attributionLabels: Record<NationId, string> = {
+  britain: '영국', usa: '미국', ussr: '소련', germany: '독일', japan: '일본', china: '중국', india: '인도',
+  freefrance: '자유 프랑스', italy: '이탈리아', korea: '한국/조선', vietnam: '베트남', indonesia: '인도네시아', philippines: '필리핀',
+};
+const nonemptyString = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0;
+const isFaction = (value: unknown): value is Faction => typeof value === 'string' && Object.hasOwn(factionLabels, value);
+const isAttribution = (value: unknown): value is NationId => typeof value === 'string' && Object.hasOwn(attributionLabels, value);
+const validPercentage = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100;
+const copyNeighbors = (value: unknown): string[] => Array.isArray(value) ? value.filter(nonemptyString) : [];
+
 export function createWorldChangeBaseline(territories: Territory[], relations: DiplomaticRelation[]): WorldChangeBaseline {
   return {
-    territories: territories.map((territory) => ({ ...territory, neighbors: [...territory.neighbors] })),
+    territories: territories.map((territory) => ({ ...territory, neighbors: copyNeighbors(territory.neighbors) })),
     relations: relations.map((relation) => ({ ...relation })),
   };
 }
@@ -70,14 +89,37 @@ export function normalizeWorldChangeBaseline(value: unknown, territories: Territ
   if (!value || typeof value !== 'object') return createWorldChangeBaseline(territories, relations);
   const candidate = value as Partial<WorldChangeBaseline>;
   if (!Array.isArray(candidate.territories) || !Array.isArray(candidate.relations)) return createWorldChangeBaseline(territories, relations);
-  const validTerritories = candidate.territories.every((territory) => territory && typeof territory.id === 'string' && typeof territory.supply === 'number' && typeof territory.controller === 'string');
-  const validRelations = candidate.relations.every((relation) => relation && typeof relation.id === 'string' && typeof relation.value === 'number');
-  return validTerritories && validRelations
-    ? createWorldChangeBaseline(candidate.territories, candidate.relations)
-    : createWorldChangeBaseline(territories, relations);
+  const territoryIds = new Set<string>(), relationIds = new Set<string>();
+  const validTerritories = candidate.territories.every((territory) => {
+    if (!territory || !nonemptyString(territory.id) || !isFaction(territory.controller)
+      || !validPercentage(territory.supply) || territoryIds.has(territory.id)) return false;
+    territoryIds.add(territory.id);
+    return true;
+  });
+  const validRelations = candidate.relations.every((relation) => {
+    if (!relation || !nonemptyString(relation.id) || !validPercentage(relation.value) || relationIds.has(relation.id)) return false;
+    relationIds.add(relation.id);
+    return true;
+  });
+  // Empty arrays must not erase a populated comparison baseline. A genuinely
+  // empty current scenario remains valid, including scenarios without diplomacy.
+  // Recover the two independent collections separately: a newly introduced or
+  // malformed diplomatic list must not erase valid earlier territorial changes.
+  const savedTerritories = validTerritories && (candidate.territories.length || !territories.length) ? candidate.territories : territories;
+  const savedRelations = validRelations && (candidate.relations.length || !relations.length) ? candidate.relations : relations;
+  const currentById = new Map(territories.map((territory) => [territory.id, territory]));
+  return createWorldChangeBaseline(savedTerritories.map((saved) => {
+    const current = currentById.get(saved.id);
+    return {
+      ...current, ...saved,
+      name: nonemptyString(saved.name) ? saved.name : current?.name ?? saved.id,
+      // Repair old display snapshots, but never copy today's attribution into
+      // a snapshot that had no attribution record of its own.
+      ownerId: isAttribution(saved.ownerId) ? saved.ownerId : undefined,
+      neighbors: copyNeighbors(Array.isArray(saved.neighbors) ? saved.neighbors : current?.neighbors),
+    };
+  }), savedRelations);
 }
-
-const factionLabels: Record<Faction, string> = { allies: '연합권', axis: '추축권', neutral: '중립권' };
 
 const editorialMeta: Record<HistoryForce, { tone: WorldEditorialTone; label: string }> = {
   military: { tone: 'frontline', label: '전황·승패 중심 편집' },
@@ -116,36 +158,48 @@ function deriveTerritoryChanges(input: WorldChangeInput): TerritoryWorldChange[]
   const changes: TerritoryWorldChange[] = [];
   input.territories.forEach((territory) => {
     const before = baseline.get(territory.id);
-    if (!before) return;
+    if (!before || !isFaction(before.controller) || !isFaction(territory.controller)) return;
     if (before.controller !== territory.controller) {
-      const playerNowControls = territory.controller === input.playerFaction;
       changes.push({
         id: `territory-control-${territory.id}`,
         territoryId: territory.id,
         name: territory.name,
-        kind: playerNowControls ? 'liberated' as const : 'occupied' as const,
+        kind: 'control-changed',
         before: factionLabels[before.controller],
         after: factionLabels[territory.controller],
-        detail: `${territory.name}의 실제 통제권이 ${factionLabels[before.controller]}에서 ${factionLabels[territory.controller]}으로 바뀌어 국경·주둔·신문 보도에 반영됩니다.`,
-        tone: playerNowControls ? 'positive' as const : 'negative' as const,
+        detail: `${territory.name}의 게임상 통제 진영이 ${factionLabels[before.controller]}에서 ${factionLabels[territory.controller]}으로 변경됐습니다. 국가별 통제 주체·법적 주권·국경 변경은 이 진영 값만으로 확인할 수 없습니다.`,
+        tone: 'contested',
         intensity: 100,
       });
       return;
     }
+    if (isAttribution(before.ownerId) && isAttribution(territory.ownerId) && before.ownerId !== territory.ownerId) {
+      changes.push({
+        id: `territory-attribution-${territory.id}`,
+        territoryId: territory.id,
+        name: territory.name,
+        kind: 'attribution-changed',
+        before: `게임 귀속 ${attributionLabels[before.ownerId]}`,
+        after: `게임 귀속 ${attributionLabels[territory.ownerId]}`,
+        detail: `${territory.name}의 게임 귀속 기록이 ${attributionLabels[before.ownerId]}에서 ${attributionLabels[territory.ownerId]}으로 변경됐습니다. 통제 진영은 ${factionLabels[territory.controller]}으로 동일합니다. 이 기록은 법적 주권 이양이나 외교적 승인을 확정하지 않습니다.`,
+        tone: 'contested',
+        intensity: 90,
+      });
+      return;
+    }
+    if (!validPercentage(before.supply) || !validPercentage(territory.supply)) return;
     const supplyDelta = Math.round(territory.supply - before.supply);
     if (Math.abs(supplyDelta) < 15) return;
-    const recovered = supplyDelta > 0;
+    const improved = supplyDelta > 0;
     changes.push({
       id: `territory-supply-${territory.id}`,
       territoryId: territory.id,
       name: territory.name,
-      kind: recovered ? 'recovered' as const : 'scarred' as const,
+      kind: improved ? 'supply-improved' : 'supply-declined',
       before: `보급 ${Math.round(before.supply)}%`,
       after: `보급 ${Math.round(territory.supply)}%`,
-      detail: recovered
-        ? `${territory.name}의 철도·항만·배급망이 복구되며 도시의 생활과 전선 지속력이 개선됐습니다.`
-        : `${territory.name}의 보급망과 생활 기반이 훼손되어 군사 성과와 별도로 도시의 상흔이 남았습니다.`,
-      tone: recovered ? 'positive' as const : 'negative' as const,
+      detail: `${territory.name}의 보급 수치가 ${Math.round(before.supply)}%에서 ${Math.round(territory.supply)}%로 ${improved ? '상승' : '하락'}했습니다. 이 수치만으로 시설 복구·손상이나 민간 생활·피해 상태를 확인할 수 없습니다.`,
+      tone: improved ? 'positive' as const : 'negative' as const,
       intensity: Math.min(100, Math.abs(supplyDelta) * 4),
     });
   });
@@ -234,7 +288,7 @@ export function deriveWorldChangeProfile(input: WorldChangeInput): WorldChangePr
     ...territoryChanges.map((change) => ({
       id: change.id,
       domain: 'territory' as const,
-      title: `${change.name} · ${change.kind === 'liberated' ? '해방' : change.kind === 'occupied' ? '점령' : change.kind === 'recovered' ? '복구' : '도시 상흔'}`,
+      title: `${change.name} · ${territoryWorldChangeLabels[change.kind]}`,
       before: change.before,
       after: change.after,
       detail: change.detail,

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import type { KeyboardEvent } from 'react';
 import { AlertTriangle, ArrowRight, CheckCircle2, Eye, Package, Shield, Swords, Target, X } from 'lucide-react';
 import type { BattleForecast } from './combat';
 import { battleTypeProfiles, inferBattleType } from './operations';
@@ -16,6 +17,41 @@ interface OffensivePlanningModalProps {
   onStanceChange: (stance: BattleStance) => void;
   onConfirm: () => void;
   onCancel: () => void;
+  onDiscard?: () => void;
+}
+
+/** Keep keyboard handling local so Escape cannot also clear unrelated app state. */
+export function handleOffensivePlanningKeyDown(event: KeyboardEvent<HTMLElement>, onBack: () => void) {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    event.stopPropagation();
+    onBack();
+    return;
+  }
+  if (event.key !== 'Tab') return;
+  const dialog = event.currentTarget;
+  const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]'));
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const active = dialog.ownerDocument.activeElement;
+  if (!first) {
+    event.preventDefault();
+    dialog.focus();
+  } else if (event.shiftKey && (active === first || active === dialog || !dialog.contains(active))) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && (active === last || active === dialog || !dialog.contains(active))) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
+export function restoreOffensivePlanningFocus(previous: Element | null, ownerDocument: Document = document) {
+  // A newly opened review/report owns focus; never steal it after unmounting.
+  if (ownerDocument.querySelector('[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"]')) return;
+  const usable = (element: Element | null) => element && element !== ownerDocument.body && element.isConnected && !element.closest('[inert]') && 'focus' in element && typeof element.focus === 'function';
+  const target = usable(previous) ? previous : ownerDocument.querySelector('.territory-marker.selected[role="button"]');
+  if (usable(target) && target && 'focus' in target && typeof target.focus === 'function') target.focus();
 }
 
 const stanceOptions: Array<{ id: BattleStance; title: string; summary: string }> = [
@@ -39,6 +75,7 @@ export function OffensivePlanningModal({
   onStanceChange,
   onConfirm,
   onCancel,
+  onDiscard,
 }: OffensivePlanningModalProps) {
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const forecast = forecasts[stance];
@@ -47,12 +84,19 @@ export function OffensivePlanningModal({
   const attackerShare = Math.max(8, Math.min(92, forecast.attackerPower / (forecast.attackerPower + forecast.defenderPower) * 100));
 
   useEffect(() => {
+    const previous = document.activeElement;
     cancelButtonRef.current?.focus();
+    return () => {
+      // Wait until the app has removed inert from the underlying workspace.
+      window.requestAnimationFrame(() => {
+        restoreOffensivePlanningFocus(previous);
+      });
+    };
   }, []);
 
   return (
     <div className="modal-backdrop offensive-planning-backdrop">
-      <section className="offensive-planning-modal" role="dialog" aria-modal="true" aria-labelledby="offensive-planning-title" aria-describedby="offensive-planning-note">
+      <section className="offensive-planning-modal" role="dialog" tabIndex={-1} aria-modal="true" aria-labelledby="offensive-planning-title" aria-describedby="offensive-planning-note" onKeyDown={(event) => handleOffensivePlanningKeyDown(event, onCancel)}>
         <header>
           <div className="offensive-planning-mark"><Target size={25} /></div>
           <div>
@@ -100,7 +144,7 @@ export function OffensivePlanningModal({
             <div className="planning-section-heading">
               <span>2 · COMMAND ESTIMATE</span>
               <h3 id="forecast-detail-title">전투 참모부 예측</h3>
-              <small>81개 전투 조건 조합을 동일 전투 엔진으로 분석했습니다.</small>
+              <small>81개 조건 조합에 실제 작전 유형별 소모 배율을 적용한 첫 교전 예상입니다.</small>
             </div>
 
             <div className="forecast-hero">
@@ -118,9 +162,9 @@ export function OffensivePlanningModal({
             </div>
 
             <div className="forecast-cost-grid">
-              <div><Swords size={17} /><span>전력 손실<strong>-{forecast.strengthLoss[0]} ~ -{forecast.strengthLoss[1]}</strong></span></div>
-              <div><Shield size={17} /><span>조직력 손실<strong>-{forecast.organizationLoss[0]} ~ -{forecast.organizationLoss[1]}</strong></span></div>
-              <div><Package size={17} /><span>보급 소모<strong>-{forecast.supplySpent}</strong></span></div>
+              <div><Swords size={17} /><span>첫 교전 전력 소모<strong>-{forecast.strengthLoss[0]} ~ -{forecast.strengthLoss[1]}</strong></span></div>
+              <div><Shield size={17} /><span>첫 교전 조직 소모<strong>-{forecast.organizationLoss[0]} ~ -{forecast.organizationLoss[1]}</strong></span></div>
+              <div><Package size={17} /><span>첫 교전 보급 소모<strong>-{forecast.supplySpent}</strong></span></div>
             </div>
 
             <dl className="forecast-factors">
@@ -133,9 +177,10 @@ export function OffensivePlanningModal({
         </div>
 
         <footer>
-          <p id="offensive-planning-note"><AlertTriangle size={15} /><span>승산은 첫 주 교전 예측입니다. 작전은 {operationProfile.minimumWeeks}~{operationProfile.maximumWeeks}주 동안 이어질 수 있으며, 누적 진척과 최소 기간을 모두 충족해야 목표를 확보합니다. 지도 이동이나 다른 지역 선택으로 승인 명령이 취소되지 않습니다.</span></p>
+          <p id="offensive-planning-note"><AlertTriangle size={15} /><span>승산과 소모는 첫 교전 예측이며 작전 전체 손실이 아닙니다. 작전은 {operationProfile.minimumWeeks}~{operationProfile.maximumWeeks}주 동안 이어질 수 있으며, 누적 진척과 최소 기간을 모두 충족해야 목표를 확보합니다. X·Esc는 목표 재선택으로 돌아갑니다. 지도 이동이나 다른 지역 선택으로 승인 명령이 취소되지 않습니다.</span></p>
           <div>
             <button className="planning-cancel" onClick={onCancel}>목표 다시 선택</button>
+            {onDiscard ? <button className="planning-cancel" onClick={onDiscard}>초안 취소</button> : null}
             <button className="planning-confirm" onClick={onConfirm} disabled={commandPoints < 5}><CheckCircle2 size={16} /> 이 계획 승인 <span>지휘 점수 5</span></button>
           </div>
         </footer>

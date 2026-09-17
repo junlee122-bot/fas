@@ -1,4 +1,5 @@
 import type { Commander, Division, Faction, GameState, NationId, Territory, TheaterId } from './types';
+import { validateLandRoute } from './mapRoutes';
 
 export type EnemyOperationKind = 'breakthrough' | 'encirclement' | 'siege' | 'attrition' | 'interdiction' | 'counterstroke' | 'feint';
 export type EnemyOperationStage = 'forming' | 'probing' | 'committed';
@@ -137,7 +138,7 @@ const kindMeta: Record<EnemyOperationKind, { label: string; required: number; du
   encirclement: { label: '양익 포위', required: 136, duration: 6, attack: 10 },
   siege: { label: '요새·도시 공략', required: 148, duration: 7, attack: 5 },
   attrition: { label: '소모·고착 공세', required: 142, duration: 7, attack: 3 },
-  interdiction: { label: '항로·보급 차단', required: 124, duration: 6, attack: 5 },
+  interdiction: { label: '항만·보급 접근로 차단', required: 124, duration: 6, attack: 5 },
   counterstroke: { label: '작전축 역습', required: 106, duration: 5, attack: 9 },
   feint: { label: '기만 공세', required: 88, duration: 4, attack: -4 },
 };
@@ -166,11 +167,15 @@ export function normalizeEnemyStrategyState(value: unknown): EnemyStrategyState 
   };
 }
 
-function getEnemySource(target: Territory, context: EnemyStrategyContext): Territory | null {
+function getEnemyLandSources(target: Territory, context: EnemyStrategyContext): Territory[] {
   const byId = new Map(context.territories.map((territory) => [territory.id, territory]));
   return target.neighbors
     .map((neighborId) => byId.get(neighborId))
-    .filter((territory): territory is Territory => Boolean(territory && territory.controller === context.enemyFaction))
+    .filter((territory): territory is Territory => Boolean(territory && territory.controller === context.enemyFaction && validateLandRoute(territory, target).allowed));
+}
+
+function getEnemySource(target: Territory, context: EnemyStrategyContext): Territory | null {
+  return getEnemyLandSources(target, context)
     .sort((a, b) => (b.supply + b.value * 3) - (a.supply + a.value * 3) || a.id.localeCompare(b.id))[0] ?? null;
 }
 
@@ -189,7 +194,7 @@ function getDefenseScore(target: Territory, context: EnemyStrategyContext): numb
 
 function scoreTarget(target: Territory, source: Territory, context: EnemyStrategyContext): number {
   const defenders = context.divisions.filter((division) => division.territoryId === target.id);
-  const hostileSides = target.neighbors.filter((neighborId) => context.territories.find((territory) => territory.id === neighborId)?.controller === context.enemyFaction).length;
+  const hostileSides = getEnemyLandSources(target, context).length;
   const reactingToPlayer = context.playerOrderTargetIds.includes(source.id) ? 15 : 0;
   const commandTarget = target.siteType === 'capital' ? 18 : target.siteType === 'port' || target.siteType === 'fortress' ? 9 : 0;
   return target.value * 5.5 + (100 - target.supply) * .34 + hostileSides * 7 + (defenders.length === 0 ? 17 : 0) + reactingToPlayer + commandTarget + source.supply * .08 - getDefenseScore(target, context) * .2;
@@ -216,7 +221,7 @@ export function selectEnemyStrategicTarget(context: EnemyStrategyContext): { tar
 
 function chooseOperationKind(target: Territory, source: Territory, context: EnemyStrategyContext, profile: EnemyCommandProfile, roll: number): EnemyOperationKind {
   if (context.playerOrderTargetIds.includes(source.id)) return 'counterstroke';
-  const hostileSides = target.neighbors.filter((neighborId) => context.territories.find((territory) => territory.id === neighborId)?.controller === context.enemyFaction).length;
+  const hostileSides = getEnemyLandSources(target, context).length;
   if (roll > .88 && profile.deception >= 65) return 'feint';
   if (target.siteType === 'capital' || target.siteType === 'fortress') return 'siege';
   if (target.siteType === 'port' || target.siteType === 'island' || target.siteType === 'sea') return 'interdiction';
@@ -264,11 +269,11 @@ function formPlan(state: EnemyStrategyState, context: EnemyStrategyContext, roll
   };
 }
 
-function abortPlan(state: EnemyStrategyState, context: EnemyStrategyContext, plan: EnemyOperationPlan, targetName: string): EnemyStrategyAdvanceResult {
-  const record: EnemyOperationHistory = { id: `${plan.id}-aborted`, week: context.week, targetId: plan.targetId, targetName, kind: plan.kind, outcome: 'aborted', summary: '전선 조건 변화로 적 작전이 취소됐습니다.' };
+function abortPlan(state: EnemyStrategyState, context: EnemyStrategyContext, plan: EnemyOperationPlan, targetName: string, routeReason?: string): EnemyStrategyAdvanceResult {
+  const record: EnemyOperationHistory = { id: `${plan.id}-aborted`, week: context.week, targetId: plan.targetId, targetName, kind: plan.kind, outcome: 'aborted', summary: routeReason ?? '전선 조건 변화로 적 작전이 취소됐습니다.' };
   return {
     state: { ...state, plan: null, history: [record, ...state.history].slice(0, 24), lastPlanningWeek: context.week, strategicMomentum: clamp(state.strategicMomentum - 3) },
-    event: { type: 'aborted', tone: 'good', targetId: plan.targetId, title: `적 작전 취소 — ${targetName}`, detail: '통제권 또는 접근로가 바뀌어 적이 준비하던 작전축을 폐기했습니다.', factors: ['표적 통제권 변화', '인접 적 출발지 상실'] },
+    event: { type: 'aborted', tone: 'good', targetId: plan.targetId, title: `적 작전 취소 — ${targetName}`, detail: routeReason ?? '통제권 또는 접근로가 바뀌어 적이 준비하던 작전축을 폐기했습니다.', factors: routeReason ? ['육상 작전 접근로 재검증', routeReason] : ['표적 통제권 변화', '인접 적 출발지 상실'] },
     effect: null,
   };
 }
@@ -285,6 +290,8 @@ export function advanceEnemyStrategyWeek(state: EnemyStrategyState, context: Ene
   if (!target || !source || target.controller !== context.playerFaction || source.controller !== context.enemyFaction || !target.neighbors.includes(source.id)) {
     return abortPlan(state, context, plan, target?.name ?? plan.targetId);
   }
+  const routeValidation = validateLandRoute(source, target);
+  if (!routeValidation.allowed) return abortPlan(state, context, plan, target.name, `육상 작전 취소: ${routeValidation.reason}`);
 
   const profile = commandProfiles[plan.attackerNationId];
   const progressGain = Math.round(17 + profile.tempo * .1 + context.enemyPressure * .035 + state.adaptation * .03 + rollAt(randomRolls, 1, .5) * 8);
@@ -375,7 +382,7 @@ function getCountermeasures(kind: EnemyOperationKind, target: Territory): string
   const common = [`${target.name}의 보급과 방어 조직을 우선 회복`, '인접 지역에 기동 예비대를 남겨 퇴로 확보'];
   if (kind === 'encirclement') return ['양익 인접 지역을 동시에 보강해 포위 고리 차단', ...common];
   if (kind === 'siege') return ['요새·도시의 보급일수와 공병 방어 준비 점검', ...common];
-  if (kind === 'interdiction') return ['호송·항공 엄호를 배치해 접근로 차단 저지', ...common];
+  if (kind === 'interdiction') return ['항만에 이어지는 도로·철도와 보급 거점을 방어해 접근로 차단 저지', ...common];
   if (kind === 'feint') return ['확증 전까지 주력 예비대의 성급한 이동 금지', ...common];
   if (kind === 'counterstroke') return ['아군 공세 출발지와 측면을 별도 방어', ...common];
   if (kind === 'attrition') return ['교대 주기와 의무·정비 능력으로 소모전 회피', ...common];
@@ -418,7 +425,7 @@ export function deriveEnemyIntentReport(state: EnemyStrategyState, intelNetwork:
   const targetName = targetKnown ? target?.name ?? plan.targetId : regionKnown ? `${target?.region ?? '전구'}의 전략 거점` : '목표 불명';
   const indicators = [
     plan.stage === 'forming' ? '철도·차량 이동과 보급 집적 증가' : plan.stage === 'probing' ? '정찰대·포병 관측·국지 공격 증가' : '주력 편제와 화력지원 전선 투입',
-    plan.kind === 'interdiction' ? '항공·잠수함·호송로 정찰 증가' : plan.kind === 'feint' ? '복수 축에서 상충하는 무선 신호 발생' : `출발 축 ${sourceKnown ? source?.name ?? plan.sourceId : '미확인'}의 활동 증가`,
+    plan.kind === 'interdiction' ? '항만 배후 도로·철도·보급 거점 정찰 증가' : plan.kind === 'feint' ? '복수 축에서 상충하는 무선 신호 발생' : `출발 축 ${sourceKnown ? source?.name ?? plan.sourceId : '미확인'}의 활동 증가`,
     `적 작전 적응도 ${Math.round(state.adaptation)} · 기세 ${Math.round(state.strategicMomentum)}`,
   ];
   const criticalTarget = !target || target.value >= 10;

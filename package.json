@@ -17,6 +17,8 @@
     "playtest:arms-diplomacy": "node scripts/run-arms-diplomacy-stage-playtest.mjs",
     "audit:civilization": "node scripts/audit-civilization-systems.mjs",
     "audit:possibilities": "node scripts/audit-possibility-remediation.mjs",
+    "audit:land-geography": "node scripts/audit-land-route-geography.mjs --check --compact",
+    "test:land-geography": "node --test scripts/land-geography-regression.node-check.mjs",
     "data:historical-roster": "node scripts/build-wikidata-roster.mjs",
     "data:later-era-roster": "node scripts/build-later-era-roster.mjs"
   },

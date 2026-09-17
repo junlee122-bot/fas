@@ -22,7 +22,9 @@ describe('Korea campaign experience', () => {
 
     expect(tracks.map((track) => track.id)).toEqual(['recognition', 'network', 'force', 'return']);
     expect(tracks.find((track) => track.id === 'network')).toMatchObject({ value: 78, state: '진전', tab: 'intelligence' });
-    expect(tracks.find((track) => track.id === 'return')?.detail).toContain('일제 점령');
+    expect(tracks.find((track) => track.id === 'return')?.detail).toContain('추축 진영 통제');
+    expect(tracks.find((track) => track.id === 'recognition')?.label).toBe('승인 교섭 준비');
+    expect(tracks.find((track) => track.id === 'recognition')?.detail).toContain('실제 승인국은 외교의 정부 대표권 기록');
   });
 
   it('updates the homeland explanation after liberation', () => {
@@ -31,7 +33,8 @@ describe('Korea campaign experience', () => {
       averageStrength: 80, averageSupply: 80, objectiveProgress: 90,
       territories: [homeland('allies')],
     });
-    expect(tracks.find((track) => track.id === 'return')?.detail).toContain('한반도 거점을 확보');
+    expect(tracks.find((track) => track.id === 'return')?.detail).toContain('연합 진영 통제');
+    expect(tracks.find((track) => track.id === 'return')?.detail).toContain('한국의 관할·주권 확정과는 별개');
   });
 
   it('gives each Korean career branch a distinct first destination and authority boundary', () => {

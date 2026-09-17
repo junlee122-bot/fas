@@ -1,4 +1,7 @@
 import type { BattleReport, BattleType, Division, Order, Territory } from './types';
+import { forecastBattle } from './combat';
+import type { BattleForecast, BattleForecastInput } from './combat';
+import { classifyMapRoute } from './mapRoutes';
 
 export interface BattleTypeProfile {
   id: BattleType;
@@ -29,6 +32,9 @@ export interface OperationStopReceipt {
   reason: string;
   elapsedWeeks?: number;
   progressPercent?: number;
+  /** Missing in older saves means a player-requested stop. */
+  outcome?: 'stopped' | 'reinforced' | 'invalidated';
+  commandCost?: number;
 }
 
 export function normalizeOperationStopReceipts(value: unknown): OperationStopReceipt[] {
@@ -40,10 +46,13 @@ export function normalizeOperationStopReceipts(value: unknown): OperationStopRec
     const record = item as Partial<OperationStopReceipt>;
     if (![record.orderId, record.divisionId, record.targetId, record.reason].every((field) => typeof field === 'string' && field.trim().length > 0)
       || !Number.isInteger(record.week) || record.week! < 0) continue;
+    if (record.outcome !== undefined && !['stopped', 'reinforced', 'invalidated'].includes(record.outcome)) continue;
     const key = JSON.stringify([record.orderId, record.week]);
     if (seen.has(key)) continue;
     seen.add(key);
     receipts.push({ orderId: record.orderId!, week: record.week!, divisionId: record.divisionId!, targetId: record.targetId!, reason: record.reason!,
+      ...(record.outcome !== undefined ? { outcome: record.outcome } : {}),
+      ...(typeof record.commandCost === 'number' && Number.isFinite(record.commandCost) && record.commandCost >= 0 ? { commandCost: record.commandCost } : {}),
       ...(Number.isInteger(record.elapsedWeeks) && record.elapsedWeeks! >= 0 ? { elapsedWeeks: record.elapsedWeeks } : {}),
       ...(typeof record.progressPercent === 'number' && Number.isFinite(record.progressPercent) && record.progressPercent >= 0 && record.progressPercent <= 100 ? { progressPercent: record.progressPercent } : {}) });
   }
@@ -189,7 +198,9 @@ const includesAny = (value: string, candidates: string[]) => candidates.some((ca
 
 export function inferBattleType(origin: Territory, target: Territory, division: Division): BattleType {
   const terrain = target.terrain.toLowerCase();
-  if (target.siteType === 'island' || target.siteType === 'sea' || includesAny(terrain, ['도서', '해안']) && origin.siteType !== 'island') return 'amphibious';
+  // A coast or an island town can be approached overland. Only an actual
+  // water route calls for an amphibious profile (and still needs approval).
+  if (classifyMapRoute(origin, target).requiresSeaTransport) return 'amphibious';
   if (target.siteType === 'fortress' || includesAny(terrain, ['요새', '방벽'])) return 'siege';
   if (includesAny(terrain, ['산악', '정글', '고원', '구릉'])) return 'mountain';
   if (target.siteType === 'capital' || target.siteType === 'city' || includesAny(terrain, ['도시', '시가지', '공업'])) return 'urban';
@@ -234,6 +245,28 @@ export function normalizeOperationOrder(order: Order, origin: Territory, target:
 
 const clamp = (value: number, minimum: number, maximum: number) => Math.max(minimum, Math.min(maximum, value));
 
+/** One loss model for actual weekly combat and the approval-room estimate. */
+export function getOperationLosses(battleType: BattleType, report: Pick<BattleReport, 'attackerStrengthLoss' | 'defenderStrengthLoss' | 'organizationLoss' | 'supplySpent'>) {
+  const scale = battleTypeProfiles[battleType].casualtyScale;
+  return {
+    attackerStrengthLoss: Math.max(1, Math.round(report.attackerStrengthLoss * scale)),
+    defenderStrengthLoss: Math.max(1, Math.round(report.defenderStrengthLoss * scale)),
+    organizationLoss: Math.max(3, Math.round(report.organizationLoss * scale)),
+    supplySpent: Math.max(3, Math.round(report.supplySpent * (.55 + scale * .25))),
+  };
+}
+
+export function forecastOperationBattle(input: BattleForecastInput, battleType: BattleType): BattleForecast {
+  return forecastBattle(input, (report) => {
+    const losses = getOperationLosses(battleType, report);
+    return { ...report, ...losses,
+      attackerStrengthLoss: Math.min(Math.max(0, input.division.strength), losses.attackerStrengthLoss),
+      organizationLoss: Math.min(Math.max(0, input.division.organization), losses.organizationLoss),
+      supplySpent: Math.min(Math.max(0, input.division.supply), losses.supplySpent),
+    };
+  });
+}
+
 export function advanceOperationWeek(order: Order, rawReport: BattleReport, force?: Pick<Division, 'strength' | 'organization'>): OperationWeekResolution {
   const battleType = order.battleType ?? 'attrition';
   const profile = battleTypeProfiles[battleType];
@@ -243,16 +276,17 @@ export function advanceOperationWeek(order: Order, rawReport: BattleReport, forc
   const exploitationDelta = rawReport.phases.find((phase) => phase.id === 'exploitation')?.delta ?? 0;
   const progressGained = Math.round(clamp(profile.weeklyBaseProgress + rawReport.margin * .72 + exploitationDelta * .18, -12, 52));
   const operationProgress = clamp(previousProgress + progressGained, 0, required + 24);
-  const scaledStrengthLoss = Math.max(1, Math.round(rawReport.attackerStrengthLoss * profile.casualtyScale));
-  const scaledOrganizationLoss = Math.max(3, Math.round(rawReport.organizationLoss * profile.casualtyScale));
+  const losses = getOperationLosses(battleType, rawReport);
+  const scaledStrengthLoss = losses.attackerStrengthLoss;
+  const scaledOrganizationLoss = losses.organizationLoss;
   const projectedStrength = (force?.strength ?? 100) - scaledStrengthLoss;
   const projectedOrganization = (force?.organization ?? 100) - scaledOrganizationLoss;
   const decisiveCollapse = elapsedWeeks >= 2 && rawReport.margin <= -25 && rawReport.phases[2].delta <= -20 && operationProgress < required * .22;
   const victory = elapsedWeeks >= profile.minimumWeeks && operationProgress >= required;
   const defeat = !victory && (decisiveCollapse || elapsedWeeks >= (order.maxWeeks ?? profile.maximumWeeks) || projectedStrength <= 24 || projectedOrganization <= 12);
   const outcome = victory ? 'victory' : defeat ? 'defeat' : 'ongoing';
-  const scaledDefenderLoss = Math.max(1, Math.round(rawReport.defenderStrengthLoss * profile.casualtyScale));
-  const scaledSupplySpent = Math.max(3, Math.round(rawReport.supplySpent * (.55 + profile.casualtyScale * .25)));
+  const scaledDefenderLoss = losses.defenderStrengthLoss;
+  const scaledSupplySpent = losses.supplySpent;
   const progressPercent = Math.round(clamp(operationProgress / required * 100, 0, 100));
   const weeklySummary = outcome === 'victory'
     ? `${profile.label}의 핵심 목표를 모두 달성해 적 방어체계가 붕괴했습니다.`
@@ -290,6 +324,15 @@ export function advanceOperationWeek(order: Order, rawReport: BattleReport, forc
 }
 
 export function getOperationProgress(order: Order): number {
-  const profile = battleTypeProfiles[order.battleType ?? 'attrition'];
-  return Math.round(clamp((order.operationProgress ?? 0) / (order.operationRequired ?? profile.requiredProgress) * 100, 0, 100));
+  const profile = battleTypeProfiles[order.battleType && Object.hasOwn(battleTypeProfiles, order.battleType) ? order.battleType : 'attrition'];
+  const required = typeof order.operationRequired === 'number' && Number.isFinite(order.operationRequired) && order.operationRequired > 0 ? order.operationRequired : profile.requiredProgress;
+  return Math.round(clamp(finiteNonnegative(order.operationProgress, 0) / required * 100, 0, 100));
+}
+
+export function createOperationTerminalReceipt(order: Order, week: number, outcome: NonNullable<OperationStopReceipt['outcome']>, reason: string): OperationStopReceipt {
+  return {
+    orderId: getOperationOrderId(order), week, divisionId: order.divisionId, targetId: order.targetId, outcome, reason,
+    elapsedWeeks: Math.floor(finiteNonnegative(order.elapsedWeeks, 0)), progressPercent: getOperationProgress(order),
+    ...(order.commandCost !== undefined ? { commandCost: finiteNonnegative(order.commandCost, 0) } : {}),
+  };
 }

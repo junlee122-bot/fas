@@ -2616,7 +2616,7 @@ button:focus-visible,
 }
 
 .game-icon svg { width: 100%; height: 100%; display: block; overflow: visible; fill: currentColor; filter: drop-shadow(0 1px 1px rgba(0,0,0,.46)); }
-.game-icon .game-icon-cut { fill: #14201c; }
+.game-icon .game-icon-cut { fill: var(--game-icon-cut, #14201c); }
 .game-icon.tone-gold { color: #d4b66e; }
 .game-icon.tone-blue { color: #83a8b8; }
 .game-icon.tone-green { color: #80a98e; }
@@ -12947,10 +12947,10 @@ button:focus-visible,
 .map-legend-panel .history-symbol { width: 10px; height: 10px; border: 2px dashed #c3a25e; border-radius: 50%; }
 .layer-history .territory-marker:not(.history-changed):not(.selected) { opacity: .47; }
 .history-change-ring { fill: none; stroke-width: 2.5; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; animation: history-change-pulse 2.4s ease-in-out infinite; }
-.history-liberated .history-change-ring,.history-recovered .history-change-ring { stroke: #7cc5a5; }
-.history-occupied .history-change-ring,.history-scarred .history-change-ring { stroke: #d47862; }
-.history-liberated .territory-core,.history-recovered .territory-core { fill: #70b497 !important; }
-.history-occupied .territory-core,.history-scarred .territory-core { fill: #c76655 !important; }
+.history-supply-improved .history-change-ring { stroke: #7cc5a5; }
+.history-supply-declined .history-change-ring { stroke: #d47862; }
+.history-control-changed .history-change-ring,.history-attribution-changed .history-change-ring { stroke: #e6c47f; }
+/* Keep faction colors: a change receipt is not a new political border or ownership layer. */
 .history-reading { paint-order: stroke; stroke: rgba(6,10,9,.92); stroke-width: 3px; font-size: 7px !important; font-weight: 800; letter-spacing: .02em; }
 .history-reading.positive { fill: #9ed2b9; }
 .history-reading.negative { fill: #e29a88; }
@@ -12999,8 +12999,8 @@ button:focus-visible,
 .map-world-change-card > div button { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 7px; align-items: center; padding: 7px; border: 1px solid rgba(126,145,138,.12); background: rgba(5,10,9,.34); text-align: left; }
 .map-world-change-card > div button:hover { border-color: rgba(190,158,91,.34); background: rgba(92,70,27,.12); }
 .map-world-change-card > div button i { width: 8px; height: 8px; border-radius: 50%; background: #b69a62; box-shadow: 0 0 0 3px rgba(182,154,98,.1); }
-.map-world-change-card > div button i.liberated,.map-world-change-card > div button i.recovered { background: #6eb493; box-shadow: 0 0 0 3px rgba(110,180,147,.1); }
-.map-world-change-card > div button i.occupied,.map-world-change-card > div button i.scarred { background: #c46956; box-shadow: 0 0 0 3px rgba(196,105,86,.1); }
+.map-world-change-card > div button i.supply-improved { background: #6eb493; box-shadow: 0 0 0 3px rgba(110,180,147,.1); }
+.map-world-change-card > div button i.supply-declined { background: #c46956; box-shadow: 0 0 0 3px rgba(196,105,86,.1); }
 .map-world-change-card > div button span,.map-world-change-card > div button strong,.map-world-change-card > div button small { display: block; min-width: 0; }
 .map-world-change-card > div button strong { color: #aebbb5; font-size: .58rem; }
 .map-world-change-card > div button small { margin-top: 2px; overflow: hidden; color: #71807b; font-size: .5rem; text-overflow: ellipsis; white-space: nowrap; }

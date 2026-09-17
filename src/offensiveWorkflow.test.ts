@@ -10,7 +10,8 @@ function sourceBetween(start: string, end: string) {
 
 describe('persistent offensive command UX', () => {
   it('never mutates approved orders when the player inspects a map territory', () => {
-    const selectionHandler = sourceBetween('const selectTerritory =', 'const issueOffensive =');
+    // Inspect just the selection handler, not later independent approval handlers.
+    const selectionHandler = sourceBetween('const selectTerritory =', 'const launchCombinedOperation =');
     expect(selectionHandler).not.toContain('setOrders(');
   });
 

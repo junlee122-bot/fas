@@ -7,6 +7,7 @@ import {
 } from './enemyStrategy';
 import type { EnemyStrategyContext } from './enemyStrategy';
 import type { Commander, Division, Territory } from './types';
+import { territories as campaignTerritories } from './data';
 
 const territories: Territory[] = [
   { id: 'rear', name: '후방', region: '서부', x: 0, y: 0, controller: 'allies', ownerId: 'britain', value: 4, supply: 80, terrain: '평야', neighbors: ['front'] },
@@ -102,6 +103,64 @@ describe('enemy strategic AI', () => {
     const aborted = advanceEnemyStrategyWeek(formed.state, { ...makeContext(2), territories: changed }, [.2]);
     expect(aborted.event?.type).toBe('aborted');
     expect(aborted.state.plan).toBeNull();
+  });
+
+  it.each([
+    ['sea source', 'channel', 'britain'],
+    ['sea target', 'britain', 'channel'],
+    ['sea crossing', 'sicily', 'tunisia'],
+  ])('does not create a land operation through a %s', (_label, fromId, toId) => {
+    const source: Territory = { ...campaignTerritories.find((item) => item.id === fromId)!, controller: 'axis' };
+    const target: Territory = { ...campaignTerritories.find((item) => item.id === toId)!, controller: 'allies' };
+    const context = { ...makeContext(1), territories: [source, target], divisions: [] };
+    expect(selectEnemyStrategicTarget(context)).toBeNull();
+    const result = advanceEnemyStrategyWeek(createEnemyStrategyState(), context, [.2]);
+    expect(result.state.plan).toBeNull();
+    expect(result.effect).toBeNull();
+    expect(result.event).toBeNull();
+  });
+
+  it('does not count a sea zone as a second encirclement flank or prefer it as an attack source', () => {
+    const target = { ...territories[1], neighbors: ['enemy-base'], value: 20 };
+    const source = { ...territories[3], neighbors: [target.id] };
+    const sea: Territory = { ...source, id: 'channel', siteType: 'sea', supply: 100, value: 100 };
+    const baselineContext = { ...makeContext(1), territories: [target, source] };
+    const seaContext = { ...baselineContext, territories: [{ ...target, neighbors: [...target.neighbors, sea.id] }, source, sea] };
+    expect(selectEnemyStrategicTarget(seaContext)).toMatchObject({ source: { id: source.id }, score: selectEnemyStrategicTarget(baselineContext)!.score });
+    const formed = advanceEnemyStrategyWeek(createEnemyStrategyState(), seaContext, [.2]);
+    expect(formed.state.plan?.kind).toBe('breakthrough');
+  });
+
+  it.each(['sea-origin', 'sea-target', 'not-adjacent'] as const)('aborts an old committed plan with a now-invalid %s route before inflicting losses', (change) => {
+    const formed = advanceEnemyStrategyWeek(createEnemyStrategyState(), makeContext(1), [.2]);
+    const plan = { ...formed.state.plan!, stage: 'committed' as const, progress: 140 };
+    const changed = territories.map((territory): Territory => {
+      if (change === 'sea-origin' && territory.id === plan.sourceId) return { ...territory, siteType: 'sea' };
+      if (change === 'sea-target' && territory.id === plan.targetId) return { ...territory, siteType: 'sea' };
+      if (change === 'not-adjacent' && territory.id === plan.sourceId) return { ...territory, neighbors: [] };
+      return territory;
+    });
+    const state = { ...formed.state, plan };
+    const before = JSON.stringify(state);
+    const result = advanceEnemyStrategyWeek(state, { ...makeContext(2), territories: changed }, [1, 1, 1, 1]);
+    expect(result.state.plan).toBeNull();
+    expect(result.event?.type).toBe('aborted');
+    expect(result.effect).toBeNull();
+    expect(result.state.operationsCompleted).toBe(0);
+    expect(result.state.history[0].outcome).toBe('aborted');
+    expect(JSON.stringify(state)).toBe(before);
+  });
+
+  it('cannot finish a saved enemy invasion across the Tunisia–Sicily water connection', () => {
+    const formed = advanceEnemyStrategyWeek(createEnemyStrategyState(), makeContext(1), [.2]);
+    const source: Territory = { ...campaignTerritories.find((item) => item.id === 'sicily')!, controller: 'axis' };
+    const target: Territory = { ...campaignTerritories.find((item) => item.id === 'tunisia')!, controller: 'allies' };
+    const plan = { ...formed.state.plan!, sourceId: source.id, targetId: target.id, stage: 'committed' as const, progress: 140 };
+    const result = advanceEnemyStrategyWeek({ ...formed.state, plan }, { ...makeContext(2), territories: [source, target] }, [1, 1, 1, 1]);
+    expect(result.state.plan).toBeNull();
+    expect(result.event?.type).toBe('aborted');
+    expect(result.effect).toBeNull();
+    expect(target.controller).toBe('allies');
   });
 
   it('keeps 1,000 varied operations multi-week and produces success, repulse, and deception outcomes', () => {

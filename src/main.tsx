@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import './styles.css';
 import './design-system.css';
+import './mapCommandEdition.css';
+import './mapCanvas.css';
 
 if (import.meta.env.DEV) {
   document.title = `IRON DOMINION — LOCAL ${window.location.port || '4180'}`;

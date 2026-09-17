@@ -83,6 +83,26 @@ describe('operation field source, authority and receipt rendering', () => {
     expect(html).not.toContain('이 공세 중단 요청');
   });
 
+  it.each([
+    ['reinforced', '아군 집결 완료'],
+    ['invalidated', '명령 무효화'],
+  ] as const)('keeps a %s terminal receipt selectable without inventing a player stop or combat', (outcome, label) => {
+    const { html } = render({ orders: [], reports: [], stoppages: [{ orderId: order.id!, week: 1, divisionId: division.id, targetId: target.id, reason: '새 교전 없이 명령을 종결했습니다.', outcome, commandCost: 5, elapsedWeeks: 0, progressPercent: 0 }] });
+    expect(html).toContain(label);
+    expect(html).toContain('5 · 이미 집행');
+    expect(html).not.toContain('중단 완료');
+    expect(html).not.toContain('작전 승리');
+    expect(html).not.toContain('이 공세 중단 요청');
+    expect(html).not.toContain('종결 확인 불가');
+  });
+
+  it('shows the terminal result after an earlier ongoing engagement without overwriting that historical report', () => {
+    const { html } = render({ orders: [], stoppages: [{ orderId: order.id!, week: 1, divisionId: division.id, targetId: target.id, reason: '아군 집결로 마무리', outcome: 'reinforced' }] });
+    expect(html).toContain('아군 집결 완료');
+    expect(html).toContain('작전은 당시 진행 중');
+    expect(html).not.toContain('종결 확인 불가');
+  });
+
   it('distinguishes calculated losses from actual clamped deltas and later recovery', () => {
     const { html } = render({ reports: [{ ...report, appliedLosses: { strength: 3, organization: 4, supply: 2 } }] });
     expect(html).toContain('확정 반영 전력 손실');

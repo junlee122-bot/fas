@@ -7,8 +7,10 @@ import {
   getCounterOperationTemplateIds,
   launchJointOperation,
   normalizeJointForcesState,
+  recoverPeacetimeJointForces,
   respondToJointCommandMessage,
   sendJointForceToRefit,
+  standDownJointOperationsForPeace,
 } from './jointOperations';
 
 const context = {
@@ -18,6 +20,153 @@ const context = {
 };
 
 describe('joint operations', () => {
+  it('stands down existing war missions once without healing, refunding or releasing a sea escort', () => {
+    const initial = createJointForcesState('britain');
+    const launched = launchJointOperation(initial, 'atlantic-lifeline', [initial.fleets[1].id], [initial.airGroups[1].id], context)!;
+    const state = launched.state;
+    Object.assign(state.fleets[0], { status: 'assigned', assignmentId: 'sea-escort-active', readiness: 25, organization: 15, ships: 2 });
+    Object.assign(state.fleets[1], { readiness: 41, organization: 33, ships: 5 });
+    Object.assign(state.airGroups[1], { readiness: 42, serviceability: 28, aircraft: 6 });
+    state.commandMessages.push({ id: 'pending-peace', week: 0, operationId: launched.operation.id,
+      commander: '지휘관', office: '전대', subject: '작전 확인', body: '작전을 계속합니까?', status: 'pending', response: null });
+    // A stale roster may still mention an escort, but its explicit sea owner wins.
+    state.operations[0].fleetIds.push(state.fleets[0].id);
+    const before = structuredClone(state);
+    const result = standDownJointOperationsForPeace(recoverPeacetimeJointForces(state), 1);
+    expect(result.state.operations).toEqual([]);
+    expect(result.state.fleets[0]).toBe(state.fleets[0]);
+    expect(result.state.fleets[1]).toEqual({ ...state.fleets[1], status: 'refit', assignmentId: null });
+    expect(result.state.airGroups[1]).toEqual({ ...state.airGroups[1], status: 'refit', assignmentId: null });
+    expect(result.state.records.at(-1)).toMatchObject({ id: `record-${launched.operation.id}`, outcome: 'setback', endedWeek: 1 });
+    expect(result.state.records.at(-1)?.result).toContain('교전 패배 판정이 아닙니다');
+    expect(result.events).toHaveLength(1);
+    expect(result.events[0]).toMatchObject({ resolved: true, tone: 'neutral', side: 'player' });
+    expect(result.state.commandMessages.find((message) => message.id === 'pending-peace')).toMatchObject({ status: 'resolved', response: 'report' });
+    expect(result.state.opponent).toBe(state.opponent);
+    expect(result.state.theaterControl).toBe(state.theaterControl);
+    expect(result.state.objectives).toBe(state.objectives);
+    expect(result.state.commandTrust).toBe(state.commandTrust);
+    expect(result.state.engagements).toBe(state.engagements);
+    expect(state).toEqual(before);
+    const repeated = standDownJointOperationsForPeace(result.state, 2);
+    expect(repeated).toEqual({ state: result.state, events: [] });
+    expect(repeated.state).toBe(result.state);
+    const nextWeek = recoverPeacetimeJointForces(result.state);
+    expect(nextWeek.fleets[1].readiness).toBe(48);
+    expect(nextWeek.airGroups[1].readiness).toBe(50);
+  });
+
+  it('does not invent ownership or stand down a future mission at an invalid peace week', () => {
+    const initial = createJointForcesState('britain');
+    const state = launchJointOperation(initial, 'fighter-sweep', [], [initial.airGroups[0].id], { ...context, week: 5 })!.state;
+    for (const week of [Number.NaN, Number.POSITIVE_INFINITY, -1, 1.5, 4]) {
+      expect(standDownJointOperationsForPeace(state, week)).toEqual({ state, events: [] });
+    }
+    state.airGroups[0].assignmentId = 'external-air-reservation';
+    state.fleets[0].status = 'assigned';
+    state.fleets[0].assignmentId = null;
+    const result = standDownJointOperationsForPeace(state, 6);
+    expect(result.state.airGroups[0]).toBe(state.airGroups[0]);
+    expect(result.state.fleets[0]).toBe(state.fleets[0]);
+    expect(result.state.operations).toEqual([]);
+    expect(result.events).toHaveLength(1);
+  });
+
+  it.each(['assigned', 'ready'] as const)('preserves an external sea escort with %s status across joint weeks and save restore', (status) => {
+    const state = createJointForcesState('britain');
+    state.opponent.lastDecisionWeek = 100;
+    Object.assign(state.fleets[1], { status, assignmentId: 'sea-britain-8-expedition', ships: 3, readiness: 31, organization: 27 });
+    const escort = structuredClone(state.fleets[1]);
+    const restored = normalizeJointForcesState(state, 'britain');
+    let current = restored;
+    for (let week = 1; week <= 4; week += 1) current = advanceJointOperationsWeek(current, { ...context, week }).state;
+    expect(current.fleets[1]).toEqual(escort);
+    expect(current.fleets[1]).toBe(restored.fleets[1]);
+    expect(state.fleets[1]).toEqual(escort);
+    expect(current.operations).toEqual([]);
+  });
+
+  it('does not silently release an assigned force whose owner is unknown or absent', () => {
+    const state = createJointForcesState('britain');
+    state.opponent.lastDecisionWeek = 100;
+    Object.assign(state.fleets[0], { status: 'assigned', assignmentId: 'external-escort-owner' });
+    Object.assign(state.airGroups[0], { status: 'assigned', assignmentId: null });
+    const result = advanceJointOperationsWeek(state, { ...context, week: 1 });
+    expect(result.state.fleets[0]).toBe(state.fleets[0]);
+    expect(result.state.airGroups[0]).toBe(state.airGroups[0]);
+  });
+
+  it.each(['assigned', 'ready'] as const)('blocks launching and refitting a %s force with an external reservation', (status) => {
+    const state = createJointForcesState('britain');
+    Object.assign(state.fleets[1], { status, assignmentId: 'sea-reserved-escort' });
+    expect(forecastJointOperation(state, 'atlantic-lifeline', [state.fleets[1].id], [state.airGroups[1].id], context)?.warning).toContain('배속');
+    expect(launchJointOperation(state, 'atlantic-lifeline', [state.fleets[1].id], [state.airGroups[1].id], context)).toBeNull();
+    expect(sendJointForceToRefit(state, state.fleets[1].id)).toBe(state);
+    Object.assign(state.airGroups[0], { status, assignmentId: 'external-air-support' });
+    expect(launchJointOperation(state, 'fighter-sweep', [], [state.airGroups[0].id], context)).toBeNull();
+    expect(sendJointForceToRefit(state, state.airGroups[0].id)).toBe(state);
+  });
+
+  it('rejects duplicate or missing requested formations rather than silently changing the roster', () => {
+    const state = createJointForcesState('britain');
+    const fleet = state.fleets[1].id; const air = state.airGroups[1].id;
+    for (const [fleets, groups] of [[[fleet, fleet], [air]], [[fleet], [air, air]], [[fleet, 'missing-fleet'], [air]], [[fleet], [air, 'missing-air']]]) {
+      expect(forecastJointOperation(state, 'atlantic-lifeline', fleets, groups, context)?.warning).not.toBeNull();
+      expect(launchJointOperation(state, 'atlantic-lifeline', fleets, groups, context)).toBeNull();
+    }
+  });
+
+  it('checks an existing operation roster even if the unit status and assignment were stale', () => {
+    const initial = createJointForcesState('britain');
+    const state = launchJointOperation(initial, 'fighter-sweep', [], [initial.airGroups[0].id], context)!.state;
+    Object.assign(state.airGroups[0], { status: 'ready', assignmentId: null });
+    expect(launchJointOperation(state, 'fighter-sweep', [], [state.airGroups[0].id], context)).toBeNull();
+    expect(sendJointForceToRefit(state, state.airGroups[0].id)).toBe(state);
+    expect(recoverPeacetimeJointForces(state).airGroups[0]).toBe(state.airGroups[0]);
+  });
+
+  it('cannot borrow an externally reserved escort through a stale joint-operation roster', () => {
+    const initial = createJointForcesState('britain');
+    initial.opponent.lastDecisionWeek = 100;
+    const state = launchJointOperation(initial, 'atlantic-lifeline', [initial.fleets[1].id], [initial.airGroups[1].id], context)!.state;
+    Object.assign(state.operations[0], { progress: 120, minimumWeeks: 1, maximumWeeks: 1, successChance: 96 });
+    Object.assign(state.fleets[1], { assignmentId: 'sea-new-owner', ships: 4, readiness: 44, organization: 38 });
+    const escort = structuredClone(state.fleets[1]);
+    const result = advanceJointOperationsWeek(state, { ...context, week: 1 });
+    expect(result.state.fleets[1]).toEqual(escort);
+    expect(result.state.engagements).toEqual([]);
+    expect(result.state.records[0]).toMatchObject({ outcome: 'setback', finalForceStrength: 0 });
+    expect(result.gameDelta.victoryScore ?? 0).toBe(0);
+  });
+
+  it('recovers idle and refit player forces in peace without enemy orders or free ships', () => {
+    const state = createJointForcesState('britain');
+    Object.assign(state.fleets[0], { ships: 3, readiness: 70, organization: 60 });
+    Object.assign(state.fleets[1], { status: 'refit', ships: 0, readiness: 91, organization: 80 });
+    Object.assign(state.airGroups[0], { status: 'refit', aircraft: 3, readiness: 88, serviceability: 90 });
+    const before = structuredClone(state);
+    const result = recoverPeacetimeJointForces(state);
+    expect(result.fleets[0]).toMatchObject({ ships: 3, readiness: 72, organization: 62, status: 'ready' });
+    expect(result.fleets[1]).toMatchObject({ ships: 0, readiness: 98, organization: 86, status: 'ready' });
+    expect(result.airGroups[0]).toMatchObject({ aircraft: 3, readiness: 96, serviceability: 97, status: 'ready' });
+    expect(result.opponent).toBe(state.opponent);
+    expect(result.objectives).toBe(state.objectives);
+    expect(result.theaterControl).toBe(state.theaterControl);
+    expect(result.operations).toBe(state.operations);
+    expect(state).toEqual(before);
+  });
+
+  it('keeps peace refits in progress below threshold and preserves all external force reservations', () => {
+    const state = createJointForcesState('britain');
+    Object.assign(state.fleets[0], { status: 'refit', readiness: 50, organization: 40 });
+    Object.assign(state.fleets[1], { status: 'assigned', assignmentId: 'sea-escort', readiness: 12 });
+    Object.assign(state.airGroups[0], { status: 'ready', assignmentId: 'external-owner', readiness: 12 });
+    const result = recoverPeacetimeJointForces(state);
+    expect(result.fleets[0]).toMatchObject({ status: 'refit', readiness: 57, organization: 46 });
+    expect(result.fleets[1]).toBe(state.fleets[1]);
+    expect(result.airGroups[0]).toBe(state.airGroups[0]);
+  });
+
   it('creates distinct historical force structures for every campaign nation', () => {
     const british = createJointForcesState('britain');
     const japanese = createJointForcesState('japan');

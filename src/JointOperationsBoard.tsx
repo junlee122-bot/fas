@@ -1,6 +1,10 @@
 import { useCallback, useRef, useState, type Ref } from 'react';
 import { Anchor, ArrowRight, Clock3, Crosshair, FileText, Plane, Radar, ShieldCheck, Wrench } from 'lucide-react';
 import type { GameState, Stockpile, TheaterId } from './types';
+import type { JointMapContext } from './jointMapContext';
+import { seaTransportStageLabels, getSeaTransportAssignedFleetIds, getSeaTransportAssignedAirGroupIds, type SeaTransportOperation } from './seaTransport';
+import { getFleetNavigationSummary, hasFleetNavigationReservation } from './navalNavigation';
+import { FleetVoyageCard } from './FleetVoyageCard';
 import {
   forecastJointOperation, getAvailableJointOperationTemplates, getCounterOperationTemplateIds,
   getJointOperationObjectives, jointDoctrineDefinitions,
@@ -18,6 +22,12 @@ export interface JointOperationsBoardProps {
   onRefit: (forceId: string) => void;
   onCommandResponse: (messageId: string, response: JointCommandResponse) => void;
   planningDisabledReason?: string;
+  mapContext?: JointMapContext;
+  /** Map-to-roster navigation only; never preassigns a fleet to an operation. */
+  initialFleetId?: string;
+  onDismissMapContext?: () => void;
+  seaTransports?: readonly SeaTransportOperation[];
+  onOpenSeaTransport?: (operationId: string) => void;
 }
 export interface JointBoardSelection {
   workspace: JointCommandWorkspace;
@@ -31,20 +41,53 @@ export const initialJointBoardSelection: JointBoardSelection = {
   workspace: 'overview', fleetId: null, airGroupId: null, templateId: null, objectiveId: null, doctrineId: null,
   fleetIds: [], airGroupIds: [], overviewObjectiveId: null, operationId: null, recordId: null,
 };
+/** Called only on mount; later game ticks must not overwrite a player's draft. */
+export function createInitialJointBoardSelection(props: Pick<JointOperationsBoardProps, 'mapContext' | 'initialFleetId' | 'state' | 'theater'>): JointBoardSelection {
+  const selection: JointBoardSelection = { ...initialJointBoardSelection, fleetIds: [], airGroupIds: [],
+    fleetId: props.initialFleetId && props.state.fleets.some((fleet) => fleet.id === props.initialFleetId) ? props.initialFleetId : null,
+  };
+  const context = props.mapContext;
+  if (!context || context.theater !== props.theater) return selection;
+  const objective = props.state.objectives[props.theater].find((item) => item.id === context.objectiveId);
+  if (!objective) return selection;
+  const template = getAvailableJointOperationTemplates(props.theater).find((item) => item.id === context.templateId
+    && getJointOperationObjectives(props.state, props.theater, item.kind).some((target) => target.id === objective.id));
+  return { ...selection, overviewObjectiveId: objective.id,
+    ...(template ? { workspace: 'planning' as const, templateId: template.id, objectiveId: objective.id } : {}),
+  };
+}
 const fleetKindLabels = { carrier: '항모', surface: '수상함', escort: '호송·대잠', submarine: '잠수함', coastal: '연안', clandestine: '비밀 연락' } as const;
 const airKindLabels = { fighter: '전투기', bomber: '폭격기', maritime: '해상초계', transport: '수송', recon: '정찰', mixed: '혼성' } as const;
 const workspaceLabels: Record<JointCommandWorkspace, string> = { overview: '전구 현황', planning: '작전 계획', operations: '진행·보고서' };
 const theaterLabel = (theater: TheaterId) => theater === 'asia' ? '아시아·태평양' : '유럽·지중해';
 const countOf = (force: NavalTaskForce | AirGroup) => 'ships' in force ? force.ships : force.aircraft;
 const countLabel = (force: NavalTaskForce | AirGroup) => String(countOf(force)) + ('ships' in force ? '척' : '대');
-function forceStatus(force: NavalTaskForce | AirGroup) {
+export function getJointSeaEscortAssignment(force: NavalTaskForce | AirGroup, seaTransports?: readonly SeaTransportOperation[], nationId?: JointForcesState['nationId']) {
+  if (!force.assignmentId) return null;
+  const operation = seaTransports?.find((item) => item.id === force.assignmentId && (!nationId || item.nationId === nationId)
+    && ('ships' in force ? getSeaTransportAssignedFleetIds(item).includes(force.id) || item.pendingEscortRelief?.fleetId === force.id : getSeaTransportAssignedAirGroupIds(item).includes(force.id)));
+  if (!operation) return null;
+  return { operation, role: operation.pendingEscortRelief?.fleetId === force.id ? 'joining' as const : 'active' as const };
+}
+function forceStatus(force: NavalTaskForce | AirGroup, seaTransports?: readonly SeaTransportOperation[], nationId?: JointForcesState['nationId']) {
+  if ('ships' in force && force.navigation && force.navigation.mode !== 'in-port') return getFleetNavigationSummary(force).label;
+  const escort = getJointSeaEscortAssignment(force, seaTransports, nationId);
+  if (escort?.role === 'joining') return '호위 합류 중';
+  if (escort?.operation.pendingEscortRelief) return '호위 중 · 교대 대기';
+  if (force.assignmentId?.startsWith('sea-')) return '병력 수송 호위';
   return force.status === 'assigned' ? '작전 배속' : force.status === 'refit' ? '정비 중' : countOf(force) <= 0 ? '전력 소진' : '명령 대기';
 }
 export function resolveJointSelection<T extends { id: string }>(items: readonly T[], id: string | null) {
   return items.find((item) => item.id === id) ?? items[0] ?? null;
 }
-export function getJointForceSelectionReason(force: NavalTaskForce | AirGroup, template: JointOperationTemplate) {
+export function getJointForceSelectionReason(force: NavalTaskForce | AirGroup, template: JointOperationTemplate, seaTransports?: readonly SeaTransportOperation[], nationId?: JointForcesState['nationId']) {
   if (countOf(force) <= 0) return 'ships' in force ? '함정 0척 · 출격 불가' : '항공기 0대 · 출격 불가';
+  if ('ships' in force && force.navigation && force.navigation.mode !== 'in-port') return `${getFleetNavigationSummary(force).label} · 귀항·급유 후 재배속 가능`;
+  const escort = getJointSeaEscortAssignment(force, seaTransports, nationId);
+  if (escort?.role === 'joining') return '호위 합류 중 · 접근 중에도 별도 작전·정비에 중복 배속 불가';
+  if (escort?.operation.pendingEscortRelief) return '병력 수송 호위 중 · 교대 후 귀항·급유를 마쳐야 재배속 가능';
+  if (force.assignmentId?.startsWith('sea-')) return '병력 수송 호위 중 · 임무 종료·귀항·급유 후 재배속 가능';
+  if (force.assignmentId) return '다른 작전에 배속됨';
   if (force.status !== 'ready') return force.status === 'assigned' ? '다른 작전에 배속됨' : '정비 중';
   const compatible = 'ships' in force
     ? !template.requiredFleetKinds.length || template.requiredFleetKinds.includes(force.kind)
@@ -62,7 +105,7 @@ export function getJointBoardPlan(input: JointOperationsBoardProps, selection: J
     || (selection.objectiveId !== null && objective?.id !== selection.objectiveId)
     || selection.fleetIds.some((id) => !fleetIds.includes(id)) || selection.airGroupIds.some((id) => !airGroupIds.includes(id));
   const incompatible = template ? [...input.state.fleets.filter((force) => fleetIds.includes(force.id)), ...input.state.airGroups.filter((force) => airGroupIds.includes(force.id))]
-    .some((force) => getJointForceSelectionReason(force, template) !== null) : false;
+    .some((force) => getJointForceSelectionReason(force, template, input.seaTransports, input.state.nationId) !== null) : false;
   const forecast = template ? forecastJointOperation(input.state, template.id, fleetIds, airGroupIds, { week: input.game.week, theater: input.theater, game: input.game }, objective?.id) : null;
   const insufficientResources = Boolean(forecast && (input.game.commandPoints < forecast.commandCost || input.game.fuel < forecast.fuelCost || input.stockpile.convoys < forecast.convoyCost));
   const warning = input.planningDisabledReason
@@ -90,7 +133,7 @@ function focusHeading(node: HTMLHeadingElement) {
   node.scrollIntoView({ behavior: !viewport?.matchMedia || viewport.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
 }
 export function JointOperationsBoard(props: JointOperationsBoardProps) {
-  const [selection, setSelection] = useState<JointBoardSelection>(() => ({ ...initialJointBoardSelection }));
+  const [selection, setSelection] = useState<JointBoardSelection>(() => createInitialJointBoardSelection(props));
   const focusRequested = useRef(false);
   const sendOnce = useRef<ReturnType<typeof createJointCommandGuard> | null>(null);
   if (!sendOnce.current) sendOnce.current = createJointCommandGuard();
@@ -138,25 +181,45 @@ function Meter({ value, label }: { value: number; label: string }) {
 function SurfaceHeading({ eyebrow, title, meta }: { eyebrow: string; title: string; meta?: string }) {
   return <header className="jcb-surface-heading"><div><span className="jcb-eyebrow">{eyebrow}</span><h2>{title}</h2></div>{meta ? <small>{meta}</small> : null}</header>;
 }
-function ForceDetail({ force, state, disabledReason, onRefit, headingRef }: { force: NavalTaskForce | AirGroup; state: JointForcesState; disabledReason?: string; onRefit: (id: string) => void; headingRef?: Ref<HTMLHeadingElement> }) {
+function SeaEscortMission({ assignment, onOpenSeaTransport }: { assignment: NonNullable<ReturnType<typeof getJointSeaEscortAssignment>>; onOpenSeaTransport?: (operationId: string) => void }) {
+  const { operation, role } = assignment;
+  const relief = operation.pendingEscortRelief;
+  const joining = role === 'joining';
+  const remaining = relief ? Math.max(0, relief.arrivalWeeks - relief.elapsedWeeks) : 0;
+  return <>
+    <h3>{joining ? '호위 합류 중' : '병력 수송 호위'} — {operation.divisionName}</h3>
+    <p>{operation.fromName} → {operation.targetName}</p>
+    <div className="jcb-progress-line"><Clock3 size={16} /><span>{joining ? `접근 ${relief!.elapsedWeeks}/${relief!.arrivalWeeks}주 · 합류까지 ${remaining}주` : `${seaTransportStageLabels[operation.stage]} · ${operation.elapsedWeeks}주 경과`}</span></div>
+    {joining ? <><p>{relief!.source === 'rescue' ? '구조선과 함께 접근하는 함대입니다.' : '진행 중인 수송으로 파견된 증원·교대 함대입니다.'} 일반 증원은 현장 합류 뒤 보호를 시작합니다. 구조 동행 함대는 구조 기지에 모인 뒤 이동 중인 구조선도 보호하지만, 멀리 떨어진 고립 부대를 원격 보호하지 않습니다.</p><p>현 호위 · {operation.escortFleetName ?? (operation.escortFleetId ? '배속 함대' : '없음')} · 접근 중에도 별도 합동작전·정비에 중복 배속할 수 없습니다.</p></>
+      : <><p>{relief ? `교대 대기 · ${relief.fleetName} 합류까지 ${remaining}주. 현재 함대는 교대가 확정될 때까지 호위를 계속합니다.` : '이 함대는 수송 종료까지 별도 합동작전·정비에 중복 배속할 수 없습니다.'} 현존 함정과 준비 상태가 실제 호위 효과에 반영됩니다.</p>{relief ? <p>교대함대가 도착하지 못하면 현재 호위가 유지됩니다. 교대 확정 뒤에도 실제 귀항과 재급유가 끝나야 다시 배속할 수 있습니다.</p> : null}</>}
+    {onOpenSeaTransport ? <button type="button" onClick={() => onOpenSeaTransport(operation.id)}>{joining ? '합류할 수송 보기' : '호위 중인 수송 보기'} <ArrowRight size={16} /></button> : null}
+  </>;
+}
+function ForceDetail({ force, state, disabledReason, onRefit, headingRef, seaTransports, onOpenSeaTransport }: { force: NavalTaskForce | AirGroup; state: JointForcesState; disabledReason?: string; onRefit: (id: string) => void; headingRef?: Ref<HTMLHeadingElement>; seaTransports?: readonly SeaTransportOperation[]; onOpenSeaTransport?: (operationId: string) => void }) {
   const naval = 'ships' in force;
   const operation = state.operations.find((item) => item.id === force.assignmentId && (naval ? item.fleetIds : item.airGroupIds).includes(force.id));
-  const canRefit = force.status !== 'assigned' && !disabledReason;
+  const escort = getJointSeaEscortAssignment(force, seaTransports, state.nationId);
+  const navigationLocked = naval && hasFleetNavigationReservation(force);
+  const canRefit = force.status !== 'assigned' && !force.assignmentId && !navigationLocked && !disabledReason;
+  const refitReason = disabledReason ?? (escort?.role === 'joining' ? '호위 합류 중에는 정비 전환 불가' : escort?.operation.pendingEscortRelief ? '교대함대 합류 전에는 현재 호위를 해제할 수 없음' : force.status === 'assigned' || force.assignmentId ? '작전 배속 중에는 정비 전환 불가' : undefined);
   const authorizedCount = naval ? force.authorizedShips : force.authorizedAircraft;
   return <section className="jcb-surface jcb-force-detail" aria-labelledby="jcb-force-title" data-force-id={force.id}>
-    <header className="jcb-force-heading"><span className="jcb-symbol">{naval ? <Anchor size={28} /> : <Plane size={28} />}</span><div><span className="jcb-eyebrow">{naval ? fleetKindLabels[force.kind] : airKindLabels[force.kind]} · {forceStatus(force)}</span><h2 id="jcb-force-title" tabIndex={-1} ref={headingRef}>{force.name}</h2><p>{force.commander} · {naval ? '기함 ' + force.flagship : force.principalAircraft}</p></div></header>
+    <header className="jcb-force-heading"><span className="jcb-symbol">{naval ? <Anchor size={28} /> : <Plane size={28} />}</span><div><span className="jcb-eyebrow">{naval ? fleetKindLabels[force.kind] : airKindLabels[force.kind]} · {forceStatus(force, seaTransports, state.nationId)}</span><h2 id="jcb-force-title" tabIndex={-1} ref={headingRef}>{force.name}</h2><p>{force.commander} · {naval ? '기함 ' + force.flagship : force.principalAircraft}</p></div></header>
     <dl className="jcb-metrics">
       <div><dt>{naval ? '현존 함정' : '보유 기체'}</dt><dd>{countLabel(force)}</dd><small>{authorizedCount !== undefined ? '기준 편제 ' + authorizedCount + (naval ? '척' : '대') : '기준 편제 미기록'}</small></div>
       <div><dt>준비도</dt><dd>{Math.round(force.readiness)}</dd><Meter value={force.readiness} label="부대 준비도" /></div>
       <div><dt>{naval ? '조직력' : '가동률'}</dt><dd>{Math.round(naval ? force.organization : force.serviceability)}{naval ? '' : '%'}</dd><Meter value={naval ? force.organization : force.serviceability} label={naval ? '함대 조직력' : '항공기 가동률'} /></div>
       <div><dt>경험</dt><dd>{Math.round(force.experience)}</dd><small>{naval ? force.location : force.base}</small></div>
     </dl>
+    {naval ? <FleetVoyageCard fleet={force} /> : null}
     {countOf(force) <= 0 ? <p className="jcb-warning">현존 전력이 없어 출격할 수 없습니다. 정비는 손실된 함정·기체를 보충하지 않습니다.</p> : null}
     <section className="jcb-current-mission" aria-label="선택 부대 현재 작전"><span className="jcb-eyebrow">현재 배속</span>
-      {operation ? <><h3>{operation.name}</h3><p>{operation.objectiveName ?? theaterLabel(operation.theater)} · 제{operation.startedWeek + 1}주 승인</p><div className="jcb-progress-line"><Clock3 size={16} /><span>{operation.elapsedWeeks}/{operation.maximumWeeks}주 · 진척 {Math.round(operation.progress)}%</span></div><Meter value={operation.progress} label="현재 배속 작전 진척" /><small>진행 중입니다. 최종 손실과 전과는 합동작전의 확정 보고서에서 확인합니다.</small></>
+      {escort ? <SeaEscortMission assignment={escort} onOpenSeaTransport={onOpenSeaTransport} />
+        : operation ? <><h3>{operation.name}</h3><p>{operation.objectiveName ?? theaterLabel(operation.theater)} · 제{operation.startedWeek + 1}주 승인</p><div className="jcb-progress-line"><Clock3 size={16} /><span>{operation.elapsedWeeks}/{operation.maximumWeeks}주 · 진척 {Math.round(operation.progress)}%</span></div><Meter value={operation.progress} label="현재 배속 작전 진척" /><small>진행 중입니다. 최종 손실과 전과는 합동작전의 확정 보고서에서 확인합니다.</small></>
+        : naval && force.navigation && force.navigation.mode !== 'in-port' ? <><h3>{getFleetNavigationSummary(force).label}</h3><p>수송 임무가 끝나도 함대의 항해는 계속됩니다. 실제 귀항과 점검이 끝나면 다시 배속할 수 있습니다.</p></>
         : <><h3>{force.status === 'assigned' ? '배속 기록 확인 필요' : force.status === 'refit' ? '정비 중 · 출격 배속 불가' : '현재 작전 배속 없음'}</h3><p>{force.status === 'assigned' ? '현재 부대 ID와 일치하는 진행 작전 기록을 찾지 못했습니다. 새 명령을 자동 실행하지 않습니다.' : '부대를 선택하는 것만으로 출격·정비·시간 진행이 실행되지 않습니다.'}</p></>}
     </section>
-    <div className="jcb-action-row"><div><h3>{naval ? '창정비 지시' : '집중 정비 지시'}</h3><p>{naval ? '주간 정산에서 준비도·조직력을 회복합니다.' : '주간 정산에서 준비도·가동률을 회복합니다.'} 현존 수량은 별도입니다.</p></div><button type="button" disabled={!canRefit} title={disabledReason ?? (force.status === 'assigned' ? '작전 배속 중에는 정비 전환 불가' : undefined)} onClick={() => { if (canRefit) onRefit(force.id); }}><Wrench size={17} />{force.status === 'refit' ? '정비 중단' : '정비 전환'}</button></div>
+    <div className="jcb-action-row"><div><h3>{naval ? '창정비 지시' : '집중 정비 지시'}</h3><p>{naval ? '주간 정산에서 준비도·조직력을 회복합니다.' : '주간 정산에서 준비도·가동률을 회복합니다.'} 현존 수량은 별도입니다.</p></div><button type="button" disabled={!canRefit} title={refitReason} onClick={() => { if (canRefit) onRefit(force.id); }}><Wrench size={17} />{force.status === 'refit' ? '정비 중단' : '정비 전환'}</button></div>
     <details className="jcb-disclosure"><summary>사료 기반과 편제 설명</summary><p>{force.historicalBasis}</p></details>
   </section>;
 }
@@ -180,9 +243,18 @@ export function JointOperationsBoardView(props: BoardViewProps) {
   return <div className="joint-command-board command-edition" data-joint-view={view} data-joint-workspace={workspace}>
     <header className="jcb-header"><div><span className="jcb-eyebrow">{view === 'joint' ? 'COMBINED OPERATIONS' : naval ? 'NAVAL COMMAND' : 'AIR COMMAND'} / 제{game.week + 1}주</span><h1>{view === 'joint' ? '합동작전 본부' : naval ? '해군 전력 관리' : '항공군 전력 관리'}</h1><p>{view === 'joint' ? theaterLabel(theater) + ' · 읽기 → 명령 → 주간 진행 → 확정 결과' : forces.length + '개 부대 · 한 편제의 현재 상태와 명령을 확인합니다.'}</p></div><span className="jcb-status">{view === 'joint' ? state.operations.length + '개 작전 진행' : forces.filter((item) => item.status === 'assigned').length + '개 작전 배속'}</span></header>
     {planningDisabledReason ? <p className="jcb-authority"><ShieldCheck size={18} />{planningDisabledReason} 현재 화면은 열람할 수 있습니다.</p> : null}
+    {props.mapContext ? <section className="jcb-surface" aria-labelledby="jcb-map-context-title" data-map-territory={props.mapContext.territoryId}>
+      <SurfaceHeading eyebrow="FROM THE OPERATIONS MAP" title="지도에서 이어서 계획" meta={theaterLabel(props.mapContext.theater)} />
+      <h3 id="jcb-map-context-title">선택 거점 · {props.mapContext.territoryName}</h3>
+      <p>{props.mapContext.explanation}</p>
+      {props.mapContext.theater !== theater ? <p className="jcb-warning">선택 거점과 현재 전구가 달라 사전 선택을 적용하지 않았습니다.</p>
+        : props.mapContext.objectiveId && !state.objectives[theater].some((item) => item.id === props.mapContext!.objectiveId) ? <p className="jcb-warning">연결된 목표가 현재 목록에 없습니다. 이 전구 전체의 현황에서 다시 검토하십시오.</p> : null}
+      <p className="jcb-meta">지도 거점의 주권·육상 점령과 합동작전 구역의 통제 수치는 별개입니다. 새 작전은 목표와 전력을 검토한 뒤 직접 승인해야 합니다.</p>
+      {props.onDismissMapContext ? <button type="button" onClick={props.onDismissMapContext}>지도 연결 닫기</button> : null}
+    </section> : null}
     {view !== 'joint' ? forces.length ? <div className="jcb-force-layout">
-      <ChoiceList id="jcb-force-select" label={naval ? '함대 선택' : '항공대 선택'} selectedId={force?.id ?? null} choices={forces.map((item) => ({ id: item.id, label: item.name, detail: countLabel(item) + ' · ' + forceStatus(item) }))} onChange={(id) => onSelectionChange(naval ? { fleetId: id } : { airGroupId: id })} />
-      {force ? <ForceDetail force={force} state={state} disabledReason={planningDisabledReason} onRefit={props.onRefit} headingRef={headingRef} /> : null}
+      <ChoiceList id="jcb-force-select" label={naval ? '함대 선택' : '항공대 선택'} selectedId={force?.id ?? null} choices={forces.map((item) => ({ id: item.id, label: item.name, detail: countLabel(item) + ' · ' + forceStatus(item, props.seaTransports, state.nationId) }))} onChange={(id) => onSelectionChange(naval ? { fleetId: id } : { airGroupId: id })} />
+      {force ? <ForceDetail force={force} state={state} disabledReason={planningDisabledReason} onRefit={props.onRefit} headingRef={headingRef} seaTransports={props.seaTransports} onOpenSeaTransport={props.onOpenSeaTransport} /> : null}
     </div> : <section className="jcb-surface jcb-empty"><h2>등록된 {naval ? '함대가' : '항공대가'} 없습니다</h2><p>선택할 전력이 없습니다. 다른 부대를 추정하거나 자동 명령을 내리지 않습니다.</p></section> : <>
       <nav className="jcb-workspaces" aria-label="합동작전 업무"><button type="button" aria-pressed={workspace === 'overview'} onClick={() => onSelectionChange({ workspace: 'overview' })}>전구 현황<small>주도권·관측 정보</small></button><button type="button" aria-pressed={workspace === 'planning'} onClick={() => onSelectionChange({ workspace: 'planning' })}>작전 계획<small>목표·배속·승인</small></button><button type="button" aria-pressed={workspace === 'operations'} onClick={() => onSelectionChange({ workspace: 'operations' })}>진행·보고서<small>{state.operations.length}건 진행 · {pending.length}건 답신 대기</small></button></nav>
       <h2 className="jcb-workspace-title" tabIndex={-1} ref={headingRef}>{workspaceLabels[workspace]}</h2>
@@ -206,10 +278,10 @@ export function JointOperationsBoardView(props: BoardViewProps) {
       {workspace === 'planning' ? <>
         <section className="jcb-surface jcb-doctrine"><div><span className="jcb-eyebrow">현재 합동 교리 · {jointDoctrineDefinitions[state.doctrine].name}</span><h2>교리 검토</h2><p>{jointDoctrineDefinitions[proposedDoctrine].description}</p><small>{jointDoctrineDefinitions[proposedDoctrine].bonus}</small></div><div><label className="jcb-select-label" htmlFor="jcb-doctrine">검토할 교리 · 선택만으로 변경되지 않음<select id="jcb-doctrine" value={proposedDoctrine} onChange={(event) => { const doctrine = event.currentTarget.value as JointDoctrine; if (doctrine in jointDoctrineDefinitions) onSelectionChange({ doctrineId: doctrine }); }}>{Object.entries(jointDoctrineDefinitions).map(([id, doctrine]) => <option key={id} value={id}>{doctrine.name}</option>)}</select></label><button type="button" disabled={!canApplyDoctrine} onClick={() => { if (canApplyDoctrine) props.onDoctrineChange(proposedDoctrine); }}>교리 적용 · 4 CP</button><p className="jcb-meta">변경 명령 때 기존 규칙으로 지휘점수 4 차감 · 현재 {Math.round(game.commandPoints)} CP</p></div></section>
         <div className="jcb-plan-grid"><section className="jcb-surface"><SurfaceHeading eyebrow="01 / MISSION & OBJECTIVE" title="작전과 목표" /><label className="jcb-select-label" htmlFor="jcb-template">작전 유형<select id="jcb-template" value={plan.template?.id ?? ''} disabled={!plan.template} onChange={(event) => selectTemplate(event.currentTarget.value)}>{plan.templates.map((template) => <option key={template.id} value={template.id}>{template.name} · {template.minimumWeeks}~{template.maximumWeeks}주</option>)}</select></label>
-          {plan.template ? <><h3>{plan.template.name}</h3><p>{plan.template.description}</p><details className="jcb-disclosure"><summary>사료 기반과 예상 세계 변화</summary><p>{plan.template.historicalBasis}</p><p>{plan.template.worldEffect}</p></details><label className="jcb-select-label" htmlFor="jcb-target">작전 목표<select id="jcb-target" value={plan.objective?.id ?? ''} disabled={!plan.objective} onChange={(event) => onSelectionChange({ objectiveId: event.currentTarget.value })}>{!plan.objective ? <option value="">적합한 목표 없음</option> : plan.objectives.map((objective) => <option key={objective.id} value={objective.id}>{objective.name} · {objectiveKindLabel(objective.kind)}</option>)}</select></label>{plan.objective ? <div className="jcb-target-brief"><strong>{plan.objective.name}</strong><p>{plan.objective.region}</p><small>위협 {Math.round(plan.objective.enemyThreat)} · 피해 {Math.round(plan.objective.damage)} · 민간 노출 {Math.round(plan.objective.civilianRisk)}</small><details className="jcb-disclosure"><summary>선택 표적의 배경</summary><p>{plan.objective.historicalBasis}</p></details></div> : null}</> : <p>현재 전구에 등록된 작전 유형이 없습니다.</p>}
+          {plan.template ? <><h3>{plan.template.name}</h3><p>{plan.template.description}</p>{plan.template.kind === 'amphibious-cover' ? <p className="jcb-warning">해공 엄호 임무입니다. 이 명령만으로 육군이 바다를 건너거나 도시를 상륙·점령하지 않습니다. 합동작전 구역의 통제·후속 보급 여건에만 영향을 줍니다.</p> : null}<details className="jcb-disclosure"><summary>사료 기반과 예상 세계 변화</summary><p>{plan.template.historicalBasis}</p><p>{plan.template.worldEffect}</p></details><label className="jcb-select-label" htmlFor="jcb-target">작전 목표<select id="jcb-target" value={plan.objective?.id ?? ''} disabled={!plan.objective} onChange={(event) => onSelectionChange({ objectiveId: event.currentTarget.value })}>{!plan.objective ? <option value="">적합한 목표 없음</option> : plan.objectives.map((objective) => <option key={objective.id} value={objective.id}>{objective.name} · {objectiveKindLabel(objective.kind)}</option>)}</select></label>{plan.objective ? <div className="jcb-target-brief"><strong>{plan.objective.name}</strong><p>{plan.objective.region}</p><small>위협 {Math.round(plan.objective.enemyThreat)} · 피해 {Math.round(plan.objective.damage)} · 민간 노출 {Math.round(plan.objective.civilianRisk)}</small><details className="jcb-disclosure"><summary>선택 표적의 배경</summary><p>{plan.objective.historicalBasis}</p></details></div> : null}</> : <p>현재 전구에 등록된 작전 유형이 없습니다.</p>}
         </section><section className="jcb-surface"><SurfaceHeading eyebrow="02 / ASSIGN FORCES" title="투입 전력 선택" meta={'함대 ' + plan.fleetIds.length + ' · 항공대 ' + plan.airGroupIds.length} />
           {plan.template ? <>{([['fleet', state.fleets, plan.fleetIds], ['air', state.airGroups, plan.airGroupIds]] as const).map(([branch, units, ids]) => <fieldset className="jcb-force-picks" key={branch}><legend>{branch === 'fleet' ? '함대' : '항공대'} · {(branch === 'fleet' ? plan.template!.requiredFleetKinds : plan.template!.requiredAirKinds).length ? '필수 군종' : '선택 지원'}</legend>{units.length ? units.map((unit) => {
-            const reason = getJointForceSelectionReason(unit, plan.template!);
+            const reason = getJointForceSelectionReason(unit, plan.template!, props.seaTransports, state.nationId);
             const checked = ids.includes(unit.id);
             return <label className={'jcb-force-pick' + (checked ? ' is-selected' : '')} key={unit.id}><input type="checkbox" checked={checked} disabled={Boolean(reason) && !checked} onChange={() => {
               if (reason && !checked) return;

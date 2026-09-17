@@ -1,6 +1,8 @@
-import { forecastBattle, resolveBattle } from './combat';
+import { resolveBattle } from './combat';
 import type { BattleForecast } from './combat';
-import { advanceOperationWeek, getOperationOrderId, getOperationProgress, normalizeOperationOrder, normalizeOperationOrders } from './operations';
+import { advanceOperationWeek, createOperationTerminalReceipt, forecastOperationBattle, normalizeOperationOrder, normalizeOperationOrders } from './operations';
+import { validateOffensiveTarget } from './mapCommand';
+import { validateLandRoute } from './mapRoutes';
 import type { OperationStopReceipt, OperationWeekResolution } from './operations';
 import type { CompletedCloseAirSupport } from './jointOperations';
 import type { BattleStance, Commander, Division, Faction, Order, Territory } from './types';
@@ -23,9 +25,9 @@ interface LandWeekInput {
 }
 
 export type LandOrderResolution =
-  | { kind: 'invalid'; order: Order; reason: string }
+  | { kind: 'invalid'; order: Order; reason: string; receipt: OperationStopReceipt }
   | { kind: 'stopped'; order: Order; division: Division; releasedStatus: 'ready' | 'recovering'; reason: string; receipt: OperationStopReceipt }
-  | { kind: 'move'; order: Order; division: Division; target: Territory }
+  | { kind: 'move'; order: Order; division: Division; target: Territory; receipt: OperationStopReceipt }
   | { kind: 'battle'; order: Order; division: Division; target: Territory; commander: Commander; stance: BattleStance; forecast: BattleForecast; resolution: OperationWeekResolution; airSupport: number };
 
 // Close support belongs to a named operation area, not every land order on Earth.
@@ -77,9 +79,10 @@ export function resolveLandOrdersWeek(input: LandWeekInput): { entries: LandOrde
     | { kind: 'pending'; order: Order }
     | { kind: 'battle'; order: Order; division: Division; target: Territory; origin: Territory; commander: Commander };
   const prepared: PreparedOrder[] = [];
+  const invalid = (order: Order, reason: string): Extract<LandOrderResolution, { kind: 'invalid' }> => ({ kind: 'invalid', order, reason, receipt: createOperationTerminalReceipt(order, input.week, 'invalidated', reason) });
   for (const order of normalizeOperationOrders(input.orders, input.territories, input.divisions)) {
     if (usedDivisions.has(order.divisionId)) {
-      prepared.push({ kind: 'invalid', order, reason: '같은 부대의 중복 명령을 정리했습니다. 먼저 승인된 명령만 집행합니다.' });
+      prepared.push(invalid(order, '같은 부대의 중복 명령을 정리했습니다. 먼저 승인된 명령만 집행합니다.'));
       continue;
     }
     usedDivisions.add(order.divisionId);
@@ -92,19 +95,38 @@ export function resolveLandOrdersWeek(input: LandWeekInput): { entries: LandOrde
       const reason = '요청한 공세 중단을 교전 전에 집행했습니다. 위치·누적 손실·승인 비용을 유지하며 목표를 점령하지 않았습니다.';
       prepared.push({ kind: 'stopped', order, division,
         releasedStatus: division.organization >= 70 && division.strength > 0 ? 'ready' : 'recovering', reason,
-        receipt: { orderId: getOperationOrderId(order), week: input.week, divisionId: division.id, targetId: order.targetId,
-          reason, elapsedWeeks: order.elapsedWeeks, progressPercent: getOperationProgress(order) } });
+        receipt: createOperationTerminalReceipt(order, input.week, 'stopped', reason) });
       continue;
     }
     const target = input.territories.find((item) => item.id === order.targetId);
     const origin = input.territories.find((item) => item.id === order.fromId);
     const commander = input.commanders.find((item) => item.id === division?.commanderId);
     if (!division || !target || !origin || !commander) {
-      prepared.push({ kind: 'invalid', order, reason: '부대·지휘관·출발지·목표 중 하나가 없어 집행할 수 없는 명령을 해제했습니다.' });
+      prepared.push(invalid(order, '부대·지휘관·출발지·목표 중 하나가 없어 집행할 수 없는 명령을 해제했습니다.'));
+      continue;
+    }
+    if (division.territoryId !== origin.id) {
+      prepared.push(invalid(order, '부대가 승인된 출발선에 없어 공세 명령을 해제했습니다.'));
+      continue;
+    }
+    // A captured destination is not permission to march across a sea route.
+    // Recheck saved orders before both combat and the friendly-reinforcement path.
+    const routeValidation = validateLandRoute(origin, target);
+    if (!routeValidation.allowed) {
+      prepared.push(invalid(order, routeValidation.reason));
+      continue;
+    }
+    if (order.intent === 'redeployment' && target.controller !== input.playerFaction) {
+      prepared.push(invalid(order, '재배치 목적지가 더 이상 아군 통제가 아닙니다. 이동을 취소하고 원래 위치를 유지합니다. 재배치 명령을 공세로 바꾸지 않습니다.'));
       continue;
     }
     if (target.controller === input.playerFaction) {
-      prepared.push({ kind: 'move', order, division, target });
+      prepared.push({ kind: 'move', order, division, target, receipt: createOperationTerminalReceipt(order, input.week, 'reinforced', '목표가 이미 아군 통제여서 새 교전 없이 집결했습니다. 공세는 종결되며 이동 소모와 최초 승인 비용은 유지됩니다.') });
+      continue;
+    }
+    const validation = validateOffensiveTarget({ origin, target, playerFaction: input.playerFaction });
+    if (!validation.allowed) {
+      prepared.push(invalid(order, validation.reason));
       continue;
     }
     prepared.push({ kind: 'battle', order, division, target, origin, commander });
@@ -128,9 +150,9 @@ export function resolveLandOrdersWeek(input: LandWeekInput): { entries: LandOrde
       policyAttackBonus: input.policyAttackBonus,
       priorityBonus: division.id === input.priorityDivisionId ? 5 : 0,
     };
-    const forecast = forecastBattle(battleInput);
-    const report = { ...resolveBattle({ ...battleInput, randomRolls: [random(), random(), random(), random()] }), commanderId: division.commanderId };
     const normalized = normalizeOperationOrder(order, origin, target, division);
+    const forecast = forecastOperationBattle(battleInput, normalized.battleType!);
+    const report = { ...resolveBattle({ ...battleInput, randomRolls: [random(), random(), random(), random()] }), commanderId: division.commanderId };
     const allocatedPoints = airSupport.get(division.id) ?? 0;
     const previousProgress = normalized.operationProgress ?? 0;
     const points = Math.min(allocatedPoints, Math.max(0, (normalized.operationRequired ?? 152) - previousProgress));

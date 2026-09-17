@@ -16,7 +16,8 @@ import {
 } from './campaign';
 import { historicalPersonnel, historicalSupplementalPersonnel } from './historicalPersonnel';
 import { getNationHistoricalEquipment } from './equipment';
-import { territories } from './data';
+import { initialDivisions, territories } from './data';
+import { isSeaTerritory } from './mapRoutes';
 import { selectThreatenedTerritory } from './engine';
 
 describe('alternate-history career setup', () => {
@@ -43,6 +44,7 @@ describe('alternate-history career setup', () => {
       divisions.forEach((division) => {
         const territory = territories.find((item) => item.id === division.territoryId);
         expect(territory, division.territoryId).toBeDefined();
+        expect(isSeaTerritory(territory!), `${nation.id}: ${division.territoryId}`).toBe(false);
         if (nation.status === 'sovereign') expect(territory?.controller).toBe(nation.alignment);
       });
       const production = createCampaignProduction(nation);
@@ -50,6 +52,15 @@ describe('alternate-history career setup', () => {
       expect(production.reduce((total, line) => total + line.assigned, 0)).toBeLessThanOrEqual(nation.modifiers.factories ?? 29);
       expect(production[0].equipmentId).toBe(getNationHistoricalEquipment(nation.id).find((node) => node.category === 'armor')?.id);
       expect(createDiplomaticRelations(nation.id)).toHaveLength(nations.length - 1);
+    });
+  });
+
+  it('uses land staging areas for US starts and legacy default formations', () => {
+    expect(createCampaignDivisions(getNation('usa')).map((division) => division.territoryId)).toEqual(['hawaii', 'midway', 'port_moresby']);
+    initialDivisions.forEach((division) => {
+      const territory = territories.find((item) => item.id === division.territoryId);
+      expect(territory, division.territoryId).toBeDefined();
+      expect(isSeaTerritory(territory!), division.id).toBe(false);
     });
   });
 

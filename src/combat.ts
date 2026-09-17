@@ -194,7 +194,7 @@ function likelyRange(values: number[]): [number, number] {
   return [sorted[Math.floor(sorted.length * .2)], sorted[Math.floor(sorted.length * .8)]];
 }
 
-export function forecastBattle(input: BattleForecastInput): BattleForecast {
+export function forecastBattle(input: BattleForecastInput, projectReport: (report: BattleReport) => BattleReport = (report) => report): BattleForecast {
   const sampleRolls = [.15, .5, .85];
   const outcomes: BattleReport[] = [];
 
@@ -202,16 +202,16 @@ export function forecastBattle(input: BattleForecastInput): BattleForecast {
     for (const approach of sampleRolls) {
       for (const engagement of sampleRolls) {
         for (const exploitation of sampleRolls) {
-          outcomes.push(resolveBattle({
+          outcomes.push(projectReport(resolveBattle({
             ...input,
             randomRolls: [reconnaissance, approach, engagement, exploitation],
-          }));
+          })));
         }
       }
     }
   }
 
-  const expected = resolveBattle({ ...input, randomRolls: [.5, .5, .5, .5] });
+  const expected = projectReport(resolveBattle({ ...input, randomRolls: [.5, .5, .5, .5] }));
   const rawSuccessChance = outcomes.filter((report) => report.victory).length / outcomes.length * 100;
   const successChance = Math.max(4, Math.min(96, Math.round(rawSuccessChance)));
   const confidence: ForecastConfidence = input.intelNetwork >= 75 ? 'high' : input.intelNetwork >= 50 ? 'medium' : 'low';
