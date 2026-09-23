@@ -48,3 +48,14 @@
 .game-shell.readable-ui .deck-content .living-world strong { font-size: 14px; line-height: 1.6; }
 .game-shell.readable-ui .deck-content .living-world button { min-height: 44px; font-size: 13px; }
 .game-shell.readable-ui .deck-content .living-world .living-world-council strong { font-size: 24px; }
+.living-world .living-world-layout { grid-template-columns:minmax(0,1.8fr) minmax(300px,.9fr); align-items:start; }
+.living-world .living-world-stage { padding:20px; gap:12px; background:#17211f; justify-content:flex-start; }
+.living-world-view-mode { display:flex; flex-wrap:wrap; gap:8px; }
+.living-world-view-mode button { padding:9px 15px; background:#22322e; color:#dce5dd; border:1px solid #52655b; border-radius:4px; cursor:pointer; }
+.living-world-view-mode button[aria-pressed=true] { background:#575039; border-color:#cdb77c; color:#ffe8ac; }
+.game-shell.readable-ui .deck-content .living-world .living-world-view-notice { margin:0; font-size:13px; line-height:1.65; color:#c5d2c7; min-height:44px; }
+.game-shell.readable-ui .deck-content .living-world .living-world-view-notice.projected { border-left:3px solid #e1c27a; padding:8px 12px; background:#3d3828; color:#ffe1a0; }
+.living-world-art-reference { border-top:1px solid #465047; padding-top:14px; margin-top:20px; }
+.living-world-art-reference summary { cursor:pointer; color:#acbdaf; font-size:13px; min-height:36px; }
+.living-world-art-reference .world-site-art { margin-top:10px; }
+@container(max-width:1000px) { .living-world .living-world-layout { grid-template-columns:1fr; } .living-world .living-world-detail { border-left:0; border-top:1px solid #465047; } }

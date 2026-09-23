@@ -72,8 +72,8 @@ describe('living world scene honesty and authority', () => {
     expect(html).toContain('국가 집계 기반 모식도');
     expect(html).toContain('실제 도시 위치나 개별 건물 수를 나타내지 않습니다');
     expect(html.match(/aria-controls="living-world-detail"/g)).toHaveLength(4);
-    expect(html).toContain('군수 8 · 민수 여력 22');
-    expect(html).toContain('대화할 현안 2건');
+    expect(html).toContain('군수 배치 8 · 민수 여력 22');
+    expect(html).toContain('참모 서사 현안 2건');
     expect(html).toContain('제3주');
   });
 
@@ -83,6 +83,9 @@ describe('living world scene honesty and authority', () => {
     const { html, onReallocate } = render(input);
     expect(html).toContain('결재 전 예상 · 아직 적용 안 됨');
     expect(html).toContain('소비재 공급 54.2 → 55 / 100');
+    expect(html).toContain('전환안 미리보기');
+    expect(html).toContain('현재 확정 상태');
+    expect(html).not.toContain('예상 장면 · 아직 결재하지 않았습니다');
     expect(html).toContain('소총 기본 생산력 1613 → 1344 / 주');
     expect(html).toContain('첫 검증은 다음 주');
     expect(html).not.toContain('배치는 적용됐고');
@@ -98,6 +101,7 @@ describe('living world scene honesty and authority', () => {
     expect(html).not.toContain('조정할 생산 라인');
     expect(html).not.toContain('결재 전 예상');
     expect(html).toContain(mode === 'request' ? '생산 조정 상신하기' : '권한과 보고 확인');
+    expect(html).not.toContain('전환안 미리보기');
     expect(html).toContain('data-world-site-art="industry"');
     expect(onReallocate).not.toHaveBeenCalled();
   });
@@ -107,7 +111,7 @@ describe('living world scene honesty and authority', () => {
     input.game.factories = 0;
     input.production[0].assigned = 0;
     const { html } = render(input);
-    expect(html).toContain('군수 0 · 민수 여력 0');
+    expect(html).toContain('군수 배치 0 · 민수 여력 0');
     expect(html).toMatch(/class="living-world-primary" disabled=""/);
     expect(html).not.toContain('결재 전 예상');
     expect(html).not.toContain('NaN');

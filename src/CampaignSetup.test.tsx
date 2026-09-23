@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { CampaignSetup, CampaignSetupView, type CampaignSetupProps, type CampaignSetupViewProps } from './CampaignSetup';
 import { careerRoles, nations } from './campaign';
 import { civilianOrigins, civilianProfessions } from './civilianCareer';
+import { getPlayGuide } from './playGuide';
+import { getRoleTabMandates } from './roleMandate';
 import type { CareerBranch } from './types';
 
 const role = careerRoles.find((item) => item.nationId === 'britain' && item.branch === 'military' && item.tier === 2)!;
@@ -175,7 +177,51 @@ describe('three-stage campaign entry', () => {
       click(action(view, 'start'));
       expect(value.onStart).not.toHaveBeenCalled();
       expect(renderToStaticMarkup(view)).toContain('role="alert"');
+      expect(renderToStaticMarkup(view)).not.toContain('id="campaign-first-steps-title"');
     }
+  });
+
+  it.each(['military', 'politics', 'intelligence'] as const)('previews the shared first activity for %s without exposing any game action', (branch) => {
+    const selected = careerRoles.find((item) => item.nationId === 'britain' && item.branch === branch && item.tier === 2)!;
+    const value = props({ step: 3, roleId: selected.id, branch });
+    const view = CampaignSetupView(value);
+    const guide = getPlayGuide({ role: selected, mandates: getRoleTabMandates(selected, 'office') });
+    const preview = elements(view).find((item) => item.props['aria-labelledby'] === 'campaign-first-steps-title')!;
+    const html = renderToStaticMarkup(preview);
+    expect(html).toContain('시작하면 할 수 있는 일');
+    expect(html).toContain(guide.firstAction.title);
+    expect(html).toContain(guide.firstAction.detail);
+    expect(html).toContain(guide.firstAction.result);
+    expect(html.match(/<li>/g)).toHaveLength(3);
+    expect(html.replace(/<[^>]*>/g, '').length).toBeLessThan(650);
+    expect(html).not.toMatch(/<(button|input|select|a)(\s|>)/);
+    for (const element of elements(preview)) expect(element.props.onClick).toBeUndefined();
+    const page = renderToStaticMarkup(view);
+    expect(page.indexOf('campaign-first-steps-title')).toBeLessThan(page.indexOf('class="campaign-onboarding__dossier"'));
+    mutationCallbacks(value).forEach((callback) => expect(callback).not.toHaveBeenCalled());
+    expect(value.onStepChange).not.toHaveBeenCalled();
+  });
+
+  it('previews civilian work even without a selected office and never borrows the fallback office authority', () => {
+    const value = props({ step: 3, roleId: 'missing-role', startMode: 'civilian', civilianProfessionId: 'scientist' });
+    const view = CampaignSetupView(value);
+    const guideRole = careerRoles.find((item) => item.nationId === value.nationId)!;
+    const guide = getPlayGuide({ role: guideRole, mandates: getRoleTabMandates(guideRole, 'civilian'),
+      civilian: { professionId: value.civilianProfessionId, originId: value.civilianOriginId } });
+    const preview = elements(view).find((item) => item.props['aria-labelledby'] === 'campaign-first-steps-title')!;
+    const html = renderToStaticMarkup(preview);
+    expect(html).toContain(guide.firstAction.title);
+    expect(html).toContain(guide.firstAction.detail);
+    expect(html).toContain(guide.firstAction.result);
+    expect(html).not.toContain(guideRole.title);
+    expect(html).not.toMatch(/<(button|input|select|a)(\s|>)/);
+    expect(action(view, 'start').props.disabled).toBe(false);
+    mutationCallbacks(value).forEach((callback) => expect(callback).not.toHaveBeenCalled());
+  });
+
+  it.each([1, 2] as const)('defers the first activity preview until final confirmation instead of adding detail to stage %s', (step) => {
+    const html = renderToStaticMarkup(<CampaignSetupView {...props({ step })} />);
+    expect(html).not.toContain('id="campaign-first-steps-title"');
   });
 
   it('preserves all civilian professions, origin options and selected activity/risk before final civilian start', () => {

@@ -1,17 +1,23 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, CircleHelp, X } from 'lucide-react';
 import { getCivilianOrigin, getCivilianProfession } from './civilianCareer';
+import { getRoleTabMandates, type RoleTabMandate } from './roleMandate';
+import { getPlayGuide } from './playGuide';
 import type { CareerRole, CivilianCareerState, GameTab, NationId } from './types';
+
+type TutorialRole = Pick<CareerRole, 'branch' | 'tier' | 'scope' | 'title'> & Partial<Pick<CareerRole, 'archetype'>>;
 
 interface TutorialOverlayProps {
   nationId: NationId;
-  role: Pick<CareerRole, 'branch' | 'tier' | 'scope' | 'title'>;
+  role: TutorialRole;
+  mandates?: Record<GameTab, RoleTabMandate>;
   civilian?: CivilianCareerState;
   onNavigate: (tab: GameTab) => void;
   onComplete: (openWorldWeekly: boolean) => void;
 }
 
-interface TutorialStep {
+export interface TutorialStep {
   title: string;
   detail: string;
   action: string;
@@ -20,71 +26,69 @@ interface TutorialStep {
 }
 
 const branchLabels: Record<CareerRole['branch'], string> = {
-  military: '군사 지휘',
-  politics: '정치 운영',
-  intelligence: '정보 공작',
+  military: '군사 지휘', politics: '정치 운영', intelligence: '정보 공작',
 };
 
-function getRoleSteps(role: TutorialOverlayProps['role']): TutorialStep[] {
-  const junior = role.tier >= 4;
-  if (role.branch === 'military') return [
-    { title: '지휘 가능한 부대를 먼저 고릅니다', detail: '전력·조직력·보급과 현재 명령을 한 화면에서 비교하십시오. 붉은 준비도만 보고 공세를 서두르면 회복 주기가 길어집니다.', action: '부대 지휘 보기', tab: 'army', target: '[data-tour="army-tab"]' },
-    { title: junior ? '작전안을 상신합니다' : '첫 작전 명령을 승인합니다', detail: junior ? '현재 직급에서는 모든 사단을 직접 움직이지 않습니다. 통솔 범위의 부대를 준비하고 목표·위험·지원 요구를 상급 지휘부에 제출하십시오.' : '전선과 인접한 준비 완료 부대에 공세·훈련 의도를 부여하고 예상 손실을 확인하십시오.', action: junior ? '상신 절차 확인' : '명령 절차 확인', tab: 'army', target: '[data-tour="army-tab"]' },
-  ];
-  if (role.branch === 'politics') return [
-    { title: '내각과 이해집단을 읽습니다', detail: '정책을 집행할 부서, 반대 파벌, 정치력과 현재 권한을 먼저 확인하십시오.', action: '내각·권한 보기', tab: 'organization', target: '[data-tour="organization-tab"]' },
-    { title: junior ? '정책 건의안을 상신합니다' : '첫 국가 원칙을 결재합니다', detail: junior ? '정책의 비용·수혜자·반대 세력을 정리해 상급 의사결정자에게 채택을 요청하십시오.' : '경제·사회·외교·교리 중 한 영역의 운영 원칙을 채택하고 다음 주 파급효과를 확인하십시오.', action: '정책 운영 보기', tab: 'economy', target: '[data-tour="economy-tab"]' },
-  ];
-  return [
-    { title: '정보망과 노출 위험을 확인합니다', detail: '정보 신뢰도, 작전망, 적 방첩 압력을 비교한 뒤 첫 표적을 정하십시오.', action: '정보망 보기', tab: 'intelligence', target: '[data-tour="intelligence-tab"]' },
-    { title: junior ? '수집·공작안을 상신합니다' : '첫 조사·접촉을 승인합니다', detail: junior ? '접촉선과 근거를 확보해 실행 가능한 공작안을 상급 기관에 제출하십시오.' : '후보 한 명의 조사나 접촉을 시작하고 충성도·이중공작 위험을 함께 검토하십시오.', action: '후보 시장 보기', tab: 'organization', target: '[data-tour="organization-tab"]' },
-  ];
-}
-
-function buildTutorialSteps(nationId: NationId, role: TutorialOverlayProps['role'], civilian?: CivilianCareerState): TutorialStep[] {
+/** A read-only tour: actual choices remain in their existing reviewed workflows. */
+export function buildTutorialSteps(
+  nationId: NationId,
+  role: TutorialRole,
+  civilian?: CivilianCareerState,
+  currentMandates?: Record<GameTab, RoleTabMandate>,
+): TutorialStep[] {
+  const mandates = currentMandates ?? getRoleTabMandates(role, civilian ? 'civilian' : 'office');
+  const guide = getPlayGuide({ role, mandates, civilian });
   if (civilian) {
     const profession = getCivilianProfession(civilian.professionId);
     const origin = getCivilianOrigin(civilian.originId);
     return [
-      { title: '공식 보직이 없는 시민으로 시작합니다', detail: `${origin.name} 배경의 ${profession.name}입니다. 국가 자원 대신 개인의 평판·전문성·인맥·생계·독립성·감시 위험을 관리합니다.`, action: '내 삶 확인', tab: 'command', target: '.civilian-career-hero' },
-      { title: '먼저 세계 주보를 읽습니다', detail: '세계 주보는 전쟁과 정치 변화가 당신의 직업·지역·관계망에 어떤 기회와 위험을 만드는지 정리합니다.', action: '주간 흐름 확인', tab: 'command', target: '.civilian-week-loop' },
-      { title: '이번 주 민간 행동을 하나 고릅니다', detail: '발표, 조직, 현장활동, 후원, 지하 연락망, 대중 캠페인은 서로 다른 세계선 압력을 만듭니다. 생계와 감시 비용도 함께 확인하십시오.', action: '행동 선택지 보기', tab: 'command', target: '.civilian-actions-board' },
-      { title: '공식 권한은 플레이로 획득합니다', detail: '평판 42, 전문성 52, 인맥 45와 주요 활동 3회를 채우면 직업에 맞는 정부·저항·정보·군사 조직의 하위 보직 제안이 열립니다.', action: '진입 조건 보기', tab: 'command', target: '.civilian-entry-board' },
-      { title: '제도권 밖에 남는 길도 유효합니다', detail: '보직 제안을 거절하고 전국적 지식인·언론인·기업가·운동가로 성장할 수 있습니다. 행동 순서와 진입 시점이 인물과 사건의 등장 조건을 바꿉니다.', action: '튜토리얼 완료', tab: 'command', target: '.civilian-record' },
+      { title: `${profession.name}의 삶에서 시작합니다`, detail: `${origin.name} 배경입니다. 공식 국가 권한 없이 개인의 생계·전문성·인맥·평판·감시 위험을 관리합니다.`, action: '상황실 → 나의 사회적 기반', tab: 'command', target: '.civilian-career-hero' },
+      { title: '세계가 내 삶에 주는 기회를 읽습니다', detail: '세계 주보에서 지역·전쟁·정치 변화를 확인하십시오. 주보를 읽거나 안내를 넘기는 것만으로 행동·시간·비용이 발생하지 않습니다.', action: '상황실 → 세계 주보', tab: 'command', target: '.civilian-hero-actions' },
+      { title: guide.firstAction.title, detail: `${guide.firstAction.detail} ${guide.firstAction.result} 보직 진입은 필수가 아니며 독립적인 민간 활동도 이어갈 수 있습니다.`, action: guide.firstAction.actionLabel, tab: 'command', target: '.civilian-actions-board' },
+      { title: '준비되면 한 주를 진행합니다', detail: '다음 주에 생계·감시·세계 사건이 계산됩니다. 결과를 읽고 활동을 이어가십시오. 이 안내를 완료해도 주간 진행은 자동 실행되지 않습니다.', action: '상황실 → 다음 주 진행 → 변화 확인', tab: 'command', target: '.civilian-week-loop' },
     ];
   }
-  const opening: TutorialStep[] = nationId === 'korea' ? [
-    { title: '충칭의 독립운동 지휘부에서 시작합니다', detail: '현재 행정·외교 본부는 충칭의 대한민국 임시정부입니다. 조선 본토는 일제 점령지이므로 본부와 영토를 구분해 읽으십시오.', action: '충칭 지휘부 확인', tab: 'command', target: '.role-focus-briefing' },
-    { title: '해방 준비는 네 축으로 나뉩니다', detail: '연합국 승인, 국내 공작망, 한국광복군, 귀환·건국 준비 가운데 가장 약한 축을 먼저 보완하십시오.', action: '해방 준비도 확인', tab: 'command', target: '.role-focus-briefing' },
-  ] : [
-    { title: '내 보직의 지휘 본부에서 시작합니다', detail: '국가 전체 메뉴가 아니라 현재 보직이 직접 책임지는 업무와 이번 주 최우선 행동부터 확인하십시오. 지도는 작전 판단이 필요할 때 엽니다.', action: '내 보직 브리핑 확인', tab: 'command', target: '.role-focus-briefing' },
-  ];
+  const supportTab: GameTab = role.branch === 'politics' ? 'economy' : 'organization';
+  const support = mandates[supportTab];
+  const supportTitle = role.branch === 'politics'
+    ? support.mode === 'direct' ? '정책의 비용과 다음 주 효과를 비교합니다'
+      : support.mode === 'request' ? '재정은 보고받고 필요한 권한을 상신합니다' : '재정 보고와 담당 부서를 확인합니다'
+    : role.branch === 'intelligence' ? '후보와 요원을 비교합니다' : '지휘 범위와 지원 부서를 확인합니다';
   return [
-    ...opening,
-    { title: '취임 첫 세계를 읽습니다', detail: '세계 주보 창간호는 선택한 국가·보직·세계선의 전선, 외교, 경제, 사회, 과학과 정보를 정리합니다.', action: '창간호 확인', tab: 'command', target: '[data-tour="world-weekly"]' },
-    { title: `TIER ${role.tier} 권한을 확인합니다`, detail: `${role.scope}. 잠긴 결정은 직접 집행하지 않고 상신·설득·위임 요청으로 처리합니다.`, action: '권한 범위 보기', tab: 'organization', target: '[data-tour="organization-tab"]' },
-    ...getRoleSteps(role),
-    { title: nationId === 'korea' ? '한반도와 충칭을 구분해 봅니다' : '전황 지도는 판단이 필요할 때 엽니다', detail: nationId === 'korea' ? '한반도 점령 상태, 만주 연락선, 중국 내 거점과 국내정진 경로는 서로 다른 좌표와 지휘선을 가집니다.' : '위험 전선과 인접 관계를 확인하고 지휘 목표를 정할 때 지역 지도를 사용하십시오.', action: '전황 지도 이해', tab: 'map', target: '[data-tour="map-tab"]' },
-    { title: '결정이 역사를 갈라놓습니다', detail: '미래를 프롬프트로 작성하지 않습니다. 군사·정치·정보·경제 결정이 누적되어 세계선과 인물의 선택을 바꿉니다.', action: '역사 흐름 확인', tab: 'command', target: '.role-focus-briefing' },
-    { title: '결정을 마치고 한 주를 진행합니다', detail: '결산에서 무엇이 왜 바뀌었는지 확인하면 첫 지휘 주기가 완성됩니다.', action: '튜토리얼 완료', tab: 'command', target: '[data-tour="next-week"]' },
+    { title: nationId === 'korea' ? '충칭의 본부와 조선 본토를 구분합니다' : '내 보직에서 할 수 있는 일부터 봅니다', detail: `${nationId === 'korea' ? '1942년의 대한민국 임시정부 본부는 충칭이며 조선 본토는 일제 점령지입니다. ' : ''}${guide.roleSummary} 직접 지휘·상신 필요·보고 열람 표시는 서로 다른 권한입니다.`, action: '지휘 데스크 → 내 역할과 가능한 일', tab: 'command', target: '.command-desk' },
+    { title: '현재 세계와 이번 주 우선순위를 읽습니다', detail: '지휘 데스크의 주간 브리핑에서 상황과 지난 결과를 확인합니다. 모든 메뉴를 읽을 필요 없이 지금 검토할 업무 하나를 고르십시오.', action: '지휘 데스크 → 주간 브리핑', tab: 'command', target: '.command-desk-briefing' },
+    { title: guide.firstAction.title, detail: `${guide.firstAction.detail} ${guide.firstAction.result} 이 안내는 업무 화면을 보여 줄 뿐 명령·정책·계약을 실행하지 않습니다.`, action: guide.firstAction.actionLabel, tab: guide.firstAction.tab, target: `[data-tour="${guide.firstAction.tab}-tab"]` },
+    { title: supportTitle, detail: `${support.label}. ${support.authorityRoute} ${role.branch === 'military' ? '하급 보직도 실제 예하 부대는 직접 지휘할 수 있습니다. 연구 슬롯을 채우는 것이 모든 지휘관의 의무는 아닙니다.' : role.branch === 'intelligence' ? '조직 운영의 후보 시장에서 조사 정보·노출 위험·관리 범위를 비교한 뒤 기존 검토 절차로 진행합니다.' : '비용·예상 효과·확인 시점을 비교하고 권한 밖의 결정을 직접 집행하지 마십시오.'}`, action: role.branch === 'politics' ? '재정 화면 → 권한과 예상 결과' : '조직 운영 → 담당 범위 확인', tab: supportTab, target: `[data-tour="${supportTab}-tab"]` },
+    { title: '한 번 결정하고 다음 주 결과로 이어갑니다', detail: '결정은 의무가 아닙니다. 준비되면 다음 주를 진행하고 주간 브리핑에서 무엇이 왜 바뀌었는지 확인하십시오. 안내 완료는 시간을 진행하거나 성과를 확정하지 않습니다.', action: '다음 주 진행 → 주간 브리핑', tab: 'command', target: '[data-tour="next-week"]' },
   ];
 }
 
-export function TutorialOverlay({ nationId, role, civilian, onNavigate, onComplete }: TutorialOverlayProps) {
+function keepTutorialFocus(event: KeyboardEvent<HTMLElement>) {
+  if (event.key !== 'Tab') return;
+  const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'));
+  const first = buttons[0];
+  const last = buttons.at(-1);
+  if (!first || !last) return;
+  if (event.shiftKey && (document.activeElement === first || !event.currentTarget.contains(document.activeElement))) {
+    event.preventDefault(); last.focus();
+  } else if (!event.shiftKey && (document.activeElement === last || !event.currentTarget.contains(document.activeElement))) {
+    event.preventDefault(); first.focus();
+  }
+}
+
+export function TutorialOverlay({ nationId, role, mandates, civilian, onNavigate, onComplete }: TutorialOverlayProps) {
   const [index, setIndex] = useState(0);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const steps = useMemo(
-    () => buildTutorialSteps(nationId, role, civilian),
-    [civilian?.originId, civilian?.professionId, nationId, role.branch, role.scope, role.tier, role.title],
+    () => buildTutorialSteps(nationId, role, civilian, mandates),
+    [civilian?.originId, civilian?.professionId, mandates, nationId, role.archetype, role.branch, role.scope, role.tier, role.title],
   );
-  const step = steps[index] ?? steps[0];
-  const progress = `${index + 1}/${steps.length}`;
+  const currentIndex = Math.min(index, steps.length - 1);
+  const step = steps[currentIndex];
+  const progress = `${currentIndex + 1}/${steps.length}`;
   const navigateToStep = useEffectEvent((tab: GameTab) => onNavigate(tab));
 
-  useEffect(() => {
-    closeButtonRef.current?.focus();
-  }, []);
-
+  useEffect(() => { closeButtonRef.current?.focus(); }, []);
   useEffect(() => {
     navigateToStep(step.tab);
     const timer = window.setTimeout(() => {
@@ -99,17 +103,16 @@ export function TutorialOverlay({ nationId, role, civilian, onNavigate, onComple
   }, [step]);
 
   const next = () => {
-    if (index === steps.length - 1) onComplete(true);
-    else setIndex((current) => current + 1);
+    if (currentIndex === steps.length - 1) onComplete(true);
+    else setIndex(currentIndex + 1);
   };
-
   return (
-    <aside className="tutorial-overlay" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
+    <aside className="tutorial-overlay" role="dialog" aria-modal="true" aria-labelledby="tutorial-title" onKeyDown={keepTutorialFocus}>
       <header><span><CircleHelp size={16} /> {civilian ? 'FIRST CIVILIAN WEEK · 공식 권한 없음' : `FIRST COMMAND · ${branchLabels[role.branch]} TIER ${role.tier}`}</span><button ref={closeButtonRef} onClick={() => onComplete(false)} aria-label="튜토리얼 건너뛰기"><X size={16} /></button></header>
-      <div className="tutorial-progress"><i style={{ width: `${(index + 1) / steps.length * 100}%` }} /><span>{progress}</span></div>
-      <main><em>STEP {index + 1} · {role.title}</em><h2 id="tutorial-title">{step.title}</h2><p>{step.detail}</p></main>
-      <footer><button disabled={index === 0} onClick={() => setIndex((current) => Math.max(0, current - 1))}><ArrowLeft size={14} /> 이전</button><button className="tutorial-next" onClick={next} aria-label={index === steps.length - 1 ? '완료하고 창간호 읽기' : `다음 안내: ${steps[index + 1].title}`}>{index === steps.length - 1 ? <CheckCircle2 size={14} /> : null}{index === steps.length - 1 ? '완료하고 창간호 읽기' : '다음 안내'}{index < steps.length - 1 ? <ArrowRight size={14} /> : null}</button></footer>
-      <small>언제든 설정 또는 <kbd>?</kbd> 야전 교범에서 다시 시작할 수 있습니다.</small>
+      <div className="tutorial-progress"><i style={{ width: `${(currentIndex + 1) / steps.length * 100}%` }} /><span>{progress}</span></div>
+      <main><em>STEP {currentIndex + 1} · {civilian ? getCivilianProfession(civilian.professionId).name : role.title}</em><h2 id="tutorial-title">{step.title}</h2><p>{step.detail}</p><small>찾아갈 곳 · {step.action}</small></main>
+      <footer><button disabled={currentIndex === 0} onClick={() => setIndex(Math.max(0, currentIndex - 1))}><ArrowLeft size={14} /> 이전</button><button className="tutorial-next" onClick={next} aria-label={currentIndex === steps.length - 1 ? '완료하고 창간호 읽기' : `다음 안내: ${steps[currentIndex + 1].title}`}>{currentIndex === steps.length - 1 ? <CheckCircle2 size={14} /> : null}{currentIndex === steps.length - 1 ? '완료하고 창간호 읽기' : '다음 안내'}{currentIndex < steps.length - 1 ? <ArrowRight size={14} /> : null}</button></footer>
+      <small>나중에 설정 또는 <kbd>?</kbd> 플레이 안내에서 다시 볼 수 있습니다. 건너뛰어도 불이익은 없습니다.</small>
     </aside>
   );
 }

@@ -9291,9 +9291,9 @@ button:focus-visible,
 .game-shell.readable-ui .action-center-list > button small,
 .game-shell.readable-ui .settings-options small,
 .game-shell.readable-ui .shortcut-guide small { font-size: 10px; line-height: 1.5; }
-.game-shell.readable-ui .ux-backdrop:not(.history-studio-backdrop) :where(p, small, span, em, label, button, summary, dt) { font-size: 10px; line-height: 1.5; }
-.game-shell.readable-ui .ux-backdrop:not(.history-studio-backdrop) :where(strong, h4) { font-size: 11px; line-height: 1.4; }
-.game-shell.readable-ui .ux-backdrop:not(.history-studio-backdrop) :where(input, textarea, select) { min-height: 34px; font-size: 11px; line-height: 1.5; }
+.game-shell.readable-ui .ux-backdrop:not(.history-studio-backdrop):not(.field-manual-backdrop) :where(p, small, span, em, label, button, summary, dt) { font-size: 10px; line-height: 1.5; }
+.game-shell.readable-ui .ux-backdrop:not(.history-studio-backdrop):not(.field-manual-backdrop) :where(strong, h4) { font-size: 11px; line-height: 1.4; }
+.game-shell.readable-ui .ux-backdrop:not(.history-studio-backdrop):not(.field-manual-backdrop) :where(input, textarea, select) { min-height: 34px; font-size: 11px; line-height: 1.5; }
 .game-shell.readable-ui .setup-header p,
 .game-shell.readable-ui .alternate-history-promise span,
 .game-shell.readable-ui .historical-seat-brief p { font-size: 11px; line-height: 1.6; }

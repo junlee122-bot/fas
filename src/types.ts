@@ -16,6 +16,7 @@ export type CivilianCareerStage = 'private-citizen' | 'public-voice' | 'movement
 export type CivilianHistoryForce = 'military' | 'industry' | 'diplomacy' | 'civic' | 'liberation' | 'intelligence';
 export type SupplyPolicy = 'balanced' | 'frontline' | 'reserve';
 export type StaffDepartment = 'operations' | 'logistics' | 'armaments' | 'personnel' | 'political' | 'science' | 'economy';
+export type StaffWorkPriority = 'urgent' | 'normal' | 'recovery';
 export type PersonnelAvailability = 'available' | 'poachable' | 'opposition' | 'displaced';
 export type PersonnelDiscipline = 'military' | 'science' | 'engineering' | 'medicine' | 'economics' | 'industry' | 'intelligence' | 'diplomacy' | 'social-science';
 export type PolicyDomain = 'economy' | 'doctrine' | 'society' | 'diplomacy';
@@ -184,6 +185,8 @@ export interface StaffMember {
   delegated: boolean;
   grade: 1 | 2 | 3;
   development: number;
+  /** Persistent weekly work tempo; absent or invalid legacy values use normal. */
+  workPriority?: StaffWorkPriority;
   morale?: number;
   roleSatisfaction?: number;
   contractWeeksRemaining?: number;

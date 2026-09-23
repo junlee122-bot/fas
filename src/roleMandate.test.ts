@@ -16,6 +16,9 @@ describe('role mandate', () => {
     const role = getRole('britain-field-command', 'britain');
     const mandates = getRoleTabMandates(role, 'civilian');
     expect(mandates.command.mode).toBe('direct');
+    expect(mandates.command.label).toBe('개인 활동');
+    expect(mandates.command.authorityRoute).toContain('권한은 없습니다');
+    expect(mandates.command.reason).not.toContain('공식 임무');
     expect(mandates.organization.mode).toBe('locked');
   });
 

@@ -1,5 +1,6 @@
 import type { PersonnelDiscipline, StaffCandidate, StaffDepartment, StaffMember } from './types';
 import { calculateStaffSuitability, getStaffSeatDefinition, staffSeatDefinitions } from './staffOrganization';
+import { projectStaffWorkWeek } from './staffWork';
 
 export type StaffCareerStage = 'developing' | 'emerging' | 'peak' | 'experienced';
 export type StaffHierarchy = 'leader' | 'core' | 'support';
@@ -486,7 +487,8 @@ export function createStaffManagementOverview(
 }
 
 export function advanceStaffMemberWeek(member: StaffMember, developmentFocus: boolean): StaffMember {
-  const nextWorkload = clamp(member.workload + (member.delegated ? (member.workload >= 82 ? -7 : 1.5) : -3), 8, 100);
+  const work = projectStaffWorkWeek(member, developmentFocus);
+  const nextWorkload = work.workload;
   const contractWeeksRemaining = Math.max(0, getStaffContractWeeks(member) - 1);
   const workloadMorale = nextWorkload >= 88 ? -4 : nextWorkload >= 78 ? -2 : nextWorkload <= 45 ? 1 : 0;
   const contractMorale = contractWeeksRemaining === 0 ? -5 : contractWeeksRemaining <= 13 ? -2 : 0;
@@ -503,7 +505,8 @@ export function advanceStaffMemberWeek(member: StaffMember, developmentFocus: bo
       - (finalMorale < 35 ? 2 : member.delegated && member.workload >= 88 ? 1 : 0)
       - (promise.state === 'broken' ? 1 : 0)
       + (finalMorale >= 68 && nextSatisfaction >= 65 && promise.state !== 'broken' ? 0.35 : 0), 20, 100),
-    development: clamp(member.development + (member.delegated ? 6 : 3) + (developmentFocus ? 7 : 0) - (member.workload >= 85 ? 2 : 0)),
+    development: work.development,
+    ...(member.workPriority !== undefined ? { workPriority: work.priority } : {}),
     morale: finalMorale,
     roleSatisfaction: nextSatisfaction,
     contractWeeksRemaining,

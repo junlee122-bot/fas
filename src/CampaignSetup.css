@@ -113,6 +113,13 @@
 .campaign-onboarding select { display: block; width: 100%; padding: 12px; font-size: 16px; color-scheme: dark; }
 .campaign-onboarding__review-identity { display: flex; align-items: center; gap: 16px; margin-top: 24px; }
 .campaign-onboarding__review-identity h3 { margin-top: 7px; }
+.campaign-onboarding__first-steps { margin-top: 24px; padding-block: 20px; border-block: 1px solid var(--entry-border); }
+.campaign-onboarding__first-steps h3 { font-size: 16px; }
+.campaign-onboarding__first-steps ol { display: grid; gap: 16px; margin-top: 16px; padding: 0; list-style: none; }
+.campaign-onboarding__first-steps li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 12px; }
+.campaign-onboarding__first-steps li > span { color: var(--entry-brass); font-size: 14px; font-variant-numeric: tabular-nums; }
+.campaign-onboarding__first-steps strong { display: block; font-size: 14px; }
+.campaign-onboarding__first-steps p { margin-top: 4px; font-size: 14px; line-height: 1.65; color: var(--entry-muted); }
 .campaign-onboarding__review .campaign-onboarding__dossier { padding: 22px 0 0; margin-top: 18px; border: 0; border-top: 1px solid var(--entry-border); border-radius: 0; }
 .campaign-onboarding .campaign-onboarding__text-button { margin-top: 20px; padding-inline: 0; background: transparent; border-color: transparent; color: var(--entry-brass); }
 .campaign-onboarding__principles { min-width: 0; padding: 8px 0; }

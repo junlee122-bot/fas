@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import { BookMarked, Check, ChevronRight, CircleHelp, Search, X } from 'lucide-react';
 import type { GameTab } from './types';
 import type { OnboardingStep } from './ux';
+import type { PlayGuide } from './playGuide';
+import { PlayGuidePanel } from './PlayGuidePanel';
 
 type ManualCategory = 'all' | 'start' | 'management' | 'combat' | 'politics';
 
@@ -20,6 +22,22 @@ interface FieldManualProps {
   onNavigate: (tab: GameTab) => void;
   onRestartTutorial: () => void;
   onClose: () => void;
+  guide?: PlayGuide;
+  onOpenWorldWeekly?: () => void;
+  onOpenBriefing?: () => void;
+}
+
+export type ManualView = 'overview' | 'checklist' | 'reference';
+
+interface FieldManualViewProps extends FieldManualProps {
+  view: ManualView;
+  category: ManualCategory;
+  query: string;
+  onViewChange: (view: ManualView) => void;
+  onCategoryChange: (category: ManualCategory) => void;
+  onQueryChange: (query: string) => void;
+  searchRef?: Ref<HTMLInputElement>;
+  closeRef?: Ref<HTMLButtonElement>;
 }
 
 const categoryOptions: Array<{ id: ManualCategory; label: string }> = [
@@ -31,9 +49,9 @@ const categoryOptions: Array<{ id: ManualCategory; label: string }> = [
 ];
 
 const manualArticles: ManualArticle[] = [
-  { id: 'command-dashboard', category: 'start', title: '지휘 본부에서 무엇을 봐야 합니까?', summary: '지도 대신 업무함·전황 요약·조직·생산·연구 예측으로 캠페인을 파악합니다.', body: '지휘 본부는 매주 결재가 필요한 사안과 최신 보고를 한 업무함에 모읍니다. 준비도 아래 다섯 지표는 종합 점수의 근거를 보여 주며 붉은 숫자는 먼저 보완할 영역입니다. 우측 전황 카드는 지도 없이도 통제 지역·준비 사단·보급·취약 전선을 보여 줍니다. 사이드 메뉴의 숫자 배지는 부서별 미처리 업무 수이며 붉은 배지는 긴급 업무가 있다는 뜻입니다. 관리 화면은 부서별로 마지막으로 보던 스크롤 위치를 기억합니다.', tip: '첫 진입에서는 긴급 결재, 취약 전선, 미사용 공장과 연구 슬롯 순서로 확인하면 됩니다.', keywords: ['지휘 본부', '대시보드', '업무함', '포털', '요약', '예측', '배지', '준비도', '스크롤'] },
-  { id: 'weekly-loop', category: 'start', title: '한 주는 어떻게 진행됩니까?', summary: '결정하고, 명령하고, 다음 주에 결과와 원인을 확인하는 기본 순환입니다.', body: '먼저 지휘 본부 업무함에서 빈 슬롯과 대기 결정을 확인합니다. 생산·연구·보급·작전 명령을 조정한 뒤 다음 주를 진행하면 모든 시스템이 함께 계산되고 새 결과 보고가 업무함에 도착합니다. 상단의 진행 결과 분석실을 열면 매주 자동 생성된 지휘 결산과 각 사건을 볼 수 있습니다. 사건을 펼치면 진행·선택, 해결 조건, 확정 결과가 한 줄로 이어지고, 실제 계산 요소·즉시 바뀐 값·다음 주까지 남는 영향·권장 후속 조치가 분리되어 표시됩니다.', tip: '결과 숫자만 보지 말고 “왜 이 결과가 나왔나”와 다음 주까지 남는 영향을 확인한 뒤 다음 결정을 내리십시오.', keywords: ['턴', '다음 주', '시간', '행동 센터', '지휘 본부', '진행 결과', '원인', '결산'] },
-  { id: 'map-layers', category: 'start', title: '전략 지도와 전구', summary: '219개 작전지역과 66개 전선군을 필요한 만큼만 펼쳐 읽습니다.', body: '지도는 처음에 수도·부대·선택 지역만 강조하는 핵심 표식으로 열립니다. 지역·표식에서 전구와 지역 작전도를 바꾸고 도시를 검색하거나, 작전·전체 표식으로 정보 밀도를 높일 수 있습니다. 정치·보급·기상·정보 레이어는 1–4, 표식 밀도는 L로 전환합니다. 마우스 휠이나 +·−로 최대 600%까지 확대하면 로컬 빌드에 포함된 원본 스캔의 철도·항로·인쇄 지명을 읽을 수 있습니다. 빈 지도를 드래그해 이동하며 0으로 현재 지역의 기본 위치에 복귀합니다. 전구 정보는 I로 열고 닫으며, F 집중 모드는 상단 자원바와 좌측 메뉴를 숨겨 지도 면적을 모두 사용합니다. 점선은 실제 작전 인접 경로이고 붉은 선은 서로 다른 진영이 직접 접촉한 전선입니다. 지역을 선택하면 연결 경로가 금색으로 강조되고 하단 카드에서 보급·전략 가치·주둔 사단·적 접촉 방면을 확인합니다.', tip: '핵심 표식으로 위험 전선을 찾고, 필요한 전선에서만 작전 표식을 켠 뒤 집중 모드로 공세축을 검토하십시오.', keywords: ['지도', '전구', '아시아', '유럽', '레이어', '표식', '집중 모드', '인접', '접촉선', '보급로', '단축키', '확대', '드래그', '도시', '전선 상황판'] },
+  { id: 'command-dashboard', category: 'start', title: '처음에는 무엇부터 살펴봅니까?', summary: '세계 상황을 읽고, 내 권한 안의 업무 하나를 살펴본 뒤 결과를 확인합니다.', body: '시작 안내에서 현재 보직의 첫 업무와 직접 담당·상신·보고 범위를 구분하세요. 군사 보직은 부대 준비, 정치 보직은 참모와 관리 권한, 정보 보직은 정보망과 노출 위험부터 살펴봅니다. 민간인은 시민 활동실에서 직업 활동과 생계·평판·감시를 확인합니다. 세계 주보는 주변 상황을, 지휘 본부는 현재 맡은 현안을 이해하는 출발점입니다. 모든 메뉴를 한 번에 이해하거나 모든 빈 슬롯을 채울 필요는 없습니다.', tip: '먼저 살펴보기만 해도 됩니다. 화면 이동은 명령 실행이나 정책 승인이 아닙니다.', keywords: ['시작', '권한', '보직', '민간인', '지휘 본부', '대시보드', '세계 주보', '첫 업무'] },
+  { id: 'weekly-loop', category: 'start', title: '한 주는 어떻게 진행됩니까?', summary: '상황 파악 → 권한·비용 검토 → 선택 → 주간 진행 → 결과 확인의 순환입니다.', body: '현재 상황과 내 권한을 읽고 담당 업무의 비용·조건·예상 결과를 검토합니다. 직접 담당이 아닌 업무는 상신 또는 보고 경로를 이용하며, 상신만으로 승인되지는 않습니다. 검토 화면에서 확정한 행동과 명령은 즉시 변화와 진행 중 상태를 구분해 보여 줍니다. 다음 주를 진행한 뒤 주간 브리핑에서 실제 변화와 원인을 확인하고, 해당 업무 화면에서 진행 상태나 중단 사유를 확인하세요. 이동·전투·협상·연구가 모두 한 주 안에 끝나는 것은 아닙니다.', tip: '예상치와 실제 결과를 비교하고, 아직 진행 중인 일은 완료 조건과 다음 확인 시점을 살펴보세요.', keywords: ['턴', '다음 주', '시간', '비용', '진행 결과', '원인', '결산', '주간 브리핑', '상신'] },
+  { id: 'map-layers', category: 'start', title: '플레이 지도와 사료 지도는 무엇이 다릅니까?', summary: '실제 지리를 바탕으로 한 플레이 지도와 당시 기록인 사료 원본을 구분해 읽습니다.', body: '플레이 지도는 현재 캠페인의 지역·부대·통제 상태와 이동·작전 정보를 보여 줍니다. 지역이나 부대를 선택해 위치·보급·연결 경로를 확인하고, 필요한 지도층과 표식만 켜서 살펴보세요. 도시 소유권, 군사적 통제와 통행·기지 사용권은 같은 뜻이 아닙니다. 사료 지도 원본은 제작 당시의 기록이므로 현재 대체역사의 국경이나 부대 위치를 보증하지 않습니다. 지도에서 선택하거나 카메라를 움직이는 것과 명령을 확정하는 것도 별개의 행동입니다.', tip: '현재 행동 가능 여부는 플레이 지도의 선택 정보와 명령 검토에서 확인하고, 사료 원본은 역사적 배경을 읽는 데 사용하세요.', keywords: ['지도', '전구', '지리', '사료', '원본', '레이어', '표식', '이동', '통제', '보급로', '도시', '전선', '통행권'] },
   { id: 'historical-seat', category: 'start', title: '누구의 자리를 대체합니까?', summary: '선택한 보직마다 1942년의 실존 재직자와 실제 당시 직책이 지정됩니다.', body: '캠페인을 시작하면 사용자가 해당 인물의 권한을 대체합니다. 전임자는 사라지지 않고 보직에서 밀려난 고영향력 인사로 시장에 남아 포섭·복귀·경쟁 세력 이적의 대상이 됩니다. 게임 보직은 대체역사를 위한 재구성이며 표기된 역사상 직책이 기준점입니다.', tip: '전임자는 영향력이 높지만 사용자에게 밀려났기 때문에 초기 관계와 영입 관심이 낮습니다.', keywords: ['실존 인물', '전임자', '보직', '재직자', '대체'] },
   { id: 'staff-room', category: 'management', title: '참모진과 인재 영입', summary: 'FM처럼 실제 인물의 능력·잠재력·충성도·영향력을 보고 조직을 구성합니다.', body: '후보를 정밀 조사해 평가 오차를 좁히고 관심 명단으로 경쟁 기관의 접근을 늦추십시오. 비밀 접촉은 관계와 관심을 높이고 경쟁 제안을 낮춥니다. 정보 55% 뒤 조건을 제안하며 설득 72점이 필요합니다. 영입에 성공하면 같은 부서 전임자는 다시 시장으로 이동합니다. 조직에는 작전·군수·병기·인사·정무와 별도로 과학기술·전시경제 보직이 있으며, 권한을 위임하면 각각 연구와 재정에 주간 보너스를 줍니다.', tip: '합의율은 관심·관계·평판·관심 명단에서 오르고, 경쟁 제안과 적대·야권 상태에서 내려갑니다.', keywords: ['참모', '스카우트', '영입', '관심 명단', '포섭', '비밀 접촉', '경쟁 제안', '승급', '과학기술', '전시경제'] },
   { id: 'historical-experts', category: 'management', title: '과학자·경제학자는 어떻게 모델링됩니까?', summary: '1942년 직책·활동 지역·전문 분야·인맥·제약을 갖춘 실존 민간 전문가입니다.', body: '인재 시장에서 군사·과학·공학·의학·경제·산업·정보·외교·사회과학 분야를 검색할 수 있습니다. 조사 전에는 능력과 임명 효과 일부가 가려지고, 정보가 쌓이면 실제 전시 활동과 정치적·윤리적 제약, 협업 인맥, 기관 간 마찰이 공개됩니다. 각 카드의 사료 링크는 직책과 활동 근거를 확인하는 출발점입니다. 능력·충성도·관심도는 역사적 인물의 가치를 평가하는 사실이 아니라 게임 균형을 위한 수치입니다.', tip: '유명한 인물이 항상 최선은 아닙니다. 현재 전구의 필요, 소속기관 손실, 정권 노선과의 마찰, 영입 비용을 함께 비교하십시오.', keywords: ['아인슈타인', '튜링', '과학자', '경제학자', '의학', '공학', '사료', '역사적 제약', '인맥', '전문가'] },
@@ -53,53 +71,84 @@ const manualArticles: ManualArticle[] = [
   { id: 'resistance-career', category: 'politics', title: '첩보원·레지스탕스 커리어는 무엇이 다릅니까?', summary: '국가를 직접 지배하지 않고 점령지 정보망·포섭·침투로 독립 조건을 만듭니다.', body: '모든 진영에는 정보기관 책임자와 현장요원 보직이 있고, 한국·베트민·인도네시아·필리핀에는 점령지·망명정부 사정에 맞춘 레지스탕스 보직과 국가별 작전망이 있습니다. 현장요원은 초기 권한이 낮은 대신 정보망과 정치력 보너스를 받고 작전 비용이 낮습니다. 보직 카드의 활동 위장은 역사상 실제 인물의 직책과 구분되는 게임용 공작 설정입니다.', tip: '현장요원은 정면전보다 정보 작전, 인물 포섭, 외교 승인과 본토 거점 확보를 먼저 진행하십시오.', keywords: ['스파이', '첩보원', '레지스탕스', '한국', '조선', '식민지', '잠복', '정보 작전'] },
 ];
 
-export function FieldManual({ steps, onNavigate, onRestartTutorial, onClose }: FieldManualProps) {
-  const [category, setCategory] = useState<ManualCategory>('all');
-  const [query, setQuery] = useState('');
-  const searchRef = useRef<HTMLInputElement>(null);
-  const completedCount = steps.filter((step) => step.complete).length;
-  const results = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase('ko-KR');
-    return manualArticles.filter((article) => {
-      const categoryMatches = category === 'all' || article.category === category;
-      const queryMatches = !normalizedQuery || [article.title, article.summary, article.body, ...article.keywords].join(' ').toLocaleLowerCase('ko-KR').includes(normalizedQuery);
-      return categoryMatches && queryMatches;
-    });
-  }, [category, query]);
+export function handleFieldManualKeyDown(event: KeyboardEvent<HTMLElement>, onClose: () => void) {
+  event.stopPropagation();
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    onClose();
+    return;
+  }
+  if (event.key !== 'Tab') return;
+  const focusable = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
+    'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])',
+  )).filter((element) => !element.closest('[hidden], [inert]') && element.getAttribute('aria-hidden') !== 'true' && element.getClientRects().length > 0);
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const active = event.currentTarget.ownerDocument.activeElement;
+  if (!first) {
+    event.preventDefault();
+    event.currentTarget.focus();
+  } else if (event.shiftKey && (active === first || !focusable.includes(active as HTMLElement))) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && (active === last || !focusable.includes(active as HTMLElement))) {
+    event.preventDefault();
+    first.focus();
+  }
+}
 
-  useEffect(() => {
-    searchRef.current?.focus();
-  }, []);
+export function FieldManualView({ steps, onNavigate, onRestartTutorial, onClose, guide, onOpenWorldWeekly, onOpenBriefing, view, category, query, onViewChange, onCategoryChange, onQueryChange, searchRef, closeRef }: FieldManualViewProps) {
+  const completedCount = steps.filter((step) => step.complete).length;
+  const normalizedQuery = query.trim().toLocaleLowerCase('ko-KR');
+  const results = manualArticles.filter((article) => {
+    const categoryMatches = category === 'all' || article.category === category;
+    const queryMatches = !normalizedQuery || [article.title, article.summary, article.body, ...article.keywords].join(' ').toLocaleLowerCase('ko-KR').includes(normalizedQuery);
+    return categoryMatches && queryMatches;
+  });
+  const showChecklist = !guide || view === 'checklist';
+  const showReference = !guide || view === 'reference';
+  const openChecklistStep = (step: OnboardingStep) => {
+    if (step.id === 'briefing' && onOpenWorldWeekly) onOpenWorldWeekly();
+    else if (step.id === 'advance' && onOpenBriefing) onOpenBriefing();
+    else onNavigate(step.tab);
+  };
 
   return (
     <div className="ux-backdrop field-manual-backdrop" onClick={onClose}>
-      <section className="field-manual" role="dialog" aria-modal="true" aria-labelledby="field-manual-title" onClick={(event) => event.stopPropagation()}>
+      <section className={`field-manual${guide ? ' guide-enabled' : ''}`} role="dialog" aria-modal="true" aria-labelledby="field-manual-title" tabIndex={-1} onKeyDown={(event) => handleFieldManualKeyDown(event, onClose)} onClick={(event) => event.stopPropagation()}>
         <header>
           <div className="field-manual-mark"><CircleHelp size={22} /></div>
-          <div><span>FIELD MANUAL · LIVE CAMPAIGN GUIDE</span><h2 id="field-manual-title">야전 교범</h2><small>현재 캠페인 진행 상황과 게임 시스템 설명을 한곳에서 확인합니다.</small></div>
-          <button onClick={onClose} aria-label="야전 교범 닫기"><X size={18} /></button>
+          <div><span>FIELD MANUAL · LIVE CAMPAIGN GUIDE</span><h2 id="field-manual-title">{guide ? '플레이 안내' : '야전 교범'}</h2><small>{guide ? '지금 할 수 있는 일부터 시작하고, 필요한 시스템만 찾아보세요.' : '현재 캠페인 진행 상황과 게임 시스템 설명을 한곳에서 확인합니다.'}</small></div>
+          <button type="button" ref={closeRef} onClick={onClose} aria-label={guide ? '플레이 안내 닫기' : '야전 교범 닫기'}><X size={18} /></button>
         </header>
 
-        <div className="field-manual-body">
-          <aside className="first-week-guide">
-            <div className="manual-section-heading"><span>FIRST WEEK</span><strong>첫 주 지휘 체크리스트</strong><small>{completedCount}/{steps.length} 완료</small></div>
+        {guide ? <nav className="manual-view-switch" aria-label="플레이 안내 보기">
+          <button type="button" aria-pressed={view === 'overview'} onClick={() => onViewChange('overview')}>시작과 할 수 있는 일</button>
+          <button type="button" aria-pressed={view === 'checklist'} onClick={() => onViewChange('checklist')}>첫 주 체크리스트</button>
+          <button type="button" aria-pressed={view === 'reference'} onClick={() => onViewChange('reference')}>시스템 교범</button>
+        </nav> : null}
+
+        <div className={guide ? 'manual-view-scroll' : 'field-manual-body'}>
+          {guide && view === 'overview' ? <PlayGuidePanel guide={guide} onNavigate={onNavigate} onOpenWorldWeekly={onOpenWorldWeekly ?? (() => onNavigate('command'))} onOpenBriefing={onOpenBriefing ?? (() => onNavigate('command'))} /> : null}
+          {showChecklist ? <aside className="first-week-guide">
+            <div className="manual-section-heading"><span>FIRST WEEK</span><strong>첫 주 체크리스트</strong><small>{completedCount}/{steps.length} 완료</small></div>
             <div className="first-week-progress" aria-label={`첫 주 체크리스트 ${completedCount}/${steps.length} 완료`}><i style={{ width: `${completedCount / Math.max(1, steps.length) * 100}%` }} /></div>
-            <p>현재 보직과 직급에 맞춘 {steps.length}개 항목을 마치면 판단·실행·결산의 첫 주 지휘 순환이 완성됩니다.</p>
+            <p>현재 보직과 권한에 맞춘 {steps.length}개 항목입니다. 모두 한 번에 끝낼 필요는 없습니다. 권한이 없는 일은 직접 실행하지 않고 보고나 상신 조건을 확인하세요.</p>
             <div className="first-week-steps">
               {steps.map((step, index) => (
-                <button key={step.id} className={step.complete ? 'complete' : ''} aria-label={`${step.title} · ${step.complete ? '완료' : '미완료'} · ${step.detail}`} onClick={() => onNavigate(step.tab)}>
+                <button type="button" key={step.id} className={step.complete ? 'complete' : ''} aria-label={`${step.title} · ${step.complete ? '완료' : '미완료'} · ${step.detail}`} onClick={() => openChecklistStep(step)}>
                   <i>{step.complete ? <Check size={14} /> : index + 1}</i>
                   <span><strong>{step.title}</strong><small>{step.detail}</small></span>
                   <ChevronRight size={15} />
                 </button>
               ))}
             </div>
-          </aside>
+          </aside> : null}
 
-          <main className="manual-library">
-            <label className="manual-search"><Search size={16} /><input ref={searchRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="전투, 보급, 영입, 대체역사 검색" aria-label="야전 교범 검색" />{query && <button type="button" onClick={() => setQuery('')} aria-label="검색어 지우기"><X size={14} /></button>}</label>
+          {showReference ? <main className="manual-library">
+            <label className="manual-search"><Search size={16} /><input ref={searchRef} type="search" value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="전투, 보급, 영입, 대체역사 검색" aria-label="야전 교범 검색" />{query && <button type="button" onClick={() => onQueryChange('')} aria-label="검색어 지우기"><X size={14} /></button>}</label>
             <div className="manual-categories" role="group" aria-label="교범 분류">
-              {categoryOptions.map((option) => <button key={option.id} className={category === option.id ? 'active' : ''} aria-pressed={category === option.id} onClick={() => setCategory(option.id)}>{option.label}</button>)}
+              {categoryOptions.map((option) => <button type="button" key={option.id} className={category === option.id ? 'active' : ''} aria-pressed={category === option.id} onClick={() => onCategoryChange(option.id)}>{option.label}</button>)}
             </div>
             <div className="manual-results" aria-live="polite">
               {results.length > 0 ? results.map((article) => (
@@ -109,11 +158,27 @@ export function FieldManual({ steps, onNavigate, onRestartTutorial, onClose }: F
                 </details>
               )) : <div className="manual-empty"><Search size={27} /><strong>일치하는 교범 항목이 없습니다.</strong><span>검색어를 줄이거나 다른 분류를 선택하십시오.</span></div>}
             </div>
-          </main>
+          </main> : null}
         </div>
 
-        <footer><button onClick={onRestartTutorial}><CircleHelp size={14} /> 첫 지휘 튜토리얼 다시 보기</button><span><kbd>?</kbd> 교범 열기</span><span><kbd>Ctrl K</kbd> 빠른 이동</span><span><kbd>Esc</kbd> 닫기</span></footer>
+        <footer><button type="button" onClick={onRestartTutorial}><CircleHelp size={14} /> 시작 튜토리얼 다시 보기</button><span><kbd>?</kbd> {guide ? '플레이 안내' : '교범 열기'}</span><span><kbd>Ctrl K</kbd> 빠른 이동</span><span><kbd>Esc</kbd> 닫기</span></footer>
       </section>
     </div>
   );
+}
+
+export function FieldManual(props: FieldManualProps) {
+  const [view, setView] = useState<ManualView>(props.guide ? 'overview' : 'reference');
+  const [category, setCategory] = useState<ManualCategory>('all');
+  const [query, setQuery] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const guideEnabled = Boolean(props.guide);
+
+  useEffect(() => {
+    if (guideEnabled) closeRef.current?.focus();
+    else searchRef.current?.focus();
+  }, [guideEnabled]);
+
+  return <FieldManualView {...props} view={view} category={category} query={query} onViewChange={setView} onCategoryChange={setCategory} onQueryChange={setQuery} searchRef={searchRef} closeRef={closeRef} />;
 }

@@ -41,6 +41,8 @@ import { withJosa } from './koreanGrammar';
 import { KoreaCampaignBrief } from './KoreaCampaignBrief';
 import { NationFlag } from './NationFlag';
 import { PersonPortrait } from './PersonPortrait';
+import { getPlayGuide } from './playGuide';
+import { getRoleTabMandates } from './roleMandate';
 import europeMap from './assets/european-theater-war-department-1944.jpg';
 import asiaMap from './assets/far-east-milrose-1943.jpg';
 import './CampaignSetup.css';
@@ -201,6 +203,13 @@ export function CampaignSetupView(props: CampaignSetupViewProps) {
     ? civilianProfessions.some((item) => item.id === civilianProfessionId) && civilianOrigins.some((item) => item.id === civilianOriginId)
     : Boolean(selectedRole);
   const validChoice = validNation && validLife && doctrineChoices.some((choice) => choice.id === doctrine);
+  // Civilians have no office; the same-nation role is only a guide input, never a granted authority.
+  const guideRole = selectedRole ?? (isCivilian ? roles[0] : undefined);
+  const playGuide = step === 3 && validChoice && guideRole ? getPlayGuide({
+    role: guideRole,
+    mandates: getRoleTabMandates(guideRole, startMode),
+    civilian: isCivilian ? { professionId: civilianProfessionId, originId: civilianOriginId } : undefined,
+  }) : null;
   const canProceed = validNation && (step === 1 || (validChoice && (isCivilian || selectedRole?.branch === branch)));
   const lifeLabel = isCivilian ? profession.name : selectedRole?.title ?? '보직을 선택하십시오';
   const selectedBranchRole = selectedRole?.branch === branch ? selectedRole : undefined;
@@ -328,6 +337,14 @@ export function CampaignSetupView(props: CampaignSetupViewProps) {
         {step === 3 ? <div className="campaign-onboarding__review-layout">
           <section className="campaign-onboarding__review"><div className="campaign-onboarding__section-heading"><h2>{isCivilian ? '시작할 삶' : '취임 기록'}</h2><span>1942</span></div>
             <div className="campaign-onboarding__review-identity"><NationFlag nationId={nationId} size="large" /><div><span className="campaign-onboarding__label">{nation.name}</span><h3>{lifeLabel}</h3></div></div>
+            {playGuide ? <section className="campaign-onboarding__first-steps" aria-labelledby="campaign-first-steps-title">
+              <h3 id="campaign-first-steps-title">시작하면 할 수 있는 일</h3>
+              <ol>
+                <li><span aria-hidden="true">1</span><div><strong>세계 상황 읽기</strong><p>시작 주보에서 현재 세계와 내 출발점을 확인합니다. 처음부터 모든 메뉴를 읽을 필요는 없습니다.</p></div></li>
+                <li><span aria-hidden="true">2</span><div><strong>{playGuide.firstAction.title}</strong><p>{playGuide.firstAction.detail}</p></div></li>
+                <li><span aria-hidden="true">3</span><div><strong>진행 후 결과 확인</strong><p>{playGuide.firstAction.result}</p></div></li>
+              </ol>
+            </section> : null}
             <dl className="campaign-onboarding__facts"><div><dt>시작 방식</dt><dd>{isCivilian ? '일반인 · 공식 권한 0' : '실존 재직자 대체'}</dd></div>
               <div><dt>{isCivilian ? '출신 배경' : '대체할 인물'}</dt><dd>{isCivilian ? origin.name : selectedRole?.historicalHolderName ?? '선택 필요'}</dd></div>
               <div><dt>{isCivilian ? '첫 활동' : '담당 범위'}</dt><dd>{isCivilian ? profession.vocation : selectedRole?.scope ?? '선택 필요'}</dd></div></dl>

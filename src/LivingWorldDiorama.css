@@ -1,0 +1,52 @@
+.living-world-diorama{--lwd-gold:#dcc78f;--lwd-ink:#18281f;--lwd-muted:#b5c3af;position:relative;isolation:isolate;color:#e8eddf;width:100%;min-width:0;max-width:1200px;margin-inline:auto;background:#24342a;border:1px solid #66705780;border-radius:8px;overflow:hidden}
+.living-world-diorama .lwd-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 14px;background:#18271ff0;border-bottom:1px solid #64715a66}
+.living-world-diorama .lwd-toolbar>span{font-size:12px!important;letter-spacing:.07em;color:#c8d0b7}
+.living-world-diorama .lwd-motion-control{display:inline-flex;align-items:center;gap:9px;min-height:36px!important;padding:5px 9px;border:1px solid #7b82675c;border-radius:4px;background:#293b2d;color:#d6dfcd;font-size:12px!important;cursor:pointer}
+.living-world-diorama .lwd-motion-control strong{font-size:11px!important;color:#e0ce94}
+.living-world-diorama .lwd-motion-control[aria-pressed=false] strong{color:#b4c0ad}
+.living-world-diorama .lwd-board{position:relative;width:100%;aspect-ratio:7/4;height:auto;min-height:0;max-height:none;overflow:hidden;background:radial-gradient(ellipse at 50% 49%,#84916c33 0,#263d2d55 46%,#182b24 100%)}
+.living-world-diorama .lwd-terrain-art{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:.83;filter:saturate(.7) brightness(.83);pointer-events:none}
+.living-world-diorama .lwd-atmosphere{position:absolute;inset:0;background:linear-gradient(180deg,#14251fc7 0,transparent 30%,transparent 70%,#172a2299 100%);pointer-events:none}
+.living-world-diorama .lwd-scene{position:absolute;inset:0;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 14px 9px #0a171759);pointer-events:none}
+.living-world-diorama .lwd-block{stroke:#172f2659;stroke-width:1.1;stroke-linejoin:round}
+.living-world-diorama .lwd-face-left{fill:#818c70}.living-world-diorama .lwd-face-right{fill:#596b53}.living-world-diorama .lwd-roof{fill:#a0aa85}
+.living-world-diorama .lwd-factory .lwd-face-left{fill:#7a8269}.living-world-diorama .lwd-factory .lwd-face-right{fill:#4b6455}.living-world-diorama .lwd-factory .lwd-roof{fill:#a7a887}
+.living-world-diorama .lwd-chimney .lwd-face-left{fill:#9b9a7f}.living-world-diorama .lwd-chimney .lwd-face-right{fill:#6e7a66}.living-world-diorama .lwd-chimney .lwd-roof{fill:#374c40}
+.living-world-diorama .lwd-civilian .lwd-face-left{fill:#9a9273}.living-world-diorama .lwd-civilian .lwd-face-right{fill:#6a755d}.living-world-diorama .lwd-civilian .lwd-roof{fill:#b7b185}
+.living-world-diorama .lwd-council .lwd-face-left{fill:#b1ad90}.living-world-diorama .lwd-council .lwd-face-right{fill:#829079}
+.living-world-diorama .lwd-hospital .lwd-face-left{fill:#bbbda4}.living-world-diorama .lwd-hospital .lwd-face-right{fill:#879e8c}.living-world-diorama .lwd-hospital .lwd-roof{fill:#d4d4b6}
+.living-world-diorama .lwd-market .lwd-face-left{fill:#938466}.living-world-diorama .lwd-market .lwd-face-right{fill:#786f51}
+.living-world-diorama .lwd-crate .lwd-face-left{fill:#b49a63}.living-world-diorama .lwd-crate .lwd-face-right{fill:#8b8157}.living-world-diorama .lwd-crate .lwd-roof{fill:#d2bd7b}
+.living-world-diorama .lwd-food .lwd-face-left{fill:#839161}.living-world-diorama .lwd-food .lwd-face-right{fill:#60754e}.living-world-diorama .lwd-food .lwd-roof{fill:#afb982}
+.living-world-diorama .lwd-window-off{fill:#283e33;stroke:#627661;stroke-width:.5}.living-world-diorama .lwd-military-lit{fill:#e1b465;stroke:#f1ce8b;stroke-width:.5}.living-world-diorama .lwd-civilian-lit{fill:#b4d5aa;stroke:#d2e2ba;stroke-width:.5}
+.living-world-diorama .lwd-allocation-track{fill:#263c30}.living-world-diorama .lwd-allocation-military{fill:#e1b465}.living-world-diorama .lwd-allocation-civilian{fill:#b4d5aa}.living-world-diorama .lwd-allocation-edge{fill:none;stroke:#e7dec090;stroke-width:1.2}
+.living-world-diorama .lwd-map-note{fill:#f1ead0;font-size:15px;font-weight:700;text-anchor:middle;paint-order:stroke;stroke:#354b3b;stroke-width:3px;stroke-linejoin:round}
+.living-world-diorama .lwd-plots path{fill:#7b856064;stroke:#d6c69544;stroke-width:1.5;transition:fill .18s ease,stroke .18s ease}
+.living-world-diorama .lwd-plots .is-selected{fill:#ddc48824;stroke:#eed79c;stroke-width:2.5;stroke-dasharray:7 4}
+.living-world-diorama .lwd-illustrated-plots path{fill:transparent;stroke:transparent}.living-world-diorama .lwd-illustrated-plots .is-selected{fill:#dac8890d;stroke:#eed79caa;stroke-width:2}
+.living-world-diorama .lwd-hotspots{position:absolute;inset:0;pointer-events:none}
+.living-world-diorama .lwd-hotspot{position:absolute;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;width:43%;height:42%;min-height:61px!important;padding:0!important;border:0;border-radius:4px;color:#eaf0e3;background:transparent;text-align:left;box-shadow:none;cursor:pointer;pointer-events:auto;white-space:normal}
+.living-world-diorama .lwd-hotspot-industry{top:5%;left:4%}.living-world-diorama .lwd-hotspot-council{top:5%;right:4%}.living-world-diorama .lwd-hotspot-market{bottom:4%;left:4%}.living-world-diorama .lwd-hotspot-health{bottom:4%;right:4%}
+.living-world-diorama .lwd-hotspot-council,.living-world-diorama .lwd-hotspot-health{align-items:flex-end}.living-world-diorama .lwd-hotspot-market,.living-world-diorama .lwd-hotspot-health{justify-content:flex-end}
+.living-world-diorama .lwd-site-label{display:flex;flex-direction:column;gap:2px;width:100%;max-width:260px;min-height:61px;padding:9px 11px;border:1px solid #a6af846e;border-radius:4px;background:#1b2b23f0;box-shadow:0 5px 15px #0d1b1940;transition:border-color .18s ease,background-color .18s ease}
+.living-world-diorama .lwd-hotspot:hover{background:transparent}.living-world-diorama .lwd-hotspot:hover .lwd-site-label{border-color:#f0d89d;background:#33422cee}.living-world-diorama .lwd-hotspot.is-selected .lwd-site-label{border-color:#e5cc85;background:#3b402cee;box-shadow:inset 3px 0 0 #ddc27c,0 4px 18px #10231c80}
+.living-world-diorama .lwd-site-heading{display:flex;align-items:center;gap:8px;width:100%;line-height:1.4!important}
+.living-world-diorama .lwd-site-heading small{font-size:10px!important;letter-spacing:.06em;color:#afbc9e}
+.living-world-diorama .lwd-site-heading strong{font-size:14px!important;line-height:1.5!important;color:#ede9d1}
+.living-world-diorama .lwd-site-heading i{margin-left:auto;flex-shrink:0;width:7px;height:7px;background:#a2bb88;border-radius:50%;box-shadow:0 0 0 3px #a2bb8820}
+.living-world-diorama .is-watch .lwd-site-heading i{background:#ddbf7a}.living-world-diorama .is-critical .lwd-site-heading i{background:#e6a17b;box-shadow:0 0 0 3px #e6a17b20}.living-world-diorama .is-unknown .lwd-site-heading i{background:transparent;border:1px solid #bfcbba;box-shadow:none}
+.living-world-diorama .lwd-site-status{font-size:11px!important;line-height:1.5!important;color:#becbb3;overflow-wrap:anywhere}.living-world-diorama .is-critical .lwd-site-status{color:#f2c1a4}.living-world-diorama .is-selected .lwd-site-status{color:#e0d7ae}
+.living-world-diorama .lwd-hotspot:focus-visible,.living-world-diorama .lwd-motion-control:focus-visible{outline:3px solid #ffdf88;outline-offset:3px;z-index:3}
+.living-world-diorama .lwd-signals{position:absolute;inset:0;pointer-events:none}.living-world-diorama .lwd-signal{position:absolute;width:12px;height:12px;border:2px solid #c7d7a6;border-radius:50%;background:#839b7355;box-shadow:0 0 0 5px #bacd9f14}
+.living-world-diorama .lwd-signal-industry{left:31%;top:44%}.living-world-diorama .lwd-signal-council{left:69%;top:46%}.living-world-diorama .lwd-signal-market{left:36%;top:67%}.living-world-diorama .lwd-signal-health{left:72%;top:65%}.living-world-diorama .lwd-signal.is-watch{border-color:#d5be87;background:#c6b07822}.living-world-diorama .lwd-signal.is-critical{border-color:#e1a586;background:#cd917022}
+.living-world-diorama.has-motion .lwd-signal{animation:lwd-state-ring 5s ease-out 3;animation-delay:calc(var(--lwd-strength,1) * .12s)}
+@keyframes lwd-state-ring{0%,100%{box-shadow:0 0 0 5px #bacd9f14}55%{box-shadow:0 0 0 10px #bacd9f05}}
+.living-world-diorama .lwd-compass{position:absolute;right:47%;top:14%;font-size:7px;line-height:1.6;text-align:center;letter-spacing:.13em;color:#c4c6a080;pointer-events:none}.living-world-diorama .lwd-compass i{display:block;width:8px;height:19px;clip-path:polygon(50% 0,100% 100%,50% 75%,0 100%);background:#c7c8a177;margin:0 auto 4px}
+.living-world-diorama .lwd-current{display:flex;align-items:flex-start;gap:9px;padding:11px 14px;background:#17261fea;border-top:1px solid #8c987252}
+.living-world-diorama .lwd-current-label{flex-shrink:0;margin-top:1px;border:1px solid #859b6f77;border-radius:3px;padding:1px 6px;font-size:10px!important;line-height:1.8!important;color:#ccdbbc}
+.living-world-diorama .lwd-current.is-watch .lwd-current-label{color:#e3cd94;border-color:#b49b5e88}.living-world-diorama .lwd-current.is-critical .lwd-current-label{color:#ffd0ad;border-color:#c8957399}.living-world-diorama .lwd-current.is-unknown .lwd-current-label{color:#c7d0c0;border-color:#9aa88d66}
+.living-world-diorama .lwd-current p{margin:0;font-size:14px!important;line-height:1.75!important;color:#d9e1cc;overflow-wrap:anywhere}
+.living-world-diorama .lwd-reading,.living-world-diorama .lwd-note{margin:0;padding:0 14px 10px;font-size:12px!important;line-height:1.75!important;background:#17261fea;color:#b9c6b1;overflow-wrap:anywhere}
+.living-world-diorama .lwd-note{padding-top:1px;color:#9daa99;font-size:10px!important}
+@container(max-width:1150px){.living-world-diorama .lwd-site-label{padding:8px}.living-world-diorama .lwd-site-heading{gap:5px}.living-world-diorama .lwd-site-heading strong{font-size:13px!important}}
+@media(prefers-reduced-motion:reduce){.living-world-diorama.has-motion .lwd-signal{animation:none}.living-world-diorama .lwd-site-label,.living-world-diorama .lwd-plots path{transition:none}}

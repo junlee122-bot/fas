@@ -134,6 +134,8 @@ import {
 } from './enemyStrategy';
 import type { EnemyStrategyState } from './enemyStrategy';
 import { CommandDesk } from './CommandDesk';
+import { getPlayGuide } from './playGuide';
+import { FirstWeekOrientation } from './PlayGuidePanel';
 import { WeeklyBriefingDialog } from './WeeklyBriefingDialog';
 import { RoleMandateDesk } from './RoleMandateDesk';
 import { getDirectRoleTabs, getRoleTabMandates } from './roleMandate';
@@ -530,7 +532,9 @@ import type { CoupIncident, CoupPreventionId, CoupResponseId, PoliticalCrisisCon
 import { PoliticalCrisisModal } from './PoliticalCrisisModal';
 import { deriveNationalSimulation } from './nationalSimulation';
 import type { NationalSimulationInput } from './nationalSimulation';
-import { LivingWorldScene } from './LivingWorldScene';
+import { HeadquartersWorkspace } from './HeadquartersWorkspace';
+import { assessStaffWorkPriority, getStaffWorkPriority, staffWorkPriorities } from './staffWork';
+import type { StaffWorkPriority } from './types';
 import { reallocateFactory, formatSupplyContribution, selectLivingWorldRecords } from './livingWorld';
 import { deriveNationalEconomyFeedback } from './nationalEconomyFeedback';
 import { deriveStaffPlayEvidence } from './staffPlayEvidence';
@@ -916,6 +920,20 @@ export function App() {
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showFieldManual, setShowFieldManual] = useState(false);
+  const playGuideReturnFocus = useRef<HTMLElement | null>(null);
+  const openPlayGuide = useCallback(() => {
+    playGuideReturnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setSpeed(0);
+    setShowFieldManual(true);
+  }, []);
+  const closePlayGuide = useCallback(() => {
+    setShowFieldManual(false);
+    window.requestAnimationFrame(() => {
+      const trigger = playGuideReturnFocus.current;
+      if (trigger?.isConnected && !trigger.closest('[inert]')) trigger.focus({ preventScroll: true });
+      else document.getElementById('main-workspace')?.focus({ preventScroll: true });
+    });
+  }, []);
   const [showTutorial, setShowTutorial] = useState(false);
   const [showSaveCenter, setShowSaveCenter] = useState(false);
   const [showAchievementGallery, setShowAchievementGallery] = useState(false);
@@ -1554,8 +1572,16 @@ export function App() {
   }, [uxActions]);
   const latestWorldWeeklyIssue = worldWeeklyIssues[0] ?? null;
   const hasUnreadWorldWeekly = Boolean(latestWorldWeeklyIssue && latestWorldWeeklyIssue.id !== lastReadWorldWeeklyId);
+  const currentPlayGuide = useMemo(() => getPlayGuide({
+    role: displayedCareerRole,
+    mandates: roleMandates,
+    civilian: civilianCareerActive ? career.civilian : undefined,
+  }), [displayedCareerRole, roleMandates, civilianCareerActive, career.civilian]);
   const onboardingSteps = useMemo(() => deriveOnboardingSteps({
-    role: careerRole,
+    role: displayedCareerRole,
+    mandates: roleMandates,
+    startMode: civilianCareerActive ? 'civilian' : 'office',
+    civilian: civilianCareerActive ? career.civilian : undefined,
     week: game.week,
     briefingRead: !hasUnreadWorldWeekly,
     visitedTabs: visitedOnboardingTabs,
@@ -1565,7 +1591,7 @@ export function App() {
     research,
     selectedPolicies,
     orders,
-  }), [careerRole, game.factories, game.week, hasUnreadWorldWeekly, onboardingMilestones, orders, production, research, selectedPolicies, visitedOnboardingTabs]);
+  }), [displayedCareerRole, roleMandates, civilianCareerActive, career.civilian, game.factories, game.week, hasUnreadWorldWeekly, onboardingMilestones, orders, production, research, selectedPolicies, visitedOnboardingTabs]);
   const historyTrajectory = useMemo(() => deriveEmergentHistory({
     doctrine,
     roleBranch: careerRole.branch,
@@ -4040,11 +4066,11 @@ export function App() {
   }, [enemyMaritime, seaTransportContext, seaBusyDivisionIds, applySeaTransportResult, activeTheater, addEvent, advanceNationWeek, settleNationalSupplyWeek, advanceNationalProgramWeek, advanceRoleDeskWeek, battleStance, campaignPhase, career.alternatePathId, career.civilian, career.experience, career.nationId, careerRole, commanderDevelopment, completedDecisions, delegatedDepartments, developmentFocusId, divisions, doctrine, economy, economyAdvisorBonus, economyForecast.netTreasuryChange, effectiveCommanders, effectiveDivisions, enemyFaction, enemyStrategy, equipmentDevelopment, formatGameMoney, game, hasClandestineIncident, historyTrajectory.dominantForce, jointForces, nationManagement, notify, orders, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, playerFaction, playerNation.id, playerNation.shortName, policyAttackBonus, policyDefenseBonus, policyProductionMultiplier, policySupplyRecovery, priorityDivisionId, procurementFocusId, production, projectionActiveResearch.length, projectionFuelDelta, projectionProductionTotal, projectionResearchGain, publicHealth, publicHealthContext, research, resolvedCouncilChoices, scheduleCoupCheck, scheduleWorldFlashpoint, scienceAdvisor, scienceAdvisorBonus, staff, staffAuthority.managedDepartments, staffCandidates, staffNarrative, staffPlayContext, staffWeeklyCost, supplyPolicy, territories, worldline]);
 
   useEffect(() => {
-    if (speed === 0 || pendingWorldFlashpointId || pendingCoupIncident || hasClandestineIncident || showBriefing || showCareerMarket || showWorldHistory || showWorldWeekly || showTutorial) return;
+    if (speed === 0 || pendingWorldFlashpointId || pendingCoupIncident || hasClandestineIncident || showBriefing || showCareerMarket || showWorldHistory || showWorldWeekly || showTutorial || showFieldManual) return;
     const delay = speed === 1 ? 4200 : speed === 2 ? 2600 : 1500;
     const timer = window.setInterval(advanceWeek, delay);
     return () => window.clearInterval(timer);
-  }, [advanceWeek, hasClandestineIncident, pendingCoupIncident, pendingWorldFlashpointId, showBriefing, showCareerMarket, showTutorial, showWorldHistory, showWorldWeekly, speed]);
+  }, [advanceWeek, hasClandestineIncident, pendingCoupIncident, pendingWorldFlashpointId, showBriefing, showCareerMarket, showFieldManual, showTutorial, showWorldHistory, showWorldWeekly, speed]);
 
   useEffect(() => {
     if (periodAdvanceRemaining <= 0 || campaignPhase !== 'nation') return;
@@ -4061,7 +4087,7 @@ export function App() {
               ? '장기 목표 달성과 새 선택지 확인'
               : showCareerMarket
                 ? '인재·비밀 제안 검토'
-                : showWorldWeekly || showWorldHistory || showJournal
+                : showWorldWeekly || showWorldHistory || showJournal || showFieldManual
                   ? '사용자 기록 검토'
                   : showBriefing || showTutorial || showPoliticalCrisis || showSettings || showActionCenter || showStatusOverview || showSaveCenter
                     ? '사용자 직접 지휘 복귀'
@@ -4077,7 +4103,7 @@ export function App() {
       setPeriodAdvanceRemaining((current) => Math.max(0, current - 1));
     }, 120);
     return () => window.clearTimeout(timer);
-  }, [advanceWeek, campaignPhase, hasClandestineIncident, pendingAchievementId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, periodAdvanceRemaining, showActionCenter, showBriefing, showCareerMarket, showJournal, showPoliticalCrisis, showSaveCenter, showSettings, showStatusOverview, showTimeCommandCenter, showTutorial, showWorldHistory, showWorldWeekly]);
+  }, [advanceWeek, campaignPhase, hasClandestineIncident, pendingAchievementId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, periodAdvanceRemaining, showActionCenter, showBriefing, showCareerMarket, showFieldManual, showJournal, showPoliticalCrisis, showSaveCenter, showSettings, showStatusOverview, showTimeCommandCenter, showTutorial, showWorldHistory, showWorldWeekly]);
 
   useEffect(() => {
     if (!periodAdvanceSession || periodAdvanceRemaining > 0) return;
@@ -6042,7 +6068,7 @@ export function App() {
         : historicalStaff.map((fallback) => {
         const saved = savedStaff.find((member) => member.department === fallback.department);
         if (!saved) return fallback;
-        if (data.version >= 9) return { ...fallback, ...saved, grade: saved.grade ?? 1, development: saved.development ?? 20 };
+        if (data.version >= 9) return { ...fallback, ...saved, grade: saved.grade ?? 1, development: saved.development ?? 20, workPriority: getStaffWorkPriority(saved) };
         return {
           ...fallback,
           ability: saved.ability ?? fallback.ability,
@@ -7710,6 +7736,19 @@ export function App() {
     notify(developmentFocusId === staffId ? '집중 육성 지정을 해제했습니다.' : `${withJosa(member.name, '을/를')} 집중 육성합니다.`);
   };
 
+  const changeStaffWorkPriority = (staffId: string, personId: string, priority: StaffWorkPriority) => {
+    const assessment = assessStaffWorkPriority(staffDecisionInput, staffId, personId, priority);
+    if (!assessment.allowed) { notify(assessment.reason); return; }
+    setSpeed(0);
+    setStaff(assessment.staffAfter);
+    const label = staffWorkPriorities.find((option) => option.id === priority)!.label;
+    const forecast = assessment.forecast;
+    addEvent('참모 업무 방침 — ' + assessment.memberAfter.name,
+      `${label} 지정. 업무량 ${assessment.memberBefore.workload} → 다음 주 기본 예상 ${forecast.workload}, 성장도 ${assessment.memberBefore.development} → ${forecast.development}. 위임·집중 육성을 포함한 인사 엔진 예상이며, 조직 사건의 추가 효과는 별도입니다. 제${game.week + 2}주 결산부터 매주 적용됩니다. 생산·연구에 직접 보너스를 주지는 않습니다.`,
+      'neutral', game.week);
+    notify(`${assessment.memberAfter.name} · ${label} 반영 · 다음 주 결산부터 적용`);
+  };
+
   const commitStaffDecision = (action: StaffDecisionAction): StaffDecisionResult | null => {
     const assessment = assessStaffDecision(staffDecisionInput, action);
     if (!assessment.allowed) {
@@ -8349,7 +8388,7 @@ export function App() {
         else if (showSettings) setShowSettings(false);
         else if (showActionCenter) setShowActionCenter(false);
         else if (showStatusOverview) setShowStatusOverview(false);
-        else if (showFieldManual) setShowFieldManual(false);
+        else if (showFieldManual) closePlayGuide();
         else if (showTutorial) setShowTutorial(false);
         else if (showSaveCenter) setShowSaveCenter(false);
         else if (pendingAchievementId) setPendingAchievementId(null);
@@ -8405,7 +8444,7 @@ export function App() {
         setShowSettings(true);
       } else if (event.key === '?') {
         event.preventDefault();
-        setShowFieldManual(true);
+        openPlayGuide();
       } else if (event.key.toLowerCase() === 'n') {
         event.preventDefault();
         continueWeeklyFlow();
@@ -8418,7 +8457,7 @@ export function App() {
     };
     window.addEventListener('keydown', handleShortcut);
     return () => window.removeEventListener('keydown', handleShortcut);
-  }, [activeTab, advanceWeek, campaignOutcome, campaignPhase, continueWeeklyFlow, mapFiltersOpen, mapLegendOpen, mapSelectionOpen, mapFocusMode, pendingAchievementId, pendingBattleReportId, pendingCouncilEventId, pendingCoupIncident, pendingOffensivePlan, pendingWorldFlashpointId, resetMapCamera, showActionCenter, showAchievementGallery, showBriefing, showCareerMarket, showCommandPalette, showFieldManual, showJournal, showMapArchive, showPoliticalCrisis, showResetConfirmation, showSaveCenter, showSettings, showStatusOverview, showTimeCommandCenter, showTutorial, showWorldHistory, showWorldWeekly, toggleMapFocusMode, zoomMap]);
+  }, [activeTab, advanceWeek, campaignOutcome, campaignPhase, closePlayGuide, continueWeeklyFlow, openPlayGuide, mapFiltersOpen, mapLegendOpen, mapSelectionOpen, mapFocusMode, pendingAchievementId, pendingBattleReportId, pendingCouncilEventId, pendingCoupIncident, pendingOffensivePlan, pendingWorldFlashpointId, resetMapCamera, showActionCenter, showAchievementGallery, showBriefing, showCareerMarket, showCommandPalette, showFieldManual, showJournal, showMapArchive, showPoliticalCrisis, showResetConfirmation, showSaveCenter, showSettings, showStatusOverview, showTimeCommandCenter, showTutorial, showWorldHistory, showWorldWeekly, toggleMapFocusMode, zoomMap]);
 
   const changePublicHealthPolicy = (policyId: PublicHealthPolicyId) => {
     if (publicHealth.policyId === policyId) return;
@@ -8734,6 +8773,22 @@ export function App() {
     setActiveTab(tabId);
     if (window.matchMedia('(max-width: 900px)').matches) setNavigationCollapsed(true);
   }, [civilianCareerActive, focusMapTerritory, isKoreaWarCampaign, notify, roleMandates, uxPreferences.soundOn]);
+  const navigateFromPlayGuide = (tab: GameTab) => {
+    setShowFieldManual(false);
+    // Open a known workplace, without issuing orders or starting tracked alerts.
+    if (tab === 'command') setCommandWorkspace('desk');
+    if (tab === 'army') setArmyWorkspace('forces');
+    if (tab === 'organization') setOrganizationWorkspace('squad');
+    if (tab === 'industry') setIndustryWorkspace('production');
+    if (tab === 'research') setResearchWorkspace('national');
+    if (tab === 'diplomacy') setDiplomacyWorkspace('relations');
+    deckScrollPositionsRef.current[tab] = 0;
+    openGameTab(tab);
+    window.requestAnimationFrame(() => {
+      document.getElementById('main-workspace')?.focus({ preventScroll: true });
+      if (civilianCareerActive && tab === 'command') document.querySelector('.civilian-actions-board')?.scrollIntoView({ block: 'center' });
+    });
+  };
   const commandPaletteItems: CommandPaletteItem[] = [
     ...tabItems.map((tab) => ({ id: `tab-${tab.id}`, group: tab.group, title: tab.label, description: tab.description, keywords: [tab.id, tab.navHint], icon: <GameIcon name={tab.icon} size={18} tone="gold" />, active: activeTab === tab.id })),
     { id: 'theater-europe', group: '전구 지도', title: '유럽·지중해 전구', description: '유럽, 북아프리카와 지중해 전선을 엽니다.', keywords: ['유럽', '아프리카', '지도'], icon: <Map size={17} />, active: activeTheater === 'europe' },
@@ -8790,7 +8845,7 @@ export function App() {
     } else if (id === 'settings') {
       setShowSettings(true);
     } else if (id === 'field-manual') {
-      setShowFieldManual(true);
+      openPlayGuide();
     } else if (id === 'save-center') {
       setShowSaveCenter(true);
     } else if (id === 'next-week') {
@@ -8825,7 +8880,7 @@ export function App() {
             <span className="compact-campaign-date">{campaignDate.full}</span>
           </div>
           <details className="command-utilities"><summary aria-label="보직·국가 상황 더 보기"><MoreHorizontal size={21} /></summary><div className="command-utilities-panel">
-          <div className="career-rank-chip"><small>TIER {careerRole.tier} · {staffAuthority.label}</small><strong>{currentRoleTitle}</strong></div>
+          <div className="career-rank-chip"><small>{civilianCareerActive ? '민간 커리어 · 공식 국가 권한 없음' : `TIER ${careerRole.tier} · ${staffAuthority.label}`}</small><strong>{currentRoleTitle}</strong></div>
           <button className={`campaign-phase-chip ${campaignPhase}`} onMouseEnter={() => void loadNationManagementPanel()} onFocus={() => void loadNationManagementPanel()} onClick={() => openGameTab('governance')}>
             <Landmark size={15} />
             <span><small>{isKoreaWarCampaign ? 'LIBERATION GOVERNMENT' : campaignPhase === 'nation' ? 'POSTWAR GOVERNMENT' : 'WAR GOVERNMENT'}</small><strong>{isKoreaWarCampaign ? `해방·건국 준비 ${transitionReadiness.score}` : campaignPhase === 'nation' ? '국가 운영 단계' : `전환 준비 ${transitionReadiness.score}`}</strong></span>
@@ -8936,7 +8991,7 @@ export function App() {
           <button title="진행 결과 분석실" data-tooltip="선택·계산·결과 추적" aria-label="진행 결과 분석실" onClick={openWarJournal}><GameIcon name="report" size={17} tone="steel" /><span>진행 결과</span></button>
           <button title={uxPreferences.soundOn ? '음향 끄기' : '음향 켜기'} data-tooltip={uxPreferences.soundOn ? '게임 음향 끄기' : '게임 음향 켜기'} aria-label={uxPreferences.soundOn ? '음향 끄기' : '음향 켜기'} onClick={() => toggleUXPreference('soundOn')}><GameIcon name="sound" size={17} tone="steel" className={uxPreferences.soundOn ? '' : 'muted'} /><span>음향</span></button>
           <button title="저장 및 캠페인 관리" data-tooltip="저장 및 캠페인 관리 · Ctrl+S" aria-label="저장 및 캠페인 관리" aria-keyshortcuts="Control+S Meta+S" onClick={() => setShowSaveCenter(true)}><GameIcon name="save" size={17} tone="steel" /><span>저장</span></button>
-          <button title="야전 교범" data-tooltip="야전 교범 · ?" aria-label="야전 교범" aria-keyshortcuts="?" onMouseEnter={() => void loadFieldManual()} onFocus={() => void loadFieldManual()} onClick={() => setShowFieldManual(true)}><GameIcon name="help" size={17} tone="steel" /><span>야전 교범</span></button>
+          <button title="플레이 안내 · 내가 할 수 있는 일" data-tooltip="플레이 안내 · ?" aria-label="플레이 안내" aria-keyshortcuts="?" onMouseEnter={() => void loadFieldManual()} onFocus={() => void loadFieldManual()} onClick={openPlayGuide}><GameIcon name="help" size={17} tone="steel" /><span>플레이 안내</span></button>
           <button title="사용자 환경 설정" data-tooltip="사용자 환경 설정 · S" aria-label="사용자 환경 설정" aria-keyshortcuts="S" onClick={() => setShowSettings(true)}><GameIcon name="settings" size={17} tone="steel" /><span>환경 설정</span></button>
         </div></details>
       </aside>
@@ -9282,6 +9337,7 @@ export function App() {
               {activeTabMeta.guide.map((step, index) => <li key={step}><b>{index + 1}</b><span>{step}</span></li>)}
             </ol></details>
             <div className="deck-context-actions">
+              <button className="quick-navigation-trigger" onClick={openPlayGuide} onMouseEnter={() => void loadFieldManual()} onFocus={() => void loadFieldManual()}><GameIcon name="help" size={16} tone="gold" /><span>할 수 있는 일</span></button>
               <button className="autosave-indicator" onClick={() => setShowSaveCenter(true)} aria-label="저장 센터 열기"><ShieldCheck size={14} /><span>{lastSavedAt ? '자동 저장 완료' : '자동 저장 대기'}</span></button>
               <button className="quick-navigation-trigger" onClick={() => setShowCommandPalette(true)} aria-label="빠른 이동" aria-keyshortcuts="Control+K Meta+K"><Search size={15} /><span>빠른 이동</span><kbd>Ctrl K</kbd></button>
             </div>
@@ -9377,6 +9433,10 @@ export function App() {
               />
             )}
             {activeTab === 'command' && !civilianCareerActive && <FieldWorkspaceSwitch label="지휘 본부 보기" value={commandWorkspace} onChange={(value) => { if (campaignPhase === 'nation' && value === 'analysis') openGameTab('governance'); else setCommandWorkspace(value); }} items={[{ id: 'desk', label: '지휘 데스크', detail: '이번 주 결정 · 나의 임무' }, { id: 'world', label: '현장 보기', detail: '산업 · 사회 · 선택의 흔적' }, { id: 'analysis', label: campaignPhase === 'nation' ? '국정 상세로 이동' : '상세 분석', detail: '국가 전략 · 전체 지표' }]} />}
+            {activeTab === 'command' && !civilianCareerActive && commandWorkspace === 'desk' && game.week < 2 && (
+              <FirstWeekOrientation onOpenGuide={openPlayGuide} />
+            )}
+            {activeTab === 'command' && civilianCareerActive && game.week < 2 && <FirstWeekOrientation civilian onOpenGuide={openPlayGuide} />}
             {activeTab === 'command' && !civilianCareerActive && commandWorkspace === 'desk' && (
               <CommandDesk
                 nationName={playerNation.shortName}
@@ -9408,20 +9468,38 @@ export function App() {
               />
             )}
             {activeTab === 'command' && !civilianCareerActive && commandWorkspace === 'world' && (
-              <LivingWorldScene
-                nationName={playerNation.shortName}
-                input={nationalSimulationInput}
-                snapshot={nationalSimulation}
-                industryMandate={roleMandates.industry}
-                routedEquipmentKey={routedEquipmentKey}
-                postwarInput={postwarIndustryInput ?? undefined}
-                staffIssues={staffNarrative.activeStorylines.filter((story) => staff.some((member) => (member.id === story.firstStaffId || member.id === story.secondStaffId) && staffAuthority.managedDepartments.includes(member.department))).length}
-                lastSettlement={livingWorldRecords.lastSettlement}
-                lastOrder={livingWorldRecords.lastOrder}
-                onNavigate={(tab) => { if (tab === 'organization') setOrganizationWorkspace('meeting'); openGameTab(tab); }}
-                onReallocate={adjustFactories}
-                onOpenBriefing={openWeeklyBriefing}
-              />
+                <HeadquartersWorkspace
+                  key={`${playerNation.id}:${displayedCareerRole.id}`}
+                  context={{ input: staffDecisionInput, formatMoney: formatGameMoney, onUpgradeStaff: upgradeStaff, onRenewStaff: renewStaffContract, onAssignStaff: assignStaffToDepartment }}
+                  staffNarrative={staffNarrative}
+                  onToggleDelegation={toggleStaffDelegation}
+                  onSetDevelopmentFocus={changeDevelopmentFocus}
+                  onSetWorkPriority={changeStaffWorkPriority}
+                  onMeetStaff={meetStaff}
+                  onOpenOrganization={() => { setOrganizationWorkspace('squad'); openGameTab('organization'); }}
+                  mandates={roleMandates}
+                  year={campaignYear}
+                  onOpenFacility={(room, tab) => {
+                    if (room === 'workshop') setIndustryWorkspace('production');
+                    if (room === 'warehouse') setIndustryWorkspace('logistics');
+                    if (room === 'personnel') setOrganizationWorkspace('squad');
+                    openGameTab(tab);
+                  }}
+                  world={{
+                    nationName: playerNation.shortName,
+                    input: nationalSimulationInput,
+                    snapshot: nationalSimulation,
+                    industryMandate: roleMandates.industry,
+                    routedEquipmentKey,
+                    postwarInput: postwarIndustryInput ?? undefined,
+                    staffIssues: staffNarrative.activeStorylines.filter((story) => staff.some((member) => (member.id === story.firstStaffId || member.id === story.secondStaffId) && staffAuthority.managedDepartments.includes(member.department))).length,
+                    lastSettlement: livingWorldRecords.lastSettlement,
+                    lastOrder: livingWorldRecords.lastOrder,
+                    onNavigate: (tab) => { if (tab === 'organization') setOrganizationWorkspace('meeting'); openGameTab(tab); },
+                    onReallocate: adjustFactories,
+                    onOpenBriefing: openWeeklyBriefing,
+                  }}
+                />
             )}
             {activeTab === 'command' && campaignPhase === 'war' && (
               civilianCareerActive && career.civilian ? (
@@ -10064,16 +10142,15 @@ export function App() {
         <Suspense fallback={<DeferredSurface label="야전 교범 준비 중" overlay />}>
           <FieldManual
             steps={onboardingSteps}
+            guide={currentPlayGuide}
+            onOpenWorldWeekly={() => { setShowFieldManual(false); openWorldWeekly(); }}
+            onOpenBriefing={() => { setShowFieldManual(false); openWeeklyBriefing(); }}
             onRestartTutorial={() => {
               setShowFieldManual(false);
               setShowTutorial(true);
             }}
-            onNavigate={(tab) => {
-              setActiveTab(tab);
-              setShowFieldManual(false);
-              notify(`${tabItems.find((item) => item.id === tab)?.label ?? '관리'} 화면을 열었습니다.`);
-            }}
-            onClose={() => setShowFieldManual(false)}
+            onNavigate={navigateFromPlayGuide}
+            onClose={closePlayGuide}
           />
         </Suspense>
       )}
@@ -10103,7 +10180,7 @@ export function App() {
       )}
       {showTutorial && !showBriefing && !campaignOutcome && !pendingWorldFlashpoint && !pendingCoupIncident && !showPoliticalCrisis && !pendingCouncilEvent && !pendingBattleReport && (
         <Suspense fallback={null}>
-          <TutorialOverlay nationId={playerNation.id} role={careerRole} civilian={civilianCareerActive ? career.civilian : undefined} onNavigate={setActiveTab} onComplete={completeTutorial} />
+          <TutorialOverlay nationId={playerNation.id} role={displayedCareerRole} mandates={roleMandates} civilian={civilianCareerActive ? career.civilian : undefined} onNavigate={setActiveTab} onComplete={completeTutorial} />
         </Suspense>
       )}
       {toast && <div className="toast" role="status" aria-live="polite"><Radio size={16} /><span>{toast}</span></div>}

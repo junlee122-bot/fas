@@ -2,6 +2,7 @@ import type { CampaignStartMode, CareerRole, GameTab } from './types';
 import { withJosa } from './koreanGrammar';
 
 export type RoleAccessMode = 'direct' | 'request' | 'report' | 'locked';
+export type RoleMandateRole = Pick<CareerRole, 'branch' | 'tier' | 'title'> & Partial<Pick<CareerRole, 'archetype'>>;
 
 export interface RoleTabMandate {
   tab: GameTab;
@@ -44,14 +45,14 @@ const branchRequestTabs: Record<CareerRole['branch'], GameTab[]> = {
   intelligence: ['map', 'research', 'diplomacy'],
 };
 
-function describeReason(role: CareerRole, tab: GameTab, mode: RoleAccessMode): string {
+function describeReason(role: RoleMandateRole, tab: GameTab, mode: RoleAccessMode): string {
   if (mode === 'direct') return `${role.title}의 공식 임무 범위 안에 있는 업무입니다.`;
   if (mode === 'request') return `${withJosa(role.title, '은/는')} ${tab === 'map' ? '작전 지도' : tab === 'research' ? '연구·개발' : tab === 'industry' ? '생산·조달' : tab === 'intelligence' ? '정보 작전' : tab === 'economy' ? '재정 정책' : tab === 'health' ? '보건 정책' : '대외 정책'}에 의견을 낼 수 있지만 단독 결재권은 없습니다.`;
   if (mode === 'locked') return '공식 국가 권한이 없는 민간 커리어입니다.';
   return `${role.title}의 지휘계통 밖 업무입니다. 결과와 위험은 보고되지만 담당 부서가 집행합니다.`;
 }
 
-export function getRoleTabMandates(role: CareerRole, startMode: CampaignStartMode = 'office'): Record<GameTab, RoleTabMandate> {
+export function getRoleTabMandates(role: RoleMandateRole, startMode: CampaignStartMode = 'office'): Record<GameTab, RoleTabMandate> {
   return Object.fromEntries(allTabs.map((tab) => {
     let mode: RoleAccessMode;
     if (startMode === 'civilian') {
@@ -77,8 +78,12 @@ export function getRoleTabMandates(role: CareerRole, startMode: CampaignStartMod
     return [tab, {
       tab,
       mode,
-      ...modeCopy[mode],
-      reason: describeReason(role, tab, mode),
+      ...(startMode === 'civilian' && tab === 'command'
+        ? { label: '개인 활동', authorityRoute: '개인의 활동을 선택합니다. 국가의 정책·인사·군사 명령을 결재하는 권한은 없습니다.' }
+        : modeCopy[mode]),
+      reason: startMode === 'civilian' && tab === 'command'
+        ? '직업과 관계망을 바탕으로 개인의 활동을 선택하는 공간입니다.'
+        : describeReason(role, tab, mode),
     } satisfies RoleTabMandate];
   })) as Record<GameTab, RoleTabMandate>;
 }

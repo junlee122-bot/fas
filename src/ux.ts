@@ -1,7 +1,8 @@
 import { getAvailableSkillPoints } from './development';
 import type { PublicHealthState } from './publicHealth';
-import type { CareerRole, CommanderDevelopment, Division, GameTab, Order, ProductionLine, ResearchProject } from './types';
+import type { CampaignStartMode, CareerRole, CivilianCareerState, CommanderDevelopment, Division, GameTab, Order, ProductionLine, ResearchProject } from './types';
 import { getResearchAvailability } from './researchProgression';
+import { getRoleTabMandates, type RoleTabMandate } from './roleMandate';
 
 export type UXActionPriority = 'urgent' | 'recommended' | 'info';
 
@@ -276,7 +277,10 @@ export interface OnboardingStep {
 }
 
 export interface OnboardingInput {
-  role: Pick<CareerRole, 'branch' | 'tier' | 'scope'>;
+  role: Pick<CareerRole, 'branch' | 'tier' | 'scope'> & Partial<Pick<CareerRole, 'title' | 'archetype'>>;
+  mandates?: Record<GameTab, RoleTabMandate>;
+  startMode?: CampaignStartMode;
+  civilian?: Pick<CivilianCareerState, 'actionHistory'>;
   week: number;
   briefingRead: boolean;
   visitedTabs: readonly GameTab[];
@@ -434,40 +438,47 @@ export function normalizeUXPreferences(value: Partial<UXPreferences> | null | un
 
 export function deriveOnboardingSteps({
   role,
+  mandates: currentMandates,
+  startMode = 'office',
+  civilian,
   week,
   briefingRead,
   visitedTabs,
   milestones,
-  factories,
-  production,
-  research,
   selectedPolicies,
   orders,
 }: OnboardingInput): OnboardingStep[] {
-  const usedFactories = production.reduce((total, line) => total + line.assigned, 0);
-  const activeResearch = research.filter((project) => project.active && !project.complete).length;
   const visited = new Set(visitedTabs);
   const completed = new Set(milestones);
-  const junior = role.tier >= 4;
+  const mandates = currentMandates ?? getRoleTabMandates({ ...role, title: role.title ?? '현재 보직' }, startMode);
+  const advance: OnboardingStep = { id: 'advance', title: '첫 주를 진행하고 결과 찾아보기', detail: '결정은 선택 사항입니다. 준비되면 한 주를 진행하고 주간 브리핑에서 원인·변화·남은 일을 확인합니다.', tab: 'command', complete: week > 0, category: 'common' };
+  if (startMode === 'civilian' || civilian) return [
+    { id: 'briefing', title: '세계 주보 읽기', detail: '국가와 세계의 결정이 자신의 직업과 지역에 만드는 기회·위험을 읽습니다.', tab: 'command', complete: briefingRead, category: 'common' },
+    { id: 'civilian-review', title: '내 생계·전문성·감시 위험 확인', detail: '공식 국가 권한이 없는 개인 커리어입니다. 국고·사단·연구 대신 자신의 사회적 기반을 살펴봅니다.', tab: 'command', complete: visited.has('command'), category: 'role' },
+    { id: 'civilian-action', title: '가능한 민간 활동 하나 선택', detail: '상황실의 민간 행동에서 비용·기대 효과·준비 기간을 비교합니다. 제도권 진입은 필수가 아닙니다.', tab: 'command', complete: (civilian?.actionHistory.length ?? 0) > 0 || completed.has('civilian-action'), category: 'role' },
+    advance,
+  ];
   const shared: OnboardingStep[] = [
     { id: 'briefing', title: '취임 브리핑 읽기', detail: '현재 세계선의 지난 7일과 가장 위험한 변화를 먼저 확인합니다.', tab: 'command', complete: briefingRead, category: 'common' },
     { id: 'authority', title: `TIER ${role.tier} 권한 범위 확인`, detail: `${role.scope}. 잠긴 결정은 직접 집행하지 않고 상신·설득·위임 요청으로 처리합니다.`, tab: 'organization', complete: visited.has('organization'), category: 'common' },
-    { id: 'advance', title: '첫 주 지휘 결산 확인', detail: '첫 결정을 반영한 뒤 한 주를 진행해 결과와 원인의 연결을 확인합니다.', tab: 'command', complete: week > 0, category: 'common' },
   ];
   if (role.branch === 'military') return [...shared,
     { id: 'military-review', title: '지휘 가능 부대 확인', detail: '전력·조직력·보급과 현재 명령을 확인해 실제로 움직일 수 있는 편제를 찾습니다.', tab: 'army', complete: visited.has('army'), category: 'role' },
-    { id: 'military-action', title: junior ? '작전안 상신 또는 훈련 요청' : '첫 작전·훈련 명령 승인', detail: junior ? '직접 통솔 범위의 부대를 준비하고 상급 지휘부에 목표와 위험을 상신합니다.' : '준비된 사단에 공세 또는 훈련 의도를 부여합니다.', tab: 'army', complete: completed.has('military-action') || orders.length > 0, category: 'role' },
-    { id: 'military-support', title: '보급·연구 지원선 확인', detail: '공장과 연구는 직접 의무가 아니라 작전 요구서와 참모 위임으로 연결됩니다.', tab: activeResearch < 2 ? 'research' : usedFactories < factories ? 'industry' : 'organization', complete: visited.has('research') || visited.has('industry'), category: 'role' },
+    { id: 'military-action', title: mandates.army.mode === 'direct' ? '지휘 범위 안에서 첫 명령 검토' : '작전 권한과 상신 경로 확인', detail: mandates.army.mode === 'direct' ? '직급과 관계없이 실제 예하 부대만 지휘합니다. 훈련·대기·공세의 조건을 비교하고 기존 검토 화면에서 확정하십시오.' : mandates.army.authorityRoute, tab: 'army', complete: completed.has('military-action') || orders.length > 0, category: 'role' },
+    { id: 'military-support', title: '지원 부서와 권한 확인', detail: '조직 운영에서 군수·연구 협력선을 확인합니다. 연구 슬롯을 채우거나 권한 밖의 생산을 직접 조정할 의무는 없습니다.', tab: 'organization', complete: visited.has('organization'), category: 'role' },
+    advance,
   ];
   if (role.branch === 'politics') return [...shared,
     { id: 'political-review', title: '내각·이해집단 구도 확인', detail: '정책을 집행할 조직, 반대 파벌과 현재 정치적 자원을 먼저 파악합니다.', tab: 'organization', complete: visited.has('organization') || visited.has('governance'), category: 'role' },
-    { id: 'political-action', title: junior ? '정책 건의안 상신' : '첫 국가 원칙 결재', detail: junior ? '권한 범위의 정책 근거를 만들고 상급 의사결정자에게 채택을 요청합니다.' : '경제·사회·외교·교리 가운데 첫 운영 원칙을 채택합니다.', tab: 'organization', complete: completed.has('political-action') || selectedPolicies.length > 0, category: 'role' },
-    { id: 'political-economy', title: '재정 파급효과 확인', detail: '정책 비용과 경상수지·물가·국민 신뢰의 다음 주 변화를 비교합니다.', tab: 'economy', complete: visited.has('economy') || visited.has('governance'), category: 'role' },
+    { id: 'political-action', title: '국가 원칙의 조건과 영향 검토', detail: '조직 운영의 국가 원칙에서 경제·사회·외교·교리 선택을 비교합니다. 실제 채택한 기록이 있어야 완료됩니다.', tab: 'organization', complete: completed.has('political-action') || selectedPolicies.length > 0, category: 'role' },
+    { id: 'political-economy', title: mandates.economy.mode === 'direct' ? '재정 정책의 예상 결과 확인' : mandates.economy.mode === 'request' ? '재정 현황과 권한 상신 검토' : '재정 보고와 담당 부서 확인', detail: mandates.economy.mode === 'direct' ? '정책 비용과 다음 주 경상수지·물가·국민 신뢰를 비교합니다. 화면을 읽는 것만으로 정책은 집행되지 않습니다.' : `${mandates.economy.label}. ${mandates.economy.authorityRoute} 현재 재정의 비용·위험은 보고로 확인할 수 있습니다.`, tab: 'economy', complete: visited.has('economy'), category: 'role' },
+    advance,
   ];
   return [...shared,
     { id: 'intelligence-review', title: '정보망·노출 위험 확인', detail: '정보 신뢰도, 작전망과 적 방첩 압력을 확인한 뒤 첫 표적을 정합니다.', tab: 'intelligence', complete: visited.has('intelligence'), category: 'role' },
-    { id: 'intelligence-action', title: junior ? '정보 수집·공작안 상신' : '첫 정보작전·인재 조사 승인', detail: junior ? '접촉선과 신뢰도를 확보해 상급기관에 실행 가능한 공작안을 제출합니다.' : '요원 또는 후보 한 명의 조사·접촉을 시작합니다.', tab: 'intelligence', complete: completed.has('intelligence-action'), category: 'role' },
+    { id: 'intelligence-action', title: mandates.organization.mode === 'direct' ? '후보 조사 또는 관심 명단 검토' : '인재 보고와 인사 권한 확인', detail: mandates.organization.mode === 'direct' ? '조직 운영의 후보 시장에서 관리 범위에 맞는 인물을 비교합니다. 조사 비용·정보 수준·노출 위험을 확인하고 실제 조사 또는 관심 명단 등록으로 이어갑니다.' : mandates.organization.authorityRoute, tab: 'organization', complete: completed.has('intelligence-action'), category: 'role' },
     { id: 'intelligence-people', title: '요원·포섭 후보 비교', detail: '능력뿐 아니라 충성도·이중공작 위험·소속 조직과의 마찰을 함께 검토합니다.', tab: 'organization', complete: visited.has('organization'), category: 'role' },
+    advance,
   ];
 }
 

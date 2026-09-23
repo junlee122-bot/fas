@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { acknowledgeUXActions, decorateUXActions, deriveCommandReadiness, deriveOnboardingSteps, deriveUXActions, deriveWeeklyCommandCycle, getInitialNavigationCollapsed, isTrackedActionResolved, markUXActionsForVerification, normalizeUXActionLifecycle, normalizeUXPreferences, reconcileUXActionLifecycle, startUXAction } from './ux';
 import type { ActionCenterInput } from './ux';
+import { getRoleTabMandates } from './roleMandate';
+import { createCivilianCareerState, civilianOrigins } from './civilianCareer';
 
 const baseInput: ActionCenterInput = {
   factories: 12,
@@ -169,8 +171,44 @@ describe('user experience guidance', () => {
     const intelligenceJunior = deriveOnboardingSteps({ ...sharedState, role: { branch: 'intelligence', tier: 5, scope: '현장 정보 수집' } });
     expect(political.some((step) => step.id === 'political-action')).toBe(true);
     expect(political.some((step) => step.id === 'military-action')).toBe(false);
-    expect(intelligenceJunior.find((step) => step.id === 'intelligence-action')?.title).toContain('상신');
+    expect(intelligenceJunior.find((step) => step.id === 'intelligence-action')).toMatchObject({ tab: 'organization', title: '후보 조사 또는 관심 명단 검토' });
     expect(intelligenceJunior.find((step) => step.id === 'authority')?.title).toContain('TIER 5');
+  });
+
+  it('uses actual portfolio mandates rather than calling every tier-three politician a fiscal decision maker', () => {
+    const role = { branch: 'politics' as const, tier: 3 as const, title: '정치 조직 담당', scope: '정무 조직 운영' };
+    const steps = deriveOnboardingSteps({ ...baseInput, ...militaryOnboarding, role });
+    expect(steps.find((step) => step.id === 'political-economy')).toMatchObject({ tab: 'economy', title: '재정 현황과 권한 상신 검토', complete: false });
+    expect(steps.find((step) => step.id === 'political-economy')?.detail).toContain('상신 필요');
+    const mandates = getRoleTabMandates(role);
+    mandates.economy = { ...mandates.economy, mode: 'direct', label: '직접 지휘' };
+    const delegated = deriveOnboardingSteps({ ...baseInput, ...militaryOnboarding, role, mandates });
+    expect(delegated.find((step) => step.id === 'political-economy')?.title).toBe('재정 정책의 예상 결과 확인');
+  });
+
+  it('keeps junior military commands within their remit without mandating research-slot filling', () => {
+    for (const research of [[], baseInput.research.map((project) => ({ ...project, complete: true }))]) {
+      const steps = deriveOnboardingSteps({ ...baseInput, ...militaryOnboarding, role: { ...militaryOnboarding.role, tier: 5 }, research });
+      expect(steps.find((step) => step.id === 'military-action')?.title).toBe('지휘 범위 안에서 첫 명령 검토');
+      expect(steps.find((step) => step.id === 'military-support')).toMatchObject({ tab: 'organization', title: '지원 부서와 권한 확인' });
+      expect(steps.some((step) => step.tab === 'research')).toBe(false);
+      expect(steps.at(-1)?.id).toBe('advance');
+    }
+  });
+
+  it('gives civilians a personal-career checklist and does not treat browsing as an actual action', () => {
+    const civilian = createCivilianCareerState('scientist', civilianOrigins[0].id);
+    const input = { ...baseInput, ...militaryOnboarding, startMode: 'civilian' as const, civilian, visitedTabs: ['command'] as const };
+    const before = JSON.stringify(input);
+    const steps = deriveOnboardingSteps(input);
+    expect(steps).toHaveLength(4);
+    expect(steps.every((step) => step.tab === 'command')).toBe(true);
+    expect(steps.some((step) => step.id.startsWith('military-') || step.id === 'authority')).toBe(false);
+    expect(steps.find((step) => step.id === 'civilian-review')?.complete).toBe(true);
+    expect(steps.find((step) => step.id === 'civilian-action')?.complete).toBe(false);
+    expect(steps.at(-1)?.complete).toBe(false);
+    expect(JSON.stringify(input)).toBe(before);
+    expect(deriveOnboardingSteps({ ...input, milestones: ['civilian-action'] }).find((step) => step.id === 'civilian-action')?.complete).toBe(true);
   });
 
   it('guides a new week from result review through briefing and urgent decisions', () => {
