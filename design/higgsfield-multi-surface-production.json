@@ -1,0 +1,98 @@
+{
+  "date": "2026-09-18",
+  "provider": "Higgsfield MCP",
+  "status": "completed",
+  "creditsAfter": 226,
+  "actualBatchCredits": 18,
+  "generationRecord": "higgsfield-multi-surface-generation.json",
+  "creditsBefore": 244,
+  "estimatedBatchCredits": 18,
+  "model": "gpt_image_2_5",
+  "requests": [
+    {
+      "id": "press-newsroom",
+      "index": 1,
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "16:9",
+        "count": 1,
+        "prompt": "Create a supporting illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained editorial oil and gouache, deliberate visible brushwork, charcoal blue and muted olive surroundings, warm ivory focal materials, subdued brass details, matte surfaces. Calm practical light, clear silhouettes, no cinematic haze, no glossy 3D, no decorative red alerts. The artwork must read clearly at 220–340 pixels wide, with an uncluttered single focal grouping. No recognizable real people, national flags, emblems, logos, watermarks, readable words or numbers, captions, UI buttons, maps, borders or geographic outlines. This is fictional supporting game illustration, not a photograph or proof that an event happened.\n\nA modest 1940s print newsroom as an environment illustration. A close three-quarter view of a hand-operated proofing press, unmarked sheets of warm newsprint in a tray, lead type blocks seen from their unlettered backs, a simple wired desk telephone and a shaded lamp. Equipment not people is the subject. Quiet daily editorial work, no specific war event, no computers, radio studio microphones or television screens. Preserve empty paper rather than generating headlines."
+      }
+    },
+    {
+      "id": "radio-newsroom",
+      "index": 2,
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "16:9",
+        "count": 1,
+        "prompt": "Create a supporting illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained editorial oil and gouache, deliberate visible brushwork, charcoal blue and muted olive surroundings, warm ivory focal materials, subdued brass details, matte surfaces. Calm practical light, clear silhouettes, no cinematic haze, no glossy 3D, no decorative red alerts. The artwork must read clearly at 220–340 pixels wide, with an uncluttered single focal grouping. No recognizable real people, national flags, emblems, logos, watermarks, readable words or numbers, captions, UI buttons, maps, borders or geographic outlines. This is fictional supporting game illustration, not a photograph or proof that an event happened.\n\nA modest 1950s to early 1960s radio news desk as an environment illustration. Focus on a simple period desk microphone without station insignia, wired over-ear headphones, blank script sheets, an analog control panel with unlabelled dials, and a shaded practical lamp. No people. No television monitors, digital displays, computers, modern condenser microphones or readable frequency scales. Sober restrained workroom, not an on-air alarm or propaganda scene."
+      }
+    },
+    {
+      "id": "television-newsroom",
+      "index": 3,
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "16:9",
+        "count": 1,
+        "prompt": "Create a supporting illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained editorial oil and gouache, deliberate visible brushwork, charcoal blue and muted olive surroundings, warm ivory focal materials, subdued brass details, matte surfaces. Calm practical light, clear silhouettes, no cinematic haze, no glossy 3D, no decorative red alerts. The artwork must read clearly at 220–340 pixels wide, with an uncluttered single focal grouping. No recognizable real people, national flags, emblems, logos, watermarks, readable words or numbers, captions, UI buttons, maps, borders or geographic outlines. This is fictional supporting game illustration, not a photograph or proof that an event happened.\n\nAn analog television news control desk as a symbolic environment for the 1968–2004 broadcast and satellite eras. Two modest box-shaped CRT monitors show only diffuse neutral light, with a film reel, unlabelled mechanical mixing sliders and blank paper logs in the foreground. Focus on durable analog broadcast tools, not the exact full interior of a specific year. No people, no flat-screen monitors, no computer operating systems, no news footage, no readable test cards, no signal claiming a current event."
+      }
+    },
+    {
+      "id": "digital-newsroom",
+      "index": 4,
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "16:9",
+        "count": 1,
+        "prompt": "Create a supporting illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained editorial oil and gouache, deliberate visible brushwork, charcoal blue and muted olive surroundings, warm ivory focal materials, subdued brass details, matte surfaces. Calm practical light, clear silhouettes, no cinematic haze, no glossy 3D, no decorative red alerts. The artwork must read clearly at 220–340 pixels wide, with an uncluttered single focal grouping. No recognizable real people, national flags, emblems, logos, watermarks, readable words or numbers, captions, UI buttons, maps, borders or geographic outlines. This is fictional supporting game illustration, not a photograph or proof that an event happened.\n\nA restrained contemporary digital verification desk as a symbolic illustration for digital news and speculative future civic reporting. An anonymous plain laptop and a flat desk monitor show only abstract non-readable pale rectangles, beside blank paper source folders, a small unbranded audio recorder and a neutral task light. No people. Human verification rather than sci-fi automation is the mood. No holograms, no cyberpunk neon, no branded software, maps, charts, fabricated dashboards or actual claims on screens. It must be clearly illustrative rather than a factual prediction of future hardware."
+      }
+    },
+    {
+      "id": "civilian-workshop",
+      "index": 5,
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Create a supporting illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained editorial oil and gouache, deliberate visible brushwork, charcoal blue and muted olive surroundings, warm ivory focal materials, subdued brass details, matte surfaces. Calm practical light, clear silhouettes, no cinematic haze, no glossy 3D, no decorative red alerts. The artwork must read clearly at 220–340 pixels wide, with an uncluttered single focal grouping. No recognizable real people, national flags, emblems, logos, watermarks, readable words or numbers, captions, UI buttons, maps, borders or geographic outlines. This is fictional supporting game illustration, not a photograph or proof that an event happened.\n\nA timeless symbolic still life of productive civilian work: a small well-used metal gear, simple hand tools, folded clean work gloves, a plain unmarked wooden delivery crate and neutral ceramic household bowls on a practical workshop bench. A soft suggestion of an unfurnished work space in the background, but no identifiable factory architecture, vehicles or period-specific machinery. No people, weapons, ruins, new buildings or victory flags. Convey careful work and resources for everyday life without claiming production quantities, recovery completion or the condition of a real city."
+      }
+    },
+    {
+      "id": "public-health",
+      "index": 6,
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Create a supporting illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained editorial oil and gouache, deliberate visible brushwork, charcoal blue and muted olive surroundings, warm ivory focal materials, subdued brass details, matte surfaces. Calm practical light, clear silhouettes, no cinematic haze, no glossy 3D, no decorative red alerts. The artwork must read clearly at 220–340 pixels wide, with an uncluttered single focal grouping. No recognizable real people, national flags, emblems, logos, watermarks, readable words or numbers, captions, UI buttons, maps, borders or geographic outlines. This is fictional supporting game illustration, not a photograph or proof that an event happened.\n\nA timeless symbolic still life of public-health preparedness: clean folded linen, a rolled bandage, an unbranded stethoscope, several plain sealed glass medical containers with no labels, and closed blank supply folders on a practical table. No people, patients, needles, blood, epidemic organisms, hospital machinery, emergency scene or scientific claims. A calm cared-for arrangement, warm ivory materials against charcoal blue, depicting preparation and care rather than proof that disease has ended."
+      }
+    }
+  ],
+  "constraints": [
+    "No runtime generation or API credentials",
+    "No simulation/save/authority changes",
+    "Archive art derives from archived media ID",
+    "World site art is symbolic, not a claim of actual damage/recovery",
+    "Preserve native original and full-resolution lossless derivatives"
+  ]
+}

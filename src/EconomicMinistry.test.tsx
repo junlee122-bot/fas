@@ -35,6 +35,17 @@ function render(options: { nationalLedger?: NationalFiscalLedger; state?: Econom
 }
 
 describe('phase-correct treasury presentation', () => {
+  it.each(['overview', 'policy', 'investments', 'currency'] as const)('maps %s to one symbolic finance scene without changing the ledger', (initialView) => {
+    const state = createEconomyState('britain');
+    const before = JSON.stringify({ state, game });
+    const { html, callbacks } = render({ state, initialView });
+    expect(html.match(/data-game-illustration=/g)).toHaveLength(1);
+    expect(html).toContain(`data-game-illustration="${initialView === 'investments' ? 'market-exchange' : 'treasury-ledger'}"`);
+    expect(html).toContain('현재 전시 재정');
+    expect(JSON.stringify({ state, game })).toBe(before);
+    Object.values(callbacks).forEach((callback) => expect(callback).not.toHaveBeenCalled());
+  });
+
   it('retains the original wartime ledger and policy controls when no national ledger is supplied', () => {
     const result = render();
     const expected = calculateEconomyLedger(result.state, { week: 101, nationId: 'britain', game, staffWeeklyCost: 18, economyAdvisorBonus: 10 });

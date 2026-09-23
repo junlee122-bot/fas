@@ -1,4 +1,6 @@
 import { useId, useRef, useState } from 'react';
+import { GameIllustration } from './GameIllustration';
+import './ManagementIllustrations.css';
 import { ArrowRight, Check, Factory, Minus, Plus } from 'lucide-react';
 import { reallocateFactory } from './livingWorld';
 import type { PostwarIndustryReport } from './postwarIndustry';
@@ -54,7 +56,7 @@ export function ProductionDesk(props: ProductionDeskProps) {
       <div className="capability-selection-list">{production.map((line) => <button type="button" key={line.id} aria-pressed={selectedId === line.id} onClick={() => choose(line.id)}><span><strong>{line.name}</strong><small>{line.category} · 효율 {line.efficiency}%</small></span><span><Factory size={16} />{line.assigned}</span></button>)}</div>
       {!production.length ? <p>아직 배정할 생산선이 없습니다.</p> : null}
     </aside><article className="capability-detail" aria-label="선택한 생산선 상세">{selected ? <>
-      <span className="capability-eyebrow">{selected.category}</span><h3>{selected.name}</h3>
+      <div className={!draft ? 'management-art-heading' : undefined}><span className="capability-eyebrow">{selected.category}</span><h3>{selected.name}</h3>{!draft ? <div className="management-art-slot"><GameIllustration scene="production-logistics" compact /></div> : null}</div>
       <dl className="capability-stat-grid"><div><dt>배정 공장</dt><dd>{selected.assigned}개</dd></div><div><dt>생산 효율</dt><dd>{selected.efficiency}%</dd></div><div><dt>{postwarForecast ? '다음 주 완료 전망' : '해당 품목 주간 전망'}</dt><dd>{(postwarForecast ? reportLine?.delivered ?? 0 : equipmentKey ? weeklyGains[equipmentKey] : 0).toLocaleString()}</dd></div></dl>
       <p className="capability-notice">{equipmentKey === routedEquipmentKey ? '생산 완료 → 집하창고 → 출발 예약 → 실제 도착 후 국가 가용 비축에 편입됩니다.' : postwarForecast ? '현재 승인된 예산·원료 조건에 따른 국가 직접입고 전망입니다.' : '현재 주차·효율·정책·조달 집중을 반영한 품목 전망입니다. 수송선 기본 소모를 포함하며, 전투 손실은 별도입니다.'}</p>
       <div className="capability-actions"><button type="button" disabled={busy || selected.assigned <= 0} onClick={() => propose(-1)}><Minus size={16} />공장 1개 회수안</button><button type="button" disabled={busy || used >= factories} onClick={() => propose(1)}><Plus size={16} />공장 1개 배정안</button></div>

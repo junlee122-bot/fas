@@ -3,6 +3,7 @@ import type { ComponentProps } from 'react';
 import type { RoleFocusBriefing } from './RoleFocusBriefing';
 import type { GameTab } from './types';
 import { getCommandDeskArtwork } from './commandDeskArt';
+import { ArtworkViewer } from './ArtworkViewer';
 import { isCommandDeskActionVisible, isCommandDeskFocusTab } from './commandDeskAccess';
 import './CommandDesk.css';
 
@@ -49,7 +50,7 @@ export function CommandDesk(props: Props) {
         {primary?.resolution ? <div className="command-desk-checkpoint"><span>확인 시점</span><strong>{primary.resolution}</strong></div> : null}
         <button type="button" className="command-desk-primary" onClick={() => primary ? onAction(primary) : onNextWeek()}>{primary?.label ?? props.nextLabel}<ArrowRight size={19} /></button>
         </div>
-        {artwork ? <figure className="command-desk-art"><img src={artwork.src} alt="" width="640" height="426" decoding="async" /><figcaption>{artwork.label}<span>분위기 삽화 · 실제 사건 기록 아님</span></figcaption></figure> : null}
+        {artwork ? <figure className="command-desk-art"><ArtworkViewer src={artwork.src} label={artwork.label} width={2048} height={1360} disclosure="분위기 삽화 · 실제 사건 기록 아님" note={props.year !== undefined && props.year >= 2035 ? '미래 환경의 상징적 표현' : undefined} /><figcaption>{artwork.label}<span>분위기 삽화 · 실제 사건 기록 아님</span>{props.year !== undefined && props.year >= 2035 ? <span>미래 환경의 상징적 표현</span> : null}</figcaption></figure> : null}
         </div>
         <div className="command-desk-paper-footer"><ShieldCheck size={16} /><span>{primary ? mandates[primary.tab].label : '결과 확인 후 진행'} · {role.title}의 업무</span></div>
       </section>

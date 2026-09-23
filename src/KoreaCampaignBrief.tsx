@@ -1,6 +1,8 @@
 import { ArrowRight, Building2, MapPinned, RadioTower, Shield } from 'lucide-react';
 import { getKoreaRoleGuide } from './koreaExperience';
 import type { CareerRole } from './types';
+import { GameIllustration } from './GameIllustration';
+import './GovernanceIllustrations.css';
 
 interface KoreaCampaignBriefProps {
   role: CareerRole;
@@ -11,10 +13,11 @@ export function KoreaCampaignBrief({ role }: KoreaCampaignBriefProps) {
 
   return (
     <section className="korea-setup-brief" aria-labelledby="korea-setup-title">
-      <header>
-        <span>1942 · CHONGQING TO KOREA</span>
+      <header className="governance-intro-row">
+        <div className="governance-intro-copy"><span>1942 · CHONGQING TO KOREA</span>
         <h2 id="korea-setup-title">충칭에서 시작해 조선으로 돌아갑니다</h2>
-        <p>플레이 본부와 해방할 본토가 서로 다릅니다. 아래 네 공간을 구분하면 첫 행동을 바로 결정할 수 있습니다.</p>
+        <p>플레이 본부와 해방할 본토가 서로 다릅니다. 아래 네 공간을 구분하면 첫 행동을 바로 결정할 수 있습니다.</p></div>
+        <div className="governance-illustration-slot"><GameIllustration scene="independence-network" year={1942} compact /></div>
       </header>
       <div className="korea-setup-geography">
         <div><Building2 size={15} /><span><small>플레이 본부</small><strong>충칭 · 대한민국 임시정부</strong></span></div>

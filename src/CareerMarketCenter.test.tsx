@@ -64,6 +64,8 @@ describe('CE7 international career desk', () => {
     const p = fixture(); const html = renderToStaticMarkup(<CareerMarketCenter {...p} initialView={initialView} />);
     expect(html).toContain('aria-current="page"'); expect(p.onRespond).not.toHaveBeenCalled(); expect(p.onApproach).not.toHaveBeenCalled();
     expect(p.onClandestineMissionResponse).not.toHaveBeenCalled();
+    expect(html.includes('data-game-illustration="recruitment-dossiers"')).toBe(initialView === 'inbox' || initialView === 'opportunities');
+    if (initialView === 'history' || initialView === 'clandestine') expect(html).not.toContain('data-game-illustration=');
   });
 
   it('supplies labelled mobile selectors, not a mandatory horizontally scrolling list', () => {

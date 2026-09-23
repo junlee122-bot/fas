@@ -1,10 +1,11 @@
 import type { Division, Faction, Order, Territory } from './types';
 import { validateLandRoute } from './mapRoutes';
+import { getSiteMilitaryAccess, type MilitaryAccessOperationalContext } from './militaryAccess';
 
 export const OFFENSIVE_COMMAND_COST = 5;
 
 export type OffensiveValidationCode = 'allowed' | 'missing-territory' | 'neutral-target' | 'friendly-target' | 'not-adjacent'
-  | 'sea-origin' | 'sea-target' | 'sea-crossing'
+  | 'sea-origin' | 'sea-target' | 'sea-crossing' | 'origin-access-denied'
   | 'not-at-origin' | 'missing-division' | 'not-war' | 'not-authorized' | 'not-ready' | 'already-ordered' | 'insufficient-command' | 'processing-week';
 
 export interface OffensiveValidation {
@@ -20,11 +21,16 @@ export interface OffensiveTargetContext {
   origin: Territory | undefined;
   target: Territory | undefined;
   playerFaction: Faction;
+  militaryAccess?: MilitaryAccessOperationalContext;
 }
 
 /** Shared by map highlighting, command review and weekly execution. */
-export function validateOffensiveTarget({ origin, target, playerFaction }: OffensiveTargetContext): OffensiveValidation {
+export function validateOffensiveTarget({ origin, target, playerFaction, militaryAccess }: OffensiveTargetContext): OffensiveValidation {
   if (!origin || !target) return deny('missing-territory', '출발지 또는 목표 지역을 확인할 수 없습니다.');
+  if (militaryAccess) {
+    const departure = getSiteMilitaryAccess(origin, 'offensive', militaryAccess);
+    if (!departure.allowed) return deny('origin-access-denied', departure.reason);
+  }
   if (target.controller === 'neutral') return deny('neutral-target', '중립 지역에는 직접 공세를 명령할 수 없습니다. 외교 상태를 먼저 확인하십시오.');
   if (target.controller === playerFaction) return deny('friendly-target', '이미 아군이 통제하는 지역입니다.');
   const routeValidation = validateLandRoute(origin, target);

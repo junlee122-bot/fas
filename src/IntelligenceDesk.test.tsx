@@ -1,6 +1,7 @@
 import { Children, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
+import { ArtworkViewer } from './ArtworkViewer';
 import { createCovertOperations, getNation, getRole, nations } from './campaign';
 import { createCareerMarketState } from './careerMarket';
 import { createClandestineCareerState } from './clandestineCareer';
@@ -22,6 +23,9 @@ function elements(node: ReactNode): ReactElement<Record<string, unknown>>[] {
   Children.forEach(node, (child) => {
     if (!isValidElement<Record<string, unknown>>(child)) return;
     result.push(child);
+    // Keep the hook-based, read-only viewer opaque to this command-handler walker.
+    // Its real React rendering is covered by SSR here and ArtworkViewer.test.tsx.
+    if (child.type === ArtworkViewer) return;
     if (typeof child.type === 'function') result.push(...elements((child.type as (props: Record<string, unknown>) => ReactNode)(child.props)));
     else result.push(...elements(child.props.children as ReactNode));
   });
@@ -49,6 +53,7 @@ describe('intelligence desk workspace presentation', () => {
     expect(html.includes('data-operation-id=')).toBe(workspace === 'planning');
     expect(html.includes('data-report-id=')).toBe(workspace === 'reports');
     expect(html.includes('data-organization-id=')).toBe(workspace === 'institutions');
+    expect(html.match(/data-game-illustration="clandestine-network"/g)).toHaveLength(1);
     expect(onSelectionChange).not.toHaveBeenCalled(); assertNoGameAction(props);
   });
 
@@ -61,6 +66,21 @@ describe('intelligence desk workspace presentation', () => {
     const selector = elements(tree).find((item) => item.type === 'select' && item.props.id === 'ids-operation-select')!;
     (selector.props.onChange as (event: unknown) => void)({ currentTarget: { value: props.operations[1].id } });
     expect(onSelectionChange).toHaveBeenCalledExactlyOnceWith({ operationId: props.operations[1].id }); assertNoGameAction(props);
+  });
+
+  it('keeps illustrations out of execution reviews and urgent personal incidents', () => {
+    const props = input();
+    const proposal = createIntelligenceProposal(props, props.operations[0].id)!;
+    const review = renderToStaticMarkup(present(props, { workspace: 'planning' }, proposal));
+    expect(review).not.toContain('data-game-illustration=');
+    props.careerMarket.clandestine = createClandestineCareerState({ homeNationId: 'britain', handlerNationId: 'usa', week: game.week, role: props.role, weeklyRetainer: 8 });
+    props.careerMarket.clandestine.incident = { id: 'art-test-incident', kind: 'internal-audit', openedWeek: game.week, title: '현재 방첩 사건', detail: '저장된 사건 검토', stakes: ['보안인가'] };
+    const before = JSON.stringify(props.careerMarket);
+    const urgent = renderToStaticMarkup(present(props));
+    expect(urgent).not.toContain('data-game-illustration=');
+    expect(urgent).toContain('긴급 방첩 위기 대응');
+    expect(JSON.stringify(props.careerMarket)).toBe(before);
+    assertNoGameAction(props);
   });
 
   it('renders one selected operation detail with a native mobile selector and focusable heading', () => {

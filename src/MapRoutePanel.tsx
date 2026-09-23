@@ -3,20 +3,22 @@ import { useState, type ReactNode } from 'react';
 import { classifyMapRoute } from './mapRoutes';
 import { validateOffensiveTarget } from './mapCommand';
 import { getStraitCrossing } from './straitCrossings';
+import type { MilitaryAccessOperationalContext } from './militaryAccess';
 import type { Division, Faction, Territory } from './types';
 
-export function getMapRouteChoices(origin: Territory, territories: Territory[], playerFaction: Faction) {
+export function getMapRouteChoices(origin: Territory, territories: Territory[], playerFaction: Faction, militaryAccess?: MilitaryAccessOperationalContext) {
   const byId = new Map(territories.map((territory) => [territory.id, territory]));
   return [...new Set(origin.neighbors)].flatMap((id) => {
     const target = byId.get(id);
     if (!target || target.id === origin.id) return [];
     const route = classifyMapRoute(origin, target);
-    const validation = validateOffensiveTarget({ origin, target, playerFaction });
+    const validation = validateOffensiveTarget({ origin, target, playerFaction, militaryAccess });
     return [{ target, route, validation }];
   });
 }
 
 interface Props {
+  militaryAccess?: MilitaryAccessOperationalContext;
   redeployment?: ReactNode;
   origin: Territory;
   territories: Territory[];
@@ -32,9 +34,9 @@ interface Props {
 }
 
 /** A route inspection never spends resources. Approval remains a separate step. */
-export function MapRoutePanel({ origin, territories, playerFaction, planning, divisionName, alternatives, onSelect, onInspect, onOpenJoint, onOpenTransport, onChangeDivision, redeployment }: Props) {
+export function MapRoutePanel({ origin, territories, playerFaction, planning, divisionName, alternatives, onSelect, onInspect, onOpenJoint, onOpenTransport, onChangeDivision, redeployment, militaryAccess }: Props) {
   const [expanded, setExpanded] = useState(planning);
-  const choices = getMapRouteChoices(origin, territories, playerFaction);
+  const choices = getMapRouteChoices(origin, territories, playerFaction, militaryAccess);
   const land = choices.filter((choice) => choice.route.kind === 'land');
   const sea = choices.filter((choice) => choice.route.kind !== 'land');
   const available = land.filter((choice) => choice.validation.allowed);

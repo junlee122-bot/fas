@@ -7,6 +7,8 @@ import type { CareerMarketState } from './careerMarket';
 import type { ResolvedIntelligenceOrganization } from './intelligenceHistory';
 import type { CareerRole, CovertOperation, GameState, GameTab, NationProfile, TheaterId, WarEvent, WarEventTrace } from './types';
 import './IntelligenceDesk.css';
+import { GameIllustration } from './GameIllustration';
+import './ManagementIllustrations.css';
 
 export interface IntelligenceDeskProps {
   game: GameState;
@@ -177,7 +179,7 @@ export function IntelligenceDeskView(props: IntelligenceDeskViewProps) {
   const authorized = canDirectIntelligence(props);
   const operationCost = getIntelligenceOperationCost(role);
   return <div className="intelligence-desk command-edition" data-intelligence-workspace={selection.workspace}>
-    <header className="ids-header"><div><span className="ids-eyebrow">{nation.code} INTELLIGENCE / 제{game.week + 1}주</span><h1>정보국</h1><p>{role.title} · {role.coverIdentity}</p></div><span className="ids-status">미완료 {pending.length} · 완료 표시 {completed.length}</span></header>
+    <header className="ids-header"><div className={!proposal && !props.careerMarket.clandestine?.incident ? 'management-art-heading' : undefined}><span className="ids-eyebrow">{nation.code} INTELLIGENCE / 제{game.week + 1}주</span><h1>정보국</h1><p>{role.title} · {role.coverIdentity}</p>{!proposal && !props.careerMarket.clandestine?.incident ? <div className="management-art-slot"><GameIllustration scene="clandestine-network" compact /></div> : null}</div><span className="ids-status">미완료 {pending.length} · 완료 표시 {completed.length}</span></header>
     {!authorized ? <p className="ids-authority"><ShieldCheck size={18} />현재 보직은 정보 공작을 직접 집행할 수 없습니다. 현황·계획과 역사 자료는 열람할 수 있습니다.</p> : null}
     {props.busy ? <p className="ids-authority">기간 진행 중 · 열람은 가능하지만 새 공작 확정은 잠시 중지됩니다.</p> : null}
     <nav className="ids-workspaces" aria-label="정보국 업무">{(Object.entries(workspaceLabels) as [IntelligenceWorkspace, string][]).map(([id, label]) => <button type="button" key={id} aria-pressed={selection.workspace === id} onClick={() => onSelectionChange({ workspace: id })}>{label}</button>)}</nav>

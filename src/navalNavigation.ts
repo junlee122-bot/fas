@@ -1,6 +1,8 @@
 import type { AirGroup, FleetKind, NavalTaskForce } from './jointOperations';
 import type { Territory } from './types';
 import { NAVAL_ROUTE_GEOMETRY_VERSION, refineNavalLeg } from './navalCorridors';
+import { getSiteMilitaryAccess } from './militaryAccess';
+import type { MilitaryAccessOperationalContext } from './militaryAccess';
 
 export interface NavalWaypoint {
   id: string;
@@ -455,17 +457,70 @@ export function hasFleetNavigationReservation(fleet: Pick<NavalTaskForce, 'navig
   return Boolean(fleet.navigation && fleet.navigation.mode !== 'in-port');
 }
 
-export function forecastFleetTransit(fleet: NavalTaskForce, destinationId: string, territories: readonly Territory[], week: number, missionRouteIds: readonly string[] = [], friendlyFaction?: 'allies' | 'axis'): FleetTransitForecast {
+/** Resolve the recorded base's controlling territory without granting any military rights. */
+export function getFleetBaseTerritory(fleet: NavalTaskForce, territories: readonly Territory[]): Territory | undefined {
+  const nav = fleet.navigation ?? createFleetNavigation(fleet);
+  return nav ? territories.find((territory) => territory.id === nav.homePort.territoryId) : undefined;
+}
+
+const legacyUnmodeledFleetBases: Readonly<Record<string, { nationId: MilitaryAccessOperationalContext['nationId']; portId: string }>> = {
+  'usa-fleet-1': { nationId: 'usa', portId: 'noumea' },
+  'usa-fleet-2': { nationId: 'usa', portId: 'norfolk' },
+  'freefrance-fleet-2': { nationId: 'freefrance', portId: 'douala' },
+};
+
+/** Preserve only three exact original off-map bases; this never creates a site or a treaty right. */
+export function getFleetBaseAccess(fleet: NavalTaskForce, territories: readonly Territory[], access: MilitaryAccessOperationalContext,
+  purpose: 'naval-base' | 'naval-departure' | 'offensive' = 'naval-base'): ReturnType<typeof getSiteMilitaryAccess> {
+  const site = getFleetBaseTerritory(fleet, territories);
+  if (site) return getSiteMilitaryAccess(site, purpose, access);
+  const original = legacyUnmodeledFleetBases[fleet.id];
+  const nav = fleet.navigation ?? createFleetNavigation(fleet);
+  const point = nav?.homePort;
+  const canonical = original ? portById.get(original.portId) : undefined;
+  if (original && access.nationId === original.nationId && point && canonical && validWeek(access.week)
+    && validWeek(access.state.lastAdvancedWeek) && access.state.lastAdvancedWeek <= access.week
+    && point.id === canonical.id && point.territoryId === canonical.territoryId && point.basin === canonical.basin
+    && point.latitude === canonical.latitude && point.longitude === canonical.longitude) {
+    return { allowed: true, source: 'coalition', reason: '미모델링 기존 모항의 초기 운용만 유지합니다. 지도 통제·소유권·외국 기지 사용권을 생성하지 않습니다.' };
+  }
+  return { allowed: false, source: 'denied', reason: '항구의 현재 통제 지역을 확인할 수 없습니다.' };
+}
+
+/** Permission is evaluated against the live controlling site, never encoded in a waypoint. */
+function getFleetPortAccess(point: NavalWaypoint, purpose: 'naval-base' | 'naval-departure', territories: readonly Territory[], week: number,
+  faction: 'allies' | 'axis', access?: MilitaryAccessOperationalContext, fleet?: NavalTaskForce): ReturnType<typeof getSiteMilitaryAccess> {
+  const site = territories.find((territory) => territory.id === point.territoryId);
+  if (access) {
+    if (site) return getSiteMilitaryAccess(site, purpose, { ...access, week });
+    const home = fleet?.navigation?.homePort ?? (fleet ? createFleetNavigation(fleet)?.homePort : undefined);
+    if (fleet && home && point.id === home.id && point.territoryId === home.territoryId && point.basin === home.basin
+      && point.latitude === home.latitude && point.longitude === home.longitude) {
+      return getFleetBaseAccess(fleet, territories, { ...access, week }, purpose);
+    }
+    return { allowed: false, reason: '항구의 현재 통제 지역을 확인할 수 없습니다.', source: 'denied' };
+  }
+  const allowed = !site || site.controller === faction;
+  return { allowed, reason: '모항이 우호 통제하에 있지 않아 급유·출항할 수 없습니다.', source: allowed ? 'coalition' : 'denied' };
+}
+
+function fleetFaction(fleet: NavalTaskForce, friendlyFaction?: 'allies' | 'axis', access?: MilitaryAccessOperationalContext): 'allies' | 'axis' {
+  const currentFaction = access?.playerFaction;
+  return (currentFaction === 'allies' || currentFaction === 'axis' ? currentFaction : undefined) ?? friendlyFaction ?? fleet.navigation?.faction
+    ?? (['germany', 'japan', 'italy'].includes(fleet.id.split('-fleet-')[0]) ? 'axis' : 'allies');
+}
+
+export function forecastFleetTransit(fleet: NavalTaskForce, destinationId: string, territories: readonly Territory[], week: number, missionRouteIds: readonly string[] = [], friendlyFaction?: 'allies' | 'axis', access?: MilitaryAccessOperationalContext): FleetTransitForecast {
   const blocked = (reason: string): FleetTransitForecast => ({ allowed: false, reason, arrivalWeeks: 0, distanceNm: 0, returnDistanceNm: 0, fuelCost: 0, route: [] });
   if (!validWeek(week)) return blocked('올바른 주간 날짜가 필요합니다.');
   const nav = fleet.navigation ?? createFleetNavigation(fleet);
   if (!nav) return blocked('함대 모항 좌표가 확인되지 않아 출항할 수 없습니다.');
   if (nav.mode !== 'in-port' || fleet.status !== 'ready' || fleet.assignmentId) return blocked('항해·배속·귀항·급유 중인 함대는 중복 출항할 수 없습니다.');
   if (fleet.ships < 1 || fleet.readiness < 30 || fleet.organization < 25) return blocked('함정 또는 준비태세가 부족합니다.');
-  const home = territories.find((territory) => territory.id === nav.homePort.territoryId);
-  const nation = fleet.id.split('-fleet-')[0];
-  const faction = friendlyFaction ?? nav.faction ?? (['germany', 'japan', 'italy'].includes(nation) ? 'axis' : 'allies');
-  if (home && home.controller !== faction) return blocked('모항이 우호 통제하에 있지 않아 급유·출항할 수 없습니다.');
+  const faction = fleetFaction(fleet, friendlyFaction, access);
+  const departure = getFleetPortAccess(nav.homePort, 'naval-departure', territories, week, faction, access, fleet);
+  if (!departure.allowed) return blocked(departure.reason);
+  if (departure.source === 'withdrawal') return blocked('철수 전용 기간에는 새 임무에 출항할 수 없습니다. 이용 가능한 항구로 기지를 이동하세요.');
   const destination = resolveNavalTerritoryPoint(destinationId, territories);
   if (!destination) return blocked('합류점의 해상 좌표가 아직 확인되지 않았습니다.');
   const route = routeFromFleetPosition(nav, destination);
@@ -487,36 +542,38 @@ export function forecastFleetTransit(fleet: NavalTaskForce, destinationId: strin
   arrivalWeeks, distanceNm, returnDistanceNm, fuelCost, route };
 }
 
-export function dispatchFleetTransit(fleet: NavalTaskForce, destinationId: string, territories: readonly Territory[], week: number, assignmentId: string, friendlyFaction?: 'allies' | 'axis'): NavalTaskForce {
-  const forecast = forecastFleetTransit(fleet, destinationId, territories, week, [], friendlyFaction);
+export function dispatchFleetTransit(fleet: NavalTaskForce, destinationId: string, territories: readonly Territory[], week: number, assignmentId: string, friendlyFaction?: 'allies' | 'axis', access?: MilitaryAccessOperationalContext): NavalTaskForce {
+  const forecast = forecastFleetTransit(fleet, destinationId, territories, week, [], friendlyFaction, access);
   if (!forecast.allowed || !assignmentId) return fleet;
   const nav = fleet.navigation ?? createFleetNavigation(fleet)!;
   return { ...fleet, status: 'assigned', assignmentId, location: `${nav.position.name} 출항`,
-    navigation: { ...nav, ...(friendlyFaction ? { faction: friendlyFaction } : {}), routeGeometryVersion: NAVAL_ROUTE_GEOMETRY_VERSION, mode: 'outbound', destination: forecast.route[forecast.route.length - 1], route: forecast.route,
+    navigation: { ...nav, ...(access || friendlyFaction ? { faction: fleetFaction(fleet, friendlyFaction, access) } : {}), routeGeometryVersion: NAVAL_ROUTE_GEOMETRY_VERSION, mode: 'outbound', destination: forecast.route[forecast.route.length - 1], route: forecast.route,
       distanceNm: forecast.distanceNm, traveledNm: 0, departedWeek: week, lastProcessedWeek: week,
       distanceThisWeekNm: 0, lastMessage: forecast.reason } };
 }
 
-export function beginFleetReturn(fleet: NavalTaskForce, week: number, territories: readonly Territory[] = [], friendlyFaction?: 'allies' | 'axis'): NavalTaskForce {
+export function beginFleetReturn(fleet: NavalTaskForce, week: number, territories: readonly Territory[] = [], friendlyFaction?: 'allies' | 'axis', access?: MilitaryAccessOperationalContext): NavalTaskForce {
   if (!validWeek(week)) return fleet;
   if (fleet.assignmentId && !['sea-', 'enemy-sea-', 'nav-return-'].some((prefix) => fleet.assignmentId!.startsWith(prefix))) return fleet;
   const originalNav = fleet.navigation ?? createFleetNavigation(fleet);
   if (!originalNav) return { ...fleet, status: 'refit', assignmentId: null };
   const nav = migrateFleetRouteGeometry(originalNav);
-  if (['returning', 'refueling'].includes(nav.mode)) return nav === originalNav ? fleet : { ...fleet, navigation: nav };
-  const home = territories.find((territory) => territory.id === nav.homePort.territoryId);
-  const nation = fleet.id.split('-fleet-')[0];
-  const faction = friendlyFaction ?? nav.faction ?? (['germany', 'japan', 'italy'].includes(nation) ? 'axis' : 'allies');
+  const faction = fleetFaction(fleet, friendlyFaction, access);
+  const safeHome = getFleetPortAccess(nav.homePort, 'naval-base', territories, week, faction, access, fleet).allowed;
+  if (['returning', 'refueling'].includes(nav.mode) && (!access || safeHome)) return nav === originalNav ? fleet : { ...fleet, navigation: nav };
   // A captured home port cannot be used as a magical refueling point.
-  const safeHome = !home || home.controller === faction;
-  const friendlyPorts = safeHome ? [] : territories.filter((territory) => territory.controller === faction && territory.siteType === 'port')
-    .map((territory) => resolveNavalTerritoryPoint(territory.id, territories)).filter((point): point is NavalWaypoint => Boolean(point));
+  const friendlyPorts = safeHome ? [] : territories.filter((territory) => territory.siteType === 'port')
+    .map((territory) => resolveNavalTerritoryPoint(territory.id, territories)).filter((point): point is NavalWaypoint => Boolean(point))
+    .filter((point) => getFleetPortAccess(point, 'naval-base', territories, week, faction, access).allowed);
   const candidates = (safeHome ? [nav.homePort] : friendlyPorts)
     .map((destination) => ({ destination, route: routeFromFleetPosition(nav, destination) }))
     .filter((candidate) => candidate.route.length > 0)
     .sort((a, b) => getNavalRouteDistance(a.route) - getNavalRouteDistance(b.route));
   const chosen = candidates[0];
-  if (!chosen) return { ...fleet, status: 'assigned', assignmentId: `nav-return-${fleet.id}`, navigation: { ...nav, mode: 'stranded', route: [], distanceNm: 0, traveledNm: 0, lastMessage: '현재 위치에서 이어지는 안전한 귀항 회랑을 확인할 수 없습니다. 항로 재검토가 필요합니다.' } };
+  if (!chosen) return { ...fleet, status: 'assigned', assignmentId: `nav-return-${fleet.id}`, navigation: { ...nav, mode: 'stranded',
+    ...(!access ? { route: [], distanceNm: 0, traveledNm: 0 } : {}),
+    ...(access ? { lastProcessedWeek: week, distanceThisWeekNm: nav.lastProcessedWeek === week ? nav.distanceThisWeekNm : 0 } : {}),
+    lastMessage: '현재 위치에서 이어지는 안전한 귀항 회랑을 확인할 수 없습니다. 항로 재검토가 필요합니다.' } };
   const { destination, route } = chosen;
   const distanceNm = Math.ceil(getNavalRouteDistance(route));
   return { ...fleet, status: 'assigned', assignmentId: `nav-return-${fleet.id}`, location: `${nav.position.name} → ${destination.name} 귀항`,
@@ -524,6 +581,36 @@ export function beginFleetReturn(fleet: NavalTaskForce, week: number, territorie
       homePort: destination, destination, route, distanceNm, traveledNm: 0, departedWeek: week, lastProcessedWeek: week,
       distanceThisWeekNm: nav.lastProcessedWeek === week ? nav.distanceThisWeekNm : 0, lastMessage: route.length && distanceNm <= nav.remainingRangeNm
         ? `${destination.name} 귀항 중 · 도착 후 1주 급유·점검. 다른 임무에 배속할 수 없습니다.` : '귀항 항속이 부족합니다. 구조·보급 지원이 필요합니다.' } };
+}
+
+/** A change of base is a reserved physical voyage; no fuel or position is granted at dispatch. */
+export function rebaseFleet(fleet: NavalTaskForce, targetId: string, territories: readonly Territory[], week: number,
+  access: MilitaryAccessOperationalContext): { allowed: boolean; reason: string; fleet?: NavalTaskForce } {
+  const blocked = (reason: string) => ({ allowed: false, reason });
+  if (!validWeek(week)) return blocked('올바른 주간 날짜가 필요합니다.');
+  const originalNav = fleet.navigation ?? createFleetNavigation(fleet);
+  if (!originalNav) return blocked('함대의 현재 항구 좌표를 확인할 수 없습니다.');
+  if (originalNav.mode !== 'in-port' || fleet.status !== 'ready' || fleet.assignmentId) return blocked('항해·배속·귀항·급유 중인 함대는 기지를 변경할 수 없습니다.');
+  if (fleet.ships < 1 || fleet.readiness < 30 || fleet.organization < 25) return blocked('함정 또는 준비태세가 부족합니다.');
+  const nav = migrateFleetRouteGeometry(originalNav);
+  const faction = fleetFaction(fleet, undefined, access);
+  const departure = getFleetPortAccess(nav.homePort, 'naval-departure', territories, week, faction, access, fleet);
+  if (!departure.allowed) return blocked(departure.reason);
+  const destination = resolveNavalTerritoryPoint(targetId, territories);
+  if (!destination) return blocked('새 기지의 해상 좌표를 확인할 수 없습니다.');
+  const entry = getFleetPortAccess(destination, 'naval-base', territories, week, faction, access);
+  if (!entry.allowed) return blocked(entry.reason);
+  if (nauticalDistance(nav.position, destination) < .01) return blocked('이미 해당 항구에 정박하고 있습니다.');
+  const route = routeFromFleetPosition(nav, destination);
+  if (!route.length) return blocked('새 기지까지 검증된 해상 회랑이 없습니다.');
+  const distanceNm = Math.ceil(getNavalRouteDistance(route));
+  if (distanceNm > nav.remainingRangeNm) return blocked('새 기지에 도착할 잔여 항속이 부족합니다.');
+  const reason = `${destination.name} 기지 이동 중 · 실제 도착 후 1주 급유·점검.`;
+  return { allowed: true, reason, fleet: { ...fleet, status: 'assigned', assignmentId: `nav-return-${fleet.id}`,
+    location: `${nav.position.name} → ${destination.name} 기지 이동`,
+    navigation: { ...nav, faction, routeGeometryVersion: NAVAL_ROUTE_GEOMETRY_VERSION, mode: 'returning',
+      homePort: destination, destination, route, distanceNm, traveledNm: 0, departedWeek: week, lastProcessedWeek: week,
+      distanceThisWeekNm: nav.lastProcessedWeek === week ? nav.distanceThisWeekNm : 0, refuelWeeks: 0, lastMessage: reason } } };
 }
 
 function pointAlongRoute(route: NavalWaypoint[], traveledNm: number): NavalWaypoint {
@@ -542,11 +629,16 @@ function pointAlongRoute(route: NavalWaypoint[], traveledNm: number): NavalWaypo
 }
 
 /** Exactly one logical week; a save loaded late does not skip transit/refueling. */
-export function advanceFleetNavigationWeek(fleet: NavalTaskForce, week: number): NavalTaskForce {
+export function advanceFleetNavigationWeek(fleet: NavalTaskForce, week: number, territories: readonly Territory[] = [], access?: MilitaryAccessOperationalContext): NavalTaskForce {
   const originalNav = fleet.navigation;
   if (!originalNav || !validWeek(week) || originalNav.lastProcessedWeek >= week || originalNav.mode === 'in-port') return fleet;
   const nav = migrateFleetRouteGeometry(originalNav);
   if (fleet.ships <= 0) return { ...fleet, status: 'refit', assignmentId: null, navigation: { ...nav, mode: 'stranded', lastProcessedWeek: week, lastMessage: '생존 함정이 없어 항해할 수 없습니다.' } };
+  // Recheck both arrival and refueling against live grants. Revocation never grants a free refill.
+  if (access && ['returning', 'refueling'].includes(nav.mode)
+    && !getFleetPortAccess(nav.homePort, 'naval-base', territories, week, fleetFaction(fleet, undefined, access), access, fleet).allowed) {
+    return beginFleetReturn({ ...fleet, navigation: nav }, week, territories, undefined, access);
+  }
   if (nav.mode === 'refueling') {
     const refuelWeeks = nav.refuelWeeks + 1;
     return { ...fleet, status: fleet.readiness >= 55 && fleet.organization >= 40 ? 'ready' : 'refit', assignmentId: null,
@@ -568,12 +660,15 @@ export function advanceFleetNavigationWeek(fleet: NavalTaskForce, week: number):
 }
 
 /** Convoy progress cannot teleport its escort or consume the same week's movement twice. */
-export function syncFleetEscortPosition(fleet: NavalTaskForce, territoryId: string, territories: readonly Territory[], week: number): NavalTaskForce {
+export function syncFleetEscortPosition(fleet: NavalTaskForce, territoryId: string, territories: readonly Territory[], week: number, access?: MilitaryAccessOperationalContext): NavalTaskForce {
   const originalNav = fleet.navigation;
   const destination = resolveNavalTerritoryPoint(territoryId, territories);
   if (!originalNav || originalNav.mode !== 'on-station' || !destination || !validWeek(week) || week < originalNav.lastProcessedWeek) return fleet;
   const nav = migrateFleetRouteGeometry(originalNav);
   if (nav.mode !== 'on-station') return { ...fleet, navigation: nav };
+  if (access && !getFleetPortAccess(nav.homePort, 'naval-base', territories, week, fleetFaction(fleet, undefined, access), access, fleet).allowed) {
+    return beginFleetReturn({ ...fleet, navigation: nav }, week, territories, undefined, access);
+  }
   // A stable territory ID does not imply a stable physical anchor: migrated
   // saves may still end at an older representative port coordinate. Reuse only
   // when both destination metadata and the recorded end agree with the target.
@@ -591,7 +686,7 @@ export function syncFleetEscortPosition(fleet: NavalTaskForce, territoryId: stri
   const used = nav.lastProcessedWeek === week ? nav.distanceThisWeekNm : 0;
   const returnRoute = buildNavalRoute(destination, nav.homePort);
   const returnDistance = returnRoute.length ? getNavalRouteDistance(returnRoute) : Infinity;
-  if (remainingDistance + returnDistance + 60 > nav.remainingRangeNm) return beginFleetReturn({ ...fleet, navigation: { ...nav, lastMessage: '귀항 예비 항속 확보를 위해 호위를 종료합니다.' } }, week, territories);
+  if (remainingDistance + returnDistance + 60 > nav.remainingRangeNm) return beginFleetReturn({ ...fleet, navigation: { ...nav, lastMessage: '귀항 예비 항속 확보를 위해 호위를 종료합니다.' } }, week, territories, undefined, access);
   const distance = Math.min(remainingDistance, Math.max(0, nav.cruiseKnots * 24 * 7 * .7 - used));
   const traveledNm = traveledBefore + distance;
   const position = pointAlongRoute(route, traveledNm);
@@ -628,6 +723,25 @@ const airBaseTerritoryIds: Record<string, string> = {
   '충칭': 'chongqing', '시안': 'xian', '쿤밍 연락로': 'yunnan', '비엣박': 'indochina', '자바': 'dutch_east_indies',
   '수마트라': 'sumatra', '호주·민다나오': 'darwin', '민다나오': 'mindanao',
 };
+
+/** Labels with multiple places retain the same explicit representative base used for range. */
+export function getAirBaseTerritory(airGroup: AirGroup, territories: readonly Territory[]): Territory | undefined {
+  const id = airBaseTerritoryIds[airGroup.base] ?? airGroup.base;
+  // The campaign/map catalogue calls the Chongqing controlling site china_interior.
+  return territories.find((territory) => territory.id === (id === 'chongqing' ? 'china_interior' : id));
+}
+
+/** Naval basing and land transit agreements do not grant air operations. */
+export function getAirBaseAccess(airGroup: AirGroup, territories: readonly Territory[], access: MilitaryAccessOperationalContext): ReturnType<typeof getSiteMilitaryAccess> {
+  const site = getAirBaseTerritory(airGroup, territories);
+  if (site) return getSiteMilitaryAccess(site, 'offensive', access);
+  if (airGroup.id === 'italy-air-2' && airGroup.base === '사르데냐' && access.nationId === 'italy'
+    && validWeek(access.week) && validWeek(access.state.lastAdvancedWeek) && access.state.lastAdvancedWeek <= access.week) {
+    return { allowed: true, source: 'coalition', reason: '미모델링 기존 기지의 초기 항공 운용만 유지합니다. 지도 통제·소유권·새 배치권을 생성하지 않습니다.' };
+  }
+  return { allowed: false, source: 'denied', reason: '항공기지의 현재 통제 지역을 확인할 수 없습니다.' };
+}
+
 /** Radius includes outbound/return and time on patrol; not maximum ferry range. */
 export function getAirPatrolCoverage(airGroup: AirGroup, routeIds: readonly string[], territories: readonly Territory[]) {
   const radiusNm = ({ maritime: 1100, recon: 550, bomber: 650, fighter: 260, mixed: 380, transport: 600 })[airGroup.kind];

@@ -1,0 +1,32 @@
+/* Engraved operational symbols. Preserve existing plates, tones and hit targets. */
+.game-icon.game-icon-v2 svg {
+  overflow: hidden;
+  filter: none;
+}
+
+.game-icon.game-icon-v2 .game-icon-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.game-icon.game-icon-v2 .game-icon-solid {
+  fill: currentColor;
+  stroke: none;
+}
+
+.game-icon.game-icon-v2.inline {
+  display: inline-grid;
+  vertical-align: middle;
+  margin-inline-end: 8px;
+}
+
+.game-icon.game-icon-v2.context-ink {
+  color: inherit;
+}
+
+@media (forced-colors: active) {
+  .game-icon.game-icon-v2 { color: currentColor; }
+}

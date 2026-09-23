@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { ArrowRight, Gavel, ScrollText } from 'lucide-react';
+import { ArrowRight, Gavel } from 'lucide-react';
 import {
   activateConstitutionalFounding, canNominateJudicialOffice, constitutionAxisLabels, constitutionClauses,
   getConstitutionContradictions, getConstitutionDraftProgress, getVacantJudicialOffices,
@@ -9,6 +9,9 @@ import {
   type ConstitutionalJudiciaryState, type JudicialOfficeId, type NominationDecisionId, type RatificationMethodId,
 } from './constitutionalJudiciary';
 import './ConstitutionalJudiciaryBoard.css';
+import { GameIllustration } from './GameIllustration';
+import { GameIcon } from './GameIcon';
+import './GovernanceIllustrations.css';
 
 export type ConstitutionalJudiciaryView = 'draft' | 'appointments' | 'procedure' | 'records';
 export interface ConstitutionalJudiciaryBoardProps {
@@ -236,7 +239,7 @@ export function ConstitutionalJudiciaryBoard({ compact = false, state, context, 
   const reviewButton = (label: string) => <><p className={proposed?.review ? 'cj-meta' : 'cj-warning'}>{proposed?.reason}</p><div className="cj-actions"><button type="button" className="cj-primary" disabled={!proposed?.review || busy} onClick={() => activeOrder && requestReview(activeOrder)}>{label}</button></div></>;
 
   return <section className={`nation-surface constitutional-judiciary-board ce5-constitution ${compact ? 'compact' : ''}`}>
-    <header className="cj-heading"><div><span className="cj-eyebrow"><ScrollText size={18} /> CONSTITUTION & JUDICIARY</span><h3>헌정·사법 집무실</h3><p>초안과 후보를 살펴보고, 비용과 절차를 검토한 뒤 승인하세요. 목록 선택만으로는 정치력이나 국고를 쓰지 않습니다.</p></div><div className="cj-status"><strong>{state.status === 'enacted' ? '헌법 시행 중' : state.status === 'drafting' ? `초안 ${progress}/7장` : '제헌권 대기'}</strong><small>제 {context.week + 1}주 · {context.role.title} · {context.role.tier}급</small><small>{formatMoney(context.treasury)} · 정치력 {amount(context.politicalPower)}</small></div></header>
+    <header className="cj-heading"><div><span className="cj-eyebrow"><GameIcon name="constitution" size={18} tone="gold" /> CONSTITUTION & JUDICIARY</span><h3>헌정·사법 집무실</h3><p>초안과 후보를 살펴보고, 비용과 절차를 검토한 뒤 승인하세요. 목록 선택만으로는 정치력이나 국고를 쓰지 않습니다.</p></div><div className="cj-status"><strong>{state.status === 'enacted' ? '헌법 시행 중' : state.status === 'drafting' ? `초안 ${progress}/7장` : '제헌권 대기'}</strong><small>제 {context.week + 1}주 · {context.role.title} · {context.role.tier}급</small><small>{formatMoney(context.treasury)} · 정치력 {amount(context.politicalPower)}</small></div>{!compact ? <div className="governance-illustration-slot"><GameIllustration scene="constitution-assembly" compact /></div> : null}</header>
     {nomination ? <div className="cj-callout"><strong>{nominationOffice?.name ?? '인사 절차'} · {nominationCandidate?.name ?? '후보 정보 확인 필요'}</strong><p>{nomination.stage === 'confirmation' ? '청문을 마쳤습니다. 인준·재검증·철회 중 다음 결정을 검토하세요.' : `진행 단계: ${nomination.stage === 'vetting' ? '신원·재산 검증' : '공개 청문'} · 제 ${nomination.nextReviewWeek + 1}주 주간 결산에서 다음 단계 확인`}</p>{view !== 'procedure' ? <div className="cj-actions"><button type="button" onClick={() => openProcedure('nomination')}>진행 중인 절차 보기 <ArrowRight size={16} /></button></div> : null}</div> : null}
     <nav className="cj-workviews" aria-label="헌정·사법 작업보기">{([['draft', '헌법 초안'], ['appointments', '사법 인사'], ['procedure', '절차 진행'], ['records', '기록']] as const).map(([id, label]) => <button type="button" key={id} aria-pressed={view === id} aria-controls={contentId} onClick={() => changeView(id)}>{label}</button>)}</nav>
     {busy ? <p className="cj-warning" role="status">주간 진행 중 · 열람은 가능하며 검토·승인은 결산 뒤 다시 열립니다.</p> : null}

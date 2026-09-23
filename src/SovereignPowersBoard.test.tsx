@@ -34,6 +34,15 @@ function props(monarchy = false, overrides: Partial<SovereignPowersBoardProps> =
 }
 
 describe('sovereign powers command desk', () => {
+  it.each([undefined, false, true])('does not add a nested illustration or exercise authority in compact=%s', (compact) => {
+    const p = props(false, { compact });
+    const before = JSON.stringify([p.state, p.context]);
+    const html = renderToStaticMarkup(<SovereignPowersBoard {...p} />);
+    expect(html.includes('data-game-illustration="constitution-assembly"')).toBe(!compact);
+    expect(html.match(/data-game-illustration=/g) ?? []).toHaveLength(compact ? 0 : 1);
+    expect(p.onExercise).not.toHaveBeenCalled();
+    expect(JSON.stringify([p.state, p.context])).toBe(before);
+  });
   it('keeps the quoted actor and week when live context changes', () => {
     const p = props();
     const review = createSovereignReview(p, 'promulgate-law', null).review!;

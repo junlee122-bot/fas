@@ -2,6 +2,7 @@ import cabinet from './assets/command-desk/politics-workroom.webp';
 import fieldCommand from './assets/command-desk/military-workroom.webp';
 import intelligence from './assets/command-desk/intelligence-workroom.webp';
 import type { CareerBranch } from './types';
+import { getGameArtwork } from './gameIllustrationCatalog';
 
 /** Higgsfield-generated atmosphere, not archival evidence or named-person portraits.
  * Original PNGs and production provenance are preserved under design/.
@@ -13,7 +14,10 @@ const artwork = {
 } satisfies Record<CareerBranch, { src: string; label: string }>;
 
 export function getCommandDeskArtwork(branch: CareerBranch, year?: number) {
-  // This first art set depicts the wartime era. Do not pretend it covers 2060.
-  if (year === undefined || !Number.isFinite(year) || year < 1936 || year > 1959) return null;
+  if (year === undefined || !Number.isFinite(year) || year < 1936 || year > 2060) return null;
+  if (year >= 1960) {
+    const later = getGameArtwork(year < 2000 ? 'postwar-command' : 'modern-command', year);
+    return later ? { src: later.src, label: later.label } : null;
+  }
   return artwork[branch];
 }

@@ -17,6 +17,9 @@ import {
 import type { EconomyState } from './economy';
 import type { NationManagementState } from './nationManagement';
 import type { CareerRole, GameState } from './types';
+import { GameIllustration } from './GameIllustration';
+import { PersonPortrait } from './PersonPortrait';
+import './GovernanceIllustrations.css';
 
 interface ElectionSituationRoomProps {
   state: ElectoralPoliticsState;
@@ -57,6 +60,7 @@ export function ElectionSituationRoom({ state, nation, game, economy, role, form
       <header>
         <div><span>선거·국민투표 상황실</span><h3>누가, 어디에서, 어떤 위임을 얻는가</h3></div>
         <small>{getExecutiveModelName(state.executiveModelId)} · {getVotingSystemName(state.votingSystemId)}<br />{electionEra.name}</small>
+        <div className="governance-illustration-slot"><GameIllustration scene="election-campaign" compact /></div>
       </header>
 
       <div className="election-system-strip">
@@ -98,7 +102,7 @@ export function ElectionSituationRoom({ state, nation, game, economy, role, form
                 return (
                   <article key={candidate.id} className={governing ? 'player' : ''} style={{ '--candidate-color': candidate.color } as CSSProperties}>
                     <div><span>{candidate.party}</span>{governing && <em>플레이 진영</em>}</div>
-                    <strong>{candidate.name}</strong>
+                    <div className="candidate-portrait-heading"><PersonPortrait name={candidate.name} player={governing} size="sm" /><strong>{candidate.name}</strong></div>
                     <small>{candidate.ideology} · {candidate.historicalOffice}</small>
                     <div className="candidate-momentum"><i style={{ width: `${Math.min(100, momentum)}%` }} /><b>{momentum.toFixed(1)}</b></div>
                     <p>연설 {candidate.charisma} · 조직 {candidate.organization} · 정책 {candidate.policy} · 청렴 {candidate.integrity}</p>

@@ -2,11 +2,13 @@ import { useId, useRef, useState } from 'react';
 import { nations } from './campaign';
 import { getCampaignDateForWeek } from './campaignCalendar';
 import { GameIcon } from './GameIcon';
+import { GameIllustration } from './GameIllustration';
 import { getTerritoryGeography } from './territoryGeography';
 import { forecastTreatyConsent, getTreatySiteController, getTreatyTerms, reviewTreatyAction } from './territorialTreaties';
 import type { TerritorialTreaty, TreatyAction, TreatyConsentMethod, TreatyContext, TreatyReview, TreatyState, TreatyTerms } from './territorialTreaties';
 import type { NationId, Territory } from './types';
 import './TerritorialTreatyBoard.css';
+import './GovernanceIllustrations.css';
 
 export interface TerritorialTreatyBoardProps {
   state: TreatyState;
@@ -256,7 +258,7 @@ export function TerritorialTreatyBoard(props: TerritorialTreatyBoardProps) {
   const updateTerms = (patch: Partial<TreatyTerms>) => { setTerms((current) => ({ ...current, ...patch })); clearReview(); };
 
   return <section className="territorial-treaty-board" aria-labelledby={`${id}-heading`}>
-    <header className="treaty-heading"><div><span className="treaty-eyebrow">{nationName} · 외교 문서실</span><h2 id={`${id}-heading`}>거점 귀속 조약</h2><p>제안과 비준, 현지 인계는 서로 다른 기록입니다.</p></div><span className="treaty-date">{formatTerritorialTreatyWeek(context.week)}</span></header>
+    <header className="treaty-heading"><div><span className="treaty-eyebrow"><GameIcon name="treaty" size={18} tone="gold" className="inline" />{nationName} · 외교 문서실</span><h2 id={`${id}-heading`}>거점 귀속 조약</h2><p>제안과 비준, 현지 인계는 서로 다른 기록입니다.</p></div><span className="treaty-date">{formatTerritorialTreatyWeek(context.week)}</span><div className="governance-illustration-slot"><GameIllustration scene="territorial-administration" compact /></div></header>
     <p className="treaty-authority">{authorityNote}</p>
     <p className="treaty-required-consent">현재 필수 동의 절차: {consentLabels[context.requiredConsent ?? 'none']} · 주민투표는 지역대표 심의 요건을 충족하지만, 지역대표 심의는 주민투표 요건을 대신하지 못합니다.</p>
     <p className="treaty-scope">당사국 간 한 거점의 귀속 합의를 다룹니다. 국제사회 전체의 주권 승인이나 국경선 변경을 뜻하지 않으며, 병력은 자동 이동하지 않습니다.</p>
@@ -304,7 +306,7 @@ export function TerritorialTreatyBoard(props: TerritorialTreatyBoardProps) {
     </div>
 
     <section className="treaty-proposal" aria-labelledby={`${id}-proposal-heading`}>
-      <header><GameIcon name="report" size={22} tone="steel" /><div><h3 id={`${id}-proposal-heading`}>새 조약안 작성</h3><p>게임에 등록된 수도·중심 거점과 해역을 제외한 육상 거점 한 곳만 선택합니다.</p></div></header>
+      <header><GameIcon name="treaty" size={22} tone="steel" /><div><h3 id={`${id}-proposal-heading`}>새 조약안 작성</h3><p>게임에 등록된 수도·중심 거점과 해역을 제외한 육상 거점 한 곳만 선택합니다.</p></div></header>
       <div className="treaty-form-fields">
         <label htmlFor={`${id}-name`}>조약 문서 이름<input id={`${id}-name`} maxLength={80} placeholder="예: 평양 거점 귀속 합의" value={name} disabled={Boolean(busy) || !context.canNegotiate} onChange={(event) => { setName(event.target.value); clearReview(); }} /></label>
         <label htmlFor={`${id}-partner`}>상대국<select id={`${id}-partner`} value={partner?.id ?? ''} disabled={Boolean(busy) || !context.canNegotiate} onChange={(event) => choosePartner(event.target.value)}><option value="" disabled>외교 관계국을 선택하세요</option>{partners.map((relation) => <option key={relation.id} value={relation.id}>{nationNames.get(relation.id as NationId)} · 관계 {metric(relation.value)}</option>)}</select></label>

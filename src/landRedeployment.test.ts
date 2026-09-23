@@ -5,6 +5,9 @@ import { resolveLandOrdersWeek } from './landOperations';
 import type { SeaTransportContext, SeaTransportPlan } from './seaTransport';
 import type { JointForcesState } from './jointOperations';
 import type { Commander, Territory } from './types';
+import { createMapPoliticalLedger } from './mapPoliticalLedger';
+import { createMilitaryAccessState, type MilitaryAccessAgreement } from './militaryAccess';
+import { validateOffensiveCommand } from './mapCommand';
 
 const site = (id: string, overrides: Partial<Territory> = {}): Territory => ({
   id, name: id, region: '시험 전구', x: 0, y: 0, controller: 'allies', value: 5,
@@ -23,6 +26,61 @@ function context(): SeaTransportContext {
   };
 }
 const commanders = [{ id: 'commander', name: '시험 지휘관' }] as Commander[];
+
+function accessContext(agreement: Partial<MilitaryAccessAgreement> = {}): SeaTransportContext {
+  const input = context();
+  input.territories = input.territories.map((territory) => ({ ...territory, ownerId: territory.id === 'liverpool' ? 'germany' : 'britain', controller: territory.id === 'liverpool' ? 'axis' : 'allies' }));
+  input.militaryAccess = { state: { ...createMilitaryAccessState(8), agreements: [{ id: 'transit', hostNationId: 'germany', beneficiaryNationId: 'britain', proposerNationId: 'britain', territoryId: 'liverpool', kind: 'transit', durationWeeks: 13,
+    status: 'active', proposedWeek: 0, responseDueWeek: 2, activatedWeek: 2, expiresWeek: 15, reason: '시험 통행 협정', ...agreement }] },
+    nationId: 'britain', playerFaction: 'allies', week: 8, control: createMapPoliticalLedger(input.territories, 0) };
+  return input;
+}
+function resolveAccessOrder(input: SeaTransportContext, order: NonNullable<ReturnType<typeof approveLandRedeployment>['order']>) {
+  return resolveLandOrdersWeek({ week: input.week + 1, orders: [order], divisions: [...input.divisions], territories: [...input.territories], commanders, playerFaction: input.playerFaction,
+    stance: 'balanced', doctrine: 'maneuver', enemyPressure: 50, intelNetwork: 50, policyAttackBonus: 0, priorityDivisionId: null, militaryAccess: input.militaryAccess,
+    random: () => { throw new Error('Access movement must not attack'); } });
+}
+
+describe('military access land integration', () => {
+  it('approves and executes foreign transit without capture, supply, resource, or input mutation', () => {
+    const input = accessContext(); const before = structuredClone(input);
+    const approved = approveLandRedeployment(createSeaTransportState(), plan, input);
+    expect(approved.accepted).toBe(true);
+    const resolved = resolveAccessOrder(input, approved.order!);
+    expect(resolved.entries[0]).toMatchObject({ kind: 'move', target: { id: 'liverpool', ownerId: 'germany', controller: 'axis', supply: 80 } });
+    expect(resolved.orders).toEqual([]);
+    expect(input).toEqual(before);
+  });
+  it.each(['notice', 'expired', 'revoked'] as const)('rechecks %s access at execution instead of attacking or moving', (status) => {
+    const input = accessContext(); const order = approveLandRedeployment(createSeaTransportState(), plan, input).order!;
+    input.militaryAccess!.state.agreements[0] = { ...input.militaryAccess!.state.agreements[0], status, closedWeek: 9, expiresWeek: status === 'expired' ? 9 : 15 };
+    const result = resolveAccessOrder(input, order);
+    expect(result.entries[0].kind).toBe('invalid');
+    expect(input.divisions[0].territoryId).toBe('britain');
+  });
+  it('does not treat a naval base agreement as land transit', () => {
+    expect(forecastLandRedeployment(createSeaTransportState(), plan, accessContext({ kind: 'naval-base' })).accepted).toBe(false);
+  });
+  it('allows departure during the withdrawal period only toward an accessible adjacent site', () => {
+    const input = accessContext({ status: 'notice', closedWeek: 8 });
+    input.divisions = input.divisions.map((division) => ({ ...division, territoryId: 'liverpool' }));
+    const withdrawal = { ...plan, fromId: 'liverpool', targetId: 'britain' };
+    const approved = approveLandRedeployment(createSeaTransportState(), withdrawal, input);
+    expect(approved.accepted).toBe(true);
+    expect(resolveAccessOrder(input, approved.order!).entries[0].kind).toBe('move');
+    input.week = 10;
+    expect(forecastLandRedeployment(createSeaTransportState(), withdrawal, input).accepted).toBe(false);
+  });
+  it('blocks offensive departure at approval and execution despite a friendly foreign origin', () => {
+    const input = accessContext({ hostNationId: 'freefrance', territoryId: 'britain' });
+    input.territories = input.territories.map((territory) => territory.id === 'britain' ? { ...territory, ownerId: 'freefrance' } : territory);
+    input.militaryAccess!.control = createMapPoliticalLedger(input.territories, 0);
+    const origin = input.territories[0]; const target = input.territories[1];
+    expect(validateOffensiveCommand({ origin, target, division: input.divisions[0], playerFaction: input.playerFaction, phase: 'war', commandableDivisionIds: input.commandableDivisionIds, orders: [], commandPoints: 100, militaryAccess: input.militaryAccess }).code).toBe('origin-access-denied');
+    const legacyOrder = approveLandRedeployment(createSeaTransportState(), plan, context()).order!;
+    expect(resolveAccessOrder(input, { ...legacyOrder, intent: undefined }).entries[0].kind).toBe('invalid');
+  });
+});
 
 describe('adjacent friendly land redeployment approval', () => {
   it.each(['axis', 'neutral'] as const)('does not turn a redeployment into an attack after destination changes to %s', (controller) => {

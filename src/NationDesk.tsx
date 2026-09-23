@@ -3,8 +3,10 @@ import { ArrowRight, Check, FileText, Minus, Plus, RotateCcw } from 'lucide-reac
 import { getActiveNationAgenda, getStructuralPressureLever, nationBudgetDefinitions, rebalanceNationBudget } from './nationManagement';
 import type { CampaignPhase, NationBudgetDomain, NationManagementState } from './nationManagement';
 import { getRoleTabMandates } from './roleMandate';
+import { GameIllustration } from './GameIllustration';
 import type { CareerRole, GameState, NationProfile } from './types';
 import type { EconomyState } from './economy';
+import './GovernanceIllustrations.css';
 
 export type NationDeskView = 'overview' | 'transition' | 'agenda' | 'strategy' | 'pressure' | 'simulation' | 'budget' | 'institutions' | 'constitution' | 'sovereign' | 'justice' | 'dynasty' | 'elections' | 'power' | 'saga' | 'socialist' | 'personal' | 'media' | 'continuity' | 'records';
 export interface NationDeskSection { id: string; label: string; items: Array<{ id: NationDeskView; label: string }> }
@@ -51,7 +53,7 @@ export function NationDeskOverview({ phase, state, game, economy, nation, readin
   const report = state.reports[0];
   return <div className="nation-desk-overview" aria-label="이번 주 국정 요약">
     <div className="nation-desk-focus-grid"><section className="nation-desk-priority" aria-labelledby="nation-desk-priority-title">
-      <span className="nation-desk-eyebrow">01 / 이번 주 정책 결정</span><h2 id="nation-desk-priority-title">{title}</h2><p>{detail}</p>
+      <div className="governance-intro-row"><div><span className="nation-desk-eyebrow">01 / 이번 주 정책 결정</span><h2 id="nation-desk-priority-title">{title}</h2><p>{detail}</p></div><div className="governance-illustration-slot"><GameIllustration scene="national-reconstruction" compact /></div></div>
       <dl><div><dt>예상 영향</dt><dd>{war ? '국경·국고·부채·생산·인물·외교를 이어받는 전후 초기 조건' : agenda ? '선택지별 대표권·투자·중앙 집행의 효과와 부담을 비교' : lever?.expectedEffect ?? '배분 변화가 공공서비스·고용·재정에 반영'}</dd></div>
         <div><dt>검증 시점</dt><dd>{war ? '전환 승인 때 계승 확인 · 이후 주간 국정 결산' : agenda ? '의제 선택 직후 효과 확인 · 제' + (agenda.expiresWeek + 1) + '주까지 결론' : lever ? lever.verificationWeeks + '주 뒤 지표와 실제 결산 비교' : '다음 주 실제 국정 결산'}</dd></div></dl>
       <button type="button" onClick={() => onViewChange(destination)}>{war ? '전환 조건 검토' : agenda ? '정책 선택지 검토' : '대응 정책 검토'}<ArrowRight size={18} /></button>

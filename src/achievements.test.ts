@@ -137,6 +137,51 @@ describe('achievement engine', () => {
     expect(result['prepared-state'].complete).toBe(true);
   });
 
+  it.each([
+    { name: 'exact thresholds', preparedness: 80, surveillance: 80, medicalCapacity: 80, investments: 3, complete: true },
+    { name: 'preparedness below 80', preparedness: 79.99, surveillance: 80, medicalCapacity: 80, investments: 3, complete: false },
+    { name: 'surveillance below 80', preparedness: 80, surveillance: 79.99, medicalCapacity: 80, investments: 3, complete: false },
+    { name: 'medical capacity below 80', preparedness: 80, surveillance: 80, medicalCapacity: 79.99, investments: 3, complete: false },
+    { name: 'only two investments', preparedness: 80, surveillance: 80, medicalCapacity: 80, investments: 2, complete: false },
+  ])('requires every prepared-state gate: $name', ({ preparedness, surveillance, medicalCapacity, investments, complete }) => {
+    const snapshot = createSnapshot();
+    const completedInvestments: AchievementSnapshot['publicHealth']['completedInvestments'] = ['laboratory-network', 'field-hospitals', 'protective-stockpile'];
+    snapshot.publicHealth = {
+      ...snapshot.publicHealth,
+      preparedness,
+      surveillance,
+      medicalCapacity,
+      completedInvestments: completedInvestments.slice(0, investments),
+      history: [],
+    };
+    const before = structuredClone(snapshot);
+
+    const result = evaluateAchievements(snapshot);
+
+    expect(result['prepared-state']).toMatchObject({ complete, current: complete ? 6 : 5, target: 6 });
+    expect(result['epidemic-contained'].complete).toBe(false);
+    expect(snapshot).toEqual(before);
+  });
+
+  it.each([null, 'managed', 'catastrophic'] as const)('does not infer epidemic containment from high readiness with %s history', (outcome) => {
+    const snapshot = createSnapshot();
+    snapshot.publicHealth = {
+      ...snapshot.publicHealth,
+      preparedness: 100,
+      surveillance: 100,
+      medicalCapacity: 100,
+      completedInvestments: ['laboratory-network', 'field-hospitals', 'protective-stockpile'],
+      history: outcome === null ? [] : [{ id: 'h1', templateId: 'influenza', codeName: 'H1', detectedWeek: 4, resolvedWeek: 12, cases: 1000, deaths: 8, outcome }],
+    };
+    const before = structuredClone(snapshot);
+
+    const result = evaluateAchievements(snapshot);
+
+    expect(result['prepared-state'].complete).toBe(true);
+    expect(result['epidemic-contained']).toMatchObject({ complete: false, current: 0, target: 1 });
+    expect(snapshot).toEqual(before);
+  });
+
   it('recognizes a successful postwar state and long peace', () => {
     const snapshot = createSnapshot();
     snapshot.campaignPhase = 'nation';
@@ -166,6 +211,32 @@ describe('achievement engine', () => {
     expect(result['renewed-mandate'].complete).toBe(true);
     expect(result['league-of-many'].complete).toBe(true);
     expect(result['long-peace'].complete).toBe(true);
+  });
+
+  it.each([
+    { name: 'exact thresholds in nation phase', phase: 'nation', civilianIndustry: 65, employment: 65, infrastructure: 60, complete: true },
+    { name: 'war phase despite ready indicators', phase: 'war', civilianIndustry: 65, employment: 65, infrastructure: 60, complete: false },
+    { name: 'civilian industry below 65', phase: 'nation', civilianIndustry: 64.99, employment: 65, infrastructure: 60, complete: false },
+    { name: 'employment below 65', phase: 'nation', civilianIndustry: 65, employment: 64.99, infrastructure: 60, complete: false },
+    { name: 'infrastructure below 60', phase: 'nation', civilianIndustry: 65, employment: 65, infrastructure: 59.99, complete: false },
+  ] as const)('requires every peace-dividend gate without inferring victory: $name', ({ phase, civilianIndustry, employment, infrastructure, complete }) => {
+    const snapshot = createSnapshot();
+    snapshot.campaignPhase = phase;
+    snapshot.game.victoryScore = 100;
+    snapshot.nationManagement = {
+      ...snapshot.nationManagement,
+      civilianIndustry,
+      employment,
+      infrastructure,
+    };
+    const before = structuredClone(snapshot);
+
+    const result = evaluateAchievements(snapshot);
+
+    expect(result['peace-dividend']).toMatchObject({ complete, current: complete ? 4 : 3, target: 4 });
+    expect(result['war-ended'].complete).toBe(false);
+    expect(snapshot.campaignOutcome).toBeNull();
+    expect(snapshot).toEqual(before);
   });
 
   it('normalizes imported unlock records and removes duplicates', () => {

@@ -21,6 +21,17 @@ const policyOrder: PublicHealthOrder = { kind: 'policy', id: 'suppression' };
 const investmentOrder: PublicHealthOrder = { kind: 'investment', id: 'laboratory-network' };
 
 describe('public health direct-engine projections', () => {
+  it.each([true, false])('keeps public-care art symbolic with active outbreak=%s', (active) => {
+    const props = fixture(active);
+    const before = JSON.stringify(props.state);
+    const html = renderToStaticMarkup(<PublicHealthCenter {...props} />);
+    expect(html).toContain('data-game-illustration="civilian-relief"');
+    expect(html).toContain('상징 삽화 · 실제 기록 아님');
+    expect(JSON.stringify(props.state)).toBe(before);
+    expect(props.onPolicyChange).not.toHaveBeenCalled();
+    expect(props.onInvestment).not.toHaveBeenCalled();
+  });
+
   it.each(publicHealthPolicies.map((policy) => policy.id))('projects %s from the existing weekly engine without changing the original state', (policyId) => {
     const props = fixture();
     const state = deepFreeze({ ...props.state, policyId });

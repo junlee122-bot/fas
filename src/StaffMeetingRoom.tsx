@@ -1,10 +1,14 @@
 import { useId, useRef, useState } from 'react';
+import { GameIllustration } from './GameIllustration';
+import { PersonPortrait } from './PersonPortrait';
+import './ManagementIllustrations.css';
 import type { KeyboardEvent } from 'react';
 import { Archive, CalendarClock, FileCheck2, FileText, LockKeyhole, UsersRound } from 'lucide-react';
 import { deriveStaffMeetingAgenda, deriveStaffMeetingHistory, deriveStaffMeetingPreview } from './staffMeeting';
 import type { StaffMeetingContext, StaffMeetingEvidence, StaffMeetingPreview } from './staffMeeting';
 import { getStaffMorale, getStaffRoleSatisfaction } from './staffManagement';
 import './StaffMeetingRoom.css';
+import './StaffPortraits.css';
 
 export interface StaffMeetingRoomProps extends StaffMeetingContext {
   onResolve: (storylineId: string, choiceId: string) => boolean;
@@ -109,12 +113,12 @@ export function StaffMeetingRoom(props: StaffMeetingRoomProps) {
           </select>
         </label>
         {agenda.story ? <>
-          <div className="staff-meeting-case-heading"><span>{agenda.story.stage === 'public' ? '공개 위험 단계' : agenda.story.stage === 'cabinet' ? '각료 조정 단계' : '내부 검토 단계'} · 제{agenda.story.createdWeek + 1}주 발생</span><h3>{agenda.story.title}</h3><p>{agenda.story.summary}</p></div>
+          <div className={`staff-meeting-case-heading ${view === 'agenda' && !review ? 'management-art-heading' : ''}`}><span>{agenda.story.stage === 'public' ? '공개 위험 단계' : agenda.story.stage === 'cabinet' ? '각료 조정 단계' : '내부 검토 단계'} · 제{agenda.story.createdWeek + 1}주 발생</span><h3>{agenda.story.title}</h3><p>{agenda.story.summary}</p>{view === 'agenda' && !review ? <div className="management-art-slot"><GameIllustration scene="staff-council" compact /></div> : null}</div>
           <div className="staff-meeting-layout">
             <div className="staff-meeting-chamber">
               <div className="staff-meeting-seats" aria-label="현재 확인된 실제 참가자">
                 {agenda.participants.map(({ member, manageable, identityNote, opinion }, index) => <article className="staff-meeting-seat" key={member.id}>
-                  <span className="staff-meeting-avatar" aria-hidden="true"><UsersRound size={27} /><b>{index + 1}</b></span>
+                  <span className="staff-meeting-avatar"><PersonPortrait personId={member.personId} name={member.name} player={member.id === 'player' || member.personId === 'player'} size="md" className="staff-portrait staff-portrait--meeting" /><b aria-hidden="true">{index + 1}</b></span>
                   <div><small>당사자 {index + 1} · {manageable ? '직접 관리 범위' : '관련 부서 인사'}</small><h4>{member.name}</h4><p>{member.role}</p></div>
                   <p className="staff-meeting-person-state">사기 {effectValue(getStaffMorale(member))} · 역할 만족 {effectValue(getStaffRoleSatisfaction(member))} · 업무량 {effectValue(member.workload)}</p>
                   <div className="staff-meeting-opinion"><small>게임 상황에 맞춘 재구성 의견 · 역사적 인용 아님</small><p>{opinion}</p></div>
@@ -122,7 +126,7 @@ export function StaffMeetingRoom(props: StaffMeetingRoomProps) {
                 </article>)}
               </div>
               <div className="staff-meeting-table" aria-hidden="true"><span><FileText size={29} /> 검토 자료</span><i /><i /></div>
-              <p className="staff-meeting-note">회의 배치 모식도 · 원본 현안의 재직 당사자만 표시 · 별도의 참석 보상 없음</p>
+              <p className="staff-meeting-note">회의 배치 모식도 · 원본 현안의 재직 당사자만 표시 · 별도의 참석 보상 없음. 인물 식별용 AI 재구성 초상 · 실제 사진 아님. 등록된 초상이 없는 인물은 이름 머리글자로 표시합니다.</p>
             </div>
             <div className="staff-meeting-dossier">
               {agenda.evidence ? <MeetingEvidence evidence={agenda.evidence} /> : null}

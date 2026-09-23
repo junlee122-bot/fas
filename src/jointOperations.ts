@@ -1,6 +1,7 @@
-import type { GameState, NationId, TheaterId } from './types';
-import { createFleetNavigation, hasFleetNavigationReservation, normalizeFleetNavigation } from './navalNavigation';
+import type { GameState, NationId, Territory, TheaterId } from './types';
+import { beginFleetReturn, createFleetNavigation, getAirBaseTerritory, getFleetBaseAccess, hasFleetNavigationReservation, normalizeFleetNavigation } from './navalNavigation';
 import type { FleetNavigationState } from './navalNavigation';
+import { getSiteMilitaryAccess, type MilitaryAccessOperationalContext } from './militaryAccess';
 
 export type FleetKind = 'carrier' | 'surface' | 'escort' | 'submarine' | 'coastal' | 'clandestine';
 export type AirGroupKind = 'fighter' | 'bomber' | 'maritime' | 'transport' | 'recon' | 'mixed';
@@ -206,6 +207,8 @@ export interface JointOperationContext {
   week: number;
   theater: TheaterId;
   game: Pick<GameState, 'airPower' | 'navalPower' | 'intelNetwork' | 'enemyPressure'>;
+  territories?: readonly Territory[];
+  militaryAccess?: MilitaryAccessOperationalContext;
 }
 
 export interface JointOperationForecast {
@@ -732,6 +735,22 @@ function distributeFormationLosses<T extends { id: string; assignmentId: string 
   return allocated;
 }
 
+/** Basing is not attack permission, and naval agreements never authorize aircraft. */
+function jointDepartureWarning(kind: JointOperationKind, fleets: readonly NavalTaskForce[], airGroups: readonly AirGroup[], context: JointOperationContext): string | null {
+  if (!context.militaryAccess) return null;
+  const access = { ...context.militaryAccess, week: context.week };
+  for (const fleet of fleets) {
+    const decision = getFleetBaseAccess(fleet, context.territories ?? [], access, kind === 'convoy-escort' ? 'naval-departure' : 'offensive');
+    if (!decision.allowed || decision.source === 'withdrawal') return `${fleet.name}: ${decision.source === 'withdrawal' ? '철수 기간에는 새 임무를 시작할 수 없습니다.' : decision.reason}`;
+  }
+  for (const group of airGroups) {
+    const site = getAirBaseTerritory(group, context.territories ?? []);
+    const decision = getSiteMilitaryAccess(site, 'offensive', access);
+    if (!decision.allowed) return `${group.name}: ${decision.reason} 육군 통행·해군 기지 협정은 공군 운용을 허용하지 않습니다.`;
+  }
+  return null;
+}
+
 export function forecastJointOperation(
   state: JointForcesState,
   templateId: string,
@@ -760,6 +779,8 @@ export function forecastJointOperation(
   else if ([...fleets, ...airGroups].some((unit) => unit.status !== 'ready' || hasForceReservation(unit))
     || state.operations.some((operation) => operation.fleetIds.some((id) => fleetIds.includes(id)) || operation.airGroupIds.some((id) => airGroupIds.includes(id)))) warning = '선택 전력 중 다른 임무에 배속됐거나 재편 중인 부대가 있습니다.';
   else if (!objective) warning = '현재 전구에서 이 작전에 맞는 목표 구역을 찾을 수 없습니다.';
+  else if (context.militaryAccess && state.nationId !== context.militaryAccess.nationId) warning = '현재 국가와 합동전력의 사용권 기록이 일치하지 않습니다.';
+  else warning = jointDepartureWarning(template.kind, fleets, airGroups, context);
 
   const forceReadiness = [...fleets.map((unit) => (unit.readiness + unit.organization + unit.experience) / 3), ...airGroups.map((unit) => (unit.readiness + unit.serviceability + unit.experience) / 3)];
   const averageReadiness = forceReadiness.length > 0 ? forceReadiness.reduce((sum, value) => sum + value, 0) / forceReadiness.length : 35;
@@ -1130,10 +1151,21 @@ export function advanceJointOperationsWeek(state: JointForcesState, context: Joi
   let seaShift = 0;
   let intelShift = 0;
 
-  const planned = planOpponentOperation(state.opponent, state.operations, state.objectives, context);
+  const blocked = new Map<string, string>();
+  if (context.militaryAccess) {
+    for (const operation of state.operations) {
+      const reason = state.nationId !== context.militaryAccess.nationId ? '현재 국가와 합동전력의 사용권 기록이 일치하지 않습니다.'
+        : jointDepartureWarning(operation.kind,
+          state.fleets.filter((unit) => operation.fleetIds.includes(unit.id) && belongsToOperation(unit, operation.id)),
+          state.airGroups.filter((unit) => operation.airGroupIds.includes(unit.id) && belongsToOperation(unit, operation.id)), context);
+      if (reason) blocked.set(operation.id, reason);
+    }
+  }
+
+  const planned = planOpponentOperation(state.opponent, state.operations.filter((operation) => !blocked.has(operation.id)), state.objectives, context);
   let opponent = planned.opponent;
   if (planned.event) events.push(planned.event);
-  const reconActive = state.operations.some((operation) => operation.kind === 'reconnaissance' && operation.theater === context.theater);
+  const reconActive = state.operations.some((operation) => !blocked.has(operation.id) && operation.kind === 'reconnaissance' && operation.theater === context.theater);
   opponent = {
     ...opponent,
     operations: opponent.operations.map((operation) => {
@@ -1156,6 +1188,7 @@ export function advanceJointOperationsWeek(state: JointForcesState, context: Joi
   const enemyEngagementEffect = new Map<string, number>();
   const forcedDetection = new Set<string>();
   state.operations.forEach((playerOperation) => {
+    if (blocked.has(playerOperation.id)) return;
     const playerStrength = getOperationStrength(playerOperation, state.fleets, state.airGroups);
     if (playerStrength <= 0) return;
     const candidates = opponent.operations.filter((enemyOperation) => enemyOperation.theater === playerOperation.theater
@@ -1231,6 +1264,17 @@ export function advanceJointOperationsWeek(state: JointForcesState, context: Joi
   const engagedEnemyAirGroups = opponent.airGroups.map((unit) => ({ ...unit, aircraft: availableCount(unit.aircraft) - (engagementEnemyAirLosses.get(unit.id) ?? 0) }));
 
   const nextOperations = state.operations.map((operation) => {
+    const accessReason = blocked.get(operation.id);
+    if (accessReason) {
+      completedIds.add(operation.id);
+      const result = `기지·출격 권한을 다시 확인하여 임무를 중단했습니다. ${accessReason}`;
+      const worldEffect = '추가 교전·전과·표적 변화·환급 없이 기존 위치·손실·비용을 유지합니다. 함대는 사용 가능한 기지로 실제 귀환합니다.';
+      records.push({ id: `record-${operation.id}`, templateId: operation.templateId, name: operation.name, theater: operation.theater,
+        startedWeek: operation.startedWeek, endedWeek: context.week, outcome: 'setback', losses: '권한 종료에 따른 추가 전투 손실 없음', result, worldEffect,
+        objectiveId: operation.objectiveId, objectiveName: operation.objectiveName, finalForceStrength: getOperationStrength(operation, state.fleets, state.airGroups) });
+      events.push({ title: `사용권 종료 — ${operation.name}`, detail: result, worldEffect, tone: 'neutral', operationId: operation.id, resolved: true, side: 'player' });
+      return operation;
+    }
     const template = jointOperationTemplates.find((item) => item.id === operation.templateId);
     if (!template) return operation;
     const fleets = engagedFleets.filter((unit) => operation.fleetIds.includes(unit.id) && belongsToOperation(unit, operation.id));
@@ -1383,7 +1427,7 @@ export function advanceJointOperationsWeek(state: JointForcesState, context: Joi
   let nextObjectives = state.objectives;
   const resolvedRecords = records.map((record) => {
     const operation = state.operations.find((item) => item.id === record.id.replace('record-', ''));
-    if (!operation) return record;
+    if (!operation || blocked.has(operation.id)) return record;
     const applied = applyCampaignObjectiveOutcome(nextObjectives, operation, record.outcome === 'success', 'player', context.week, getOperationStrength(operation, engagedFleets, engagedAirGroups));
     nextObjectives = applied.objectives;
     return { ...record, campaignChanges: applied.changes };
@@ -1402,18 +1446,22 @@ export function advanceJointOperationsWeek(state: JointForcesState, context: Joi
   const finalAirLosses = distributeFormationLosses(state.airGroups, playerAirLosses, (unit) => unit.aircraft);
   const nextFleets = state.fleets.map((unit) => {
     if (unit.assignmentId && !ownedOperationIds.has(unit.assignmentId)) return unit;
+    if (unit.assignmentId && blocked.has(unit.assignmentId)) return beginFleetReturn({ ...unit, assignmentId: null }, context.week, context.territories ?? [], undefined, context.militaryAccess);
     const wasCompleted = unit.assignmentId ? completedIds.has(unit.assignmentId) : false;
     const shipLoss = engagementFleetLosses.get(unit.id) ?? 0;
     if (activeFleetIds.has(unit.id)) return { ...unit, ships: Math.max(0, unit.ships - shipLoss), readiness: clamp(unit.readiness - 2), organization: clamp(unit.organization - 1) };
     if (hasForceReservation(unit) && !wasCompleted) return unit;
+    if (jointDepartureWarning('convoy-escort', [unit], [], context)) return beginFleetReturn({ ...unit, assignmentId: null }, context.week, context.territories ?? [], undefined, context.militaryAccess);
     return recoverUnassignedFleet({ ...unit, ships: Math.max(0, unit.ships - shipLoss) }, wasCompleted);
   });
   const nextAirGroups = state.airGroups.map((unit) => {
     if (unit.assignmentId && !ownedOperationIds.has(unit.assignmentId)) return unit;
+    if (unit.assignmentId && blocked.has(unit.assignmentId)) return { ...unit, status: 'refit' as const, assignmentId: null };
     const wasCompleted = unit.assignmentId ? completedIds.has(unit.assignmentId) : false;
     const unitLoss = finalAirLosses.get(unit.id) ?? 0;
     if (activeAirIds.has(unit.id)) return { ...unit, aircraft: Math.max(0, unit.aircraft - unitLoss), readiness: clamp(unit.readiness - 3), serviceability: clamp(unit.serviceability - 2) };
     if (hasForceReservation(unit) && !wasCompleted) return unit;
+    if (jointDepartureWarning('reconnaissance', [], [unit], context)) return { ...unit, status: 'refit' as const, assignmentId: null };
     return recoverUnassignedAirGroup({ ...unit, aircraft: Math.max(0, unit.aircraft - unitLoss) }, wasCompleted);
   });
   const activeEnemyFleetIds = new Set(nextEnemyOperations.flatMap((operation) => operation.fleetIds));
@@ -1516,17 +1564,22 @@ function recoverUnassignedAirGroup(unit: AirGroup, wasCompleted = false): AirGro
 }
 
 /** National-week maintenance only; no enemy planning, combat, stocks or mission progress. */
-export function recoverPeacetimeJointForces(state: JointForcesState): JointForcesState {
+export function recoverPeacetimeJointForces(state: JointForcesState, context?: JointOperationContext): JointForcesState {
   const assignedFleetIds = new Set(state.operations.flatMap((operation) => operation.fleetIds));
   const assignedAirIds = new Set(state.operations.flatMap((operation) => operation.airGroupIds));
   return { ...state,
-    fleets: state.fleets.map((unit) => hasForceReservation(unit) || assignedFleetIds.has(unit.id) ? unit : recoverUnassignedFleet(unit)),
-    airGroups: state.airGroups.map((unit) => hasForceReservation(unit) || assignedAirIds.has(unit.id) ? unit : recoverUnassignedAirGroup(unit)),
+    fleets: state.fleets.map((unit) => {
+      if (hasForceReservation(unit) || assignedFleetIds.has(unit.id)) return unit;
+      if (context && jointDepartureWarning('convoy-escort', [unit], [], context)) return beginFleetReturn(unit, context.week, context.territories ?? [], undefined, context.militaryAccess);
+      return recoverUnassignedFleet(unit);
+    }),
+    airGroups: state.airGroups.map((unit) => hasForceReservation(unit) || assignedAirIds.has(unit.id)
+      || (context && jointDepartureWarning('reconnaissance', [], [unit], context)) ? unit : recoverUnassignedAirGroup(unit)),
   };
 }
 
 /** Call after ordinary peacetime maintenance: a just-returned force must not heal in the same week. */
-export function standDownJointOperationsForPeace(state: JointForcesState, week: number): { state: JointForcesState; events: JointOperationEvent[] } {
+export function standDownJointOperationsForPeace(state: JointForcesState, week: number, context?: JointOperationContext): { state: JointForcesState; events: JointOperationEvent[] } {
   if (!Number.isInteger(week) || week < 0) return { state, events: [] };
   const operations = state.operations.filter((operation) => operation.startedWeek <= week);
   if (!operations.length) return { state, events: [] };
@@ -1551,7 +1604,9 @@ export function standDownJointOperationsForPeace(state: JointForcesState, week: 
   const release = <T extends NavalTaskForce | AirGroup>(unit: T): T => unit.assignmentId && endedIds.has(unit.assignmentId)
     ? { ...unit, status: 'refit', assignmentId: null } : unit;
   return {
-    state: { ...state, fleets: state.fleets.map(release), airGroups: state.airGroups.map(release),
+    state: { ...state, fleets: state.fleets.map((fleet) => fleet.assignmentId && endedIds.has(fleet.assignmentId) && context?.militaryAccess
+      ? beginFleetReturn({ ...fleet, assignmentId: null }, week, context.territories ?? [], undefined, context.militaryAccess)
+      : release(fleet)), airGroups: state.airGroups.map(release),
       operations: state.operations.filter((operation) => !endedIds.has(operation.id)),
       records: [...state.records, ...records].slice(-40),
       commandMessages: [...state.commandMessages.map((message) => endedIds.has(message.operationId) && message.status === 'pending'

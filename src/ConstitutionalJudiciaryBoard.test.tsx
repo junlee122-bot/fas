@@ -40,6 +40,21 @@ function callbackCount(input: ConstitutionalJudiciaryBoardProps) {
 const clauseOrder: ConstitutionalOrder = { kind: 'clause', id: clauseIds[0] };
 
 describe('constitutional review uses actual action results without settlement', () => {
+  it('shows the constitutional emblem independently of a pending or enacted constitution', () => {
+    const p = props(createConstitutionalJudiciaryState('korea'));
+    const html = renderToStaticMarkup(<ConstitutionalJudiciaryBoard {...p} />);
+    expect(html).toContain('data-game-icon="constitution"');
+    expect(callbackCount(p)).toBe(0);
+  });
+  it.each([undefined, false, true])('keeps the institutional illustration optional in compact=%s without executing a decision', (compact) => {
+    const p = props();
+    const before = JSON.stringify([p.state, p.context]);
+    const html = renderToStaticMarkup(<ConstitutionalJudiciaryBoard {...p} compact={compact} />);
+    expect(html.includes('data-game-illustration="constitution-assembly"')).toBe(!compact);
+    expect(html.match(/data-game-illustration=/g) ?? []).toHaveLength(compact ? 0 : 1);
+    expect(callbackCount(p)).toBe(0);
+    expect(JSON.stringify([p.state, p.context])).toBe(before);
+  });
   it('quotes free founding without calling an external action or mutating input', () => {
     const input = props(createConstitutionalJudiciaryState('korea'));
     freeze(input.state); freeze(input.context);

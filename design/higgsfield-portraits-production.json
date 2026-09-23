@@ -1,0 +1,428 @@
+{
+  "date": "2026-09-18",
+  "provider": "Higgsfield MCP",
+  "status": "22-completed-2-provider-blocked",
+  "creditsBefore": 136,
+  "estimatedCredits": 72,
+  "actualCredits": 66,
+  "creditsAfter": 70,
+  "referenceNotice": "AI 재구성 초상 · 실제 사진 아님 · 1940년대 참고 외형",
+  "constraints": [
+    "Not every character is illustrated; missing portraits retain monograms",
+    "Do not map an incumbent portrait to player identity",
+    "Exact identity and name aliases only; no faction/office inference",
+    "Provider blocked Hitler and Gandhi; neither retried nor substituted",
+    "No archival photographs uploaded to generation provider; visual research only",
+    "Original PNG and 2048px lossless WebP retained"
+  ],
+  "requests": [
+    {
+      "index": 1,
+      "id": "churchill",
+      "name": "윈스턴 처칠",
+      "englishName": "Winston Churchill",
+      "personId": "britain-churchill",
+      "appearance": "Rounded face, receding thin hair, bow tie and dark civilian suit, about 1942.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Winston Churchill (윈스턴 처칠). Rounded face, receding thin hair, bow tie and dark civilian suit, about 1942."
+      }
+    },
+    {
+      "index": 2,
+      "id": "roosevelt",
+      "name": "프랭클린 D. 루스벨트",
+      "englishName": "Franklin D. Roosevelt",
+      "personId": "usa-roosevelt",
+      "appearance": "Long face, swept-back thinning hair, clean shaven, dark civilian suit and tie, about 1942. No cigarette.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Franklin D. Roosevelt (프랭클린 D. 루스벨트). Long face, swept-back thinning hair, clean shaven, dark civilian suit and tie, about 1942. No cigarette."
+      }
+    },
+    {
+      "index": 3,
+      "id": "stalin",
+      "name": "이오시프 스탈린",
+      "englishName": "Joseph Stalin",
+      "personId": "ussr-stalin",
+      "appearance": "Thick dark moustache, swept-back greying hair, simple plain high-collared jacket, about 1942.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Joseph Stalin (이오시프 스탈린). Thick dark moustache, swept-back greying hair, simple plain high-collared jacket, about 1942."
+      }
+    },
+    {
+      "index": 4,
+      "id": "hitler",
+      "name": "아돌프 히틀러",
+      "englishName": "Adolf Hitler",
+      "personId": "germany-hitler",
+      "appearance": "Side-parted dark hair and small central moustache, dark civilian jacket and tie, about 1942. Neutral historical dossier, no armbands, symbols, salutes or glorification.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Adolf Hitler (아돌프 히틀러). Side-parted dark hair and small central moustache, dark civilian jacket and tie, about 1942. Neutral historical dossier, no armbands, symbols, salutes or glorification."
+      }
+    },
+    {
+      "index": 5,
+      "id": "tojo",
+      "name": "도조 히데키",
+      "englishName": "Hideki Tojo",
+      "personId": "japan-tojo",
+      "appearance": "Receding hair, small round spectacles and neat moustache, simple civilian suit, about 1942. No insignia, medals or glorification.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Hideki Tojo (도조 히데키). Receding hair, small round spectacles and neat moustache, simple civilian suit, about 1942. No insignia, medals or glorification."
+      }
+    },
+    {
+      "index": 6,
+      "id": "chiang",
+      "name": "장제스",
+      "englishName": "Chiang Kai-shek",
+      "personId": "china-chiang",
+      "appearance": "Closely shaved head, small neat moustache, plain dark high-collared civilian tunic, about 1942.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Chiang Kai-shek (장제스). Closely shaved head, small neat moustache, plain dark high-collared civilian tunic, about 1942."
+      }
+    },
+    {
+      "index": 7,
+      "id": "gandhi",
+      "name": "모한다스 K. 간디",
+      "englishName": "Mohandas K. Gandhi",
+      "personId": "india-gandhi",
+      "appearance": "Bald, round wire spectacles, slim face, simple ivory cotton shawl, about 1942.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Mohandas K. Gandhi (모한다스 K. 간디). Bald, round wire spectacles, slim face, simple ivory cotton shawl, about 1942."
+      }
+    },
+    {
+      "index": 8,
+      "id": "de-gaulle",
+      "name": "샤를 드골",
+      "englishName": "Charles de Gaulle",
+      "personId": "freefrance-de-gaulle",
+      "appearance": "Long prominent nose, narrow face, short dark hair, plain muted khaki jacket without rank or decorations, about 1942.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Charles de Gaulle (샤를 드골). Long prominent nose, narrow face, short dark hair, plain muted khaki jacket without rank or decorations, about 1942."
+      }
+    },
+    {
+      "index": 9,
+      "id": "mussolini",
+      "name": "베니토 무솔리니",
+      "englishName": "Benito Mussolini",
+      "personId": "italy-mussolini",
+      "appearance": "Broad head, receding closely cropped hair, strong jaw, plain civilian suit and tie, about 1942. Neutral archive-like dossier, no symbols, salutes or glorification.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Benito Mussolini (베니토 무솔리니). Broad head, receding closely cropped hair, strong jaw, plain civilian suit and tie, about 1942. Neutral archive-like dossier, no symbols, salutes or glorification."
+      }
+    },
+    {
+      "index": 10,
+      "id": "kim-gu",
+      "name": "김구",
+      "englishName": "Kim Gu",
+      "personId": "korea-kim-gu",
+      "appearance": "Korean independence leader in his mid-sixties, round spectacles, short neatly parted grey-black hair, pale traditional Korean jacket, restrained dignified neutral expression, circa 1942.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Kim Gu (김구). Korean independence leader in his mid-sixties, round spectacles, short neatly parted grey-black hair, pale traditional Korean jacket, restrained dignified neutral expression, circa 1942."
+      }
+    },
+    {
+      "index": 11,
+      "id": "ho-chi-minh",
+      "name": "호찌민",
+      "englishName": "Ho Chi Minh",
+      "personId": "vietnam-ho-chi-minh",
+      "appearance": "Lean face, high forehead, wispy narrow beard and moustache, simple faded high-collared jacket, circa 1945, not the extremely aged late-life appearance.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Ho Chi Minh (호찌민). Lean face, high forehead, wispy narrow beard and moustache, simple faded high-collared jacket, circa 1945, not the extremely aged late-life appearance."
+      }
+    },
+    {
+      "index": 12,
+      "id": "sukarno",
+      "name": "수카르노",
+      "englishName": "Sukarno",
+      "personId": "indonesia-sukarno",
+      "appearance": "Indonesian leader in early forties, black peci cap, clean shaven, white civilian jacket, circa 1945.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Sukarno (수카르노). Indonesian leader in early forties, black peci cap, clean shaven, white civilian jacket, circa 1945."
+      }
+    },
+    {
+      "index": 13,
+      "id": "quezon",
+      "name": "마누엘 케손",
+      "englishName": "Manuel L. Quezon",
+      "personId": "philippines-manuel-quezon",
+      "appearance": "Filipino leader in early sixties, neatly combed back grey hair, clean shaven, light civilian suit and dark tie, circa 1942.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Manuel L. Quezon (마누엘 케손). Filipino leader in early sixties, neatly combed back grey hair, clean shaven, light civilian suit and dark tie, circa 1942."
+      }
+    },
+    {
+      "index": 14,
+      "id": "montgomery",
+      "name": "버나드 몽고메리",
+      "englishName": "Bernard Montgomery",
+      "personId": "britain-montgomery",
+      "appearance": "Lean angular British face, clean shaven, dark plain beret and khaki pullover with collared shirt, circa 1942; no invented badges or medals.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Bernard Montgomery (버나드 몽고메리). Lean angular British face, clean shaven, dark plain beret and khaki pullover with collared shirt, circa 1942; no invented badges or medals."
+      }
+    },
+    {
+      "index": 15,
+      "id": "brooke",
+      "name": "앨런 브룩",
+      "englishName": "Alan Brooke",
+      "personId": "britain-brooke",
+      "appearance": "Long narrow face, receding grey hair, trim moustache, plain olive jacket and tie, circa 1942; no invented rank insignia.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Alan Brooke (앨런 브룩). Long narrow face, receding grey hair, trim moustache, plain olive jacket and tie, circa 1942; no invented rank insignia."
+      }
+    },
+    {
+      "index": 16,
+      "id": "turing",
+      "name": "앨런 튜링",
+      "englishName": "Alan Turing",
+      "personId": "uk-alan-turing",
+      "appearance": "English mathematician aged about thirty, youthful clean-shaven oval face, short dark side-parted hair, simple dark civilian jacket and open white shirt, circa 1942.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Alan Turing (앨런 튜링). English mathematician aged about thirty, youthful clean-shaven oval face, short dark side-parted hair, simple dark civilian jacket and open white shirt, circa 1942. This is the real Alan Turing, not an actor portraying him."
+      }
+    },
+    {
+      "index": 17,
+      "id": "keynes",
+      "name": "존 메이너드 케인스",
+      "englishName": "John Maynard Keynes",
+      "personId": "uk-john-maynard-keynes",
+      "appearance": "Long face with heavy upper eyelids, neat narrow moustache, receding grey hair, civilian suit and tie, about 1944.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: John Maynard Keynes (존 메이너드 케인스). Long face with heavy upper eyelids, neat narrow moustache, receding grey hair, civilian suit and tie, about 1944."
+      }
+    },
+    {
+      "index": 18,
+      "id": "eisenhower",
+      "name": "드와이트 D. 아이젠하워",
+      "englishName": "Dwight D. Eisenhower",
+      "personId": "usa-eisenhower",
+      "appearance": "Broad open face, receding short hair, clean shaven, plain olive collared jacket without visible insignia, about 1944.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Dwight D. Eisenhower (드와이트 D. 아이젠하워). Broad open face, receding short hair, clean shaven, plain olive collared jacket without visible insignia, about 1944."
+      }
+    },
+    {
+      "index": 19,
+      "id": "einstein",
+      "name": "알베르트 아인슈타인",
+      "englishName": "Albert Einstein",
+      "personId": "us-albert-einstein",
+      "appearance": "Broad forehead, naturally untidy white hair and full white moustache, simple wool cardigan over light shirt, about 1942. No tongue-out caricature.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Albert Einstein (알베르트 아인슈타인). Broad forehead, naturally untidy white hair and full white moustache, simple wool cardigan over light shirt, about 1942. No tongue-out caricature."
+      }
+    },
+    {
+      "index": 20,
+      "id": "oppenheimer",
+      "name": "J. 로버트 오펜하이머",
+      "englishName": "J. Robert Oppenheimer",
+      "personId": "us-oppenheimer",
+      "appearance": "Very slim angular face, high forehead, dark short hair, clean shaven, plain civilian suit and tie, about 1944. No hat, no cigarette.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: J. Robert Oppenheimer (J. 로버트 오펜하이머). Very slim angular face, high forehead, dark short hair, clean shaven, plain civilian suit and tie, about 1944. No hat, no cigarette. This is the actual J. Robert Oppenheimer, not a modern actor portraying him."
+      }
+    },
+    {
+      "index": 21,
+      "id": "kim-won-bong",
+      "name": "김원봉",
+      "englishName": "Kim Won-bong",
+      "personId": "korea-kim-won-bong",
+      "appearance": "Korean independence activist aged about forty-four in 1942, short dense upright flat-topped dark hair, broad strong eyebrows, angular clean-shaven face, plain dark high-collared jacket. Distinct from elderly Kim Gu and from any modern film actor. Use the actual historical Kim Won-bong's likeness.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Kim Won-bong (김원봉). Korean independence activist aged about forty-four in 1942, short dense upright flat-topped dark hair, broad strong eyebrows, angular clean-shaven face, plain dark high-collared jacket. Distinct from elderly Kim Gu and from any modern film actor. Use the actual historical Kim Won-bong's likeness."
+      }
+    },
+    {
+      "index": 22,
+      "id": "ji-cheong-cheon",
+      "name": "지청천",
+      "englishName": "Ji Cheong-cheon",
+      "personId": "korea-ji-cheong-cheon",
+      "appearance": "Korean independence military leader in his mid-fifties: balding high forehead with very short hair at sides, round dark wire spectacles, a small neat moustache, broad cheekbones, plain khaki high-collared tunic without insignia or medals. Use the actual historical Ji Cheong-cheon, also called Lee Cheong-cheon, circa 1942 reference era.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Ji Cheong-cheon (지청천). Korean independence military leader in his mid-fifties: balding high forehead with very short hair at sides, round dark wire spectacles, a small neat moustache, broad cheekbones, plain khaki high-collared tunic without insignia or medals. Use the actual historical Ji Cheong-cheon, also called Lee Cheong-cheon, circa 1942 reference era."
+      }
+    },
+    {
+      "index": 23,
+      "id": "lee-beom-seok",
+      "name": "이범석",
+      "englishName": "Yi Beom-seok",
+      "personId": "korea-lee-beom-seok",
+      "appearance": "Korean independence military leader Yi Beom-seok born in 1900, aged about forty-two in 1942, round dark spectacles, neat small moustache, firm angular face, plain khaki tunic and simple unbadged field cap. Based on his Korean Liberation Army era, not the later diplomat born in 1925. No invented insignia or medals.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Yi Beom-seok (이범석). Korean independence military leader Yi Beom-seok born in 1900, aged about forty-two in 1942, round dark spectacles, neat small moustache, firm angular face, plain khaki tunic and simple unbadged field cap. Based on his Korean Liberation Army era, not the later diplomat born in 1925. No invented insignia or medals."
+      }
+    },
+    {
+      "index": 24,
+      "id": "mao",
+      "name": "마오쩌둥",
+      "englishName": "Mao Zedong",
+      "personId": "mao",
+      "appearance": "Chinese politician in his late forties, high forehead, characteristic central-part swept hair, plain grey high-collared tunic, about 1942, not elderly late-life appearance.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Create one square illustrated historical character portrait for IRON DOMINION, an alternate-history desktop strategy game. Restrained hand-painted oil and gouache on matte paper, coherent charcoal-blue and muted olive background, warm ivory skin lighting, quiet neutral expression, natural human imperfections. Head and upper shoulders, eyes near upper 40 percent, frontal to slight three-quarter view, both eyes clear; generous breathing room above head and at sides. Recognizable named historical adult's facial likeness at the specified reference era; not a photograph, not a photorealistic reconstruction claim, not a fantasy hero. No dramatic rim glow, no glossy 3D, no airbrushed beauty filter, no game card frame, no text, no logos, no flags, no emblems, no medals, no hand gestures, no extra people. Portrait must stay readable at 40 pixels. Respectful but unsentimental documentary editorial tone, equally neutral for every political faction.\n\nSubject: Mao Zedong (마오쩌둥). Chinese politician in his late forties, high forehead, characteristic central-part swept hair, plain grey high-collared tunic, about 1942, not elderly late-life appearance."
+      }
+    }
+  ]
+}

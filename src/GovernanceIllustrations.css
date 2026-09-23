@@ -1,0 +1,18 @@
+/* Supporting art is confined to the owning screen's introduction, never its records or approval controls. */
+.governance-illustration-slot,
+.game-shell.design-v2 .deck-content .governance-illustration-slot.governance-illustration-slot { width: var(--support-art-size,132px); max-width: var(--support-art-size,132px); min-width: 0; flex: 0 0 var(--support-art-size,132px); align-self: center; margin: 0; padding: 0; }
+.governance-intro-row { display: grid; grid-template-columns: minmax(0, 1fr) var(--support-art-size,132px); align-items: start; gap: 16px; width: 100%; min-width: 0; }
+.governance-intro-row > div { min-width: 0; }
+.governance-illustration-slot .game-illustration > figcaption > span,
+.game-shell.design-v2 .deck-content .governance-illustration-slot .game-illustration > figcaption > span { font-size: 12px; line-height: 1.5; letter-spacing: normal; text-transform: none; color: inherit; }
+.game-shell.design-v2 .deck-content .nation-desk-priority .governance-illustration-slot .game-illustration > figcaption { color: #4c5d68; }
+.korea-setup-brief .governance-intro-copy > span { font: 650 6px var(--font-data); color: #85b8c0; letter-spacing: .13em; }
+.civilian-vocation-note > .governance-illustration-slot { margin-left: auto; }
+@media (min-width: 901px) {
+  .game-shell.design-v2 .deck-content .ce5-constitution .cj-heading:has(> .governance-illustration-slot) { grid-template-columns: minmax(0, 1fr) minmax(180px, .35fr) var(--support-art-size,132px); }
+}
+@media (max-width: 680px) {
+  .governance-intro-row { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .governance-intro-row > .governance-illustration-slot { justify-self: end; }
+  .civilian-vocation-note:has(> .governance-illustration-slot) { flex-wrap: wrap; }
+}

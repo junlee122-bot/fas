@@ -45,6 +45,14 @@ function button(html: string, label: string) {
 }
 
 describe('OrganizationPanel Command Edition workspace contract', () => {
+  it.each(['squad', 'market'] as const)('shows one workspace still life in %s without changing personnel or issuing commands', (workspace) => {
+    const html = render({ ...fixture(), workspace });
+    expect(html.match(/data-game-illustration=/g)).toHaveLength(1);
+    expect(html).toContain(`data-game-illustration="${workspace === 'market' ? 'recruitment-dossiers' : 'staff-council'}"`);
+    expect(html).toContain('인물 식별용 AI 재구성 초상 · 실제 사진 아님');
+    expect(html).toContain('내 국제 경력');
+  });
+
   it('defaults to a current-person squad with exactly one detailed dossier, not all planning boards', () => {
     const props = fixture();
     const html = render(props);
@@ -57,7 +65,9 @@ describe('OrganizationPanel Command Edition workspace contract', () => {
     expect(html).not.toContain('class="staff-responsibility-board"');
     expect(html).not.toContain('class="staff-dynamics-board"');
     expect(html).not.toContain('role="table"');
-    expect(html).not.toContain('<img');
+    expect(html.match(/data-game-illustration="staff-council"/g)).toHaveLength(1);
+    expect(html.match(/data-person-portrait=/g)).toHaveLength(props.staff.length + 1);
+    expect(html).toContain(`alt="${props.staff[0].name} · AI 재구성 초상 · 실제 사진 아님"`);
     expect(html.indexOf('class="org-squad-layout"')).toBeLessThan(html.indexOf('org-authority-disclosure'));
     expect(html.indexOf('class="org-squad-layout"')).toBeLessThan(html.indexOf('org-briefing-disclosure'));
     expect(button(html, '명단·개인 관리')).toContain('aria-pressed="true"');
@@ -74,6 +84,27 @@ describe('OrganizationPanel Command Edition workspace contract', () => {
     expect(html).toContain('인물 선택과 상세 열람에는 비용이나 성과 보상이 없습니다');
     expect(button(html, '면담 의제 선택')).not.toContain('disabled');
     expect(button(html, '육성 대상으로 지정')).not.toContain('disabled');
+  });
+
+  it('uses the current person ID rather than retaining a portrait for the same staff seat', () => {
+    const props = fixture();
+    const replacement = { ...props.staff[0], personId: 'uk-alan-turing', name: '앨런 튜링' };
+    const html = render({ ...props, staff: [replacement] });
+    expect(html.match(/alt="앨런 튜링 · AI 재구성 초상 · 실제 사진 아님"/g)).toHaveLength(2);
+    expect(html).not.toContain(`alt="${props.staff[0].name} · AI 재구성 초상 · 실제 사진 아님"`);
+    expect(html).toContain('앨런 튜링 참모 상세');
+  });
+
+  it.each(['missing-id', 'conflicting-name', 'player-seat'] as const)('does not assign a known historical face to a %s', (kind) => {
+    const props = fixture();
+    const member = { ...props.staff[0],
+      ...(kind === 'missing-id' ? { personId: 'unregistered-person' } : kind === 'conflicting-name' ? { name: '신원 불일치 인물' } : { id: 'player' }),
+    };
+    const html = render({ ...props, staff: [member] });
+    expect(html.match(/data-person-portrait="fallback"/g)).toHaveLength(2);
+    expect(html.match(new RegExp(`data-portrait-kind="${kind === 'player-seat' ? 'player' : 'monogram'}"`, 'g'))).toHaveLength(2);
+    expect(html).not.toContain('data-portrait-kind="illustrated"');
+    expect(html).not.toContain(`alt="${props.staff[0].name} · AI 재구성 초상 · 실제 사진 아님"`);
   });
 
   it('obeys the controlled market workspace and leaves outer navigation ownership to the parent', () => {
@@ -96,6 +127,8 @@ describe('OrganizationPanel Command Edition workspace contract', () => {
     const candidate = { ...props.candidates[0], knowledge: 85, status: 'unscouted' as const };
     const html = render({ ...props, workspace: 'market', candidates: [candidate] });
     expect(html).toContain(candidate.name);
+    expect(html).toContain(`alt="${candidate.name} · AI 재구성 초상 · 실제 사진 아님"`);
+    expect(html.match(/data-person-portrait=/g)).toHaveLength(1);
     expect(html).toContain('class="org-candidate-more"');
     expect(html).toContain('경력·영입 조건과 빠른 조치');
     expect(html).toContain('임명은 조건 합의 후');
@@ -125,6 +158,7 @@ describe('OrganizationPanel Command Edition workspace contract', () => {
     expect(html).not.toContain('class="org-roster-person');
     expect(html).not.toContain('참모의 이행 약속 열기');
     expect(html).not.toContain(`${props.staff[0].name} 참모 상세`);
+    expect(html).not.toContain('data-person-portrait=');
     expect(html).toMatch(/<select aria-label="참모 선택"[^>]*disabled=""/);
   });
 

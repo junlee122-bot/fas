@@ -13,6 +13,8 @@ import type { SeaTransportContext, SeaTransportPlan, SeaTransportResult, SeaTran
 import type { AirGroup, JointForcesState, NavalTaskForce } from './jointOperations';
 import { createFleetNavigation } from './navalNavigation';
 import type { Territory } from './types';
+import { createMapPoliticalLedger } from './mapPoliticalLedger';
+import { createMilitaryAccessState, type MilitaryAccessAgreement } from './militaryAccess';
 
 // Synthetic sites explicitly represent ports; an arbitrary terrain string alone is not coastal evidence.
 const site = (id: string, overrides: Partial<Territory> = {}): Territory => ({ id, name: id, region: '시험 전구', x: 0, y: 0, controller: 'allies', value: 5, supply: 35, terrain: '해안', siteType: 'port', neighbors: [], theater: 'europe', ...overrides });
@@ -57,6 +59,66 @@ function returnFleets(run: ReturnType<typeof launch>, maxWeeks = 30) {
   for (let index = 0; index < maxWeeks && current.context.jointForces.fleets.some((fleet) => ['returning', 'refueling'].includes(fleet.navigation?.mode ?? '')); index += 1) current = step(current);
   return current;
 }
+
+function accessInput(overrides: Partial<MilitaryAccessAgreement> = {}): SeaTransportContext {
+  const input = context();
+  input.territories = input.territories.map((territory) => ({ ...territory, ownerId: territory.id === 'belfast' ? 'freefrance' : territory.controller === 'axis' ? 'germany' : 'britain' }));
+  input.militaryAccess = { nationId: 'britain', playerFaction: 'allies', week: 0, control: createMapPoliticalLedger(input.territories, 0),
+    state: { ...createMilitaryAccessState(), agreements: [{ id: 'transport-access', hostNationId: 'freefrance', beneficiaryNationId: 'britain', proposerNationId: 'britain', territoryId: 'belfast', kind: 'transit', durationWeeks: 13,
+      status: 'active', proposedWeek: 0, responseDueWeek: 0, activatedWeek: 0, expiresWeek: 13, reason: '시험', ...overrides }] } };
+  return input;
+}
+
+describe('military access sea transport boundaries', () => {
+  const transfer = { ...plan, targetId: 'belfast' };
+  it('does not turn a foreign naval base agreement into army disembarkation permission', () => {
+    const input = accessInput({ kind: 'naval-base' }); const before = structuredClone(input);
+    const result = launchSeaTransport(createSeaTransportState(), transfer, input);
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toContain('육군 접근권');
+    expect(result.convoyDelta).toBe(0); expect(result.divisionUpdates).toEqual([]);
+    expect(input).toEqual(before);
+  });
+  it('rechecks a terminated transit grant during sailing and physically returns without invasion', () => {
+    let run = step(launch(accessInput(), transfer));
+    expect(run.state.operations[0].stage).toBe('sailing');
+    run.context.militaryAccess!.state.agreements[0] = { ...run.context.militaryAccess!.state.agreements[0], status: 'notice', closedWeek: 2 };
+    run = step(run);
+    expect(run.state.operations[0].stage).toBe('returning');
+    expect(run.result.territoryUpdates).toEqual([]);
+    expect(run.state.records).toHaveLength(0);
+    run = complete(run);
+    expect(run.context.divisions[0].territoryId).toBe('britain');
+    expect(run.state.records[0].outcome).toBe('diverted');
+    expect(run.context.territories.find((site) => site.id === 'belfast')).toMatchObject({ ownerId: 'freefrance', controller: 'allies' });
+  });
+  it('rechecks the same grant immediately before disembarkation', () => {
+    let run = launch(accessInput(), transfer);
+    while (run.state.operations[0]?.stage !== 'disembarking' && run.context.week < 10) run = step(run);
+    expect(run.state.operations[0].stage).toBe('disembarking');
+    run.context.militaryAccess!.state.agreements[0] = { ...run.context.militaryAccess!.state.agreements[0], status: 'revoked', closedWeek: run.context.week + 1 };
+    const next = step(run);
+    expect(next.state.operations[0].stage).toBe('returning');
+    expect(next.state.records).toHaveLength(0);
+    expect(next.context.divisions[0].territoryId).not.toBe('belfast');
+  });
+  it('never uses a transit grant to attack from a friendly foreign origin at approval or weekly execution', () => {
+    const input = accessInput({ territoryId: 'britain' });
+    input.territories = input.territories.map((site) => site.id === 'britain' ? { ...site, ownerId: 'freefrance' } : site);
+    input.militaryAccess!.control = createMapPoliticalLedger(input.territories, 0);
+    expect(forecastSeaTransport(createSeaTransportState(), plan, input).allowed).toBe(false);
+    const legacy = launch({ ...input, militaryAccess: undefined });
+    const next = step({ ...legacy, context: { ...legacy.context, militaryAccess: input.militaryAccess } });
+    expect(next.state.operations).toEqual([]);
+    expect(next.state.records[0].outcome).toBe('diverted');
+    expect(next.context.divisions[0].territoryId).toBe('britain');
+    expect(next.result.territoryUpdates).toEqual([]);
+  });
+  it('does not fall back to allied access after a formerly active agreement ends', () => {
+    const input = accessInput({ status: 'expired', expiresWeek: 0, closedWeek: 0 });
+    expect(forecastSeaTransport(createSeaTransportState(), transfer, input).allowed).toBe(false);
+  });
+});
 
 describe('sea transport routes and approval', () => {
   it('excludes actual inland aggregates despite legacy sea adjacency and retains real coastal gateways', () => {

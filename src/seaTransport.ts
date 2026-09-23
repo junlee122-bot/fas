@@ -2,6 +2,7 @@ import { classifyMapRoute, isSeaTerritory } from './mapRoutes';
 import type { AirGroup, JointForcesState, NavalTaskForce } from './jointOperations';
 import { advanceFleetNavigationWeek, beginFleetReturn, dispatchFleetTransit, fleetEnduranceProfiles, forecastFleetTransit, getAirPatrolCoverage, hasFleetNavigationReservation, nauticalDistance, resolveNavalTerritoryPoint, syncFleetEscortPosition } from './navalNavigation';
 import type { Division, Faction, GameState, NationId, Order, Stockpile, Territory, TheaterId } from './types';
+import { getSiteMilitaryAccess, type MilitaryAccessOperationalContext } from './militaryAccess';
 
 export type SeaTransportStage = 'embarking' | 'sailing' | 'landing' | 'beachhead' | 'disembarking' | 'returning' | 'waiting-return' | 'rescuing';
 export type SeaTransportOutcome = 'transferred' | 'landed' | 'recalled' | 'failed-landing' | 'diverted';
@@ -16,6 +17,7 @@ export interface SeaTransportContext {
   commandableDivisionIds: ReadonlySet<string>; game: GameState; stockpile: Stockpile;
   jointForces: JointForcesState; processingWeek?: boolean; canCommandEscort?: boolean;
   enemyInterdiction?: Readonly<Record<string, number>>;
+  militaryAccess?: MilitaryAccessOperationalContext;
 }
 export interface SeaTransportPhaseWeeks { embarking: number; sailing: number; landing: number; beachhead: number; disembarking: number }
 export interface SeaTransportEscort {
@@ -120,7 +122,12 @@ function normalizedEscortReliefHistory(value: unknown): SeaTransportEscortRelief
   });
 }
 function releasedEscort(fleet: NavalTaskForce, context: SeaTransportContext): NavalTaskForce {
-  return beginFleetReturn(fleet, context.week, context.territories, context.playerFaction);
+  return beginFleetReturn(fleet, context.week, context.territories, context.playerFaction, context.militaryAccess);
+}
+
+/** A naval base agreement never authorizes an army to disembark. */
+function canDisembark(site: Territory | undefined, faction: Faction, access?: MilitaryAccessOperationalContext): boolean {
+  return !!site && site.controller === faction && (!access || getSiteMilitaryAccess(site, 'transit', access).allowed);
 }
 
 function normalizedRescue(value: unknown): SeaTransportRescue | undefined {
@@ -265,6 +272,7 @@ function fleetAtPosition(fleet: NavalTaskForce, positionId: string, territories:
 function patrolCoverage(group: AirGroup, routeIds: readonly string[], context: SeaTransportContext) {
   const coverage = getAirPatrolCoverage(group, routeIds, context.territories);
   const base = coverage.baseId ? context.territories.find((territory) => territory.id === coverage.baseId) : undefined;
+  if (context.militaryAccess && !getSiteMilitaryAccess(base, 'offensive', { ...context.militaryAccess, week: context.week }).allowed) return { ...coverage, allowed: false, coverage: 0, reason: `${group.base} 기지의 공군 운용 권한이 없습니다. 육군 통행·해군 기지 협정에는 공군 운용이 포함되지 않습니다.` };
   return base && base.controller !== context.playerFaction ? { ...coverage, allowed: false, coverage: 0, reason: `${group.base} 기지가 우호 통제하에 없어 출격할 수 없습니다.` } : coverage;
 }
 export function getSeaTransportActiveProtection(operation: SeaTransportOperation, context: SeaTransportContext): number {
@@ -379,7 +387,7 @@ export function forecastSeaTransport(state: SeaTransportState, plan: SeaTranspor
   const fleetIds = getSeaTransportAssignedFleetIds(plan); const airIds = getSeaTransportAssignedAirGroupIds(plan);
   const options = getSeaTransportEscortOptions(state, context);
   const escortOptions = fleetIds.map((id) => options.find((option) => option.fleet.id === id));
-  const transits = escortOptions.map((option) => option ? forecastFleetTransit(option.fleet, plan.fromId, context.territories, context.week, routeIds, context.playerFaction) : undefined);
+  const transits = escortOptions.map((option) => option ? forecastFleetTransit(option.fleet, plan.fromId, context.territories, context.week, routeIds, context.playerFaction, context.militaryAccess) : undefined);
   const escorts: SeaTransportEscort[] = escortOptions.flatMap((option, index) => option ? [{ fleetId: option.fleet.id, name: option.fleet.name,
     protection: option.protection, commandCost: option.commandCost, fuelCost: option.fuelCost + (transits[index]?.fuelCost ?? 0),
     arrivalWeeks: transits[index]?.arrivalWeeks ?? 0, distanceNm: transits[index]?.distanceNm ?? 0, rangeNm: option.fleet.navigation?.remainingRangeNm ?? fleetEnduranceProfiles[option.fleet.kind].rangeNm }] : []);
@@ -411,6 +419,12 @@ export function forecastSeaTransport(state: SeaTransportState, plan: SeaTranspor
   if (!division || !origin || !target) return fail('부대·출발지·목적지를 모두 선택하세요.');
   if (!context.commandableDivisionIds.has(division.id)) return fail('직접 지휘할 권한이 없는 부대입니다.');
   if (division.territoryId !== origin.id || origin.controller !== context.playerFaction) return fail('부대가 실제 주둔한 아군 육지 거점에서만 승선할 수 있습니다.');
+  if (context.militaryAccess) {
+    const access = { ...context.militaryAccess, week: context.week };
+    const departure = getSiteMilitaryAccess(origin, mode === 'landing' ? 'offensive' : 'land-departure', access);
+    if (!departure.allowed) return fail(departure.reason);
+    if (mode === 'transfer' && !canDisembark(target, context.playerFaction, access)) return fail('목적지의 육군 접근권이 없습니다. 해군 기지 사용권만으로 승선 병력을 하선시킬 수 없습니다.');
+  }
   if (division.status !== 'ready' || state.operations.some((operation) => operation.divisionId === division.id) || context.orders.some((order) => order.divisionId === division.id)) return fail('다른 작전·회복·수송 중인 부대는 중복 배정할 수 없습니다.');
   if (![division.strength, division.organization, division.supply].every(finite) || division.strength < 30 || division.organization < 35 || division.supply < 30) return fail('병력 30·조직력 35·보급 30 이상으로 회복한 뒤 수송하세요.');
   if (!isSeaTransportEndpoint(origin) || !isSeaTransportEndpoint(target)) return fail('승선·하선은 확인된 항구·섬·상륙 해안에서만 가능합니다. 내륙 거점은 먼저 육상 이동으로 항구에 연결하세요.');
@@ -457,7 +471,7 @@ export function launchSeaTransport(state: SeaTransportState, plan: SeaTransportP
   return { ...emptyResult({ ...state, operations: [...state.operations, operation] }), reason: forecast.reason,
     gameDelta: { commandPoints: -forecast.commandCost, fuel: -forecast.fuelCost }, convoyDelta: -forecast.convoyCost,
     divisionUpdates: [{ ...division, status: 'moving' }],
-    fleetUpdates: (context.jointForces.fleets ?? []).filter((fleet) => operation.escortFleetIds!.includes(fleet.id)).map((fleet) => dispatchFleetTransit(fleet, origin.id, context.territories, context.week, id, context.playerFaction)),
+    fleetUpdates: (context.jointForces.fleets ?? []).filter((fleet) => operation.escortFleetIds!.includes(fleet.id)).map((fleet) => dispatchFleetTransit(fleet, origin.id, context.territories, context.week, id, context.playerFaction, context.militaryAccess)),
     airGroupUpdates: (context.jointForces.airGroups ?? []).filter((group) => operation.airGroupIds!.includes(group.id)).map((group) => ({ ...group, status: 'assigned', assignmentId: id })),
     events: [{ operationId: id, title: `${division.name} 해상 수송 승인`, detail: `${origin.name} → ${target.name}. 지휘력 ${forecast.commandCost}·연료 ${forecast.fuelCost} 소비, 수송선 ${forecast.convoyCost}척 예약. 최소 ${forecast.minimumWeeks}주이며 항해 중에는 육상 전투·주둔에 참여하지 않습니다.`, tone: 'neutral', resolved: false }],
   };
@@ -475,7 +489,7 @@ export function forecastSeaTransportEscortRelief(state: SeaTransportState, opera
   const escort: SeaTransportEscort | null = option ? { fleetId: option.fleet.id, name: option.fleet.name,
     protection: option.protection, commandCost: option.commandCost, fuelCost: option.fuelCost } : null;
   const transit = operation && option ? forecastFleetTransit(option.fleet, getSeaTransportCurrentPositionId(operation), context.territories, context.week,
-    operation.stage === 'returning' ? operation.returnRouteIds ?? [...operation.routeIds].reverse() : operation.routeIds, context.playerFaction) : undefined;
+    operation.stage === 'returning' ? operation.returnRouteIds ?? [...operation.routeIds].reverse() : operation.routeIds, context.playerFaction, context.militaryAccess) : undefined;
   const arrivalWeeks = Math.max(1, transit?.arrivalWeeks ?? 1);
   const commandCost = escort?.commandCost ?? 2; const fuelCost = (escort?.fuelCost ?? 4) + (transit?.fuelCost ?? 0);
   const forecast: SeaTransportEscortReliefForecast = { allowed: false, reason: '', escort, arrivalWeeks, minimumWeeks: arrivalWeeks, commandCost, fuelCost,
@@ -513,7 +527,7 @@ export function dispatchSeaTransportEscortRelief(state: SeaTransportState, opera
     lastMessage: `${forecast.escort.name} 호위 출동 승인. 최소 ${forecast.arrivalWeeks}주 동안 접근하며, 아직 새 함대의 보호 효과는 적용되지 않습니다.` };
   return { ...emptyResult({ ...state, operations: state.operations.map((item) => item.id === operationId ? operation : item) }), reason: forecast.reason,
     gameDelta: { commandPoints: -forecast.commandCost, fuel: -forecast.fuelCost },
-    fleetUpdates: context.jointForces.fleets.filter((fleet) => fleet.id === fleetId).map((fleet) => dispatchFleetTransit(fleet, getSeaTransportCurrentPositionId(previous), context.territories, context.week, operationId, context.playerFaction)),
+    fleetUpdates: context.jointForces.fleets.filter((fleet) => fleet.id === fleetId).map((fleet) => dispatchFleetTransit(fleet, getSeaTransportCurrentPositionId(previous), context.territories, context.week, operationId, context.playerFaction, context.militaryAccess)),
     events: [{ operationId, title: `${operation.divisionName} 호위 출동`, detail: operation.lastMessage, tone: 'neutral', resolved: false }] };
 }
 
@@ -523,8 +537,8 @@ function stableRoll(key: string) {
   return (hash >>> 0) / 4294967295;
 }
 
-function findReturnDestination(operation: SeaTransportOperation, territories: readonly Territory[]) {
-  const friendly = territories.filter((territory) => territory.controller === operation.playerFaction && isSeaTransportEndpoint(territory) && theaterOf(territory) === operation.theater);
+function findReturnDestination(operation: SeaTransportOperation, territories: readonly Territory[], access?: MilitaryAccessOperationalContext) {
+  const friendly = territories.filter((territory) => canDisembark(territory, operation.playerFaction, access) && isSeaTransportEndpoint(territory) && theaterOf(territory) === operation.theater);
   // At sea, the stored route is the known navigation corridor. We may retreat along it,
   // or take a sea-only branch, but never jump to an unrelated inland friendly region.
   const corridor = operation.returnRouteIds ?? operation.routeIds;
@@ -562,12 +576,12 @@ function findReturnDestination(operation: SeaTransportOperation, territories: re
 export function forecastSeaTransportRescue(state: SeaTransportState, operationId: string, context: SeaTransportContext, escortFleetId?: string): SeaTransportRescueForecast {
   const operation = state.operations.find((item) => item.id === operationId);
   const division = context.divisions.find((unit) => unit.id === operation?.divisionId);
-  const destination = operation ? findReturnDestination(operation, context.territories) : null;
+  const destination = operation ? findReturnDestination(operation, context.territories, context.militaryAccess ? { ...context.militaryAccess, week: context.week } : undefined) : null;
   const routeIds = destination ? [...destination.route].reverse() : [];
   const sailingWeeks = Math.max(2, Math.ceil(Math.max(1, routeIds.length - 2) / 2) + 1);
   const returnWeeks = sailingWeeks;
   const escortOption = escortFleetId ? getSeaTransportEscortOptions(state, context).find((option) => option.fleet.id === escortFleetId) : undefined;
-  const transit = escortOption && destination ? forecastFleetTransit(escortOption.fleet, destination.territory.id, context.territories, context.week, [...routeIds, ...routeIds.slice(0, -1).reverse()], context.playerFaction) : undefined;
+  const transit = escortOption && destination ? forecastFleetTransit(escortOption.fleet, destination.territory.id, context.territories, context.week, [...routeIds, ...routeIds.slice(0, -1).reverse()], context.playerFaction, context.militaryAccess) : undefined;
   const escort: SeaTransportEscort | null = escortOption ? { fleetId: escortOption.fleet.id, name: escortOption.fleet.name, protection: escortOption.protection,
     commandCost: escortOption.commandCost, fuelCost: escortOption.fuelCost + (transit?.fuelCost ?? 0), arrivalWeeks: transit?.arrivalWeeks ?? 0, distanceNm: transit?.distanceNm ?? 0 } : null;
   const outboundWeeks = sailingWeeks + (escort?.arrivalWeeks ?? 0);
@@ -621,7 +635,7 @@ export function launchSeaTransportRescue(state: SeaTransportState, operationId: 
   };
   return { ...emptyResult({ ...state, operations: state.operations.map((item) => item.id === operationId ? operation : item) }),
     reason: forecast.reason, gameDelta: { commandPoints: -forecast.commandCost, fuel: -forecast.fuelCost }, convoyDelta: -forecast.convoyCost,
-    ...(forecast.escort ? { fleetUpdates: context.jointForces.fleets.filter((fleet) => fleet.id === forecast.escort!.fleetId).map((fleet) => dispatchFleetTransit(fleet, forecast.baseId, context.territories, context.week, operationId, context.playerFaction)) } : {}),
+    ...(forecast.escort ? { fleetUpdates: context.jointForces.fleets.filter((fleet) => fleet.id === forecast.escort!.fleetId).map((fleet) => dispatchFleetTransit(fleet, forecast.baseId, context.territories, context.week, operationId, context.playerFaction, context.militaryAccess)) } : {}),
     events: [{ operationId, title: `${operation.divisionName} 구조선 파견`, detail: operation.lastMessage, tone: 'neutral', resolved: false }],
   };
 }
@@ -636,7 +650,7 @@ export function advanceSeaTransportWeek(state: SeaTransportState, context: SeaTr
     && operation.startedWeek < context.week && context.divisions.some((division) => division.id === operation.divisionId)
     && (operation.stage !== 'rescuing' || normalizedRescue(operation.rescue))).map((operation) => operation.id));
   const fleets = new Map((context.jointForces.fleets ?? []).map((fleet) => [fleet.id, context.jointForces.nationId === context.nationId
-    && (fleet.assignmentId?.startsWith('nav-return-') || (!!fleet.assignmentId && validSeaAssignments.has(fleet.assignmentId))) ? advanceFleetNavigationWeek(fleet, context.week) : fleet]));
+    && (fleet.assignmentId?.startsWith('nav-return-') || fleet.assignmentId?.startsWith('nav-rebase-') || (!!fleet.assignmentId && validSeaAssignments.has(fleet.assignmentId))) ? advanceFleetNavigationWeek(fleet, context.week, context.territories, context.militaryAccess) : fleet]));
   const navigationUpdates = [...fleets.values()].filter((fleet) => fleet !== openingFleets.get(fleet.id));
   if (navigationUpdates.length) result.fleetUpdates = navigationUpdates;
   const emit = (operation: SeaTransportOperation, message: string, tone: SeaTransportEvent['tone'] = 'neutral', resolved = false) => {
@@ -724,7 +738,7 @@ export function advanceSeaTransportWeek(state: SeaTransportState, context: SeaTr
         emit(operation, `${reason} 잔존 수송선이 없어 구조선을 기다립니다. 연결된 아군 해안 기지와 자원을 확인한 뒤 구조선 파견을 승인하세요. 자동 귀환·환급하지 않습니다.`, 'bad');
         return false;
       }
-      const destination = findReturnDestination(operation, territories);
+      const destination = findReturnDestination(operation, territories, context.militaryAccess ? { ...context.militaryAccess, week: context.week } : undefined);
       if (!destination) {
         transition('waiting-return'); operation.returnTargetId = undefined; operation.returnRouteIds = undefined;
         emit(operation, `${reason} 연결된 아군 육지 귀환항이 없습니다. 수송선과 부대를 계속 예약한 채 대기하며 임의의 영토로 이동하지 않습니다.`, 'bad');
@@ -824,7 +838,7 @@ export function advanceSeaTransportWeek(state: SeaTransportState, context: SeaTr
       if (operation.stage === 'waiting-return') returnToSafety('귀환항 통제를 다시 확인했습니다.', operation.returnOutcome ?? 'diverted');
       else {
         const returnTarget = territories.find((territory) => territory.id === operation.returnTargetId);
-        if (!returnTarget || returnTarget.controller !== operation.playerFaction || !isSeaTransportEndpoint(returnTarget)) returnToSafety('귀환항이 안전한 해안 출입 거점이 아니어서 경로를 재검토합니다.', operation.returnOutcome ?? 'diverted');
+        if (!returnTarget || !canDisembark(returnTarget, operation.playerFaction, context.militaryAccess ? { ...context.militaryAccess, week: context.week } : undefined) || !isSeaTransportEndpoint(returnTarget)) returnToSafety('귀환항의 육군 접근권·해안 통제를 재검토하여 다른 안전한 항구를 찾습니다.', operation.returnOutcome ?? 'diverted');
         else {
           attrition();
           if (operation.convoysRemaining === 0) { transition('waiting-return'); emit(operation, '예약 선박을 모두 잃었습니다. 구조·대체 수송 없이는 하선하거나 선박을 환급하지 않습니다.', 'bad'); }
@@ -839,6 +853,10 @@ export function advanceSeaTransportWeek(state: SeaTransportState, context: SeaTr
     } else if (!target || target.controller === 'neutral' || (target.controller !== operation.playerFaction && context.phase !== 'war')) {
       if (operation.stage === 'embarking' && origin?.controller === operation.playerFaction && division.territoryId === origin.id) finish(origin, 'diverted', '출항 전 목적지가 중립화·소실되었거나 전쟁이 종료되어 승선을 취소합니다. 부대는 출발지에 남습니다.');
       else returnToSafety('목적지가 중립화·소실되었거나 전쟁이 종료되어 적대 상륙을 중단합니다.', 'diverted');
+    } else if (context.militaryAccess && ((target.controller === operation.playerFaction && !canDisembark(target, operation.playerFaction, { ...context.militaryAccess, week: context.week }))
+      || (operation.mode === 'landing' && !operation.landingCaptured && !getSiteMilitaryAccess(origin, 'offensive', { ...context.militaryAccess, week: context.week }).allowed))) {
+      if (operation.stage === 'embarking' && origin && division.territoryId === origin.id) finish(origin, 'diverted', '출항 전 육군 접근권·공격 출발 권한이 종료되어 승선을 취소합니다. 실제 주둔 위치와 사용한 비용을 유지합니다.');
+      else returnToSafety('육군 접근권·공격 출발 권한이 종료되어 추가 하선·상륙을 중단하고 실제 귀환 항로를 찾습니다.', 'diverted');
     } else if (operation.mode === 'transfer' && target.controller !== operation.playerFaction) {
       returnToSafety('아군 수송 목적지가 적에게 넘어갔습니다. 승인하지 않은 상륙전으로 바꾸지 않습니다.', 'diverted');
     } else if (operation.stage === 'embarking') {
@@ -847,6 +865,7 @@ export function advanceSeaTransportWeek(state: SeaTransportState, context: SeaTr
         if (actualPosition?.controller === operation.playerFaction && !isSeaTerritory(actualPosition)) finish(actualPosition, 'diverted', '승선 전 육상 전투·이동으로 출발지를 이탈해 수송을 취소했습니다. 현재 육상 위치를 유지합니다.');
         else emit(operation, '승선 전 부대 위치가 변경되어 수송을 보류합니다. 안전한 실제 육상 위치 확인 전에는 이동·환급하지 않습니다.', 'bad');
       } else if (origin?.controller !== operation.playerFaction) emit(operation, '출발지 통제를 잃어 승선을 보류합니다. 실제 출항하지 않은 부대를 다른 항구로 옮기지 않으며, 아군 통제 회복을 기다립니다.', 'bad');
+      else if (context.militaryAccess && !getSiteMilitaryAccess(origin, 'land-departure', { ...context.militaryAccess, week: context.week }).allowed) emit(operation, '출발지의 육군 출발 권한이 없어 승선을 보류합니다. 실제 위치를 유지합니다.', 'bad');
       else if (operation.stageWeeks >= Math.max(1, operation.phaseWeeks.embarking)) { transition('sailing'); emit(operation, `승선을 마치고 출항했습니다. 항해 최소 ${operation.phaseWeeks.sailing}주 동안 육상 주둔·전투에서 제외됩니다.`); }
     } else if (operation.stage === 'sailing') {
       attrition();
@@ -892,7 +911,7 @@ export function advanceSeaTransportWeek(state: SeaTransportState, context: SeaTr
     }
     // End-of-week rendezvous: incoming ships cannot retroactively protect this week's convoy.
     if (!terminal && pending && context.week > pending.dispatchedWeek) {
-      if (pendingFleet && isOnStation(pendingFleet)) pendingFleet = syncFleetEscortPosition(pendingFleet, getSeaTransportCurrentPositionId(operation), territories, context.week);
+      if (pendingFleet && isOnStation(pendingFleet)) pendingFleet = syncFleetEscortPosition(pendingFleet, getSeaTransportCurrentPositionId(operation), territories, context.week, context.militaryAccess);
       if (pending.source === 'rescue' && (rescueFailed || (!rescueRendezvous && operation.stage !== 'rescuing'))) {
         resolvePending('cancelled', '구조선이 부대와 합류하지 못해 동반 출동 호위를 복귀 처리합니다. 기존 호위와 이미 발생한 비용·손실은 유지합니다.');
       } else if (pendingFleet && fleetAtPosition(pendingFleet, getSeaTransportCurrentPositionId(operation), territories) && pending.elapsedWeeks >= pending.arrivalWeeks && (pending.source !== 'rescue' || rescueRendezvous)) {
@@ -907,7 +926,7 @@ export function advanceSeaTransportWeek(state: SeaTransportState, context: SeaTr
       }
     }
     if (pendingFleet) {
-      if (pending?.source === 'rescue' && isOnStation(pendingFleet) && !terminal) pendingFleet = syncFleetEscortPosition(pendingFleet, getSeaTransportCurrentPositionId(operation), territories, context.week);
+      if (pending?.source === 'rescue' && isOnStation(pendingFleet) && !terminal) pendingFleet = syncFleetEscortPosition(pendingFleet, getSeaTransportCurrentPositionId(operation), territories, context.week, context.militaryAccess);
       (result.fleetUpdates ??= []).push(pendingFleet);
     }
     if (reliefNotice && !terminal) operation.lastMessage += ` ${reliefNotice}`;
@@ -917,7 +936,7 @@ export function advanceSeaTransportWeek(state: SeaTransportState, context: SeaTr
       const event = result.events.at(-1); if (event?.operationId === operation.id) event.detail += detail;
     }
     if (escort) {
-      if (!terminal && isOnStation(escort) && operation.stage !== 'rescuing') escort = syncFleetEscortPosition(escort, getSeaTransportCurrentPositionId(operation), territories, context.week);
+      if (!terminal && isOnStation(escort) && operation.stage !== 'rescuing') escort = syncFleetEscortPosition(escort, getSeaTransportCurrentPositionId(operation), territories, context.week, context.militaryAccess);
       (result.fleetUpdates ??= []).push(escort);
       if (!terminal) {
         const escortDetail = ` 호위 ${escort.name}: 잔존 ${escort.ships}척 · 준비도 ${Math.round(escort.readiness)} · 현재 보호 ${escortProtection()}%p · 누적 함정 손실 ${operation.escortShipsLost ?? 0}척.`;
@@ -932,7 +951,7 @@ export function advanceSeaTransportWeek(state: SeaTransportState, context: SeaTr
       if (event?.operationId === operation.id) event.detail += warning;
     }
     for (let fleet of additionalEscorts) {
-      if (!terminal && isOnStation(fleet) && operation.stage !== 'rescuing') fleet = syncFleetEscortPosition(fleet, getSeaTransportCurrentPositionId(operation), territories, context.week);
+      if (!terminal && isOnStation(fleet) && operation.stage !== 'rescuing') fleet = syncFleetEscortPosition(fleet, getSeaTransportCurrentPositionId(operation), territories, context.week, context.militaryAccess);
       (result.fleetUpdates ??= []).push(fleet);
     }
     if (airSupport.length) (result.airGroupUpdates ??= []).push(...airSupport);

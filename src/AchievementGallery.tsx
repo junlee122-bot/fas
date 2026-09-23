@@ -2,6 +2,9 @@ import { useMemo, useState } from 'react';
 import { Award, Check, ChevronRight, LockKeyhole, Pin, PinOff, Sparkles, Trophy, X } from 'lucide-react';
 import { achievementCategoryLabels, achievementDefinitions, achievementRarityLabels, achievementSortLabels, getAchievement, getAchievementRecommendations, sortAchievementDefinitions } from './achievements';
 import type { AchievementCategory, AchievementProgress, AchievementSortMode, AchievementUnlock } from './achievements';
+import { symbolicAchievementGoalCaption } from './worldSceneArt';
+import { GameIcon } from './GameIcon';
+import './AchievementGallery.css';
 
 interface AchievementGalleryProps {
   unlocks: AchievementUnlock[];
@@ -43,7 +46,7 @@ export function AchievementGallery({ unlocks, progress, featuredId, trackedId, o
       <div className="achievement-backdrop achievement-unlock-backdrop" role="dialog" aria-modal="true" aria-labelledby="achievement-unlocked-title">
         <article className={`achievement-unlock-card rarity-${featured.rarity}`}>
           <div className="achievement-unlock-art">
-            <img src={featured.art} alt={`${featured.title} 도전과제 삽화`} />
+            <img src={featured.art} alt={`${featured.title} 도전과제 삽화`} decoding="async" />
             <div className="achievement-unlock-vignette" />
             <div className="achievement-unlock-ribbon"><Sparkles size={15} /> CHALLENGE COMPLETE</div>
           </div>
@@ -52,6 +55,7 @@ export function AchievementGallery({ unlocks, progress, featuredId, trackedId, o
             <h2 id="achievement-unlocked-title">{featured.title}</h2>
             <p className="achievement-subtitle">{featured.subtitle}</p>
             <p>{featured.description}</p>
+            {featured.artCaption ? <p className="achievement-symbolic-caption">{featured.artCaption}</p> : null}
             <div className="achievement-unlock-meta">
               <span className={`rarity rarity-${featured.rarity}`}><Award size={14} /> {achievementRarityLabels[featured.rarity]}</span>
               <strong>+{featured.points} 명예점수</strong>
@@ -70,7 +74,7 @@ export function AchievementGallery({ unlocks, progress, featuredId, trackedId, o
     <div className="achievement-backdrop" role="dialog" aria-modal="true" aria-labelledby="achievement-gallery-title">
       <section className="achievement-gallery">
         <header className="achievement-gallery-header">
-          <div className="achievement-gallery-seal"><Trophy size={28} /></div>
+          <div className="achievement-gallery-seal"><GameIcon name="medal" size={28} tone="gold" /></div>
           <div>
             <span>GENERAL STAFF ARCHIVES</span>
             <h2 id="achievement-gallery-title">도전과제 기록실</h2>
@@ -105,7 +109,7 @@ export function AchievementGallery({ unlocks, progress, featuredId, trackedId, o
             </span>
           </article>
         ) : (
-          <div className="achievement-recommendation completed"><Trophy size={20} /><strong>모든 도전과제를 달성했습니다</strong><span>{earnedPoints} 명예점수의 완전한 지휘 기록입니다.</span></div>
+          <div className="achievement-recommendation completed"><GameIcon name="medal" size={20} tone="gold" /><strong>모든 도전과제를 달성했습니다</strong><span>{earnedPoints} 명예점수의 완전한 지휘 기록입니다.</span></div>
         )}
 
         <div className="achievement-gallery-filters">
@@ -143,7 +147,7 @@ export function AchievementGallery({ unlocks, progress, featuredId, trackedId, o
             return (
               <article key={achievement.id} className={`achievement-card rarity-${achievement.rarity} ${unlocked ? 'unlocked' : 'locked'}`}>
                 <div className="achievement-card-art">
-                  <img src={achievement.art} alt={unlocked ? `${achievement.title} 도전과제 삽화` : ''} aria-hidden={!unlocked} />
+                  <img src={achievement.art} alt={unlocked ? `${achievement.title} 도전과제 삽화` : ''} aria-hidden={!unlocked} loading="lazy" decoding="async" />
                   {!unlocked && <div className="achievement-lock"><LockKeyhole size={22} /><span>{state.percent}%</span></div>}
                   {unlocked && <div className="achievement-check"><Check size={16} /></div>}
                   <span className="achievement-category">{achievementCategoryLabels[achievement.category]}</span>
@@ -154,6 +158,7 @@ export function AchievementGallery({ unlocks, progress, featuredId, trackedId, o
                     <strong>{achievement.points}</strong>
                   </div>
                   <p>{achievement.condition}</p>
+                  {achievement.artCaption ? <p className="achievement-symbolic-caption">{unlocked ? achievement.artCaption : symbolicAchievementGoalCaption}</p> : null}
                   <div className="achievement-card-progress" aria-label={`${achievement.title} 진척도 ${state.percent}%`}><span style={{ width: `${state.percent}%` }} /></div>
                   <footer>
                     <small>{unlocked ? `제 ${Number(unlock?.unlockedWeek ?? 0) + 1}주 달성` : state.detail}</small>

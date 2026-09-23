@@ -1,4 +1,6 @@
 import { useId, useRef, useState } from 'react';
+import { GameIllustration } from './GameIllustration';
+import './ManagementIllustrations.css';
 import { BookOpen, CheckCircle2, FlaskConical, LockKeyhole, Pause, Play, Search } from 'lucide-react';
 import { getResearchAvailability } from './researchProgression';
 import type { ResearchProject } from './types';
@@ -72,7 +74,7 @@ export function ResearchDesk({ research, currentYear, week, weeklyGain, busy = f
         {!filtered.length ? <p className="capability-muted">조건에 맞는 과제가 없습니다. 검색어 또는 상태 필터를 바꿔보세요.</p> : null}
       </aside>
       <article className="capability-detail" aria-label="선택한 연구 상세">{selected ? <>
-        <span className="capability-eyebrow">{selected.branch} · {selected.minimumYear ?? 1942}년</span><h3>{selected.name}</h3><p>{selected.description}</p>
+        <div className="management-art-heading"><span className="capability-eyebrow">{selected.branch} · {selected.minimumYear ?? 1942}년</span><h3>{selected.name}</h3><p>{selected.description}</p><div className="management-art-slot"><GameIllustration scene="research-laboratory" compact /></div></div>
         <div className="capability-meter" role="progressbar" aria-label={`${selected.name} 진행률`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.round(selected.progress / Math.max(1, selected.duration) * 100))}><i style={{ width: `${Math.min(100, selected.progress / Math.max(1, selected.duration) * 100)}%` }} /></div>
         <dl className="capability-stat-grid"><div><dt>누적 진행</dt><dd>{selected.progress} / {selected.duration}</dd></div><div><dt>배정 시 주간 진행</dt><dd>{weeklyGain > 0 ? `+${weeklyGain}` : '진행 보류'}</dd></div><div><dt>{selected.active ? '완료까지 예상' : '지금 배정 시 예상'}</dt><dd>{selected.complete ? '완료' : getResearchWeeks(selected, weeklyGain) === null ? '전망 없음' : `약 ${getResearchWeeks(selected, weeklyGain)}주`}</dd></div></dl>
         <p className="capability-notice">{action.reason}</p><button type="button" className="capability-primary" disabled={!action.allowed} onClick={act}>{selected.active && !selected.complete ? <Pause size={17} /> : <Play size={17} />}{selected.complete ? '이미 적용된 연구' : selected.active ? '이 연구 일시 중지' : '이 연구 시작'}</button>

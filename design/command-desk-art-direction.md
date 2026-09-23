@@ -61,9 +61,60 @@ actual event records. Display only for 1936-1959; omit on an unknown/out-of-rang
 date rather than depict 2060 using wartime equipment. The branch is a presentation
 choice, not a new source of RNG, save state or achievement unlocks.
 
-Later candidates, not implemented: postwar meeting rooms, modern situation rooms,
+Later candidates at the first gate: postwar meeting rooms, modern situation rooms,
 paired city damage/reconstruction art and event-specific newspaper illustrations.
+The first two are now implemented by the broad extension below; damage/recovery
+pairs and event-specific documentary illustrations remain outside this set.
 Do not substitute another generation provider without disclosing the change.
+
+## Multi-surface extension — 2026-09-18
+
+Six further images were generated through Higgsfield MCP, using GPT Image 2.5
+flare/high/2k, for 18 credits. Exact prompts, job IDs, pixel dimensions and SHA-256
+hashes are recorded in `higgsfield-multi-surface-production.json` and
+`higgsfield-multi-surface-generation.json`. All PNG originals are retained locally;
+the WebP delivery files are lossless, pixel-identical conversions with no resize.
+
+- Four newsroom environments follow the archived issue's media era, not today's
+  campaign date: print, radio, broadcast/satellite and digital/civic reporting.
+- World Weekly uses a supporting figure in the existing media introduction.
+  Weekly briefing keeps this optional material in a closed disclosure.
+- Industry and health site details use two timeless still lifes, not inferred city
+  damage, recovery, stock levels or production outcomes.
+- Peace-dividend and two health achievements reuse these relevant still lifes;
+  locked cards explicitly describe a goal, not an earned or current world state.
+- All images retain readable HTML captions distinguishing symbolic art from
+  actual event photography. Future civic media are explicitly speculative.
+- No new UI skin, new map geometry, save fields, RNG, permission changes or
+  runtime generation calls. No videos or named historical portraits in this set.
+
+The original command-desk illustrations keep their 1936–1959 gate. The newsroom
+mapping does not broaden that gate. Era equipment here is illustrative, not a
+documentary reconstruction of every newsroom between 1942 and 2060.
+
+## Broad management extension — 2026-09-18
+
+24 additional Higgsfield images cover staff, recruitment, diplomacy, territorial
+administration, treasury, markets, research, equipment, production, land/naval/air
+operations, constitutional process, justice, elections, civilian work, clandestine
+contact, royal councils, socialist planning, independence networks, public works,
+civilian relief and two later-era workrooms. Exact prompts and provenance are in
+`higgsfield-wide-production.json` and `higgsfield-wide-generation.json`.
+
+All 24 native images are 2048x1360, with original PNGs and pixel-identical lossless
+WebP copies. This batch used 72 credits (208 to 136), without a plan change. One
+unaccepted rate-limited submission was retried; no accepted generation was repeated.
+
+The new shared illustration component has no state, effects or action handlers.
+Scoped header slots preserve controls, document hierarchy and current authority.
+Compact embedded governance boards omit art to prevent nested visual duplication;
+urgent clandestine incidents and action-review views also keep attention on action.
+Royal art follows the current government form, not the selected country's name.
+Korean independence setup art is explicitly gated to the 1942 start. The old three
+command-desk assets still cover 1936–1959; a new analogue room covers 1960–1999 and a
+digital room covers 2000–2060. Dates from 2035 carry an explicit speculative caption.
+These are symbolic settings, not records of historical events, current stock levels,
+successful treaties, actual election results or conditions in a particular city.
 
 ## Earlier continuation decision — treaties first
 

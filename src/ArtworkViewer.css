@@ -1,0 +1,51 @@
+.artwork-viewer-trigger,
+.game-shell.design-v2 .deck-content .artwork-viewer-trigger.artwork-viewer-trigger {
+  position: relative; display: block; inline-size: 100%; min-inline-size: 0; min-block-size: 44px;
+  padding: 0; margin: 0; overflow: hidden; border: 1px solid #758371; border-radius: 3px;
+  background: #18211e; color: #f3f0e6; cursor: zoom-in; text-align: start; box-shadow: none;
+}
+.artwork-viewer-trigger.artwork-viewer-trigger > img { display: block; inline-size: 100%; block-size: auto; aspect-ratio: auto; object-fit: contain; border: 0; border-radius: 0; }
+.artwork-viewer-trigger .artwork-viewer-trigger__label,
+.game-shell.design-v2 .deck-content .artwork-viewer-trigger.artwork-viewer-trigger .artwork-viewer-trigger__label {
+  position: absolute; inset-inline-end: 6px; inset-block-end: 6px; display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 7px; border: 1px solid #bac6b870; border-radius: 3px; background: #101914ed;
+  color: #f3f0e6; font: 600 12px/1.4 var(--font-ui, sans-serif); letter-spacing: normal; white-space: nowrap;
+}
+.artwork-viewer-trigger .artwork-viewer-trigger__label > span { font: inherit; color: inherit; }
+.artwork-viewer-trigger:hover { border-color: #e2c879; }
+.artwork-viewer-trigger:focus-visible,
+.game-shell.design-v2 .deck-content .artwork-viewer-trigger.artwork-viewer-trigger:focus-visible { outline: 3px solid #e2c879; outline-offset: 4px; }
+
+/* Portaled outside the game shell to avoid inherited panel and button overrides. */
+dialog.artwork-viewer { box-sizing: border-box; inline-size: min(1800px, calc(100vw - 48px)); max-inline-size: none; max-block-size: calc(100dvh - 48px); margin: auto; padding: 0; overflow: auto; border: 1px solid #65776a; border-radius: 8px; background: #121b17; color: #edf0e8; font: 400 15px/1.6 var(--font-ui, sans-serif); }
+dialog.artwork-viewer:not([open]) { display: none; }
+dialog.artwork-viewer[open] { display: flex; flex-direction: column; }
+dialog.artwork-viewer::backdrop { background: #030906d9; }
+.artwork-viewer .artwork-viewer__header { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 22px; border-bottom: 1px solid #45564a; background: #1b2921; }
+.artwork-viewer__header > div { min-width: 0; }
+.artwork-viewer__header > div > span { color: #c0cbbc; font-size: 12px; }
+.artwork-viewer__header h2 { margin: 3px 0 0; color: #f0e8d3; font-size: clamp(18px, 1.4vw, 26px); line-height: 1.4; overflow-wrap: anywhere; }
+.artwork-viewer .artwork-viewer__close { display: inline-flex; flex-shrink: 0; align-items: center; gap: 12px; min-height: 44px; padding: 8px 14px; border: 1px solid #a2ad9e; border-radius: 4px; background: #26362c; color: #f4f1e8; font: 600 14px/1.4 var(--font-ui, sans-serif); cursor: pointer; }
+.artwork-viewer__close > span { font-size: 24px; font-weight: 400; }
+.artwork-viewer__close:hover { background: #354a3c; }
+.artwork-viewer__close:focus-visible { outline: 3px solid #e2c879; outline-offset: 3px; }
+.artwork-viewer__canvas { display: grid; flex: 1 1 auto; place-items: center; min-block-size: 120px; padding: 16px; background: #0b110e; }
+.artwork-viewer__canvas > img { display: block; inline-size: 100%; block-size: min(70dvh, 1200px); min-block-size: 0; object-fit: contain; object-position: center; }
+.artwork-viewer__canvas > p { margin: 24px; color: #eadbc3; text-align: center; }
+.artwork-viewer__footer { display: grid; flex: 0 0 auto; gap: 4px; padding: 14px 22px 18px; border-top: 1px solid #45564a; color: #bdc9ba; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.artwork-viewer__footer > strong { color: #e0cfaa; font-weight: 600; }
+@media (max-width: 680px) {
+  dialog.artwork-viewer { inline-size: calc(100vw - 24px); max-block-size: calc(100dvh - 24px); }
+  .artwork-viewer .artwork-viewer__header { gap: 12px; padding: 12px; }
+  .artwork-viewer__canvas { padding: 8px; }
+  .artwork-viewer__canvas > img { block-size: min(58dvh, 800px); }
+  .artwork-viewer__footer { padding: 12px; }
+}
+@media (prefers-contrast: more) {
+  .artwork-viewer-trigger,
+  .game-shell.design-v2 .deck-content .artwork-viewer-trigger.artwork-viewer-trigger { border-color: #efeddc; }
+  .artwork-viewer__footer { color: #f0f2ea; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .artwork-viewer-trigger, .artwork-viewer, .artwork-viewer * { animation: none; transition: none; scroll-behavior: auto; }
+}

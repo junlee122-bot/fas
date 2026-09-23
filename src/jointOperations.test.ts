@@ -12,12 +12,88 @@ import {
   sendJointForceToRefit,
   standDownJointOperationsForPeace,
 } from './jointOperations';
+import { territories as campaignTerritories } from './data';
+import { createFleetNavigation, getAirBaseTerritory, getFleetBaseTerritory } from './navalNavigation';
+import { createMapPoliticalLedger } from './mapPoliticalLedger';
+import { createMilitaryAccessState, type MilitaryAccessAgreement } from './militaryAccess';
+import type { JointOperationContext } from './jointOperations';
 
 const context = {
   week: 0,
   theater: 'europe' as const,
   game: { airPower: 62, navalPower: 58, intelNetwork: 70, enemyPressure: 56 },
 };
+
+function jointAccessFixture() {
+  const state = createJointForcesState('britain');
+  state.opponent.lastDecisionWeek = 999;
+  const fleet = state.fleets[0];
+  // Use an actual modeled port, not an offshore routing anchor with no control ledger.
+  fleet.location = '벨파스트'; fleet.navigation = createFleetNavigation(fleet);
+  const territories = campaignTerritories.map((site) => site.id === 'belfast' ? { ...site, ownerId: 'freefrance' as const, controller: 'allies' as const }
+    : site.controller === 'allies' ? { ...site, ownerId: 'britain' as const } : site);
+  expect(fleet.navigation?.homePort.territoryId).toBe('belfast');
+  expect(fleet.navigation?.position).toEqual(fleet.navigation?.homePort);
+  expect(getFleetBaseTerritory(fleet, territories)).toMatchObject({ id: 'belfast', ownerId: 'freefrance', controller: 'allies' });
+  const agreement: MilitaryAccessAgreement = { id: 'joint-base', hostNationId: 'freefrance', beneficiaryNationId: 'britain', proposerNationId: 'britain', territoryId: 'belfast', kind: 'naval-base', durationWeeks: 13,
+    status: 'active', proposedWeek: 0, responseDueWeek: 0, activatedWeek: 0, expiresWeek: 13, reason: '시험 기지 협정' };
+  const input: JointOperationContext = { ...context, territories, militaryAccess: { state: { ...createMilitaryAccessState(), agreements: [agreement] }, nationId: 'britain', week: 0, playerFaction: 'allies', control: createMapPoliticalLedger(territories, 0) } };
+  return { state, input, agreement, fleetIds: [fleet.id], airIds: [state.airGroups[0].id] };
+}
+
+describe('military access joint operation integration', () => {
+  it('allows defensive convoy duty but never launches an offensive mission on basing rights alone', () => {
+    const { state, input, fleetIds, airIds } = jointAccessFixture(); const before = structuredClone({ state, input });
+    expect(forecastJointOperation(state, 'atlantic-lifeline', fleetIds, airIds, input)?.warning).toBeNull();
+    expect(forecastJointOperation(state, 'amphibious-cover', fleetIds, airIds, input)?.warning).toContain('공격할 권한');
+    expect(launchJointOperation(state, 'amphibious-cover', fleetIds, airIds, input)).toBeNull();
+    expect({ state, input }).toEqual(before);
+  });
+  it('rechecks offensive departure at settlement without combat, target changes or refunded costs', () => {
+    const { state, input, fleetIds, airIds, agreement } = jointAccessFixture();
+    input.militaryAccess!.state.agreements = [];
+    const launched = launchJointOperation(state, 'amphibious-cover', fleetIds, airIds, input)!;
+    expect(launched).not.toBeNull();
+    input.militaryAccess!.state.agreements = [agreement];
+    const result = advanceJointOperationsWeek(launched.state, { ...input, week: 1 });
+    expect(result.state.operations).toEqual([]);
+    expect(result.state.records.at(-1)?.result).toContain('권한을 다시 확인');
+    expect(result.state.objectives).toEqual(state.objectives);
+    expect(result.state.engagements).toEqual([]);
+    expect(result.aircraftDelta).toBe(0); expect(result.convoyDelta).toBe(0);
+    expect(result.gameDelta).toEqual({});
+    expect(result.state.fleets[0].navigation?.position).toEqual(launched.state.fleets[0].navigation?.position);
+  });
+  it('does not spend a withdrawal-only grace period on a new convoy mission', () => {
+    const { state, input, fleetIds, airIds, agreement } = jointAccessFixture();
+    input.militaryAccess!.state.agreements = [{ ...agreement, status: 'notice', closedWeek: 0 }];
+    expect(forecastJointOperation(state, 'atlantic-lifeline', fleetIds, airIds, input)?.warning).toContain('철수 기간');
+    expect(launchJointOperation(state, 'atlantic-lifeline', fleetIds, airIds, input)).toBeNull();
+  });
+  it('does not heal at a revoked peacetime base and starts an actual return from the current position', () => {
+    const { state, input, agreement } = jointAccessFixture();
+    input.militaryAccess!.state.agreements = [{ ...agreement, status: 'revoked', closedWeek: 0 }];
+    state.fleets[0].readiness = 41; state.fleets[0].organization = 33;
+    const before = structuredClone(state.fleets[0]);
+    const result = recoverPeacetimeJointForces(state, { ...input, week: 1 });
+    expect(result.fleets[0].navigation?.mode).toBe('returning');
+    expect(result.fleets[0].navigation?.position).toEqual(before.navigation?.position);
+    expect(result.fleets[0].navigation?.remainingRangeNm).toBe(before.navigation?.remainingRangeNm);
+    expect(result.fleets[0].readiness).toBe(41); expect(result.fleets[0].organization).toBe(33);
+  });
+  it('does not infer aircraft basing or maintenance permission from either agreement kind', () => {
+    for (const kind of ['transit', 'naval-base'] as const) {
+      const { state, input, agreement, airIds } = jointAccessFixture();
+      const baseId = getAirBaseTerritory(state.airGroups[0], input.territories!)!.id;
+      input.territories = input.territories!.map((site) => site.id === baseId ? { ...site, ownerId: 'freefrance' } : site);
+      input.militaryAccess!.control = createMapPoliticalLedger(input.territories, 0);
+      input.militaryAccess!.state.agreements = [{ ...agreement, territoryId: baseId, kind }];
+      expect(forecastJointOperation(state, 'fighter-sweep', [], airIds, input)?.warning).toContain('공군 운용');
+      const result = recoverPeacetimeJointForces(state, input);
+      expect(result.airGroups[0]).toBe(state.airGroups[0]);
+    }
+  });
+});
 
 describe('joint operations', () => {
   it('stands down existing war missions once without healing, refunding or releasing a sea escort', () => {

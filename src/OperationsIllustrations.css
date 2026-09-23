@@ -1,0 +1,4 @@
+:where(.jcb-header,.ph-heading)>.operations-illustrated-title{display:flex;align-items:center;gap:22px;min-width:0;flex:1}
+:where(.jcb-header,.ph-heading) .operations-illustrated-copy{flex:1;min-width:0}
+:where(.jcb-header,.ph-heading) .game-illustration{flex-shrink:0}
+@media(max-width:1100px){:where(.jcb-header,.ph-heading) .game-illustration{display:none}}

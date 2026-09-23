@@ -3,6 +3,7 @@ import type { BattleForecast } from './combat';
 import { advanceOperationWeek, createOperationTerminalReceipt, forecastOperationBattle, normalizeOperationOrder, normalizeOperationOrders } from './operations';
 import { validateOffensiveTarget } from './mapCommand';
 import { validateLandRoute } from './mapRoutes';
+import { getSiteMilitaryAccess, type MilitaryAccessOperationalContext } from './militaryAccess';
 import type { OperationStopReceipt, OperationWeekResolution } from './operations';
 import type { CompletedCloseAirSupport } from './jointOperations';
 import type { BattleStance, Commander, Division, Faction, Order, Territory } from './types';
@@ -22,6 +23,7 @@ interface LandWeekInput {
   priorityDivisionId: string | null;
   completedAirSupport?: CompletedCloseAirSupport[];
   random?: () => number;
+  militaryAccess?: MilitaryAccessOperationalContext;
 }
 
 export type LandOrderResolution =
@@ -116,15 +118,26 @@ export function resolveLandOrdersWeek(input: LandWeekInput): { entries: LandOrde
       prepared.push(invalid(order, routeValidation.reason));
       continue;
     }
-    if (order.intent === 'redeployment' && target.controller !== input.playerFaction) {
-      prepared.push(invalid(order, '재배치 목적지가 더 이상 아군 통제가 아닙니다. 이동을 취소하고 원래 위치를 유지합니다. 재배치 명령을 공세로 바꾸지 않습니다.'));
+    const access = input.militaryAccess ? { ...input.militaryAccess, week: input.week } : undefined;
+    if (access) {
+      const departure = getSiteMilitaryAccess(origin, order.intent === 'redeployment' ? 'land-departure' : 'offensive', access);
+      if (!departure.allowed) {
+        prepared.push(invalid(order, departure.reason));
+        continue;
+      }
+    }
+    const canMove = access ? getSiteMilitaryAccess(target, 'transit', access).allowed : target.controller === input.playerFaction;
+    if (order.intent === 'redeployment' && !canMove) {
+      prepared.push(invalid(order, '재배치 목적지의 통제·통행권이 유효하지 않습니다. 이동을 취소하고 원래 위치를 유지합니다. 재배치 명령을 공세로 바꾸지 않습니다.'));
       continue;
     }
-    if (target.controller === input.playerFaction) {
-      prepared.push({ kind: 'move', order, division, target, receipt: createOperationTerminalReceipt(order, input.week, 'reinforced', '목표가 이미 아군 통제여서 새 교전 없이 집결했습니다. 공세는 종결되며 이동 소모와 최초 승인 비용은 유지됩니다.') });
+    if (order.intent === 'redeployment' || (target.controller === input.playerFaction && canMove)) {
+      prepared.push({ kind: 'move', order, division, target, receipt: createOperationTerminalReceipt(order, input.week, 'reinforced', order.intent === 'redeployment'
+        ? '허가된 인접 거점으로 교전 없이 이동했습니다. 외국 거점의 소유권·통제권·보급과 최초 승인 비용은 바뀌지 않습니다.'
+        : '목표가 이미 아군 통제여서 새 교전 없이 집결했습니다. 공세는 종결되며 이동 소모와 최초 승인 비용은 유지됩니다.') });
       continue;
     }
-    const validation = validateOffensiveTarget({ origin, target, playerFaction: input.playerFaction });
+    const validation = validateOffensiveTarget({ origin, target, playerFaction: input.playerFaction, militaryAccess: access });
     if (!validation.allowed) {
       prepared.push(invalid(order, validation.reason));
       continue;

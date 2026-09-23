@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { ArrowRight, CheckCircle2, Newspaper, X } from 'lucide-react';
 import { getWarEventTrace } from './journal';
+import { EditorialMediaArt } from './EditorialMediaArt';
 import { worldNewsCategoryMeta } from './worldWeeklyEngine';
 import type { WorldWeeklyIssue } from './worldWeeklyEngine';
 import type { WarEvent } from './types';
@@ -48,6 +49,7 @@ export function WeeklyBriefingDialog({ week, date, events, issue, actions, onAck
         <section className="weekly-review-world">
           <header><h3>02 · 세계의 변화</h3><button type="button" onClick={onNewspaper}><Newspaper size={14} /> 주보 전체</button></header>
           <p className="weekly-review-edition">{issue ? `제 ${issue.edition}호 · ${issue.dateRange}` : '창간호 발행 준비 중'}</p>
+          {issue ? <details className="weekly-media-disclosure"><summary>보도 매체 소개 · {issue.media.shortLabel}</summary><EditorialMediaArt mediaId={issue.media.id} compact /></details> : null}
           {articles.map((article) => <article key={article.id}><span>{worldNewsCategoryMeta[article.category].label} · {article.confidence === 'confirmed' ? '확인된 소식' : article.confidence === 'rumor' ? '미확인 첩보' : '분석 전망'}</span><h4>{article.headline}</h4><p>{article.summary}</p><details><summary>내게 미칠 영향</summary><p>{article.consequence}</p></details></article>)}
         </section>
         <section className="weekly-review-decisions">

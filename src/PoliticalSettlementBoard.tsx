@@ -1,12 +1,14 @@
 import { useId, useRef, useState } from 'react';
 import { nations } from './campaign';
 import { GameIcon } from './GameIcon';
+import { GameIllustration } from './GameIllustration';
 import { getCampaignDateForWeek } from './campaignCalendar';
 import { getTerritoryGeography } from './territoryGeography';
 import { getPoliticalSettlementPolity, reviewPoliticalSettlementAction } from './politicalSettlement';
 import type { PoliticalSettlementAction, PoliticalSettlementContext, PoliticalSettlementState } from './politicalSettlement';
 import type { NationId, Territory } from './types';
 import './PoliticalSettlementBoard.css';
+import './GovernanceIllustrations.css';
 
 export interface PoliticalSettlementBoardProps {
   state: PoliticalSettlementState;
@@ -142,6 +144,7 @@ export function PoliticalSettlementBoard(props: PoliticalSettlementBoardProps) {
     <header className="settlement-heading">
       <div><span className="settlement-eyebrow">{nationName} · 정치 기록실</span><h2 id={`${inputId}-heading`}>정부 대표권·현지 행정</h2><p>공표한 주체, 상대국의 승인, 현지 행정은 서로 다른 상태입니다.</p></div>
       <span className="settlement-date">{formatPoliticalSettlementWeek(context.week)}</span>
+      <div className="governance-illustration-slot"><GameIllustration scene="territorial-administration" compact /></div>
     </header>
     <p className="settlement-authority">{authorityNote}</p>
     <dl className="settlement-summary" aria-label="대표권과 행정 현황">

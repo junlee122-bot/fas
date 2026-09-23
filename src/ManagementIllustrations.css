@@ -1,0 +1,8 @@
+/* Supporting art stays in the reading/title block, never in an action row. */
+:is(.organization-panel-v2,.staff-meeting-room,.career-desk-v7,.intelligence-desk,.clandestine-center,.economy-ministry,.capability-desk,.equipment-lab) .management-art-heading{display:grid!important;grid-template-columns:minmax(0,1fr) var(--support-art-size,132px);column-gap:16px;align-items:start;min-width:0;flex:1}
+:is(.organization-panel-v2,.staff-meeting-room,.career-desk-v7,.intelligence-desk,.clandestine-center,.economy-ministry,.capability-desk,.equipment-lab) .management-art-heading>:not(.management-art-slot){grid-column:1;min-width:0}
+.management-art-heading>.management-art-slot{grid-column:2;grid-row:1/span 5;width:var(--support-art-size,132px);max-width:100%;align-self:start}
+.management-art-slot>figure{margin:0;max-width:100%}
+.management-art-heading .management-art-slot .game-illustration>figcaption>span{font:inherit;letter-spacing:normal}
+.game-shell.design-v2 .deck-content .management-art-heading .management-art-slot .game-illustration>figcaption>span{font:500 12px/1.5 var(--font-data,sans-serif);letter-spacing:normal;color:inherit}
+@media(max-width:900px){.management-art-heading>.management-art-slot{display:none}:is(.organization-panel-v2,.staff-meeting-room,.career-desk-v7,.intelligence-desk,.clandestine-center,.economy-ministry,.capability-desk,.equipment-lab) .management-art-heading{grid-template-columns:minmax(0,1fr)}}

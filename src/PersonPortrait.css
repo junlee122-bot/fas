@@ -1,0 +1,31 @@
+.person-portrait {
+  --portrait-size: 48px;
+  display: inline-flex;
+  position: relative;
+  flex: 0 0 var(--portrait-size);
+  align-items: center;
+  justify-content: center;
+  width: var(--portrait-size);
+  height: var(--portrait-size);
+  min-width: var(--portrait-size);
+  overflow: hidden;
+  vertical-align: middle;
+  border: 1px solid #617066;
+  border-radius: 4px;
+  background: #25302b;
+  color: #f0e8d8;
+  font-style: normal;
+  isolation: isolate;
+}
+.person-portrait.person-portrait--sm { --portrait-size: 36px; }
+.person-portrait.person-portrait--lg { --portrait-size: 88px; }
+.person-portrait > img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; border: 0; border-radius: 0; filter: none; opacity: 1; }
+.person-portrait > .person-portrait__monogram { display: inline; font-weight: 600; font-size: 15px; line-height: 1.2; font-family: inherit; color: #f0e8d8; letter-spacing: .02em; }
+.person-portrait[data-portrait-kind="player"] { border-style: dashed; }
+.campaign-onboarding__portrait-heading { display: flex; align-items: center; gap: 16px; margin: 14px 0; min-width: 0; }
+.campaign-onboarding__portrait-heading > div { min-width: 0; }
+.campaign-onboarding__portrait-heading h3 { margin: 0 0 8px; }
+.campaign-onboarding__portrait-note { display: block; color: #c7c9bf; font-size: 11px; line-height: 1.5; }
+.commander-header .commander-portrait.person-portrait { --portrait-size: 80px; padding: 0; }
+.candidate-poll-grid .candidate-portrait-heading { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+.candidate-poll-grid .candidate-portrait-heading > strong { min-width: 0; overflow-wrap: anywhere; }

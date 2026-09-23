@@ -1,4 +1,6 @@
 import { getCampaignYearForWeek } from './campaignCalendar';
+import { GameIllustration } from './GameIllustration';
+import './ManagementIllustrations.css';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
@@ -227,7 +229,7 @@ export function ClandestineCareerCenter({
 
           <div className="clandestine-desk-grid">
             <section className="clandestine-handler-card">
-              <header><MessageSquareMore size={18} /><div><span>FOREIGN CASE OFFICER</span><h3>{state.handlerAlias}</h3></div></header>
+              <header><MessageSquareMore size={18} /><div className={!state.incident ? 'management-art-heading' : undefined}><span>FOREIGN CASE OFFICER</span><h3>{state.handlerAlias}</h3>{!state.incident ? <div className="management-art-slot"><GameIllustration scene="clandestine-network" compact /></div> : null}</div></header>
               <p>접촉은 게임 안에서 추상화된 비밀 연락망으로 처리됩니다. 구체적인 현실 공작 절차 대신 신뢰·압박·보호 약속과 정보 진위만 관리합니다.</p>
               <dl>
                 <div><dt>주간 비밀수당</dt><dd>{formatMoney(Math.max(1, Math.round(3 + state.handlerTrust / 18)))}</dd></div>

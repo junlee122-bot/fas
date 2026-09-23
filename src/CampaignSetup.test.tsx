@@ -33,6 +33,17 @@ const mutationCallbacks = (value: CampaignSetupProps) => [value.onNationChange, 
   value.onStart, value.onContinue, value.onManageSaves];
 
 describe('three-stage campaign entry', () => {
+  it('places a generated portrait only in the replaced historical incumbent dossier', () => {
+    const selected = careerRoles.find((item) => item.historicalHolderId === 'britain-churchill')!;
+    const value = props({ step: 2, branch: selected.branch, roleId: selected.id });
+    const html = renderToStaticMarkup(<CampaignSetupView {...value} />);
+    expect(html).toContain('data-person-portrait="churchill"');
+    expect(html).toContain('대체할 실존 인물의 기록 · 플레이어 얼굴 아님');
+    expect(html).toContain('AI 재구성 초상 · 실제 사진 아님');
+    expect(html).not.toContain('data-portrait-kind="player"');
+    mutationCallbacks(value).forEach((callback) => expect(callback).not.toHaveBeenCalled());
+  });
+
   it('starts with all 13 nations and immediate save access, without exposing later-stage choices', () => {
     const value = props();
     const html = renderToStaticMarkup(<CampaignSetup {...value} />);

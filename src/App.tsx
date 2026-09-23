@@ -31,7 +31,6 @@ import {
   Menu,
   Minus,
   MoreHorizontal,
-  Newspaper,
   Pause,
   PanelLeftClose,
   PanelLeftOpen,
@@ -51,7 +50,6 @@ import {
   Swords,
   Target,
   TrendingUp,
-  Trophy,
   Users,
   Volume2,
   Wrench,
@@ -185,6 +183,7 @@ import { Ship } from 'lucide-react';
 import { getJointMapContext, type JointMapContext } from './jointMapContext';
 import { recoverLegacySeaPositions } from './landPositionRecovery';
 import { GameIcon } from './GameIcon';
+import { PersonPortrait } from './PersonPortrait';
 import type { GameIconName, GameIconTone } from './GameIcon';
 import { NationFlag } from './NationFlag';
 import {
@@ -332,6 +331,8 @@ import { getPoliticalSettlementAuthority } from './politicalSettlementAuthority'
 import { createTerritorialTreatiesState, normalizeTerritorialTreatiesState, executeTreatyAction } from './territorialTreaties';
 import type { TreatyAction, TreatyContext } from './territorialTreaties';
 import { advanceTerritorialDiplomacyWeek, getTreatyGarrisonEvidence, getTreatyRatificationMandate } from './territorialTreatyIntegration';
+import { advanceMilitaryAccessWeek, createMilitaryAccessState, executeMilitaryAccessAction, getSiteMilitaryAccess, normalizeMilitaryAccessState, type MilitaryAccessAction, type MilitaryAccessContext } from './militaryAccess';
+import { rebaseFleet } from './navalNavigation';
 import {
   advanceCivilianCareerWeek,
   createCivilianCareerState,
@@ -629,6 +630,7 @@ const PublicHealthCenter = lazy(() => loadPublicHealthCenter().then((module) => 
 const DiplomacyDesk = lazy(() => loadDiplomacyDesk().then((module) => ({ default: module.DiplomacyDesk })));
 const PoliticalSettlementBoard = lazy(() => import('./PoliticalSettlementBoard').then((module) => ({ default: module.PoliticalSettlementBoard })));
 const TerritorialTreatyBoard = lazy(() => import('./TerritorialTreatyBoard').then((module) => ({ default: module.TerritorialTreatyBoard })));
+const MilitaryAccessBoard = lazy(() => import('./MilitaryAccessBoard').then((module) => ({ default: module.MilitaryAccessBoard })));
 const IntelligenceDesk = lazy(() => loadIntelligenceDesk().then((module) => ({ default: module.IntelligenceDesk })));
 const EconomicMinistry = lazy(() => loadEconomicMinistry().then((module) => ({ default: module.EconomicMinistry })));
 const WorldWeekly = lazy(() => loadWorldWeekly().then((module) => ({ default: module.WorldWeekly })));
@@ -835,7 +837,7 @@ export function App() {
   const [focusedPledgeOwner, setFocusedPledgeOwner] = useState<Pick<StaffDeliveryPledgeCommand, 'staffId' | 'personId'> | undefined>();
   const [industryWorkspace, setIndustryWorkspace] = useState<'production' | 'policy' | 'logistics' | 'pledges'>('production');
   const [researchWorkspace, setResearchWorkspace] = useState<'national' | 'equipment'>('national');
-  const [diplomacyWorkspace, setDiplomacyWorkspace] = useState<'relations' | 'settlement' | 'treaties'>('relations');
+  const [diplomacyWorkspace, setDiplomacyWorkspace] = useState<'relations' | 'settlement' | 'treaties' | 'access'>('relations');
   const [equipmentWorkspace, setEquipmentWorkspace] = useState<'overview' | 'research' | 'prototype' | 'deployment'>('overview');
   const staffDecisionLocksRef = useRef(new Set<string>());
   const personnelCommandGateRef = useRef(createPersonnelReviewGate());
@@ -981,6 +983,13 @@ export function App() {
     politicalSettlementCommittingRef.current = false;
   }, [politicalSettlement]);
   const [territorialTreaties, setTerritorialTreaties] = useState(createTerritorialTreatiesState);
+  const [militaryAccess, setMilitaryAccess] = useState(createMilitaryAccessState);
+  const militaryAccessRef = useRef(militaryAccess);
+  const militaryAccessCommittingRef = useRef(false);
+  useLayoutEffect(() => {
+    militaryAccessRef.current = militaryAccess;
+    militaryAccessCommittingRef.current = false;
+  }, [militaryAccess]);
   const territorialTreatiesRef = useRef(territorialTreaties);
   const treatyCommittingRef = useRef(false);
   useLayoutEffect(() => {
@@ -1079,6 +1088,12 @@ export function App() {
     ])],
   }), [politicalSettlementContext, treatyMandate, orders, divisions, seaTransport.operations, enemyMaritime.operations, jointForces.operations, jointForces.opponent.operations, enemyStrategy.plan]);
   const civilianEntryBranches = career.civilian ? getCivilianInstitutionReadiness(career.civilian).branches : [];
+  const militaryAccessContext = useMemo<MilitaryAccessContext>(() => ({
+    state: militaryAccess, control: mapPoliticalLedger, nationId: playerNation.id, week: game.week, playerFaction: playerNation.alignment,
+    territories, relations, politicalPower: game.politicalPower, treasury: game.treasury, stability: game.stability,
+    canNegotiate: politicalSettlementAuthority.canNegotiate, canRatify: treatyMandate.canRatify,
+    approvalSupport: treatyMandate.approvalSupport, approvalLabel: treatyMandate.approvalLabel,
+  }), [militaryAccess, mapPoliticalLedger, playerNation.id, playerNation.alignment, game.week, game.politicalPower, game.treasury, game.stability, territories, relations, politicalSettlementAuthority.canNegotiate, treatyMandate]);
   const civilianEntryRoles = careerRoles.filter((role) => role.nationId === career.nationId && role.tier === 5 && civilianEntryBranches.includes(role.branch));
   const staffAuthority = useMemo(() => getStaffAuthorityProfile(careerRole), [careerRole]);
   const currentRoleTitle = getCareerInstitutionalTitle(careerRole, campaignPhase, playerNation.status);
@@ -1143,10 +1158,10 @@ export function App() {
   const seaTransportContext = useMemo<SeaTransportContext>(() => ({
     week: game.week, nationId: playerNation.id, playerFaction, phase: campaignPhase,
     divisions, territories, orders, commandableDivisionIds: roleMandates.army.mode === 'direct' ? commandableDivisionIds : new Set<string>(),
-    game, stockpile, jointForces, processingWeek: periodAdvanceRemaining > 0,
+    game, stockpile, jointForces, processingWeek: periodAdvanceRemaining > 0, militaryAccess: militaryAccessContext,
     enemyInterdiction: getEnemyMaritimeInterdictionByRoute(enemyMaritime),
     canCommandEscort: roleMandates.army.mode === 'direct' && (roleOperationalScope.level === 'national' || roleOperationalScope.level === 'theater'),
-  }), [game, playerNation.id, playerFaction, campaignPhase, divisions, territories, orders, commandableDivisionIds, roleMandates.army.mode, roleOperationalScope.level, stockpile, jointForces, periodAdvanceRemaining, enemyMaritime]);
+  }), [game, playerNation.id, playerFaction, campaignPhase, divisions, territories, orders, commandableDivisionIds, roleMandates.army.mode, roleOperationalScope.level, stockpile, jointForces, periodAdvanceRemaining, enemyMaritime, militaryAccessContext]);
   const activePolicies = useMemo(() => strategicPolicies.filter((policy) => selectedPolicies.includes(policy.id)), [selectedPolicies]);
   const policyAttackBonus = activePolicies.reduce((total, policy) => total + (policy.attackBonus ?? 0), 0);
   const policyDefenseBonus = activePolicies.reduce((total, policy) => total + (policy.defenseBonus ?? 0), 0);
@@ -1332,9 +1347,9 @@ export function App() {
     if (division.id === planningDraft?.divisionId || !commandableDivisionIds.has(division.id) || division.status !== 'ready' || orders.some((order) => order.divisionId === division.id)) return [];
     const origin = territories.find((territory) => territory.id === division.territoryId);
     if (!origin) return [];
-    const targetCount = getMapRouteChoices(origin, territories, playerFaction).filter((choice) => choice.validation.allowed).length;
+    const targetCount = getMapRouteChoices(origin, territories, playerFaction, militaryAccessContext).filter((choice) => choice.validation.allowed).length;
     return targetCount > 0 ? [{ division, origin, targetCount }] : [];
-  }) : [], [planningMode, planningDraft?.divisionId, effectiveDivisions, commandableDivisionIds, orders, territories, playerFaction]);
+  }) : [], [planningMode, planningDraft?.divisionId, effectiveDivisions, commandableDivisionIds, orders, territories, playerFaction, militaryAccessContext]);
   const canCommandSelectedDivision = commandableDivisionIds.has(selectedDivision.id);
   const selectedCommanderDevelopment = getCommanderRecord(commanderDevelopment, selectedCommander);
   const activeOrderPresentations = useMemo(() => orders.flatMap((order) => {
@@ -1648,7 +1663,7 @@ export function App() {
     activeResearch: research.filter((project) => project.active && !project.complete).length,
   }), [events, game.week, hasUnreadWorldWeekly, lastReviewedJournalWeek, orders.length, research, uxActions]);
   const savePayload = useMemo<CampaignSavePayload>(() => ({
-    version: 44,
+    version: 45,
     game,
     territories,
     divisions,
@@ -1674,6 +1689,7 @@ export function App() {
     mapPoliticalLedger,
     politicalSettlement,
     territorialTreaties,
+    militaryAccess,
     latestPeriodAdvanceReport,
     operations,
     campaignOutcome,
@@ -1717,7 +1733,7 @@ export function App() {
     nationManagement,
     politicalCrisis,
     pendingCoupIncident,
-  }), [territorialTreaties, politicalSettlement, mapPoliticalLedger, enemyMaritime, seaTransport, staffDeliveryPledges, operationStoppages, regionalIndustry, achievementUnlocks, activeTheater, armsPortfolio, battleReports, battleStance, campaignOutcome, campaignPhase, career, careerMarket, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, economy, enemyStrategy, equipmentDevelopment, events, game, jointForces, lastReadWorldWeeklyId, lastReviewedJournalWeek, latestPeriodAdvanceReport, nationManagement, objectiveProgress, onboardingMilestones, operations, orders, pendingBattleReportId, pendingCareerOfferId, pendingClandestineMissionId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, politicalCrisis, priorityDivisionId, procurementFocusId, postwarIndustry, postwarIndustrySettings, production, publicHealth, relations, research, resolvedCouncilChoices, roleCommand, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, staffNarrative, stockpile, supplyPolicy, territories, torchAuthorized, uxActionLifecycle, visitedOnboardingTabs, worldChangeBaseline, worldHistoryState, worldWeeklyIssues]);
+  }), [militaryAccess, territorialTreaties, politicalSettlement, mapPoliticalLedger, enemyMaritime, seaTransport, staffDeliveryPledges, operationStoppages, regionalIndustry, achievementUnlocks, activeTheater, armsPortfolio, battleReports, battleStance, campaignOutcome, campaignPhase, career, careerMarket, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, economy, enemyStrategy, equipmentDevelopment, events, game, jointForces, lastReadWorldWeeklyId, lastReviewedJournalWeek, latestPeriodAdvanceReport, nationManagement, objectiveProgress, onboardingMilestones, operations, orders, pendingBattleReportId, pendingCareerOfferId, pendingClandestineMissionId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, politicalCrisis, priorityDivisionId, procurementFocusId, postwarIndustry, postwarIndustrySettings, production, publicHealth, relations, research, resolvedCouncilChoices, roleCommand, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, staffNarrative, stockpile, supplyPolicy, territories, torchAuthorized, uxActionLifecycle, visitedOnboardingTabs, worldChangeBaseline, worldHistoryState, worldWeeklyIssues]);
   const campaignDate = getCampaignDate(game.week);
   const strategicPublicHealthPressure = publicHealth.activeOutbreak
     ? Math.max(publicHealth.activeOutbreak.hospitalLoad, publicHealth.activeOutbreak.weeklyCases / 10_000)
@@ -2006,7 +2022,7 @@ export function App() {
   }, []);
 
   const approvePoliticalSettlement = useCallback((action: PoliticalSettlementAction) => {
-    if (politicalSettlementCommittingRef.current || treatyCommittingRef.current || speed > 0 || periodAdvanceRemaining > 0 || showBriefing || campaignOutcome) {
+    if (politicalSettlementCommittingRef.current || treatyCommittingRef.current || militaryAccessCommittingRef.current || speed > 0 || periodAdvanceRemaining > 0 || showBriefing || campaignOutcome) {
       notify('시간 진행이나 다른 결재를 마친 뒤 최신 조건으로 다시 검토하십시오.');
       return;
     }
@@ -2026,7 +2042,7 @@ export function App() {
   }, [addEvent, campaignOutcome, notify, periodAdvanceRemaining, playerNation.id, politicalSettlementContext, recordSuccessfulRoleAction, showBriefing, speed]);
 
   const approveTreaty = useCallback((action: TreatyAction) => {
-    if (treatyCommittingRef.current || politicalSettlementCommittingRef.current || speed > 0 || periodAdvanceRemaining > 0 || showBriefing || campaignOutcome) {
+    if (treatyCommittingRef.current || politicalSettlementCommittingRef.current || militaryAccessCommittingRef.current || speed > 0 || periodAdvanceRemaining > 0 || showBriefing || campaignOutcome) {
       notify('시간 진행이나 다른 결재를 마친 뒤 최신 조건으로 다시 검토하십시오.');
       return;
     }
@@ -2045,10 +2061,41 @@ export function App() {
     notify(result.reason);
   }, [addEvent, campaignOutcome, notify, periodAdvanceRemaining, playerNation.id, recordSuccessfulRoleAction, showBriefing, speed, treatyContext]);
 
+  const approveMilitaryAccess = useCallback((action: MilitaryAccessAction) => {
+    if (militaryAccessCommittingRef.current || treatyCommittingRef.current || politicalSettlementCommittingRef.current || speed > 0 || periodAdvanceRemaining > 0 || showBriefing || campaignOutcome) {
+      notify('시간 진행이나 다른 결재를 마친 뒤 다시 검토하십시오.'); return;
+    }
+    const result = executeMilitaryAccessAction(militaryAccessRef.current, action, { ...militaryAccessContext, state: militaryAccessRef.current });
+    if (!result.accepted) { notify(result.reason); return; }
+    militaryAccessCommittingRef.current = true;
+    militaryAccessRef.current = result.state; setMilitaryAccess(result.state);
+    setGame((current) => applyGameDelta(current, result.delta));
+    result.events.forEach((event) => addEvent(event.title, event.detail, event.tone, event.week, {
+      domain: 'diplomacy', certainty: 'confirmed', decision: event.title,
+      trigger: '현직 권한·상대국·지정 거점·기간·국내 승인 재검증',
+      ongoing: ['통행·기지권은 소유권·공격권과 별개입니다. 실제 이동에는 별도 명령이 필요합니다.'],
+    }, { nationId: playerNation.id }));
+    recordSuccessfulRoleAction('diplomacy', `access-${result.events.at(-1)?.id}`, result.reason);
+    notify(result.reason);
+  }, [addEvent, campaignOutcome, militaryAccessContext, notify, periodAdvanceRemaining, playerNation.id, recordSuccessfulRoleAction, showBriefing, speed]);
+
+  const moveFleetToAccessBase = useCallback((fleetId: string, territoryId: string) => {
+    if (!seaTransportContext.canCommandEscort || speed > 0 || periodAdvanceRemaining > 0 || showBriefing || campaignOutcome) {
+      notify('현재 함대 지휘권이 필요합니다. 시간 진행·브리핑을 마친 뒤 명령하세요.'); return;
+    }
+    const fleet = jointForcesRef.current.fleets.find((item) => item.id === fleetId);
+    if (!fleet) { notify('현재 소속 함대를 확인할 수 없습니다.'); return; }
+    const result = rebaseFleet(fleet, territoryId, territories, game.week, { ...militaryAccessContext, state: militaryAccessRef.current });
+    if (!result.allowed || !result.fleet) { notify(result.reason); return; }
+    updateJointForces((current) => ({ ...current, fleets: current.fleets.map((item) => item.id === fleet.id ? result.fleet! : item) }));
+    addEvent('함대 기지 이동 승인', `${fleet.name} — ${result.reason}`, 'neutral', game.week, { domain: 'operations', certainty: 'confirmed', decision: '허가받은 기지로 실제 항로 이동', ongoing: ['도착 전에는 급유되지 않습니다. 만료·철회·항구 통제는 매주 재검증합니다.'] });
+    notify(result.reason);
+  }, [addEvent, campaignOutcome, game.week, militaryAccessContext, notify, periodAdvanceRemaining, seaTransportContext.canCommandEscort, showBriefing, speed, territories, updateJointForces]);
+
   // Run after the weekly engine has committed control changes. Opening a map or
   // rendering this panel cannot replay a tick, spend resources, or award territory.
   useEffect(() => {
-    if (showBriefing || game.week <= Math.min(politicalSettlementRef.current.lastAdvancedWeek, territorialTreatiesRef.current.lastAdvancedWeek)) return;
+    if (showBriefing || game.week <= Math.min(politicalSettlementRef.current.lastAdvancedWeek, territorialTreatiesRef.current.lastAdvancedWeek, militaryAccessRef.current.lastAdvancedWeek)) return;
     const result = advanceTerritorialDiplomacyWeek(territorialTreatiesRef.current, politicalSettlementRef.current, treatyContext, politicalSettlementContext);
     if (result.treatyResult.state !== territorialTreatiesRef.current) {
       territorialTreatiesRef.current = result.treatyResult.state;
@@ -2060,13 +2107,15 @@ export function App() {
       politicalSettlementRef.current = result.politicalResult.state;
       setPoliticalSettlement(result.politicalResult.state);
     }
-    [...result.treatyResult.events, ...result.politicalResult.events].forEach((event) => addEvent(event.title, event.detail, event.tone, event.week, {
+    const accessResult = advanceMilitaryAccessWeek(militaryAccessRef.current, { ...militaryAccessContext, state: militaryAccessRef.current, territories: result.territories, control: result.control });
+    if (accessResult.state !== militaryAccessRef.current) { militaryAccessRef.current = accessResult.state; setMilitaryAccess(accessResult.state); }
+    [...result.treatyResult.events, ...result.politicalResult.events, ...accessResult.events].forEach((event) => addEvent(event.title, event.detail, event.tone, event.week, {
       domain: 'diplomacy', certainty: 'confirmed', decision: event.title,
       trigger: '해당 주의 실제 관계·안정도·거점 관할·보급 조건 검증',
       ongoing: ['정부 대표권·당사국 간 조약·실제 통제·현지 행정은 각각 독립적으로 기록합니다.'],
     }, { nationId: playerNation.id }));
-    if (result.treatyResult.events.length || result.politicalResult.events.length) { setSpeed(0); setPeriodAdvanceRemaining(0); }
-  }, [addEvent, game.week, playerNation.id, politicalSettlementContext, showBriefing, treatyContext]);
+    if (result.treatyResult.events.length || result.politicalResult.events.length || accessResult.events.length) { setSpeed(0); setPeriodAdvanceRemaining(0); }
+  }, [addEvent, game.week, playerNation.id, politicalSettlementContext, showBriefing, treatyContext, militaryAccessContext]);
 
   useEffect(() => {
     const dueReviews = completedDecisions
@@ -2927,7 +2976,7 @@ export function App() {
     setUXActionLifecycle((current) => markUXActionsForVerification(current, game.week));
     advanceRoleDeskWeek(game.week + 1);
     advanceNationalProgramWeek(game.week + 1);
-    const seaWeekResult = advanceSeaTransportWeek(seaTransportRef.current, { ...seaTransportContext, week: game.week + 1, processingWeek: false });
+    const seaWeekResult = advanceSeaTransportWeek(seaTransportRef.current, { ...seaTransportContext, week: game.week + 1, processingWeek: false, militaryAccess: { ...militaryAccessContext, state: militaryAccessRef.current, week: game.week + 1 } });
     const seaLockedThisWeek = new Set([...seaBusyDivisionIds, ...getSeaTransportBusyDivisionIds(seaWeekResult.state)]);
     const seaEmbarkedAfterWeek = getSeaTransportEmbarkedDivisionIds(seaWeekResult.state);
     const seaTerritoryUpdates = new globalThis.Map(seaWeekResult.territoryUpdates.map((update) => [update.id, update]));
@@ -2961,7 +3010,7 @@ export function App() {
     if (campaignPhase === 'nation') {
       advanceNationWeek();
       settleNationalSupplyWeek(game.week + 1);
-      const transfers = resolveLandOrdersWeek({ week: game.week + 1, orders: orders.filter((order) => order.intent === 'redeployment'), divisions: effectiveDivisions.filter((division) => !seaLockedThisWeek.has(division.id)), commanders: effectiveCommanders, territories: territoriesAfterSea, playerFaction, stance: battleStance, doctrine, enemyPressure: game.enemyPressure, intelNetwork: game.intelNetwork, policyAttackBonus, priorityDivisionId });
+      const transfers = resolveLandOrdersWeek({ week: game.week + 1, orders: orders.filter((order) => order.intent === 'redeployment'), divisions: effectiveDivisions.filter((division) => !seaLockedThisWeek.has(division.id)), commanders: effectiveCommanders, territories: territoriesAfterSea, playerFaction, stance: battleStance, doctrine, enemyPressure: game.enemyPressure, intelNetwork: game.intelNetwork, policyAttackBonus, priorityDivisionId, militaryAccess: { ...militaryAccessContext, state: militaryAccessRef.current, week: game.week + 1 } });
       setOrders(transfers.orders);
       for (const entry of transfers.entries) {
         if ('receipt' in entry) setOperationStoppages((current) => normalizeOperationStopReceipts([entry.receipt, ...current]));
@@ -2970,17 +3019,18 @@ export function App() {
         if (entry.kind !== 'battle') addEvent(entry.kind === 'move' ? '평시 육상 재배치 완료' : '평시 육상 재배치 중단', entry.kind === 'move' ? `${entry.division.name} → ${entry.target.name}. 실제 위치를 변경했습니다.` : entry.reason, entry.kind === 'move' ? 'good' : 'neutral', game.week + 1);
       }
       // National equipment settlement replaces its snapshot; apply authoritative voyage changes last.
-      const peacetimeJoint = standDownJointOperationsForPeace(recoverPeacetimeJointForces(applyEnemyMaritimeFleetUpdates(jointForcesRef.current, enemySeaResult.opponentFleetUpdates)), game.week + 1);
+      const peacefulContext = { week: game.week + 1, theater: activeTheater, game, territories: territoriesAfterSea, militaryAccess: { ...militaryAccessContext, state: militaryAccessRef.current, week: game.week + 1 } };
+      const peacetimeJoint = standDownJointOperationsForPeace(recoverPeacetimeJointForces(applyEnemyMaritimeFleetUpdates(jointForcesRef.current, enemySeaResult.opponentFleetUpdates), peacefulContext), game.week + 1, peacefulContext);
       updateJointForces(peacetimeJoint.state);
       peacetimeJoint.events.forEach((event) => addEvent(event.title, event.detail, event.tone, game.week + 1));
       applySeaTransportResult(seaWeekResult, game.week + 1);
       applyEnemySeaResult();
       const lockedRecovery = new Set([...seaLockedThisWeek, ...orders.map((order) => order.divisionId)]);
-      setDivisions((current) => recoverPeacetimeDivisions(current, territoriesAfterSea, playerFaction, lockedRecovery));
+      setDivisions((current) => recoverPeacetimeDivisions(current, territoriesAfterSea, playerFaction, lockedRecovery, { ...militaryAccessContext, state: militaryAccessRef.current, week: game.week + 1 }));
       return;
     }
     const nextWeek = game.week + 1;
-    const jointWeekResult = advanceJointOperationsWeek(jointAfterEnemyMovement, { week: nextWeek, theater: activeTheater, game });
+    const jointWeekResult = advanceJointOperationsWeek(jointAfterEnemyMovement, { week: nextWeek, theater: activeTheater, game, territories: territoriesAfterSea, militaryAccess: { ...militaryAccessContext, state: militaryAccessRef.current, week: nextWeek } });
     updateJointForces(jointWeekResult.state);
     // Escort fatigue/loss/release is authoritative after the independent joint settlement.
     applySeaTransportResult(seaWeekResult, nextWeek);
@@ -3366,6 +3416,7 @@ export function App() {
       playerFaction, stance: battleStance, doctrine, enemyPressure: game.enemyPressure,
       intelNetwork: game.intelNetwork, policyAttackBonus, priorityDivisionId,
       completedAirSupport: getCompletedCloseAirSupport(jointForces.operations, jointWeekResult.state.records, nextWeek),
+      militaryAccess: { ...militaryAccessContext, state: militaryAccessRef.current, week: nextWeek },
     });
     setOrders(landWeekResult.orders);
     const capturedThisWeek = new Set(seaWeekResult.territoryUpdates.filter((territory) => territory.controller === playerFaction).map((territory) => territory.id));
@@ -3509,6 +3560,7 @@ export function App() {
 
     setDivisions((current) => current.map((division) => {
       if (seaLockedThisWeek.has(division.id)) return division;
+      if (!getSiteMilitaryAccess(territoriesAfterSea.find((site) => site.id === division.territoryId), 'land-supply', { ...militaryAccessContext, state: militaryAccessRef.current, week: nextWeek }).allowed) return division;
       const isPriority = division.id === priorityDivisionId;
       const personnelBonus = delegatedDepartments.has('personnel') ? 1 : 0;
       const logisticsBonus = delegatedDepartments.has('logistics') ? 1 : 0;
@@ -5768,6 +5820,8 @@ export function App() {
     setTerritories(newTerritories);
     setWorldChangeBaseline(createWorldChangeBaseline(newTerritories, newRelations));
     setMapPoliticalLedger(createMapPoliticalLedger(newTerritories, newGame.week));
+    militaryAccessRef.current = createMilitaryAccessState(newGame.week);
+    setMilitaryAccess(militaryAccessRef.current);
     territorialTreatiesRef.current = createTerritorialTreatiesState();
     setTerritorialTreaties(territorialTreatiesRef.current);
     politicalSettlementRef.current = createPoliticalSettlementState();
@@ -5973,6 +6027,8 @@ export function App() {
       setRelations(restoredRelations);
       setWorldChangeBaseline(restoredWorldChangeBaseline);
       setMapPoliticalLedger(normalizeMapPoliticalLedger(data.mapPoliticalLedger, mergedTerritories, data.game?.week ?? initialGame.week));
+      militaryAccessRef.current = normalizeMilitaryAccessState(data.militaryAccess, mergedTerritories, data.game?.week ?? initialGame.week);
+      setMilitaryAccess(militaryAccessRef.current);
       territorialTreatiesRef.current = normalizeTerritorialTreatiesState(data.territorialTreaties, mergedTerritories, data.game?.week ?? initialGame.week);
       setTerritorialTreaties(territorialTreatiesRef.current);
       politicalSettlementRef.current = normalizePoliticalSettlementState(data.politicalSettlement, mergedTerritories, data.game?.week ?? initialGame.week);
@@ -6155,6 +6211,8 @@ export function App() {
     setRelations(initialRelations);
     setWorldChangeBaseline(createWorldChangeBaseline(initialTerritories, initialRelations));
     setMapPoliticalLedger(createMapPoliticalLedger(initialTerritories, initialGame.week));
+    militaryAccessRef.current = createMilitaryAccessState(initialGame.week);
+    setMilitaryAccess(militaryAccessRef.current);
     territorialTreatiesRef.current = createTerritorialTreatiesState();
     setTerritorialTreaties(territorialTreatiesRef.current);
     politicalSettlementRef.current = createPoliticalSettlementState();
@@ -6332,7 +6390,7 @@ export function App() {
         setPlanningDraft(null);
         return;
       }
-      const validation = validateOffensiveCommand({ division: currentDivision, origin, target, playerFaction, phase: campaignPhase, commandableDivisionIds, orders, commandPoints: game.commandPoints, processingWeek: periodAdvanceRemaining > 0 });
+      const validation = validateOffensiveCommand({ division: currentDivision, origin, target, playerFaction, phase: campaignPhase, commandableDivisionIds, orders, commandPoints: game.commandPoints, processingWeek: periodAdvanceRemaining > 0, militaryAccess: { ...militaryAccessContext, state: militaryAccessRef.current } });
       if (!validation.allowed) {
         notify(validation.reason);
         return;
@@ -6367,6 +6425,7 @@ export function App() {
       week: game.week,
       theater: activeTheater,
       game: liveContext.game,
+      territories, militaryAccess: { ...militaryAccessContext, state: militaryAccessRef.current },
     }, objectiveId);
     if (!result) {
       notify('임무 요구에 맞는 출격 가능 함대·항공대를 배속해야 합니다.');
@@ -6621,7 +6680,7 @@ export function App() {
       notify('보직의 작전 지휘 범위를 벗어난 부대라 계획을 승인할 수 없습니다.');
       return;
     }
-    const validation = validateOffensiveCommand({ division, origin, target, playerFaction, phase: campaignPhase, commandableDivisionIds, orders, commandPoints: game.commandPoints, processingWeek: periodAdvanceRemaining > 0 });
+    const validation = validateOffensiveCommand({ division, origin, target, playerFaction, phase: campaignPhase, commandableDivisionIds, orders, commandPoints: game.commandPoints, processingWeek: periodAdvanceRemaining > 0, militaryAccess: { ...militaryAccessContext, state: militaryAccessRef.current } });
     if (!validation.allowed) {
       notify(validation.reason);
       return;
@@ -6668,7 +6727,7 @@ export function App() {
     }
     const operationTarget = territories.find((territory) => territory.id === playerNation.strategicTargets[0]);
     if (!operationTarget) { notify('작전 목표를 설정할 수 없습니다.'); return; }
-    const operationDivisions = divisions.filter((division) => !getSeaTransportBusyDivisionIds(seaTransportRef.current).has(division.id) && validateOffensiveCommand({ division, origin: territories.find((territory) => territory.id === division.territoryId), target: operationTarget, playerFaction, phase: campaignPhase, commandableDivisionIds, orders, commandPoints: game.commandPoints, processingWeek: periodAdvanceRemaining > 0 }).allowed).slice(0, 2);
+    const operationDivisions = divisions.filter((division) => !getSeaTransportBusyDivisionIds(seaTransportRef.current).has(division.id) && validateOffensiveCommand({ division, origin: territories.find((territory) => territory.id === division.territoryId), target: operationTarget, playerFaction, phase: campaignPhase, commandableDivisionIds, orders, commandPoints: game.commandPoints, processingWeek: periodAdvanceRemaining > 0, militaryAccess: { ...militaryAccessContext, state: militaryAccessRef.current } }).allowed).slice(0, 2);
     if (operationDivisions.length < 2) {
       notify('대규모 육상 작전에는 목표까지 육상으로 연결된 예하 준비 부대 2개가 필요합니다. 해상 횡단·수송을 생략할 수 없으며 비용은 차감되지 않았습니다.');
       return;
@@ -8684,8 +8743,8 @@ export function App() {
     { id: 'weapon-readiness', group: '군사 운영', title: '병기 수명주기 본부', description: '8개 병기 분야의 가동률·수리·탄약·부품·숙련·후계 계획을 관리합니다.', keywords: ['무기', '장비', '정비', '부품', '탄약', '가동률', '후계 장비', '군수'], icon: <Wrench size={17} />, meta: `${Math.round(Object.values(equipmentDevelopment.readiness.categories).reduce((total, item) => total + item.readinessScore, 0) / 8)}점` },
     { id: 'civilization-portfolio', group: '국가 운영', title: '국가 문명 포트폴리오', description: '15개 분야의 역사 기반 국가 사업과 공공·시민·시장 경로를 비교합니다.', keywords: ['문명', '금융', '사법', '시민권', '문화', '민방위', '국가 사업'], icon: <Landmark size={17} />, meta: '15분야' },
     { id: 'war-journal', group: '지휘 도구', title: '진행 결과 분석실', description: '선택·계산·즉시효과·장기영향을 추적합니다.', keywords: ['기록', '전문', '이벤트', '결과', '원인', '결산'], icon: <BookOpen size={17} /> },
-    { id: 'world-weekly', group: '지휘 도구', title: '세계 주보', description: '지난 7일의 전선·외교·경제·사회·과학·정보를 신뢰도와 인과관계까지 묶어 읽습니다.', keywords: ['신문', '주간', '뉴스', '세계', '이번 주'], icon: <Newspaper size={17} />, meta: latestWorldWeeklyIssue ? `제 ${latestWorldWeeklyIssue.edition}호` : '캠페인 시작 시 발행' },
-    { id: 'achievements', group: '지휘 도구', title: '도전과제 기록실', description: '경력 목표, 달성 진척도와 해금된 삽화를 확인합니다.', keywords: ['업적', '도전과제', '삽화', '갤러리'], icon: <Trophy size={17} />, meta: `${achievementUnlocks.length}/${achievementDefinitions.length}` },
+    { id: 'world-weekly', group: '지휘 도구', title: '세계 주보', description: '지난 7일의 전선·외교·경제·사회·과학·정보를 신뢰도와 인과관계까지 묶어 읽습니다.', keywords: ['신문', '주간', '뉴스', '세계', '이번 주'], icon: <GameIcon name="newspaper" size={17} tone="steel" />, meta: latestWorldWeeklyIssue ? `제 ${latestWorldWeeklyIssue.edition}호` : '캠페인 시작 시 발행' },
+    { id: 'achievements', group: '지휘 도구', title: '도전과제 기록실', description: '경력 목표, 달성 진척도와 해금된 삽화를 확인합니다.', keywords: ['업적', '도전과제', '삽화', '갤러리'], icon: <GameIcon name="medal" size={17} tone="gold" />, meta: `${achievementUnlocks.length}/${achievementDefinitions.length}` },
     { id: 'world-history', group: '지휘 도구', title: '대체지구 아틀라스', description: worldFlashpointForecast ? `다음 위기 ${worldFlashpointForecast.entry.event.title}까지 ${worldFlashpointForecast.weeksUntil}주. 세계선을 계산하고 직접 분기시킵니다.` : '모든 장기 세계 위기 결정을 완료했습니다.', keywords: ['대체역사', '냉전', '맨해튼', '전후', '세계선', '세계 위기'], icon: <Landmark size={17} />, meta: worldFlashpointForecast ? `D-${worldFlashpointForecast.weeksUntil}` : worldline.code },
     { id: 'settings', group: '지휘 도구', title: '사용자 환경 설정', description: '가독성, 고대비, 지도 라벨과 화면 효과를 조정합니다.', keywords: ['접근성', '글자', 'UI'], icon: <Settings size={17} /> },
     { id: 'field-manual', group: '지휘 도구', title: '야전 교범', description: '첫 주 체크리스트와 전투·운영 시스템 설명을 검색합니다.', keywords: ['도움말', '튜토리얼', '가이드'], icon: <CircleHelp size={17} />, meta: '?' },
@@ -8781,7 +8840,7 @@ export function App() {
             <span><small>{publicHealthView.activeOutbreak ? '보건 비상' : '보건 감시'}</small><strong>{publicHealthView.activeOutbreak ? publicHealthView.activeOutbreak.codeName : `${(publicHealthView.weeklyRisk * 100).toFixed(2)}%`}</strong></span>
           </button>
           <button data-tour="world-weekly" className={`world-weekly-chip ${hasUnreadWorldWeekly ? 'unread' : ''}`} onMouseEnter={() => void loadWorldWeekly()} onFocus={() => void loadWorldWeekly()} onClick={openWorldWeekly} aria-label={latestWorldWeeklyIssue ? `세계 주보 제 ${latestWorldWeeklyIssue.edition}호${hasUnreadWorldWeekly ? ', 새 호' : ''}` : '세계 주보, 캠페인 시작 시 창간호 발행'}>
-            <Newspaper size={17} />
+            <GameIcon name="newspaper" size={17} tone="steel" />
             <span><small>{hasUnreadWorldWeekly ? '새 호 발행' : '세계 주보'}</small><strong>{latestWorldWeeklyIssue ? `제 ${latestWorldWeeklyIssue.edition}호` : '발행 대기'}</strong></span>
             {hasUnreadWorldWeekly && <em aria-hidden="true" />}
           </button>
@@ -8870,8 +8929,8 @@ export function App() {
           ))}
         </nav>
         <details className="rail-support"><summary>기록·저장·설정</summary><div className="rail-bottom">
-          <button className={hasUnreadWorldWeekly ? 'rail-unread' : ''} title="세계 주보" data-tooltip={latestWorldWeeklyIssue ? `지난 7일의 세계 · 제 ${latestWorldWeeklyIssue.edition}호` : '캠페인 시작 시 창간호 발행'} aria-label={latestWorldWeeklyIssue ? `세계 주보 제 ${latestWorldWeeklyIssue.edition}호${hasUnreadWorldWeekly ? ', 새 호' : ''}` : '세계 주보'} onMouseEnter={() => void loadWorldWeekly()} onFocus={() => void loadWorldWeekly()} onClick={openWorldWeekly}><Newspaper size={17} /><span>세계 주보</span>{hasUnreadWorldWeekly && <em className="rail-achievement-count">NEW</em>}</button>
-          <button title="도전과제 기록실" data-tooltip={`도전과제와 해금 삽화 · ${achievementUnlocks.length}/${achievementDefinitions.length}`} aria-label={`도전과제 기록실, ${achievementUnlocks.length}개 달성`} onMouseEnter={() => void loadAchievementGallery()} onFocus={() => void loadAchievementGallery()} onClick={() => setShowAchievementGallery(true)}><Trophy size={17} /><span>도전과제</span><em className="rail-achievement-count">{achievementUnlocks.length}</em></button>
+          <button className={hasUnreadWorldWeekly ? 'rail-unread' : ''} title="세계 주보" data-tooltip={latestWorldWeeklyIssue ? `지난 7일의 세계 · 제 ${latestWorldWeeklyIssue.edition}호` : '캠페인 시작 시 창간호 발행'} aria-label={latestWorldWeeklyIssue ? `세계 주보 제 ${latestWorldWeeklyIssue.edition}호${hasUnreadWorldWeekly ? ', 새 호' : ''}` : '세계 주보'} onMouseEnter={() => void loadWorldWeekly()} onFocus={() => void loadWorldWeekly()} onClick={openWorldWeekly}><GameIcon name="newspaper" size={17} tone="steel" /><span>세계 주보</span>{hasUnreadWorldWeekly && <em className="rail-achievement-count">NEW</em>}</button>
+          <button title="도전과제 기록실" data-tooltip={`도전과제와 해금 삽화 · ${achievementUnlocks.length}/${achievementDefinitions.length}`} aria-label={`도전과제 기록실, ${achievementUnlocks.length}개 달성`} onMouseEnter={() => void loadAchievementGallery()} onFocus={() => void loadAchievementGallery()} onClick={() => setShowAchievementGallery(true)}><GameIcon name="medal" size={17} tone="gold" /><span>도전과제</span><em className="rail-achievement-count">{achievementUnlocks.length}</em></button>
           <button className={pendingWorldFlashpoint ? 'rail-crisis-due' : ''} title="대체지구 아틀라스" data-tooltip={pendingWorldFlashpoint ? `결정 대기 · ${pendingWorldFlashpoint.entry.event.title}` : worldFlashpointForecast ? `다음 세계 위기 · ${worldFlashpointForecast.entry.event.title} · ${worldFlashpointForecast.weeksUntil}주 후 · 역사 가속 범위 ${worldFlashpointForecast.historicalHorizon}년` : `${worldline.code} · 모든 장기 위기 결정 완료`} aria-label={pendingWorldFlashpoint ? `세계 위기 결정 대기, ${pendingWorldFlashpoint.entry.event.title}` : worldFlashpointForecast ? `대체지구 아틀라스, 다음 세계 위기 ${worldFlashpointForecast.entry.event.title}, ${worldFlashpointForecast.weeksUntil}주 후` : `대체지구 아틀라스, ${worldline.title}, 모든 장기 위기 결정 완료`} onMouseEnter={() => void loadWorldHistoryAtlas()} onFocus={() => void loadWorldHistoryAtlas()} onClick={openWorldHistory}><Landmark size={17} /><span>세계선</span>{worldFlashpointForecast && <em className="rail-crisis-count">{pendingWorldFlashpoint ? '결정' : `D-${worldFlashpointForecast.weeksUntil}`}</em>}</button>
           <button title="빠른 이동" data-tooltip="빠른 이동 · Ctrl+K" aria-label="빠른 이동" aria-keyshortcuts="Control+K Meta+K" onClick={() => setShowCommandPalette(true)}><GameIcon name="search" size={17} tone="steel" /><span>빠른 이동</span></button>
           <button title="진행 결과 분석실" data-tooltip="선택·계산·결과 추적" aria-label="진행 결과 분석실" onClick={openWarJournal}><GameIcon name="report" size={17} tone="steel" /><span>진행 결과</span></button>
@@ -8927,7 +8986,7 @@ export function App() {
             onToggleFocus={toggleMapFocusMode}
             onOpenArchive={() => { setSpeed(0); setPeriodAdvanceRemaining(0); setShowMapArchive(true); }}
           />
-          <MapRoutePanel key={`${planningMode ? planningDraft?.divisionId : 'inspect'}:${routePanelOrigin.id}`} origin={routePanelOrigin} territories={territories} playerFaction={playerFaction} planning={planningMode} divisionName={planningDivision?.name} alternatives={alternativeLandForces} onSelect={selectTerritory} onInspect={focusMapTerritory} onOpenJoint={openJointFromMap} onOpenTransport={openSeaTransportFromMap} onChangeDivision={issueOffensive} redeployment={<LandRedeploymentPlanner originId={routePanelOrigin.id} context={seaTransportContext} state={seaTransport} onApprove={approveFriendlyRedeployment} />} />
+          <MapRoutePanel key={`${planningMode ? planningDraft?.divisionId : 'inspect'}:${routePanelOrigin.id}`} origin={routePanelOrigin} territories={territories} playerFaction={playerFaction} militaryAccess={militaryAccessContext} planning={planningMode} divisionName={planningDivision?.name} alternatives={alternativeLandForces} onSelect={selectTerritory} onInspect={focusMapTerritory} onOpenJoint={openJointFromMap} onOpenTransport={openSeaTransportFromMap} onChangeDivision={issueOffensive} redeployment={<LandRedeploymentPlanner originId={routePanelOrigin.id} context={seaTransportContext} state={seaTransport} onApprove={approveFriendlyRedeployment} />} />
           {seaTransport.operations.length > 0 ? <div className="map-sea-transit-strip"><Anchor size={17} /><span><strong>해상 수송 {seaTransport.operations.length}건</strong> · {seaTransport.operations.slice(0, 2).map((operation) => `${operation.divisionName}: ${seaTransportStageLabels[operation.stage]}`).join(' / ')} · 출항한 부대는 상륙 전까지 육상 주둔군에서 제외됩니다.</span><button type="button" onClick={openSeaTransportStatus}>수송 현황</button></div> : null}
           <div className="map-canvas">
           <MapBoard
@@ -9052,7 +9111,7 @@ export function App() {
             event.stopPropagation();
             setMapIntelOpen(false);
             requestAnimationFrame(() => document.getElementById('political-card-trigger')?.focus());
-          }}><TerritoryPoliticalCard key={selectedTerritory.id} territory={selectedTerritory} ledger={mapPoliticalLedger} week={game.week} settlement={politicalSettlement} treaties={territorialTreaties} onOpenTreaties={() => { setMapFocusMode(false); setDiplomacyWorkspace('treaties'); setActiveTab('diplomacy'); }} onOpenDiplomacy={() => { setMapFocusMode(false); setDiplomacyWorkspace('settlement'); setActiveTab('diplomacy'); }} /></div>
+          }}><TerritoryPoliticalCard key={selectedTerritory.id} territory={selectedTerritory} ledger={mapPoliticalLedger} week={game.week} settlement={politicalSettlement} treaties={territorialTreaties} militaryAccess={militaryAccessContext} onOpenAccess={() => { setMapFocusMode(false); setDiplomacyWorkspace('access'); setActiveTab('diplomacy'); }} onOpenTreaties={() => { setMapFocusMode(false); setDiplomacyWorkspace('treaties'); setActiveTab('diplomacy'); }} onOpenDiplomacy={() => { setMapFocusMode(false); setDiplomacyWorkspace('settlement'); setActiveTab('diplomacy'); }} /></div>
           <EnemyIntentBrief
             report={enemyIntentReport}
             onFocusTarget={enemyIntentReport.targetId ? () => focusMapTerritory(enemyIntentReport.targetId as string) : undefined}
@@ -9724,7 +9783,8 @@ export function App() {
                 </Suspense>}
               </div>
             )}
-            {activeTab === 'diplomacy' && <FieldWorkspaceSwitch label="외교 작업대 선택" value={diplomacyWorkspace} onChange={(value) => { setDiplomacyWorkspace(value); deckContentRef.current?.scrollTo({ top: 0 }); }} items={[{ id: 'relations', label: '외교 지휘실', detail: '관계 · 회담 · 군비 협약' }, { id: 'settlement', label: '정부·행정', detail: '선언 · 대표권 승인 · 현지 행정' }, { id: 'treaties', label: '조약·영토 이양', detail: '제안 · 답변 · 비준 · 현지 인도' }]} />}
+            {activeTab === 'diplomacy' && <FieldWorkspaceSwitch label="외교 작업대 선택" value={diplomacyWorkspace} onChange={(value) => { setDiplomacyWorkspace(value); deckContentRef.current?.scrollTo({ top: 0 }); }} items={[{ id: 'relations', label: '외교 지휘실', detail: '관계 · 회담 · 군비 협약' }, { id: 'settlement', label: '정부·행정', detail: '선언 · 대표권 승인 · 현지 행정' }, { id: 'treaties', label: '조약·영토 이양', detail: '제안 · 답변 · 비준 · 현지 인도' }, { id: 'access', label: '통행·기지권', detail: '협상 · 이용 · 만료 · 철수' }]} />}
+            {activeTab === 'diplomacy' && diplomacyWorkspace === 'access' && <Suspense fallback={<DeferredSurface label="통행권·기지 사용권 준비 중" />}><MilitaryAccessBoard key={`${playerNation.id}:${careerRole.id}:${careerMarket.affiliationStatus}`} state={militaryAccess} context={militaryAccessContext} nationName={playerNation.shortName} formatMoney={formatGameMoney} onExecute={approveMilitaryAccess} onOpenMap={(id) => { setActiveTab('map'); focusMapTerritory(id); }} authorityNote={treatyMandate.reason} busy={speed > 0 || periodAdvanceRemaining > 0 || showBriefing || Boolean(campaignOutcome)} fleets={seaTransportContext.canCommandEscort ? jointForces.fleets : []} onRebase={seaTransportContext.canCommandEscort ? moveFleetToAccessBase : undefined} /></Suspense>}
             {activeTab === 'diplomacy' && diplomacyWorkspace === 'treaties' && <Suspense fallback={<DeferredSurface label="조약·영토 이양 기록 준비 중" />}><TerritorialTreatyBoard key={`${playerNation.id}:${careerRole.id}:${careerMarket.affiliationStatus}`} state={territorialTreaties} context={treatyContext} nationName={playerNation.shortName} formatMoney={formatGameMoney} onExecute={approveTreaty} onOpenMap={(id) => { setActiveTab('map'); focusMapTerritory(id); }} authorityNote={treatyMandate.reason} busy={speed > 0 || periodAdvanceRemaining > 0 || Boolean(campaignOutcome)} /></Suspense>}
             {activeTab === 'diplomacy' && diplomacyWorkspace === 'settlement' && <Suspense fallback={<DeferredSurface label="정부 대표권·현지 행정 준비 중" />}><PoliticalSettlementBoard key={`${playerNation.id}:${careerRole.id}:${careerMarket.affiliationStatus}`} state={politicalSettlement} context={politicalSettlementContext} nationName={playerNation.shortName} defaultSeatTerritoryId={playerNation.capitalTerritoryId} formatMoney={formatGameMoney} onExecute={approvePoliticalSettlement} onOpenMap={(id) => { setActiveTab('map'); focusMapTerritory(id); }} authorityNote={politicalSettlementAuthority.reason} busy={speed > 0 || periodAdvanceRemaining > 0 || Boolean(campaignOutcome)} /></Suspense>}
             {activeTab === 'diplomacy' && diplomacyWorkspace === 'relations' && activeTabMandate.mode === 'direct' && <Suspense fallback={<DeferredSurface label="외교 작업대 준비 중" />}><DiplomacyDesk game={game} relations={relations} setRelations={setRelations} setGame={setGame} notify={notify} nation={playerNation} completedDecisions={completedDecisions} armsPortfolio={armsPortfolio} formatMoney={formatGameMoney} onDecision={enactDecision} onEnactArmsPolicy={enactArmsDiplomacyPolicy} onFundStockpile={fundArmsEmergencyStockpile} onActionCompleted={recordSuccessfulRoleAction} busy={periodAdvanceRemaining > 0} authorized={activeTabMandate.mode === 'direct'} onRecord={(title, detail) => addEvent(title, detail, 'good', game.week)} onOpenJournal={openWarJournal} /></Suspense>}
@@ -10730,6 +10790,8 @@ function ArmyPanel({ game, campaignPhase, divisions, operationalScope, commandab
             view={serviceView === 'land' || serviceView === 'transport' || serviceView === 'enemy' ? 'joint' : serviceView}
             state={jointForces}
             theater={activeTheater}
+            territories={territories}
+            militaryAccess={seaTransportContext.militaryAccess}
             game={game}
             stockpile={stockpile}
             onLaunch={onLaunchJointOperation}
@@ -10770,7 +10832,7 @@ function ArmyPanel({ game, campaignPhase, divisions, operationalScope, commandab
       </> : landView === 'commander' ? <>
       <section className="deck-section commander-profile">
         <div className="commander-header">
-          <div className="commander-portrait" style={{ background: selectedCommander.color }}>{selectedCommander.initials}</div>
+          <PersonPortrait name={selectedCommander.name} player={selectedCommander.id === 'player'} className="commander-portrait" size="lg" />
           <div><span>{selectedCommander.rank}</span><h3>{selectedCommander.name}</h3><small>{selectedCommander.specialty}</small></div>
           <div className="rating"><Star size={13} fill="currentColor" /><strong>{selectedCommander.command}</strong></div>
         </div>

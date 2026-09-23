@@ -1,0 +1,33 @@
+{
+  "date": "2026-09-23",
+  "provider": "Higgsfield",
+  "model": "gpt_image_2_5",
+  "params": {
+    "variant": "flare",
+    "quality": "high",
+    "resolution": "4k",
+    "aspect_ratio": "3:2"
+  },
+  "expectedCredits": 8.5,
+  "actualCredits": 8.5,
+  "creditsBefore": 67,
+  "creditsAfter": 58.5,
+  "nativeWidth": 3504,
+  "nativeHeight": 2336,
+  "requests": [
+    {
+      "index": 1,
+      "slug": "transit-corridor",
+      "prompt": "Use case: historical-scene. Asset type: supporting illustration for the desktop strategy game IRON DOMINION, a sober government and military management simulation. Historically grounded editorial game illustration in restrained oil and gouache with deliberate human brushwork and clear architectural silhouettes. Charcoal blue and muted olive environments, warm ivory documents and subdued brass focal accents. Broad well-separated light and dark masses, readable at a thumbnail size, moderate daylight and directional practical lighting, no crushed blacks, no cinematic fog, no glossy 3D render, no neon, no generic AI fantasy. A symbolic scene, not a depiction of a named historical event or exact real location. Keep the focal subject large and unobstructed. No text, letters, numbers, logos, emblems, flags, insignia, UI overlays, map borders, watermarks, or identifiable famous people. No battle, explosions, victory imagery, or occupation symbolism. Period-neutral hand tools and architectural details spanning early-to-mid twentieth century. Scene: a compact border railway transit checkpoint seen at eye level, an open gate, two unarmed uniformed liaison officers reviewing a folded blank route document on a desk in the foreground. Behind them a single stationary military logistics train on a clearly visible railway through the gate. Quiet sky and a modest distant tree line. The visual idea is permission to pass through, not ownership or permission to fight. Three-quarter composition, asymmetrical with a clearly legible gate silhouette. Generic understated uniforms without national markings. 3:2 landscape.",
+      "job_id": "4c0e3e92-d1b4-4a85-974c-4562b99f8060",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GvlNWM4g0WFFzr7aU4tTQPXdqm/hf_20260923_080922_4c0e3e92-d1b4-4a85-974c-4562b99f8060.png"
+    },
+    {
+      "index": 2,
+      "slug": "naval-basing",
+      "prompt": "Use case: historical-scene. Asset type: supporting illustration for the desktop strategy game IRON DOMINION, a sober government and military management simulation. Historically grounded editorial game illustration in restrained oil and gouache with deliberate human brushwork and clear architectural silhouettes. Charcoal blue and muted olive environments, warm ivory documents and subdued brass focal accents. Broad well-separated light and dark masses, readable at a thumbnail size, moderate daylight and directional practical lighting, no crushed blacks, no cinematic fog, no glossy 3D render, no neon, no generic AI fantasy. A symbolic scene, not a depiction of a named historical event or exact real location. Keep the focal subject large and unobstructed. No text, letters, numbers, logos, emblems, flags, insignia, UI overlays, map borders, watermarks, or identifiable famous people. No battle, explosions, victory imagery, or occupation symbolism. Period-neutral hand tools and architectural details spanning early-to-mid twentieth century. Scene: a sheltered harbor service quay in calm daylight. A single modest mid-twentieth-century naval escort vessel moored broadside, dark hull clearly separated from pale water. The foreground shows a fuel hose and neatly arranged dockyard maintenance tools beside one small bollard; a low warehouse and crane silhouette in the background. The visual idea is temporary mooring and refueling at a permitted facility, not territory capture or combat departure. No busy crowd or fleet parade. Three-quarter elevated view with the entire main subject readable. 3:2 landscape.",
+      "job_id": "da037362-e551-471f-8988-72434fb31e2d",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GvlNWM4g0WFFzr7aU4tTQPXdqm/hf_20260923_080921_da037362-e551-471f-8988-72434fb31e2d.png"
+    }
+  ]
+}

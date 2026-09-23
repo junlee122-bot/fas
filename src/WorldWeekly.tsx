@@ -9,7 +9,6 @@ import {
   CircleDollarSign,
   Crosshair,
   Monitor,
-  Newspaper,
   Radio,
   Satellite,
   ShieldQuestion,
@@ -19,6 +18,8 @@ import {
   X,
 } from 'lucide-react';
 import type { NewsMediaEraId } from './newsMediaEvolution';
+import { EditorialMediaArt } from './EditorialMediaArt';
+import { GameIcon } from './GameIcon';
 import type { GameTab } from './types';
 import { worldNewsCategoryMeta } from './worldWeeklyEngine';
 import type { WorldNewsArticle, WorldNewsCategory, WorldNewsConfidence, WorldWeeklyIssue } from './worldWeeklyEngine';
@@ -45,7 +46,7 @@ const categoryIcons: Record<WorldNewsCategory, React.ReactNode> = {
 };
 
 const mediaIcons: Record<NewsMediaEraId, React.ReactNode> = {
-  'wartime-press': <Newspaper size={26} />,
+  'wartime-press': <GameIcon name="newspaper" size={26} className="context-ink" />,
   'radio-wire': <Radio size={26} />,
   'television-bulletin': <Tv size={26} />,
   'satellite-network': <Satellite size={26} />,
@@ -143,10 +144,13 @@ export function WorldWeekly({ issues, onNavigate, onClose }: WorldWeeklyProps) {
             <div className="weekly-edition-line"><span>제 {issue.edition}호 · {issue.media.cadence}</span><strong>{issue.worldlineTitle}</strong><em>전황·외교·경제·사회·과학·정보</em></div>
           </header>
 
-          <section className="weekly-media-era" aria-label="현재 보도 매체와 편집 방식">
-            <div>{mediaIcons[issue.media.id]}<span><small>MEDIA EVOLUTION · {issue.media.startYear}–{issue.media.endYear}</small><strong>{issue.media.medium}</strong></span></div>
-            <p><b>{issue.media.newsroom}</b>{issue.media.interaction}</p>
-            <em>{issue.media.nextTransitionYear ? `${issue.media.nextTransitionYear}년 다음 매체 전환` : '2060년까지 이어지는 현재 매체'}</em>
+          <section className="weekly-media-introduction" aria-label="현재 보도 매체와 편집 방식">
+            <div className="weekly-media-introduction__copy">
+              <div className="weekly-media-introduction__heading">{mediaIcons[issue.media.id]}<span><small>MEDIA EVOLUTION · {issue.media.startYear}–{issue.media.endYear}</small><strong>{issue.media.medium}</strong></span></div>
+              <p><b>{issue.media.newsroom}</b>{issue.media.interaction}</p>
+              <em>{issue.media.nextTransitionYear ? `${issue.media.nextTransitionYear}년 다음 매체 전환` : '2060년까지 이어지는 현재 매체'}</em>
+            </div>
+            <EditorialMediaArt mediaId={issue.media.id} />
           </section>
 
           <section className={`weekly-world-change ${issue.changePulse.editorialTone}`} aria-label="지난 호 이후 실제로 달라진 세계">
@@ -204,7 +208,7 @@ export function WorldWeekly({ issues, onNavigate, onClose }: WorldWeeklyProps) {
           <section className="weekly-article-grid">
             {visibleArticles.map((article) => <ArticleCard key={article.id} article={article} onNavigate={navigate} />)}
             {visibleArticles.length === 0 && category !== 'all' && lead.category === category && (
-              <div className="weekly-filter-empty"><Newspaper size={24} /><strong>이 편집국의 핵심 기사는 1면에 실렸습니다.</strong><button onClick={() => setCategory('all')}>전체 기사 보기</button></div>
+              <div className="weekly-filter-empty"><GameIcon name="newspaper" size={24} className="context-ink" /><strong>이 편집국의 핵심 기사는 1면에 실렸습니다.</strong><button onClick={() => setCategory('all')}>전체 기사 보기</button></div>
             )}
           </section>
         </main>

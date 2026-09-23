@@ -17,6 +17,8 @@ import type { CareerDecisionAction, CareerDecisionInput, CareerDecisionResult, C
 import { NationFlag } from './NationFlag';
 import type { CareerRole, GameState, NationId } from './types';
 import { ClandestineCareerCenter } from './ClandestineCareerCenter';
+import { GameIllustration } from './GameIllustration';
+import './ManagementIllustrations.css';
 import type { ClandestineIncidentResponse, ClandestineMissionResponse, ClandestinePosture } from './clandestineCareer';
 import './CareerMarketCenter.css';
 
@@ -302,7 +304,7 @@ export function CareerMarketCenter(props: CareerMarketCenterProps) {
 
   return <div className="career-market-backdrop career-desk-v7">
     <section ref={dialogRef} tabIndex={-1} className="career-market-modal" role="dialog" aria-modal="true" aria-labelledby="career-market-title">
-      <header className="career-market-header"><div className="career-market-seal"><BriefcaseBusiness size={25} aria-hidden="true" /></div><div><span className="eyebrow">CAREER & LIAISON · 경력 연락실</span><h1 id="career-market-title">다음 경력을 선택하십시오</h1><p>대상 선택 → 비용·소속 영향 검토 → 승인 → 실제 결과 확인</p></div><button ref={closeRef} type="button" className="icon-button" onClick={onClose} aria-label="국제 경력 시장 닫기"><X size={20} /></button></header>
+      <header className="career-market-header"><div className="career-market-seal"><BriefcaseBusiness size={25} aria-hidden="true" /></div><div className={!review && !submitted && !state.clandestine?.incident && (view === 'inbox' || view === 'opportunities') ? 'management-art-heading' : undefined}><span className="eyebrow">CAREER & LIAISON · 경력 연락실</span><h1 id="career-market-title">다음 경력을 선택하십시오</h1><p>대상 선택 → 비용·소속 영향 검토 → 승인 → 실제 결과 확인</p>{!review && !submitted && !state.clandestine?.incident && (view === 'inbox' || view === 'opportunities') ? <div className="management-art-slot"><GameIllustration scene="recruitment-dossiers" compact /></div> : null}</div><button ref={closeRef} type="button" className="icon-button" onClick={onClose} aria-label="국제 경력 시장 닫기"><X size={20} /></button></header>
       <div className="career-market-status"><div><span>현재 신분</span><strong>{careerAffiliationLabels[state.affiliationStatus]}</strong><small>{role.title}</small></div><div><span>답변 가능한 제안</span><strong>{actionableOffers.length}건</strong><small>제 {week + 1}주 기준</small></div><div><span>접촉 노출</span><strong>{Math.round(state.exposure)}점</strong><small>발각 확률이 아닌 위험 지수</small></div><div><span>사용 가능한 정치력</span><strong>{input ? Math.round(input.context.game.politicalPower) : '확인 필요'}</strong><small>직접 접근 2 · 연락망 역이용 3</small></div></div>
       <nav className="career-market-tabs" aria-label="국제 경력 화면">
         <button type="button" aria-current={view === 'inbox' ? 'page' : undefined} className={view === 'inbox' ? 'active' : ''} onClick={() => changeView('inbox')}><Radio size={16} /> 받은 제안 <em>{actionableOffers.length}</em></button>

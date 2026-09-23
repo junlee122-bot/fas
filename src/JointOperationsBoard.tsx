@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, type Ref } from 'react';
 import { Anchor, ArrowRight, Clock3, Crosshair, FileText, Plane, Radar, ShieldCheck, Wrench } from 'lucide-react';
-import type { GameState, Stockpile, TheaterId } from './types';
+import type { GameState, Stockpile, TheaterId, Territory } from './types';
+import type { MilitaryAccessOperationalContext } from './militaryAccess';
 import type { JointMapContext } from './jointMapContext';
 import { seaTransportStageLabels, getSeaTransportAssignedFleetIds, getSeaTransportAssignedAirGroupIds, type SeaTransportOperation } from './seaTransport';
 import { getFleetNavigationSummary, hasFleetNavigationReservation } from './navalNavigation';
@@ -12,10 +13,14 @@ import {
   type JointOperationTemplate, type NavalTaskForce,
 } from './jointOperations';
 import './JointOperationsBoard.css';
+import { GameIllustration } from './GameIllustration';
+import './OperationsIllustrations.css';
 
 export type JointOperationsView = 'joint' | 'naval' | 'air';
 export type JointCommandWorkspace = 'overview' | 'planning' | 'operations';
 export interface JointOperationsBoardProps {
+  territories?: readonly Territory[];
+  militaryAccess?: MilitaryAccessOperationalContext;
   view: JointOperationsView; state: JointForcesState; theater: TheaterId; game: GameState; stockpile: Stockpile;
   onLaunch: (templateId: string, fleetIds: string[], airGroupIds: string[], objectiveId?: string) => void;
   onDoctrineChange: (doctrine: JointDoctrine) => void;
@@ -106,7 +111,7 @@ export function getJointBoardPlan(input: JointOperationsBoardProps, selection: J
     || selection.fleetIds.some((id) => !fleetIds.includes(id)) || selection.airGroupIds.some((id) => !airGroupIds.includes(id));
   const incompatible = template ? [...input.state.fleets.filter((force) => fleetIds.includes(force.id)), ...input.state.airGroups.filter((force) => airGroupIds.includes(force.id))]
     .some((force) => getJointForceSelectionReason(force, template, input.seaTransports, input.state.nationId) !== null) : false;
-  const forecast = template ? forecastJointOperation(input.state, template.id, fleetIds, airGroupIds, { week: input.game.week, theater: input.theater, game: input.game }, objective?.id) : null;
+  const forecast = template ? forecastJointOperation(input.state, template.id, fleetIds, airGroupIds, { week: input.game.week, theater: input.theater, game: input.game, territories: input.territories, militaryAccess: input.militaryAccess }, objective?.id) : null;
   const insufficientResources = Boolean(forecast && (input.game.commandPoints < forecast.commandCost || input.game.fuel < forecast.fuelCost || input.stockpile.convoys < forecast.convoyCost));
   const warning = input.planningDisabledReason
     || (staleSelection ? '선택한 작전·목표·전력이 변경되었습니다. 현재 목록에서 새 계획을 선택하십시오.' : null)
@@ -241,7 +246,7 @@ export function JointOperationsBoardView(props: BoardViewProps) {
   const record = resolveJointSelection(records, selection.recordId);
   const control = state.theaterControl[theater];
   return <div className="joint-command-board command-edition" data-joint-view={view} data-joint-workspace={workspace}>
-    <header className="jcb-header"><div><span className="jcb-eyebrow">{view === 'joint' ? 'COMBINED OPERATIONS' : naval ? 'NAVAL COMMAND' : 'AIR COMMAND'} / 제{game.week + 1}주</span><h1>{view === 'joint' ? '합동작전 본부' : naval ? '해군 전력 관리' : '항공군 전력 관리'}</h1><p>{view === 'joint' ? theaterLabel(theater) + ' · 읽기 → 명령 → 주간 진행 → 확정 결과' : forces.length + '개 부대 · 한 편제의 현재 상태와 명령을 확인합니다.'}</p></div><span className="jcb-status">{view === 'joint' ? state.operations.length + '개 작전 진행' : forces.filter((item) => item.status === 'assigned').length + '개 작전 배속'}</span></header>
+    <header className="jcb-header"><div className="operations-illustrated-title"><div className="operations-illustrated-copy"><span className="jcb-eyebrow">{view === 'joint' ? 'COMBINED OPERATIONS' : naval ? 'NAVAL COMMAND' : 'AIR COMMAND'} / 제{game.week + 1}주</span><h1>{view === 'joint' ? '합동작전 본부' : naval ? '해군 전력 관리' : '항공군 전력 관리'}</h1><p>{view === 'joint' ? theaterLabel(theater) + ' · 읽기 → 명령 → 주간 진행 → 확정 결과' : forces.length + '개 부대 · 한 편제의 현재 상태와 명령을 확인합니다.'}</p></div><GameIllustration scene={view === 'joint' ? 'land-operations' : naval ? 'naval-operations' : 'air-operations'} compact /></div><span className="jcb-status">{view === 'joint' ? state.operations.length + '개 작전 진행' : forces.filter((item) => item.status === 'assigned').length + '개 작전 배속'}</span></header>
     {planningDisabledReason ? <p className="jcb-authority"><ShieldCheck size={18} />{planningDisabledReason} 현재 화면은 열람할 수 있습니다.</p> : null}
     {props.mapContext ? <section className="jcb-surface" aria-labelledby="jcb-map-context-title" data-map-territory={props.mapContext.territoryId}>
       <SurfaceHeading eyebrow="FROM THE OPERATIONS MAP" title="지도에서 이어서 계획" meta={theaterLabel(props.mapContext.theater)} />

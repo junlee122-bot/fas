@@ -1,35 +1,17 @@
 import type { CSSProperties } from 'react';
+import './GameIcon.css';
 
-export type GameIconName =
-  | 'command'
-  | 'map'
-  | 'organization'
-  | 'army'
-  | 'industry'
-  | 'research'
-  | 'diplomacy'
-  | 'intelligence'
-  | 'health'
-  | 'manpower'
-  | 'politics'
-  | 'fuel'
-  | 'steel'
-  | 'treasury'
-  | 'supply'
-  | 'alert'
-  | 'objective'
-  | 'report'
-  | 'search'
-  | 'save'
-  | 'help'
-  | 'settings'
-  | 'sound'
-  | 'weather'
-  | 'time'
-  | 'advance'
-  | 'air'
-  | 'naval';
+/** Hand-drawn 28-unit operational symbols; no generated bitmap dependencies. */
+export const GAME_ICON_NAMES = [
+  'command', 'map', 'organization', 'army', 'industry', 'research', 'diplomacy',
+  'intelligence', 'health', 'manpower', 'politics', 'fuel', 'steel', 'treasury',
+  'supply', 'alert', 'objective', 'report', 'search', 'save', 'help', 'settings',
+  'sound', 'weather', 'time', 'advance', 'air', 'naval', 'newspaper', 'recruitment',
+  'constitution', 'justice', 'election', 'crown', 'trade', 'treaty', 'education',
+  'resistance', 'reconstruction', 'medal',
+] as const;
 
+export type GameIconName = typeof GAME_ICON_NAMES[number];
 export type GameIconTone = 'gold' | 'blue' | 'green' | 'red' | 'steel' | 'muted';
 
 interface GameIconProps {
@@ -45,75 +27,103 @@ interface GameIconProps {
 function IconGlyph({ name }: { name: GameIconName }) {
   switch (name) {
     case 'command':
-      return <><path d="M14 2.1 17 8l6.5.9-4.7 4.5 1.1 6.4-5.9-3.1-5.9 3.1 1.1-6.4-4.7-4.5L11 8 14 2.1Z" /><path className="game-icon-cut" d="M13 9.2h2v7.4h-2zM9.3 12h9.4v2H9.3z" /></>;
+      return <><path className="game-icon-solid" d="m14 3 3 6.1 6.7 1-4.9 4.7 1.2 6.7-6-3.2-6 3.2 1.2-6.7-4.9-4.7 6.7-1L14 3Z" /><path d="m4 22 4 3m16-3-4 3" /></>;
     case 'map':
-      return <><path d="m3 5.2 7-3 8 3 7-3v20.6l-7 3-8-3-7 3V5.2Zm8.5-.2v15.2l5 1.8V6.8l-5-1.8Z" /><circle className="game-icon-cut" cx="20.5" cy="10" r="2" /><path className="game-icon-cut" d="m18 18 2.5-5 2.5 5-2.5-1.3L18 18Z" /></>;
+      return <><path d="m3 6 7-3 8 3 7-3v19l-7 3-8-3-7 3V6Zm7-3v19m8-16v19" /><path d="m5.5 16 2-2m5-3 3 3m5-4 2-2" /></>;
     case 'organization':
-      return <><path d="M14 2 3 7v3h22V7L14 2Zm-8 10h4v9H6v-9Zm6 0h4v9h-4v-9Zm6 0h4v9h-4v-9ZM3 23h22v3H3v-3Z" /><path className="game-icon-cut" d="m14 5 2.2 2h-4.4L14 5Z" /></>;
+      return <><rect x="10" y="3" width="8" height="6" rx="1" /><path d="M14 9v6M6 19v-4h16v4" /><rect x="2.5" y="19" width="7" height="6" rx="1" /><rect x="18.5" y="19" width="7" height="6" rx="1" /></>;
     case 'army':
-      return <><path d="M14 2 4 6v7c0 6.3 4.1 10.6 10 13 5.9-2.4 10-6.7 10-13V6L14 2Z" /><path className="game-icon-cut" d="m9 9 8.8 8.8-1.8 1.8-8.8-8.8L9 9Zm10 0-8.8 8.8 1.8 1.8 8.8-8.8L19 9Z" /><circle className="game-icon-cut" cx="14" cy="14" r="2.1" /></>;
+      return <><path d="m14 3 10 4v7c0 5-4 9-10 12C8 23 4 19 4 14V7l10-4Z" /><path d="m9 11 10 9M19 11 9 20m0-9v4m10-4v4" /></>;
     case 'industry':
-      return <><path d="M3 25V11h5v4l7-4v4l7-4v14H3Zm3-3h3v-3H6v3Zm6 0h3v-3h-3v3Zm6 0h3v-3h-3v3ZM4 9l1-7h5l1 7H4Z" /></>;
+      return <><path d="M3 25V11h4V4h5v13l6-4v4l7-4v12H3Z" /><path d="M7 8h5m-6 13h1m5 0h1m5 0h1M8 2h3" /></>;
     case 'research':
-      return <><path d="M10 2h8v3h-1v5.1l6.2 10.6A3.5 3.5 0 0 1 20.2 26H7.8a3.5 3.5 0 0 1-3-5.3L11 10.1V5h-1V2Zm1.3 14-3.8 6.5h13L16.7 16h-5.4Z" /><circle className="game-icon-cut" cx="13" cy="20" r="1.2" /><circle className="game-icon-cut" cx="17" cy="22" r=".8" /></>;
+      return <><path d="M10 3h8m-6 0v8L5 22a2 2 0 0 0 1.7 3h14.6a2 2 0 0 0 1.7-3l-7-11V3M8.5 17h11" /><circle className="game-icon-solid" cx="12" cy="21" r="1.25" /><circle className="game-icon-solid" cx="17" cy="20" r="1.25" /></>;
     case 'diplomacy':
-      return <><path d="M2.5 10.5 8 5l5 3-3.2 3.2 2 2 4.7-4.7L20 6l5.5 5.5-5.2 5.2-7.1 7.1a3 3 0 0 1-4.2 0l-6.5-6.5 3.2-3.2-3.2-3.6Zm7.2 5.3 5 5 1.6-1.6-5-5-1.6 1.6Zm-3 3 3.6 3.6 1.6-1.6-3.6-3.6-1.6 1.6Z" /></>;
+      return <><path d="m3 10 4-5 5 3m13 2-4-5-6 3-5 5 3 3 4-3 5 5M3 10l4 8 6 6 3-3m9-11-3 8-6 6-3-3m-6-3 3-3" /></>;
     case 'intelligence':
-      return <><path d="M2 14s4.4-8 12-8 12 8 12 8-4.4 8-12 8S2 14 2 14Zm12-5.2a5.2 5.2 0 1 0 0 10.4 5.2 5.2 0 0 0 0-10.4Z" /><circle cx="14" cy="14" r="2.8" /><path d="M23 3h3v7h-3zM21 5h7v3h-7z" /></>;
+      return <><path d="M2 14S6 6 14 6s12 8 12 8-4 8-12 8S2 14 2 14Z" /><circle cx="14" cy="14" r="4" /><circle className="game-icon-solid" cx="14" cy="14" r="1.25" /><path d="M14 2v1m0 22v1" /></>;
     case 'health':
-      return <><path d="M14 26C7.4 22.4 3 18.1 3 11.8 3 7.6 6 4.5 9.9 4.5c1.8 0 3.1.7 4.1 2 1-1.3 2.3-2 4.1-2C22 4.5 25 7.6 25 11.8 25 18.1 20.6 22.4 14 26Z" /><path className="game-icon-cut" d="M12.2 8h3.6v4.2H20v3.6h-4.2V20h-3.6v-4.2H8v-3.6h4.2V8Z" /></>;
+      return <><path d="M14 25C8 22 3 17 3 11a6 6 0 0 1 11-3 6 6 0 0 1 11 3c0 6-5 11-11 14Z" /><path d="M14 11v8m-4-4h8" /></>;
     case 'manpower':
-      return <><path d="M14 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10ZM4 25c.5-6.1 3.9-9.5 10-9.5s9.5 3.4 10 9.5H4Z" /><path className="game-icon-cut" d="M9 7h10l-2-3h-6L9 7Zm3 9 2 2 2-2 1.2 9h-6.4l1.2-9Z" /></>;
+      return <><circle cx="11" cy="8" r="4" /><path d="M3 25v-3a8 8 0 0 1 16 0v3H3Zm17-20a4 4 0 0 1 0 8m2 4a7 7 0 0 1 3 6v2" /></>;
     case 'politics':
-      return <><path d="M14 2 3 7v3h22V7L14 2ZM6 12h16v3H6v-3Zm2 5h12v7h3v2H5v-2h3v-7Z" /><path className="game-icon-cut" d="M12.5 18h3v6h-3z" /></>;
+      return <><path d="m3 9 11-6 11 6H3Zm2 16h18M7 13v8m7-8v8m7-8v8M3 25h22" /><circle className="game-icon-solid" cx="14" cy="7" r="1" /></>;
     case 'fuel':
-      return <path d="M14 2s8 9.2 8 15a8 8 0 1 1-16 0c0-5.8 8-15 8-15Zm-4 15.2c0 2.5 1.5 4.3 4.2 4.8-1.4-2.2-.8-4.6 1.7-7.3-3.7.5-5.9 1.3-5.9 2.5Z" />;
+      return <><path d="M14 2S6 11 6 17a8 8 0 0 0 16 0c0-6-8-15-8-15Z" /><path d="M10 17a4 4 0 0 0 4 4" /></>;
     case 'steel':
-      return <><path d="m4 7 7-4h11l2 5-6 17H7L4 7Zm5.2 4h9.6l1.1-3H8.1l1.1 3Zm1.3 10h5l2.2-6h-9l1.8 6Z" /><path className="game-icon-cut" d="M12 15h3l-1 3h-3l1-3Z" /></>;
+      return <><path d="m3 17 6-5h14l2 8-6 5H5l-2-8Zm0 0h14l6-5m-6 5 2 8M5 8l5-5h13v5H5Zm5-5v5" /></>;
     case 'treasury':
-      return <><ellipse cx="14" cy="7" rx="9" ry="4" /><path d="M5 7v5c0 2.2 4 4 9 4s9-1.8 9-4V7c-1.7 2-5.2 3-9 3S6.7 9 5 7Zm0 7v5c0 2.2 4 4 9 4s9-1.8 9-4v-5c-1.7 2-5.2 3-9 3s-7.3-1-9-3Z" /><path className="game-icon-cut" d="M13 4h2v6h-2z" /></>;
+      return <><ellipse cx="14" cy="6" rx="10" ry="3" /><path d="M4 6v6c0 4 20 4 20 0V6M4 17v5c0 4 20 4 20 0v-5M4 16c4 4 16 4 20 0" /></>;
     case 'supply':
-      return <><path d="M3 8 14 2l11 6v13l-11 6L3 21V8Zm3 3v8l6 3.3v-8L6 11Zm10 3.3v8l6-3.3v-8l-6 3.3Z" /><path className="game-icon-cut" d="m7.5 8.5 6.5 3.6 6.5-3.6L14 5 7.5 8.5Z" /></>;
+      return <><path d="m3 8 11-5 11 5v13l-11 5-11-5V8Zm0 0 11 5 11-5M14 13v13M8.5 5.5l11 5V16" /></>;
     case 'alert':
-      return <><path d="M14 2 27 25H1L14 2Z" /><path className="game-icon-cut" d="M12.5 9h3l-.5 9h-2L12.5 9Zm0 11h3v3h-3v-3Z" /></>;
+      return <><path d="m14 3 12 22H2L14 3Z" /><path d="M14 10v7" /><circle className="game-icon-solid" cx="14" cy="21" r="1.2" /></>;
     case 'objective':
-      return <><circle cx="14" cy="14" r="11" /><circle className="game-icon-cut" cx="14" cy="14" r="7" /><circle cx="14" cy="14" r="3" /><path d="M13 0h2v7h-2zM13 21h2v7h-2zM0 13h7v2H0zM21 13h7v2h-7z" /></>;
+      return <><circle cx="13" cy="15" r="10" /><circle cx="13" cy="15" r="5" /><path d="m13 15 12-12m-5 0h5v5" /></>;
     case 'report':
-      return <><path d="M5 2h13l5 5v19H5V2Zm13 2.5V8h3.5L18 4.5ZM9 12h10v2H9v-2Zm0 5h10v2H9v-2Zm0 5h7v2H9v-2Z" /><path d="M2 6h2v18H2z" /></>;
+      return <><path d="M6 3h11l5 5v17H6V3Zm11 0v5h5M10 13h8m-8 4h8m-8 4h5" /><path d="M3 7v18" /></>;
     case 'search':
-      return <><circle cx="12" cy="12" r="8" /><circle className="game-icon-cut" cx="12" cy="12" r="4.5" /><path d="m17.5 17.5 8 8-2.5 2.5-8-8 2.5-2.5Z" /></>;
+      return <><circle cx="11.5" cy="11.5" r="8.5" /><path d="m18 18 7 7" /></>;
     case 'save':
-      return <><path d="M3 3h18l4 4v18H3V3Zm4 2v7h13V5H7Zm1 11v7h12v-7H8Z" /><path className="game-icon-cut" d="M10 18h8v3h-8zM16 6h3v5h-3z" /></>;
+      return <><path d="M4 3h17l4 4v18H4V3Zm4 0v8h11V3M8 25v-9h13v9m-5-19v2" /></>;
     case 'help':
-      return <><path d="M14 2a12 12 0 1 1 0 24 12 12 0 0 1 0-24Zm-1.5 17v3h3v-3h-3Zm-3-9h3c0-1.4.7-2.2 2-2.2 1.2 0 2 .7 2 1.8 0 1-.5 1.5-1.9 2.4-1.7 1.1-2.2 2.1-2.1 4.2h3c0-1.2.3-1.7 1.7-2.6 2.1-1.3 3.2-2.5 3.2-4.5 0-2.6-2-4.3-5.1-4.3-3.4 0-5.6 1.9-5.8 5.2Z" /></>;
+      return <><path d="M14 6C10 3 6 3 3 4v20c4-1 8 0 11 2 3-2 7-3 11-2V4c-3-1-7-1-11 2Zm0 0v20M7 10h3m-3 5h3m8-5h3m-3 5h3" /></>;
     case 'settings':
-      return <><path d="m14 2 2.2 3.2 3.9-.5.7 3.9 3.5 1.7-1.8 3.5 2.4 3-3 2.5.9 3.8-3.8 1.1-1.1 3.8H10l-1.1-3.8-3.8-1.1.9-3.8-3-2.5 2.4-3-1.8-3.5 3.5-1.7.7-3.9 3.9.5L14 2Z" /><circle className="game-icon-cut" cx="14" cy="14" r="5" /><circle cx="14" cy="14" r="2" /></>;
+      return <><path d="m11 3-1 4-4-1-3 5 3 3-3 3 3 5 4-1 1 4h6l1-4 4 1 3-5-3-3 3-3-3-5-4 1-1-4h-6Z" /><circle cx="14" cy="14" r="4" /></>;
     case 'sound':
-      return <><path d="M3 10h5l7-6v20l-7-6H3v-8Z" /><path d="M18 9c2.7 2.7 2.7 7.3 0 10l2 2c3.9-3.9 3.9-10.3 0-14l-2 2Zm4-4c5 5 5 13 0 18l2 2c6.1-6.1 6.1-15.9 0-22l-2 2Z" /></>;
+      return <><path d="M3 10h5l7-6v20l-7-6H3v-8Zm16-1a8 8 0 0 1 0 10m4-14a14 14 0 0 1 0 18" /></>;
     case 'weather':
-      return <><path d="M7 20a5 5 0 0 1-.6-10A8 8 0 0 1 22 9.2 5.5 5.5 0 1 1 .5 10.8H7Z" /><path d="m7 22-2 5h3l2-5H7Zm7 0-2 5h3l2-5h-3Zm7 0-2 5h3l2-5h-3Z" /></>;
+      return <><path d="M7 18a5 5 0 0 1-1-10 7 7 0 0 1 13-2 6 6 0 1 1 3 12H7Z" /><path d="m8 22-1 3m7-3-1 3m7-3-1 3" /></>;
     case 'time':
-      return <><circle cx="14" cy="14" r="12" /><circle className="game-icon-cut" cx="14" cy="14" r="8.5" /><path d="M13 6h2v8.4l5.5 3.2-1.5 2.5-6-3.7V6Z" /></>;
+      return <><circle cx="14" cy="14" r="11" /><path d="M14 7v7l5 3M14 3v1m11 10h-1M14 25v-1M3 14h1" /></>;
     case 'advance':
-      return <><path d="m3 4 10 10L3 24V4Zm11 0 10 10-10 10V4Z" /><path d="M24 4h3v20h-3z" /></>;
+      return <><path className="game-icon-solid" d="m3 5 9 9-9 9V5Zm11 0 9 9-9 9V5Z" /><path d="M25 5v18" /></>;
     case 'air':
-      return <path d="m2 16 10-4 3-9h3l-1 9 8 3v3l-8 1-3 7h-2v-7l-10-1v-2Z" />;
+      return <><path d="M14 2c-1 0-2 3-2 5v4L3 16v3l9-3v5l-3 3v2l5-2 5 2v-2l-3-3v-5l9 3v-3l-9-5V7c0-2-1-5-2-5Z" /></>;
     case 'naval':
-      return <><path d="M12 2h4v6h5v3h-5v7.5c3.2-.5 5.7-2 7.8-4.5l2.2 1.5C23.7 22.2 19.7 26 14 27 8.3 26 4.3 22.2 2 15.5L4.2 14c2.1 2.5 4.6 4 7.8 4.5V11H7V8h5V2Z" /><circle className="game-icon-cut" cx="14" cy="6" r="1.2" /></>;
+      return <><circle cx="14" cy="5" r="3" /><path d="M14 8v17M8 12h12M3 16c1 5 5 8 11 10 6-2 10-5 11-10M3 16v5m0-5h5m17 0v5m0-5h-5" /></>;
+    case 'newspaper':
+      return <><path d="M7 4h18v19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9h4v14M11 8h10m-10 4h4v5h-4v-5m8 0h2m-2 5h2m-10 4h10" /></>;
+    case 'recruitment':
+      return <><rect x="3" y="3" width="18" height="22" rx="1" /><circle cx="12" cy="10" r="3" /><path d="M7 20a5 5 0 0 1 10 0M22 13v8m-4-4h8" /></>;
+    case 'constitution':
+      return <><path d="M6 3h16v15m-16 0V3H4a2 2 0 0 0-2 2v2h4m0 15v3h14a2 2 0 0 0 2-2v-2H6a2 2 0 0 1 0-4h12M10 7h8m-8 4h8" /><circle cx="22" cy="16" r="3" /></>;
+    case 'justice':
+      return <><path d="m7 4 4-2 8 10-4 3L7 4Zm-2 3 4-3 9 11-4 3L5 7Zm7 9-7 8M17 24h9m-8 0v-4h7v4" /></>;
+    case 'election':
+      return <><path d="m3 15 4-5h3m9 0h2l4 5v10H3V15Zm0 0h22M10 19h8" /><path d="m10 3 10 3-3 10-10-3 3-10Zm2 5 1 2 3-2" /></>;
+    case 'crown':
+      return <><path d="m3 7 6 5 5-9 5 9 6-5-3 14H6L3 7Zm3 18h16" /><circle className="game-icon-solid" cx="14" cy="16" r="1.5" /></>;
+    case 'trade':
+      return <><path d="M3 8h21m-4-4 4 4-4 4M25 20H4m4-4-4 4 4 4" /><path d="M6 3v1m16 20v1" /></>;
+    case 'treaty':
+      return <><path d="M4 3h16v10M4 3v22h10M8 7h8m-8 4h5m-5 4h4" /><circle cx="21" cy="18" r="4" /><path d="m18 22-1 4 4-2 4 2-1-4" /></>;
+    case 'education':
+      return <><path d="m2 9 12-6 12 6-12 6-12-6Zm5 3v8c4 4 10 4 14 0v-8m5-3v11" /></>;
+    case 'resistance':
+      return <><path d="M10 25h8M14 25V14m-4 4h8M13 2c1 5-4 5-4 9a5 5 0 0 0 10 0c0-4-3-4-3-7l-3 4V2Z" /></>;
+    case 'reconstruction':
+      return <><path d="M3 25V13l7-5 7 5v12H3Zm5 0v-7h4v7m10 0V3M18 3h8m-9 5h9M22 3l-5 5m9 0v7" /></>;
+    case 'medal':
+      return <><path d="M7 3h5l2 9-5 1L7 3Zm9 0h5l-2 10-5-1 2-9Z" /><circle cx="14" cy="19" r="7" /><path className="game-icon-solid" d="m14 14 1.3 2.9 3.2.4-2.3 2.2.6 3.2-2.8-1.5-2.8 1.5.6-3.2-2.3-2.2 3.2-.4L14 14Z" /></>;
   }
 }
 
 export function GameIcon({ name, size = 22, tone = 'steel', framed = false, active = false, label, className = '' }: GameIconProps) {
-  const style = { '--game-icon-size': `${size}px` } as CSSProperties;
+  const resolvedSize = Number.isFinite(size) && size > 0 ? size : 22;
+  const style = { '--game-icon-size': `${resolvedSize}px` } as CSSProperties;
   return (
     <span
-      className={`game-icon ${framed ? 'framed' : ''} tone-${tone} ${active ? 'active' : ''} ${className}`.trim()}
+      className={`game-icon game-icon-v2 ${framed ? 'framed' : ''} tone-${tone} ${active ? 'active' : ''} ${className}`.trim()}
       style={style}
+      data-game-icon={name}
       role={label ? 'img' : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}
     >
-      <svg viewBox="0 0 28 28" focusable="false"><IconGlyph name={name} /></svg>
+      <svg viewBox="0 0 28 28" focusable="false" aria-hidden="true">
+        <g className="game-icon-line"><IconGlyph name={name} /></g>
+      </svg>
     </span>
   );
 }

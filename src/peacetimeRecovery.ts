@@ -1,4 +1,5 @@
 import { isSeaTerritory } from './mapRoutes';
+import { getSiteMilitaryAccess, type MilitaryAccessOperationalContext } from './militaryAccess';
 import type { Division, Faction, Territory } from './types';
 
 /** One national week of recovery at a supplied friendly land garrison. */
@@ -7,6 +8,7 @@ export function recoverPeacetimeDivisions(
   territories: readonly Territory[],
   playerFaction: Exclude<Faction, 'neutral'>,
   lockedDivisionIds: ReadonlySet<string>,
+  militaryAccess?: MilitaryAccessOperationalContext,
 ): Division[] {
   const byId = new Map(territories.map((territory) => [territory.id, territory]));
   return divisions.map((division) => {
@@ -14,6 +16,7 @@ export function recoverPeacetimeDivisions(
       || !Number.isFinite(division.strength) || division.strength <= 0
       || !Number.isFinite(division.organization) || !Number.isFinite(division.supply)) return division;
     const location = byId.get(division.territoryId);
+    if (militaryAccess && !getSiteMilitaryAccess(location, 'land-supply', militaryAccess).allowed) return division;
     if (!location || location.controller !== playerFaction || isSeaTerritory(location)
       || !Number.isFinite(location.supply) || location.supply < 30) return division;
     const organization = Math.min(100, Math.max(0, division.organization) + 10);

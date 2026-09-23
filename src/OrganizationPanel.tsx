@@ -1,4 +1,7 @@
 import { useId, useMemo, useRef, useState } from 'react';
+import { GameIllustration } from './GameIllustration';
+import { PersonPortrait } from './PersonPortrait';
+import './ManagementIllustrations.css';
 import {
   AlertTriangle,
   ArrowRightLeft,
@@ -88,6 +91,7 @@ import type {
   SupplyPolicy,
 } from './types';
 import './OrganizationPanel.css';
+import './StaffPortraits.css';
 
 export type OrganizationWorkspace = 'squad' | 'market';
 
@@ -234,10 +238,6 @@ const supplyPolicies: Array<{ id: SupplyPolicy; title: string; detail: string; e
 
 function Meter({ value, tone = 'blue' }: { value: number; tone?: 'blue' | 'gold' | 'red' }) {
   return <span className="org-meter"><i className={tone} style={{ width: `${Math.max(0, Math.min(100, value))}%` }} /></span>;
-}
-
-function initials(name: string) {
-  return name.split(/\s+/).map((part) => part[0]).slice(0, 2).join('');
 }
 
 const careerStageLabels = {
@@ -519,9 +519,10 @@ export function OrganizationPanel({
       </nav>}
       <section className="management-card staff-card">
         <div className="management-heading org-workspace-heading">
-          <div><span>{workspace === 'squad' ? 'STAFF SQUAD' : 'TALENT MARKET'}</span><h3>{workspace === 'squad' ? '참모 스쿼드' : '후보 시장'}</h3><p>{workspace === 'squad' ? '명단에서 한 명을 선택하고, 상태를 확인한 뒤 조치하십시오.' : '후보를 찾고 조사 보고서에서 정보·비용·임명 권한을 확인하십시오.'}</p></div>
+          <div className={!staffReview && !candidateReview && !negotiatingCandidate && !meetingStaffIdentity ? 'management-art-heading' : undefined}><span>{workspace === 'squad' ? 'STAFF SQUAD' : 'TALENT MARKET'}</span><h3>{workspace === 'squad' ? '참모 스쿼드' : '후보 시장'}</h3><p>{workspace === 'squad' ? '명단에서 한 명을 선택하고, 상태를 확인한 뒤 조치하십시오.' : '후보를 찾고 조사 보고서에서 정보·비용·임명 권한을 확인하십시오.'}</p>{!staffReview && !candidateReview && !negotiatingCandidate && !meetingStaffIdentity ? <div className="management-art-slot"><GameIllustration scene={workspace === 'market' ? 'recruitment-dossiers' : 'staff-council'} compact /></div> : null}</div>
           <button type="button" className={`org-career-link ${careerOfferCount > 0 ? 'has-offers' : ''}`} aria-label={`내 국제 경력 · ${careerStatusLabel} · 제안 ${careerOfferCount}건`} onClick={onOpenCareerMarket}><BriefcaseBusiness size={16} /><span><span className="org-career-label">내 국제 경력</span><small><span className="org-career-status">{careerStatusLabel} · </span>제안 {careerOfferCount}건</small></span></button>
         </div>
+        <p className="staff-portrait-note">인물 식별용 AI 재구성 초상 · 실제 사진 아님. 등록된 초상이 없는 인물은 이름 머리글자로 표시합니다.</p>
         {officeProblem && <p className="org-staff-action-notice" role="status"><strong>인사권 없음 · 열람 전용.</strong> {officeProblem} 조사·접촉·관심 명단 변경도 잠기지만 기존 참모와 후보 보고서는 계속 확인할 수 있습니다.</p>}
         {workspace === 'squad' && <>
         <div className="org-squad-summary" aria-label="참모진 핵심 현황">
@@ -561,7 +562,7 @@ export function OrganizationPanel({
                     >
                       <span className="staff-seat-card-top"><em>{seat.label}</em>{manageable ? <small>관리 가능</small> : <small><LockKeyhole size={10} /> 상급 권한</small>}</span>
                       <strong>{getStaffSeatTitle(seat.department, campaignPhase, nation.status)}</strong>
-                      <span className="staff-seat-person"><i style={{ borderColor: nation.accent }}>{member ? initials(member.name) : '—'}</i><span><b>{member?.name ?? '공석'}</b><small>{member?.specialty ?? '후보 영입 필요'}</small></span></span>
+                      <span className="staff-seat-person">{member ? <PersonPortrait personId={member.personId} name={member.name} player={member.id === 'player' || member.personId === 'player'} size="sm" className="staff-portrait staff-portrait--seat" /> : <i style={{ borderColor: nation.accent }} aria-hidden="true">—</i>}<span><b>{member?.name ?? '공석'}</b><small>{member?.specialty ?? '후보 영입 필요'}</small></span></span>
                       <span className="staff-seat-fit"><em>{suitability?.label ?? '공석'}</em><b>{suitability?.score ?? 0}</b><Meter value={suitability?.score ?? 0} tone={(suitability?.score ?? 0) < 55 ? 'red' : (suitability?.score ?? 0) < 75 ? 'gold' : 'blue'} /></span>
                       <span className="staff-seat-planning"><em className={plan?.priority}>{plan?.priority === 'top' ? '최우선 보강' : plan?.priority === 'standard' ? '보강 검토' : '안정'}</em><small>뎁스 {plan?.depthScore ?? 0} · 내부/외부 각 3명</small></span>
                       <span className={`staff-seat-duty ${member?.delegated ? 'delegated' : ''} ${manageable ? '' : 'superior'}`}>{!manageable ? '상급기관 결재 · 보고만' : member?.delegated ? '주간 책임 위임' : '사용자 직접 결재'}</span>
@@ -621,7 +622,7 @@ export function OrganizationPanel({
                   const manageable = manageableDepartments.has(member.department);
                   const selected = selectedStaff?.id === member.id && selectedStaff.personId === member.personId;
                   return <button type="button" key={`${member.id}:${member.personId}`} className={`org-roster-person ${selected ? 'selected' : ''}`} aria-pressed={selected} aria-controls={detailId} onClick={() => selectStaffById(member.id)}>
-                    <i className="org-person-monogram" aria-hidden="true">{initials(member.name)}</i>
+                    <PersonPortrait personId={member.personId} name={member.name} player={member.id === 'player' || member.personId === 'player'} size="sm" className="staff-portrait" />
                     <span className="org-roster-person-copy"><strong>{member.name}</strong><small>{getStaffSeatTitle(member.department, campaignPhase, nation.status)}</small><em>{manageable ? member.delegated ? '직접 관리 · 위임 중' : '직접 관리 · 직접 결재' : '상급기관 관리 · 열람'}</em></span>
                     <span className="org-roster-ability"><small>능력</small><b>{member.ability}</b></span>
                   </button>;
@@ -633,7 +634,7 @@ export function OrganizationPanel({
             <section className="org-person-detail" id={detailId} aria-label={selectedStaff ? `${selectedStaff.name} 참모 상세` : '참모 상세'}>
               {selectedStaff ? <>
                 <header className="org-person-heading">
-                  <i className="org-person-monogram large" title="이름 머리글자 · 인물 사진 아님" aria-hidden="true">{initials(selectedStaff.name)}</i>
+                  <PersonPortrait personId={selectedStaff.personId} name={selectedStaff.name} player={selectedStaff.id === 'player' || selectedStaff.personId === 'player'} size="lg" className="staff-portrait staff-portrait--detail" />
                   <div><small>{getStaffSeatTitle(selectedStaff.department, campaignPhase, nation.status)}</small><h4>{selectedStaff.name}</h4><p>{selectedStaff.specialty}</p></div>
                   <span className={`org-access-tag ${selectedStaffManaged ? 'managed' : 'locked'}`}>{selectedStaffManaged ? <ShieldCheck size={14} /> : <LockKeyhole size={14} />}{selectedStaffManaged ? '직접 관리' : '열람 전용'}</span>
                 </header>
@@ -737,7 +738,7 @@ export function OrganizationPanel({
                 const renewal = getStaffDeskAvailability(liveStaffInput, { kind: 'renew', staffId: record.member.id });
                 return (
                   <article className={`${record.contractRisk} ${manageable ? '' : 'locked'}`} key={record.member.id}>
-                    <span className="staff-dynamic-person"><i style={{ borderColor: nation.accent }}>{initials(record.member.name)}</i><span><small>{hierarchyLabels[record.hierarchy]} · {careerStageLabels[record.careerStage]}</small><strong>{record.member.name}</strong><em>{getStaffSeatTitle(record.member.department, campaignPhase, nation.status)}</em></span></span>
+                    <span className="staff-dynamic-person"><PersonPortrait personId={record.member.personId} name={record.member.name} player={record.member.id === 'player' || record.member.personId === 'player'} size="sm" className="staff-portrait staff-portrait--dynamic" /><span><small>{hierarchyLabels[record.hierarchy]} · {careerStageLabels[record.careerStage]}</small><strong>{record.member.name}</strong><em>{getStaffSeatTitle(record.member.department, campaignPhase, nation.status)}</em></span></span>
                     <span className="staff-dynamic-rating"><small>사기</small><strong>{record.morale}</strong><Meter value={record.morale} tone={record.morale < 50 ? 'red' : 'blue'} /></span>
                     <span className="staff-dynamic-rating"><small>역할 만족</small><strong>{record.roleSatisfaction}</strong><Meter value={record.roleSatisfaction} tone={record.roleSatisfaction < 50 ? 'red' : 'gold'} /></span>
                     <span className="staff-dynamic-rating"><small>지도부 수용</small><strong>{record.buyIn}</strong><Meter value={record.buyIn} tone={record.buyIn < 50 ? 'red' : 'blue'} /></span>
@@ -916,7 +917,7 @@ export function OrganizationPanel({
                     <span>{isExpert ? (candidate.department === 'science' ? <Atom size={10} /> : <Landmark size={10} />) : null}{departmentLabels[candidate.department]} · {candidate.discipline ? disciplineLabels[candidate.discipline] : '군사'}</span>
                     <em>{candidate.knowledge >= 100 && !unavailable ? '조사 완료' : statusLabels[candidate.status]}{isCandidateShortlisted(candidate) && ' · 관심'}{!manageable && <><LockKeyhole size={12} /> 임명 권한 없음</>}</em>
                   </header>
-                  <div className="org-candidate-identity"><i className="org-person-monogram" aria-hidden="true">{initials(candidate.name)}</i><span><strong>{candidate.name}</strong><small>{candidate.historicalOffice}</small></span></div>
+                  <div className="org-candidate-identity"><PersonPortrait personId={candidate.personId} name={candidate.name} player={candidate.id === 'player' || candidate.personId === 'player'} size="sm" className="staff-portrait" /><span><strong>{candidate.name}</strong><small>{candidate.historicalOffice}</small></span></div>
                   <div className="org-candidate-comparison"><span><small>정보 / 능력</small><strong>{candidate.knowledge}% / {ability}</strong></span><span><small>계약금 / 주급</small><strong>{formatMoney(candidate.signingCost)} / {formatMoney(candidate.weeklyCost)}</strong></span></div>
                   <button className="open-candidate-report" type="button" aria-label={`${candidate.name} 조사 보고서`} aria-pressed={selectedCandidate?.id === candidate.id} aria-controls={selectedCandidate?.id === candidate.id ? reportId : undefined} onClick={() => revealCandidateReport(candidate.id)}><ClipboardList size={16} /> 조사 보고서 <ChevronRight size={16} /></button>
                   <details className="org-candidate-more"><summary>경력·영입 조건과 빠른 조치 <ChevronRight size={14} /></summary><div className="org-candidate-more-body">

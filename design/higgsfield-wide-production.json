@@ -1,0 +1,379 @@
+{
+  "date": "2026-09-18",
+  "provider": "Higgsfield MCP",
+  "status": "completed",
+  "creditsBefore": 208,
+  "estimatedBatchCredits": 72,
+  "actualBatchCredits": 72,
+  "creditsAfter": 136,
+  "model": "gpt_image_2_5",
+  "constraints": [
+    "24distinct symbolic scenes; no new named historical portraits",
+    "No engine/save/authority/approval outcome changes",
+    "No generated geography or battle information",
+    "Native resolution, original PNG and lossless WebP retained",
+    "One supporting illustration per active surface; no giant banners"
+  ],
+  "requests": [
+    {
+      "index": 1,
+      "id": "staff-council",
+      "label": "참모 회의와 책임 배분",
+      "scene": "An intimate council-table still life: several distinct closed folders gathered around a shared wooden table, restrained chairs in the background, a single pencil holder and ceramic cups. Emphasize collective deliberation without people, hierarchy badges, signatures or evidence that agreement was reached.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nAn intimate council-table still life: several distinct closed folders gathered around a shared wooden table, restrained chairs in the background, a single pencil holder and ceramic cups. Emphasize collective deliberation without people, hierarchy badges, signatures or evidence that agreement was reached."
+      }
+    },
+    {
+      "index": 2,
+      "id": "recruitment-dossiers",
+      "label": "인재 조사와 경력 기록",
+      "scene": "A recruitment archivist's work surface seen from above: unlabelled index cards, three thick candidate dossiers, a magnifying glass and a simple paper tray. No portrait photographs, identity names, readable handwriting, ranking charts or ratings. Warm quiet light, clear visual organization, no invented person.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nA recruitment archivist's work surface seen from above: unlabelled index cards, three thick candidate dossiers, a magnifying glass and a simple paper tray. No portrait photographs, identity names, readable handwriting, ranking charts or ratings. Warm quiet light, clear visual organization, no invented person."
+      }
+    },
+    {
+      "index": 3,
+      "id": "diplomatic-table",
+      "label": "외교 교섭의 공간",
+      "scene": "A close view along the end of a modest diplomatic meeting table with two empty chairs facing each other, separate closed document folders, glass water carafe and pencils. No flags, treaties being signed, handshakes, people or success symbols. Show a place for negotiation, not a completed agreement.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nA close view along the end of a modest diplomatic meeting table with two empty chairs facing each other, separate closed document folders, glass water carafe and pencils. No flags, treaties being signed, handshakes, people or success symbols. Show a place for negotiation, not a completed agreement."
+      }
+    },
+    {
+      "index": 4,
+      "id": "territorial-administration",
+      "label": "조약과 행정 인계 검토",
+      "scene": "A provincial record office's preparation table: sealed plain document packets, blank registry books, archival boxes and a set of unmarked keys. Sunlight over an ordinary stone windowsill. No maps, territory outlines, flags, checkpoints, handover ceremony or evidence of any ownership change.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nA provincial record office's preparation table: sealed plain document packets, blank registry books, archival boxes and a set of unmarked keys. Sunlight over an ordinary stone windowsill. No maps, territory outlines, flags, checkpoints, handover ceremony or evidence of any ownership change."
+      }
+    },
+    {
+      "index": 5,
+      "id": "treasury-ledger",
+      "label": "재정 장부와 예산 검토",
+      "scene": "A restrained close-up of public accounting: an open ledger with blank ruled pages, wooden counting beads, a small balance scale, plain metal disks without currency designs, and a neatly folded blank receipt. No banknotes, national emblems, readable numbers, gold abundance or promises of wealth.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nA restrained close-up of public accounting: an open ledger with blank ruled pages, wooden counting beads, a small balance scale, plain metal disks without currency designs, and a neatly folded blank receipt. No banknotes, national emblems, readable numbers, gold abundance or promises of wealth."
+      }
+    },
+    {
+      "index": 6,
+      "id": "market-exchange",
+      "label": "시장과 기업 활동",
+      "scene": "A quiet market arcade viewed obliquely through an empty trading desk's window. Foreground blank commercial folders and a small plain crate; background anonymous stalls with sacks and practical goods, no readable signs. No stock price graph, coins shower, celebratory crowds, or claims that trade is booming. A neutral place where exchanges happen.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nA quiet market arcade viewed obliquely through an empty trading desk's window. Foreground blank commercial folders and a small plain crate; background anonymous stalls with sacks and practical goods, no readable signs. No stock price graph, coins shower, celebratory crowds, or claims that trade is booming. A neutral place where exchanges happen."
+      }
+    },
+    {
+      "index": 7,
+      "id": "research-laboratory",
+      "label": "실험과 검증의 작업대",
+      "scene": "A modest scientific bench with a glass prism, a brass optical lens holder, closed notebook, simple glassware and one unlabelled measuring instrument. Careful experimental work, no person, no nuclear imagery, no glowing chemicals, no result shown and no weapon design diagram. Quiet side light, distinct materials.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nA modest scientific bench with a glass prism, a brass optical lens holder, closed notebook, simple glassware and one unlabelled measuring instrument. Careful experimental work, no person, no nuclear imagery, no glowing chemicals, no result shown and no weapon design diagram. Quiet side light, distinct materials."
+      }
+    },
+    {
+      "index": 8,
+      "id": "equipment-workbench",
+      "label": "장비 설계와 정비 도구",
+      "scene": "A mechanical design bench with a worn caliper, a small disassembled harmless gear assembly, cloth, spare fasteners and an unmarked clipboard. No assembled weapon, no exploded firearm drawing, no readable specifications, no futuristic technology. Precision and maintenance, not a claim that a prototype is complete.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nA mechanical design bench with a worn caliper, a small disassembled harmless gear assembly, cloth, spare fasteners and an unmarked clipboard. No assembled weapon, no exploded firearm drawing, no readable specifications, no futuristic technology. Precision and maintenance, not a claim that a prototype is complete."
+      }
+    },
+    {
+      "index": 9,
+      "id": "production-logistics",
+      "label": "생산과 보급의 준비",
+      "scene": "A calm warehouse loading bay with a hand trolley, modest unlabelled wooden crates, coiled rope and a covered workbench. Frame a narrow aisle with practical daylight; no vehicles, people, weapons, flags or infinite stockpiles. Show preparation and movement of supplies without implying deliveries, quantities or success.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nA calm warehouse loading bay with a hand trolley, modest unlabelled wooden crates, coiled rope and a covered workbench. Frame a narrow aisle with practical daylight; no vehicles, people, weapons, flags or infinite stockpiles. Show preparation and movement of supplies without implying deliveries, quantities or success."
+      }
+    },
+    {
+      "index": 10,
+      "id": "land-operations",
+      "label": "야전 지휘의 도구",
+      "scene": "A quiet field shelter at the edge of open ground: binoculars, a plain compass and folded canvas satchel on a rough table, a closed notebook and subdued canvas canopy in background. No readable map, soldiers, insignia, fighting, smoke, victory, destroyed buildings or recognizable landscape. Not a representation of the player's actual front.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nA quiet field shelter at the edge of open ground: binoculars, a plain compass and folded canvas satchel on a rough table, a closed notebook and subdued canvas canopy in background. No readable map, soldiers, insignia, fighting, smoke, victory, destroyed buildings or recognizable landscape. Not a representation of the player's actual front."
+      }
+    },
+    {
+      "index": 11,
+      "id": "naval-operations",
+      "label": "해상 작전과 항해 준비",
+      "scene": "A maritime watch desk with a ship's compass under glass, coiled rope, binoculars and a closed plain logbook. Soft daylight from a porthole reveals calm anonymous water but no coastline. No vessel silhouette, specific warship class, charts, fleet positions, people or combat outcome. Enduring naval craft and navigation atmosphere.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nA maritime watch desk with a ship's compass under glass, coiled rope, binoculars and a closed plain logbook. Soft daylight from a porthole reveals calm anonymous water but no coastline. No vessel silhouette, specific warship class, charts, fleet positions, people or combat outcome. Enduring naval craft and navigation atmosphere."
+      }
+    },
+    {
+      "index": 12,
+      "id": "air-operations",
+      "label": "항공 작전과 비행 준비",
+      "scene": "A quiet aviation workbench with a simple metal aerodynamic wing-section model, folded canvas flying gloves and an unlabelled analog instrument resting beside a closed logbook. Neutral hangar beams dissolve into the background. No full aircraft, nation markings, flight routes, weaponry, cockpit HUD or actual sortie outcome.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nA quiet aviation workbench with a simple metal aerodynamic wing-section model, folded canvas flying gloves and an unlabelled analog instrument resting beside a closed logbook. Neutral hangar beams dissolve into the background. No full aircraft, nation markings, flight routes, weaponry, cockpit HUD or actual sortie outcome."
+      }
+    },
+    {
+      "index": 13,
+      "id": "constitution-assembly",
+      "label": "헌정 질서와 공적 절차",
+      "scene": "An unoccupied public deliberation room, viewed from a lectern toward a few plain seats; foreground a closed cloth-bound law volume and a blank stack of draft papers. No readable laws, national seals, throne, party banners, ballots or crowds. Institutional process as a neutral concept, not an enacted constitution.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nAn unoccupied public deliberation room, viewed from a lectern toward a few plain seats; foreground a closed cloth-bound law volume and a blank stack of draft papers. No readable laws, national seals, throne, party banners, ballots or crowds. Institutional process as a neutral concept, not an enacted constitution."
+      }
+    },
+    {
+      "index": 14,
+      "id": "justice-chamber",
+      "label": "사법 기록과 심리 준비",
+      "scene": "A calm judicial records room with a low bookshelf, closed unlabelled case folders and a sober empty hearing desk. A small practical lamp lights blank paper and a fountain pen. No gavel, weapon, accused person, judge portrait, verdict, prison bars, bribe money or evidence photos. Neutrality and due process, never guilt.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nA calm judicial records room with a low bookshelf, closed unlabelled case folders and a sober empty hearing desk. A small practical lamp lights blank paper and a fountain pen. No gavel, weapon, accused person, judge portrait, verdict, prison bars, bribe money or evidence photos. Neutrality and due process, never guilt."
+      }
+    },
+    {
+      "index": 15,
+      "id": "election-campaign",
+      "label": "선거와 시민의 선택",
+      "scene": "A modest empty polling preparation space with a plain ballot box, folded blank ballots and a private voting screen of neutral fabric. No symbols, candidate posters, party colors, people, readable tally, winner, graph or popularity claim. Quiet readiness before voting rather than a celebration.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nA modest empty polling preparation space with a plain ballot box, folded blank ballots and a private voting screen of neutral fabric. No symbols, candidate posters, party colors, people, readable tally, winner, graph or popularity claim. Quiet readiness before voting rather than a celebration."
+      }
+    },
+    {
+      "index": 16,
+      "id": "civilian-work",
+      "label": "민간인의 생활과 배움",
+      "scene": "A modest personal study and work corner: well-used books with blank spines, notebook, sewing or repair tools in a small tray, a ceramic cup and an open window with soft daylight. No people, family photographs, wedding symbols, gender coding, luxury, employment certificate or evidence of success. Everyday effort and possibility.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nA modest personal study and work corner: well-used books with blank spines, notebook, sewing or repair tools in a small tray, a ceramic cup and an open window with soft daylight. No people, family photographs, wedding symbols, gender coding, luxury, employment certificate or evidence of success. Everyday effort and possibility."
+      }
+    },
+    {
+      "index": 17,
+      "id": "clandestine-network",
+      "label": "연락과 정보 검토",
+      "scene": "An understated communications still life in an ordinary dim room: sealed plain envelope, small unlabelled radio receiver, closed notebook, a desk lamp and a travel satchel. No person, readable cipher, surveillance target, pistol, torture, threatening silhouettes or evidence a secret mission succeeded. Reserved rather than cinematic espionage.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nAn understated communications still life in an ordinary dim room: sealed plain envelope, small unlabelled radio receiver, closed notebook, a desk lamp and a travel satchel. No person, readable cipher, surveillance target, pistol, torture, threatening silhouettes or evidence a secret mission succeeded. Reserved rather than cinematic espionage."
+      }
+    },
+    {
+      "index": 18,
+      "id": "royal-council",
+      "label": "왕실의 의전과 권한",
+      "scene": "A restrained royal administrative still life: a plain small ceremonial circlet without national design beside a closed dark document case, folded cloth and a blank charter on an ordinary council table. No throne-room excess, real royal jewels, person, heraldry, map, actual title or evidence of land grants. Quiet responsibility, not glorification.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nA restrained royal administrative still life: a plain small ceremonial circlet without national design beside a closed dark document case, folded cloth and a blank charter on an ordinary council table. No throne-room excess, real royal jewels, person, heraldry, map, actual title or evidence of land grants. Quiet responsibility, not glorification."
+      }
+    },
+    {
+      "index": 19,
+      "id": "socialist-planning",
+      "label": "공동 계획과 대표 협의",
+      "scene": "A neutral cooperative planning table in a modest civic workroom: several blank production notebooks, a small gear, a basket of everyday goods, simple chairs and a plain wooden notice board without writing. No leaders, red stars, hammers-and-sickles, flags, revolutionary crowd, propaganda slogans or claim of economic success.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nA neutral cooperative planning table in a modest civic workroom: several blank production notebooks, a small gear, a basket of everyday goods, simple chairs and a plain wooden notice board without writing. No leaders, red stars, hammers-and-sickles, flags, revolutionary crowd, propaganda slogans or claim of economic success."
+      }
+    },
+    {
+      "index": 20,
+      "id": "independence-network",
+      "label": "독립운동의 연락과 기록",
+      "scene": "An invented modest East Asian exile correspondence workspace with plain paper packets, ink brush rest, travel case, simple wooden furniture and an unmarked wired telephone; 1940s atmosphere without recognizable architecture. No people, portraits, flags, national symbols, readable script or claim of a particular actual headquarters or operation.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nAn invented modest East Asian exile correspondence workspace with plain paper packets, ink brush rest, travel case, simple wooden furniture and an unmarked wired telephone; 1940s atmosphere without recognizable architecture. No people, portraits, flags, national symbols, readable script or claim of a particular actual headquarters or operation."
+      }
+    },
+    {
+      "index": 21,
+      "id": "national-reconstruction",
+      "label": "국가 운영과 공공 기반",
+      "scene": "An illustrative planning model on a civic architect's table: a few plain wooden house blocks, a small bridge model, pencil and blank drafting sheets, with a modest workshop background. No real map, city skyline, damage scene, population count, completed infrastructure or claim that reconstruction occurred. Model objects, not the real game world.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nAn illustrative planning model on a civic architect's table: a few plain wooden house blocks, a small bridge model, pencil and blank drafting sheets, with a modest workshop background. No real map, city skyline, damage scene, population count, completed infrastructure or claim that reconstruction occurred. Model objects, not the real game world."
+      }
+    },
+    {
+      "index": 22,
+      "id": "civilian-relief",
+      "label": "민간 보호와 구호 준비",
+      "scene": "A sober humanitarian supply corner: folded blankets, an unlabelled water container, a plain wooden crate, clean cloth and basic utensils under soft daylight. No people or identifiable aid organization, injury, ruins, flags, crossed medical emblems or completed-rescue claim. Readiness to care, not proof that suffering has ended.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nA sober humanitarian supply corner: folded blankets, an unlabelled water container, a plain wooden crate, clean cloth and basic utensils under soft daylight. No people or identifiable aid organization, injury, ruins, flags, crossed medical emblems or completed-rescue claim. Readiness to care, not proof that suffering has ended."
+      }
+    },
+    {
+      "index": 23,
+      "id": "postwar-command",
+      "label": "후기 산업시대의 업무 공간",
+      "scene": "An invented 1960s–1990s analogue coordination room, empty of people: practical conference desk, one box-shaped CRT monitor showing only diffuse neutral light, wired telephone, closed folders and an unmarked wall board with no maps or writing. Show administrative continuity after the mid-century era, not any actual country's command center. No digital flatscreens or futuristic props.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nAn invented 1960s–1990s analogue coordination room, empty of people: practical conference desk, one box-shaped CRT monitor showing only diffuse neutral light, wired telephone, closed folders and an unmarked wall board with no maps or writing. Show administrative continuity after the mid-century era, not any actual country's command center. No digital flatscreens or futuristic props."
+      }
+    },
+    {
+      "index": 24,
+      "id": "modern-command",
+      "label": "디지털 시대의 업무 공간",
+      "scene": "An invented contemporary coordination room, empty of people: modest conference desk, anonymous flat monitor and laptop with blank low-contrast screens, closed paper folders and neutral task lighting. Calm human decision-making, no holograms, neon, readable dashboards, flags, maps, robots or science-fiction spectacle. Symbolic digital workroom, not a prediction of2060hardware.",
+      "params": {
+        "model": "gpt_image_2_5",
+        "variant": "flare",
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: supporting editorial illustration for IRON DOMINION, a desktop alternate-history strategy game. Restrained oil and gouache, deliberate brushwork, readable silhouettes, matte surfaces. Charcoal blue and muted olive surroundings, warm ivory focal materials and subdued brass. Natural practical light, no cinematic haze, no glossy3D. A distinct composed focal grouping readable at small display size, not a collage. No recognizable real people, emblems, logos, watermark, readable words or numbers, user-interface elements, map borders or geographic outlines. Fictional symbolic art, not documentary evidence or a claim about actual game state.\n\nAn invented contemporary coordination room, empty of people: modest conference desk, anonymous flat monitor and laptop with blank low-contrast screens, closed paper folders and neutral task lighting. Calm human decision-making, no holograms, neon, readable dashboards, flags, maps, robots or science-fiction spectacle. Symbolic digital workroom, not a prediction of2060hardware."
+      }
+    }
+  ]
+}

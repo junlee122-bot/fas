@@ -8,7 +8,7 @@ import { advanceNationManagementWeek, createNationManagementState } from './nati
 import { deriveNationalSimulation } from './nationalSimulation';
 import { createPoliticalCrisisState, getNationPoliticalProfile } from './politicalCrisis';
 import { createPublicHealthState } from './publicHealth';
-import { getGovernmentForm } from './dynasticPolitics';
+import { getGovernmentForm, governmentForms } from './dynasticPolitics';
 import type { GameState, NationId } from './types';
 
 const game: GameState = { week: 48, manpower: 1200, politicalPower: 82, fuel: 70, steel: 108, factories: 34, stability: 72, warSupport: 78, commandPoints: 48, treasury: 860, victoryScore: 66, airPower: 61, navalPower: 56, intelNetwork: 64, enemyPressure: 42 };
@@ -82,6 +82,7 @@ describe('national management conditional workspaces', () => {
     expect(html.includes('class="nation-surface dynastic-politics-board"')).toBe(view === 'dynasty');
     expect(html.includes('class="nation-surface personal-life-board"')).toBe(view === 'personal');
     expect(html.includes('class="nation-surface media-relations-board"')).toBe(view === 'media');
+    expect((html.match(/data-game-illustration=/g) ?? []).length).toBeLessThanOrEqual(1);
     expect(onMutation).not.toHaveBeenCalled();
   });
 
@@ -92,6 +93,7 @@ describe('national management conditional workspaces', () => {
     expect(html).not.toContain('nation-budget-editor');
     expect(html.includes('nation-transition-hero')).toBe(view === 'transition');
     expect(html.includes('wartime-media-desk')).toBe(view === 'media');
+    expect((html.match(/data-game-illustration=/g) ?? []).length).toBeLessThanOrEqual(1);
     expect(onMutation).not.toHaveBeenCalled();
   });
 
@@ -103,6 +105,42 @@ describe('national management conditional workspaces', () => {
     expect(html).toContain('국가체제, 작위, 영지와 왕위계승');
     expect(html.includes('작위와 영지 서임')).toBe(form.monarchy);
     expect(html.includes('왕실 운영은 왕정 체제 전환 뒤 열립니다')).toBe(!form.monarchy);
+    expect(html.includes('data-game-illustration="royal-council"')).toBe(form.monarchy);
+    expect(html.match(/data-game-illustration=/g) ?? []).toHaveLength(form.monarchy ? 1 : 0);
+    expect(onMutation).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['overview', 'national-reconstruction'],
+    ['strategy', 'national-reconstruction'],
+    ['personal', 'civilian-work'],
+  ] as const)('shows one supporting illustration only in the %s workspace without changing state', (view, scene) => {
+    const { props, onMutation } = setup('britain', view);
+    const before = JSON.stringify({ state: props.state, game: props.game, economy: props.economy });
+    const html = renderToStaticMarkup(<NationManagementPanel {...props} />);
+    expect(html.match(/data-game-illustration=/g)).toHaveLength(1);
+    expect(html).toContain(`data-game-illustration="${scene}"`);
+    expect(html).toContain('상징 삽화 · 실제 기록 아님');
+    expect(onMutation).not.toHaveBeenCalled();
+    expect(JSON.stringify({ state: props.state, game: props.game, economy: props.economy })).toBe(before);
+  });
+
+  it.each(governmentForms)('follows the current $id form rather than inherited British monarchy when choosing royal art', (form) => {
+    const { props, onMutation } = setup('britain', 'dynasty');
+    const state = { ...props.state, dynasty: { ...props.state.dynasty, formId: form.id } };
+    const before = JSON.stringify([state, props.game, props.economy]);
+    const html = renderToStaticMarkup(<NationManagementPanel {...props} state={state} />);
+    expect(html).toContain(form.name);
+    expect(html.includes('data-game-illustration="royal-council"')).toBe(form.monarchy);
+    expect(html.match(/data-game-illustration=/g) ?? []).toHaveLength(form.monarchy ? 1 : 0);
+    expect(onMutation).not.toHaveBeenCalled();
+    expect(JSON.stringify([state, props.game, props.economy])).toBe(before);
+  });
+
+  it.each(['budget', 'records'] as const)('keeps supporting artwork out of the %s controls and actual receipts', (view) => {
+    const { props, onMutation } = setup('britain', view);
+    const html = renderToStaticMarkup(<NationManagementPanel {...props} />);
+    expect(html).not.toContain('data-game-illustration=');
     expect(onMutation).not.toHaveBeenCalled();
   });
 

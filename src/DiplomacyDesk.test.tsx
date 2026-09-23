@@ -14,6 +14,15 @@ function props(overrides: Partial<DiplomacyDeskProps> = {}): DiplomacyDeskProps 
   return { game: { ...game }, relations: structuredClone(initialRelations), nation: getNation('britain'), completedDecisions: [], armsPortfolio: createArmsPortfolioState('britain'), setGame: vi.fn(), setRelations: vi.fn(), notify: vi.fn(), onDecision: vi.fn(), onEnactArmsPolicy: vi.fn(), onFundStockpile: vi.fn(), onActionCompleted: vi.fn(), onRecord: vi.fn(), formatMoney: (n) => `${n} 국고`, ...overrides };
 }
 describe('diplomacy command desk', () => {
+  it('uses the diplomacy emblem without opening talks or changing relations', () => {
+    const p = props();
+    const before = JSON.stringify(p.relations);
+    const html = renderToStaticMarkup(<DiplomacyDesk {...p} />);
+    expect(html).toContain('data-game-icon="diplomacy"');
+    expect(p.setGame).not.toHaveBeenCalled();
+    expect(p.setRelations).not.toHaveBeenCalled();
+    expect(JSON.stringify(p.relations)).toBe(before);
+  });
   it('renders a single country detail and separate workspaces without mutation', () => {
     const p = props(); const before = JSON.stringify([p.game, p.relations, p.armsPortfolio]);
     const html = renderToStaticMarkup(<DiplomacyDesk {...p} />);

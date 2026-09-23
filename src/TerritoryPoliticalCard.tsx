@@ -5,6 +5,7 @@ import type { MapPoliticalLedger, PoliticalChange, PoliticalSnapshot } from './m
 import type { PoliticalSettlementState } from './politicalSettlement';
 import type { TreatyState } from './territorialTreaties';
 import { getTreatyTerms } from './territorialTreaties';
+import { getSiteMilitaryAccess, type MilitaryAccessOperationalContext } from './militaryAccess';
 import type { Faction, NationId, Territory } from './types';
 import './TerritoryPoliticalCard.css';
 
@@ -16,6 +17,8 @@ export interface TerritoryPoliticalCardProps {
   treaties?: TreatyState;
   onOpenTreaties?: () => void;
   onOpenDiplomacy?: () => void;
+  militaryAccess?: MilitaryAccessOperationalContext;
+  onOpenAccess?: () => void;
 }
 
 const nationNames = new Map(nations.map((nation) => [nation.id, nation.shortName]));
@@ -48,7 +51,7 @@ function PoliticalChangeItem({ change }: { change: PoliticalChange }) {
 }
 
 /** Read-only ledger presentation; ownership never supplies an unverified controller or sovereignty. */
-export function TerritoryPoliticalCard({ territory, ledger, week, settlement, treaties, onOpenTreaties, onOpenDiplomacy }: TerritoryPoliticalCardProps) {
+export function TerritoryPoliticalCard({ territory, ledger, week, settlement, treaties, onOpenTreaties, onOpenDiplomacy, militaryAccess, onOpenAccess }: TerritoryPoliticalCardProps) {
   const recorded = ledger.current[territory.id];
   const snapshot: PoliticalSnapshot = recorded ?? { controller: territory.controller, gameOwnerId: territory.ownerId };
   // Preserve oldest-to-newest input and the ledger itself. Unknown/future weeks
@@ -87,6 +90,17 @@ export function TerritoryPoliticalCard({ territory, ledger, week, settlement, tr
     </dl>
     <p className="territory-political-caution">{territory.siteType === 'sea' ? '해역 우세는 영토 주권과 다릅니다. 해역의 게임상 귀속도 영해나 국제 승인을 확정하지 않습니다.' : '군사 통제·점령은 법적 주권이나 국제 승인을 뜻하지 않습니다. 게임상 귀속도 별도 기록입니다.'}</p>
     {!recorded ? <p className="territory-political-history-note">이 거점의 정치 기록이 없어 현재 지도 값만 표시합니다. 통제 국가는 귀속 값에서 추정하지 않습니다.</p> : null}
+    {militaryAccess && territory.siteType !== 'sea' ? <details className="territory-political-history">
+      <summary>내 부대의 접근 권한</summary>
+      <div className="territory-political-history-body">
+        {(['transit', 'naval-base', 'offensive'] as const).filter((purpose) => purpose !== 'naval-base' || territory.siteType === 'port').map((purpose) => {
+          const access = getSiteMilitaryAccess(territory, purpose, militaryAccess);
+          return <article className="territory-political-government" key={purpose}><h4>{purpose === 'transit' ? '육군 통행' : purpose === 'naval-base' ? '해군 기지 사용' : '공세 출발'} · {access.allowed ? '권한 범위 내' : '권한 없음'}</h4><p>{access.reason}</p></article>;
+        })}
+        <p className="territory-political-history-note">권한만으로 이동·전투가 승인되지는 않습니다. 실제 경로·부대 상태·보직·비용을 명령 시 다시 검토합니다.</p>
+        {onOpenAccess ? <button type="button" className="territory-political-open-process" onClick={onOpenAccess}>통행권·기지 사용권 열기</button> : null}
+      </div>
+    </details> : null}
     {treaties ? <details className="territory-political-history">
       <summary>조약·인도 기록 <span>{siteTreaties.length}건</span></summary>
       <div className="territory-political-history-body">

@@ -1,4 +1,6 @@
 import { getCampaignYearForWeek } from './campaignCalendar';
+import { GameIllustration } from './GameIllustration';
+import './ManagementIllustrations.css';
 import { useEffect, useId, useRef, useState } from 'react';
 import { ArrowDownRight, ArrowLeftRight, ArrowUpRight, Ban, Banknote, Building2, CalendarDays, CheckCircle2, CircleDollarSign, ExternalLink, Info, Landmark, PieChart, RefreshCw, Scale, ShieldAlert, TrendingDown, TrendingUp, WalletCards } from 'lucide-react';
 import {
@@ -241,7 +243,7 @@ export function EconomicMinistry({
   return (
     <section className="economy-ministry economy-design-v2">
       <header className="economy-hero">
-        <div><span>{nationalLedger ? 'NATIONAL FINANCE & INDUSTRIAL CAPITAL' : 'WAR FINANCE & INDUSTRIAL CAPITAL'}</span><h2>{nationalLedger ? '국정 재무성' : '전시 재무성'}</h2><p>{nationalLedger ? '국정의 실제 주간 계산 전망과 산업지분·외환 운용을 함께 확인합니다. 조세·지출 배분은 국가 운영 예산에서 조정합니다.' : '세입, 차입, 지출과 산업지분을 분리해 다음 주 현금과 장기 부담을 함께 판단합니다.'}</p></div>
+        <div className={!review ? 'management-art-heading' : undefined}><span>{nationalLedger ? 'NATIONAL FINANCE & INDUSTRIAL CAPITAL' : 'WAR FINANCE & INDUSTRIAL CAPITAL'}</span><h2>{nationalLedger ? '국정 재무성' : '전시 재무성'}</h2><p>{nationalLedger ? '국정의 실제 주간 계산 전망과 산업지분·외환 운용을 함께 확인합니다. 조세·지출 배분은 국가 운영 예산에서 조정합니다.' : '세입, 차입, 지출과 산업지분을 분리해 다음 주 현금과 장기 부담을 함께 판단합니다.'}</p>{!review ? <div className="management-art-slot"><GameIllustration scene={view === 'investments' ? 'market-exchange' : 'treasury-ledger'} compact /></div> : null}</div>
         <div className="economy-hero-balance"><small>현재 {nationalLedger ? '국정' : '전시'} 재정 · {activeCurrency.code}</small><strong>{plainMoney(game.treasury)}</strong><em>{exactMoney(game.treasury)} · {activeCurrency.name}</em><span className={fiscalOverview.balance >= 0 ? 'good' : 'bad'}>{fiscalOverview.label} {money(fiscalOverview.balance)}</span></div>
       </header>
 

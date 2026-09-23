@@ -15,6 +15,8 @@ import {
   type SocialistWorldState,
 } from './socialistWorld';
 import type { StaffMember } from './types';
+import { GameIllustration } from './GameIllustration';
+import './GovernanceIllustrations.css';
 
 interface SocialistWorldBoardProps {
   state: SocialistWorldState;
@@ -83,6 +85,7 @@ export function SocialistWorldBoard({ state, context, staff, compact = false, on
           <span className={state.currentModelId ? 'established' : ''}>{state.currentModelId ? '체제 성립' : '기존 혼합질서'}</span>
           <b>{state.stage === 'latent' ? '잠재 경쟁' : state.stage === 'consolidated' ? '제도화' : state.stage === 'fractured' ? '전환 위기' : '전환 진행'}</b>
         </div>
+        {!compact ? <div className="governance-illustration-slot"><GameIllustration scene="socialist-planning" compact /></div> : null}
       </header>
 
       <div className="socialist-pressure-strip">

@@ -7,6 +7,7 @@ import type { GameTab, Stockpile, WarEvent } from './types';
 import { reallocateFactory } from './livingWorld';
 import { forecastPostwarIndustry } from './postwarIndustry';
 import type { PostwarIndustryInput } from './postwarIndustry';
+import { WorldSiteArt } from './WorldSiteArt';
 import './LivingWorldScene.css';
 
 type Site = 'industry' | 'market' | 'health' | 'council';
@@ -74,6 +75,7 @@ export function LivingWorldScene({ nationName, input, snapshot, industryMandate,
           <p className="living-world-disclaimer">국가 집계 기반 모식도 · 실제 도시 위치나 개별 건물 수를 나타내지 않습니다.</p>
         </div>
         <section className="living-world-detail" id="living-world-detail" aria-label={`${sites.find((site) => site.id === selected)?.title} 상세`}>
+          <WorldSiteArt site={selected} />
           {selected === 'industry' && <>
             <span className="living-world-kicker">이번 주에 바꿀 수 있는 것</span><h3>군수와 민생, 어디에 힘을 줄까?</h3>
             <p>군수 생산에 배치하지 않은 공장 역량은 민수 공급 여력으로 계산합니다. 전환하면 장비 생산 잠재력과 생활재 공급이 함께 바뀝니다.</p>

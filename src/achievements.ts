@@ -24,6 +24,7 @@ import authorOfHistoryArt from './assets/achievements/author-of-history.webp';
 import fromFieldToCommandArt from './assets/achievements/from-field-to-command.webp';
 import negotiatedFrontArt from './assets/achievements/negotiated-front.webp';
 import warEndedArt from './assets/achievements/war-ended.webp';
+import { symbolicAchievementArtCaption, worldSceneArt } from './worldSceneArt';
 
 export type AchievementCategory = 'combat' | 'logistics' | 'intelligence' | 'organization' | 'technology' | 'economy' | 'health' | 'governance' | 'history' | 'career' | 'diplomacy' | 'legacy';
 export type AchievementRarity = 'common' | 'rare' | 'epic' | 'legendary';
@@ -74,6 +75,7 @@ export interface AchievementDefinition {
   rarity: AchievementRarity;
   points: number;
   art: string;
+  artCaption?: string;
   inspiration: string;
   evaluate: (snapshot: AchievementSnapshot) => AchievementProgress;
 }
@@ -395,7 +397,8 @@ export const achievementDefinitions: AchievementDefinition[] = [
     category: 'health',
     rarity: 'epic',
     points: 65,
-    art: lifelineLogisticsArt,
+    art: worldSceneArt.health.src,
+    artCaption: symbolicAchievementArtCaption,
     inspiration: '확률적 위기에 대한 장기 대응 결과 과제',
     evaluate: (snapshot) => {
       const contained = snapshot.publicHealth.history.filter((record) => record.outcome === 'contained').length;
@@ -411,7 +414,8 @@ export const achievementDefinitions: AchievementDefinition[] = [
     category: 'health',
     rarity: 'legendary',
     points: 80,
-    art: invisibleFrontArt,
+    art: worldSceneArt.health.src,
+    artCaption: symbolicAchievementArtCaption,
     inspiration: '예방 투자와 보이지 않는 성과를 보상하는 과제',
     evaluate: (snapshot) => {
       const gates = [snapshot.publicHealth.preparedness >= 80, snapshot.publicHealth.surveillance >= 80, snapshot.publicHealth.medicalCapacity >= 80];
@@ -463,7 +467,8 @@ export const achievementDefinitions: AchievementDefinition[] = [
     category: 'governance',
     rarity: 'epic',
     points: 70,
-    art: warEndedArt,
+    art: worldSceneArt.industry.src,
+    artCaption: symbolicAchievementArtCaption,
     inspiration: '군수 동원에서 민수 경제로의 구조 전환 과제',
     evaluate: (snapshot) => {
       const phaseReady = snapshot.campaignPhase === 'nation';

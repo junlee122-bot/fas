@@ -1,6 +1,7 @@
 import { Children, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
+import { ArtworkViewer } from './ArtworkViewer';
 import { FleetVoyageCard } from './FleetVoyageCard';
 import { createJointForcesState, jointOperationTemplates, type AirGroup, type NavalTaskForce } from './jointOperations';
 import { beginFleetReturn, createFleetNavigation, dispatchFleetTransit, getFleetNavigationSummary, type FleetNavigationMode } from './navalNavigation';
@@ -49,6 +50,9 @@ function elements(node: ReactNode): ReactElement<Record<string, unknown>>[] {
   Children.forEach(node, (child) => {
     if (!isValidElement<Record<string, unknown>>(child)) return;
     result.push(child);
+    // Keep the hook-based, read-only viewer opaque to this command-handler walker.
+    // Its real React rendering is covered by SSR here and ArtworkViewer.test.tsx.
+    if (child.type === ArtworkViewer) return;
     if (typeof child.type === 'function') result.push(...elements((child.type as (props: Record<string, unknown>) => ReactNode)(child.props)));
     else result.push(...elements(child.props.children as ReactNode));
   });

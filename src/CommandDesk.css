@@ -87,7 +87,12 @@
 .game-shell.design-v2 .command-desk-primary:hover { background:#dec090; }
 .command-desk :is(button,summary):focus-visible { outline:2px solid #a9cadb; outline-offset:4px; }
 .command-desk button:active { filter:brightness(.94); }
-@container (max-width:1080px) { .command-desk-main { grid-template-columns:minmax(0,1fr) minmax(270px,32%); gap:22px; } .command-desk-rail { padding-left:20px; } .command-desk-decision-layout.has-art { grid-template-columns:1fr; } .command-desk-art { display:none; } .command-desk-activities { grid-template-columns:1fr; } }
+@container (max-width:1080px) { .command-desk-main { grid-template-columns:minmax(0,1fr) minmax(270px,32%); gap:22px; } .command-desk-rail { padding-left:20px; } .command-desk-decision-layout.has-art { grid-template-columns:minmax(0,1fr) minmax(130px,170px); gap:18px; } .command-desk-activities { grid-template-columns:1fr; } }
 @container (max-width:780px) { .command-desk-main { grid-template-columns:1fr; } .command-desk-rail { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; padding:22px 0 0; border-left:0; border-top:1px solid var(--ui-border); } .command-desk-header { align-items:flex-start; } .command-desk-scope { gap:10px 18px; } .command-desk-pending { margin-left:0; } }
 @container (max-width:520px) { .command-desk-header { flex-wrap:wrap; } .command-desk-rail { grid-template-columns:1fr; } .command-desk-decision { padding:18px; } .command-desk-checkpoint { grid-template-columns:1fr; } }
 @media (prefers-reduced-motion:reduce) { .command-desk button { transition:none; } }
+@container (max-width:620px) { .command-desk-decision-layout.has-art { grid-template-columns:1fr; } .command-desk-art { max-width:200px; } }
+.game-shell.design-v2 .command-desk-art figcaption span { font-size:12px; line-height:1.6; color:#bac8cf; }
+.game-shell.design-v2 .command-desk .command-desk-paper-heading span:last-child { padding:3px 9px; border:1px solid #8a7756; border-radius:3px; background:#2c302a; color:#ebd0a1; font-weight:650; }
+.game-shell.design-v2 .command-desk-decision.urgent .command-desk-paper-heading span:last-child { background:#472d27; border-color:#b17c63; color:#ffd8bb; }
+.game-shell.design-v2 .command-desk .command-desk-inbox-priority.urgent { border-left:3px solid #e3a883; padding:4px 8px; background:#372a26; color:#ffcfab; }

@@ -16,6 +16,7 @@ describe('national research desk', () => {
     const onToggle = vi.fn(); const research = [project('암호 연구', { active: true }), project('생산 공정')]; const before = JSON.stringify(research);
     const html = renderToStaticMarkup(<ResearchDesk research={research} currentYear={1942} week={0} weeklyGain={10} onToggle={onToggle} />);
     expect(html).toContain('연구 과제 선택'); expect(html).toContain('이 연구 일시 중지'); expect(html).toContain('약 8주');
+    expect(html.match(/data-game-illustration="research-laboratory"/g)).toHaveLength(1);
     expect(onToggle).not.toHaveBeenCalled(); expect(JSON.stringify(research)).toBe(before);
   });
   it('blocks starting a third slot while permitting explicit pause', () => {
@@ -63,6 +64,7 @@ describe('national research desk', () => {
     const html = renderToStaticMarkup(<ResearchDesk research={[]} currentYear={2060} week={6000} weeklyGain={0} onToggle={vi.fn()} liaison={{ name: '연락 인물', office: '출발 직책', bonus: '+2' }} />);
     expect(html).toContain('조건에 맞는 과제가 없습니다'); expect(html).toContain('현시점의 실제 재직 참모나 추가 보상을 뜻하지 않습니다');
     expect(html).not.toContain('Infinity');
+    expect(html).not.toContain('data-game-illustration=');
   });
 });
 describe('factory review matches existing allocation engine', () => {
@@ -91,10 +93,12 @@ describe('factory review matches existing allocation engine', () => {
   it('shows supplied authoritative weekly projection, not a week-one recomputation', () => {
     const onAdjust = vi.fn(); const html = renderToStaticMarkup(<ProductionDesk {...factoryInput()} stockpile={stocks} weeklyGains={{ ...stocks, infantryEquipment: 12345 }} onAdjust={onAdjust} />);
     expect(html).toContain('12,345'); expect(html).toContain('공장 1개 회수안'); expect(html).toContain('제9주'); expect(html).not.toContain('배정 변경 승인'); expect(onAdjust).not.toHaveBeenCalled();
+    expect(html.match(/data-game-illustration="production-logistics"/g)).toHaveLength(1);
   });
   it('renders empty production without inferring or creating a line', () => {
     const onAdjust = vi.fn(); const html = renderToStaticMarkup(<ProductionDesk {...factoryInput()} production={[]} stockpile={stocks} weeklyGains={stocks} onAdjust={onAdjust} />);
     expect(html).toContain('아직 배정할 생산선이 없습니다'); expect(onAdjust).not.toHaveBeenCalled();
+    expect(html).not.toContain('data-game-illustration=');
   });
 });
 describe('land roster selection is a read-only command boundary', () => {

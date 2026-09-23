@@ -36,16 +36,37 @@ function createInput(): NationalSimulationInput {
 function render(input = createInput(), mode: RoleAccessMode = 'direct', records: Pick<LivingWorldSceneProps, 'lastOrder' | 'lastSettlement' | 'postwarInput' | 'routedEquipmentKey'> = {}) {
   const mandate: RoleTabMandate = { tab: 'industry', mode, label: mode, reason: '시험 보직의 실제 권한 사유', authorityRoute: '담당 기관 결재' };
   const onReallocate = vi.fn();
+  const onNavigate = vi.fn();
+  const onOpenBriefing = vi.fn();
   const html = renderToStaticMarkup(<LivingWorldScene
     nationName="영국" input={input} snapshot={deriveNationalSimulation(input)}
-    industryMandate={mandate} staffIssues={2} onNavigate={vi.fn()}
-    onReallocate={onReallocate} onOpenBriefing={vi.fn()}
+    industryMandate={mandate} staffIssues={2} onNavigate={onNavigate}
+    onReallocate={onReallocate} onOpenBriefing={onOpenBriefing}
     {...records}
   />);
-  return { html, onReallocate };
+  return { html, onReallocate, onNavigate, onOpenBriefing };
 }
 
 describe('living world scene honesty and authority', () => {
+  it.each(['war', 'nation'] as const)('adds one symbolic still life in %s without mutating state or invoking actions', (phase) => {
+    const input = createInput();
+    input.phase = phase;
+    const original = structuredClone(input);
+    const { html, onReallocate, onNavigate, onOpenBriefing } = render(input);
+    expect(html).toContain('data-world-site-art="industry"');
+    expect(html).not.toContain('data-world-site-art="health"');
+    expect(html.match(/data-world-site-art=/g)).toHaveLength(1);
+    expect(html).toContain('분야를 상징한 삽화 · 실제 현장 사진 아님');
+    expect(html).toContain('생산량·비축량·회복 여부를 나타내지 않습니다');
+    expect(html.match(/aria-controls="living-world-detail"/g)).toHaveLength(4);
+    expect(html).toContain('결재 전 예상 · 아직 적용 안 됨');
+    expect(html).toContain('첫 검증은 다음 주');
+    expect(input).toEqual(original);
+    expect(onReallocate).not.toHaveBeenCalled();
+    expect(onNavigate).not.toHaveBeenCalled();
+    expect(onOpenBriefing).not.toHaveBeenCalled();
+  });
+
   it('shows a four-place national schematic, not a literal city or building count', () => {
     const { html } = render();
     expect(html).toContain('국가 집계 기반 모식도');
@@ -77,6 +98,7 @@ describe('living world scene honesty and authority', () => {
     expect(html).not.toContain('조정할 생산 라인');
     expect(html).not.toContain('결재 전 예상');
     expect(html).toContain(mode === 'request' ? '생산 조정 상신하기' : '권한과 보고 확인');
+    expect(html).toContain('data-world-site-art="industry"');
     expect(onReallocate).not.toHaveBeenCalled();
   });
 

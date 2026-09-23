@@ -255,10 +255,20 @@ describe('command desk objective evidence and callback boundaries', () => {
     callbacks(value).forEach((callback) => expect(callback).not.toHaveBeenCalled());
   });
 
-  it.each([undefined, NaN, 1935, 1960, 2060])('does not present wartime art as the world in year %s', (year) => {
+  it.each([undefined, NaN, 1935, 2061])('does not invent art for an unknown or unsupported year %s', (year) => {
     const html = renderToStaticMarkup(<CommandDesk {...props({ year })} />);
     expect(html).not.toContain('class="command-desk-art"');
     expect(html).toContain('이번 주 결정');
     expect(html).toContain('확정 기록 첫째');
+  });
+
+  it.each([[1960, 'postwar-command'], [2000, 'modern-command'], [2060, 'modern-command']] as const)('switches presentation without actions or fabricated records in%s', (year, source) => {
+    const value = props({ year });
+    const html = renderToStaticMarkup(<CommandDesk {...value} />);
+    expect(html).toContain(source);
+    expect(html).not.toContain('military-workroom');
+    expect(html).toContain('확정 기록 첫째');
+    expect(html.includes('미래 환경의 상징적 표현')).toBe(year >= 2035);
+    callbacks(value).forEach((callback) => expect(callback).not.toHaveBeenCalled());
   });
 });

@@ -1,4 +1,5 @@
 import { validateLandRoute } from './mapRoutes';
+import { getSiteMilitaryAccess } from './militaryAccess';
 import { createOperationOrder } from './operations';
 import { getSeaTransportBusyDivisionIds } from './seaTransport';
 import type { SeaTransportContext, SeaTransportPlan, SeaTransportState } from './seaTransport';
@@ -35,14 +36,21 @@ export function forecastLandRedeployment(
   if (context.orders.some((order) => order.divisionId === division.id)) return fail('이 부대에는 이미 승인된 육상 명령이 있습니다.');
   if (division.status !== 'ready') return fail('준비 상태의 부대만 육상 재배치를 시작할 수 있습니다.');
   if (division.territoryId !== origin.id) return fail('부대가 선택한 출발지에 실제로 주둔하고 있지 않습니다.');
-  if (origin.controller !== context.playerFaction) return fail('현재 아군이 통제하는 출발지에서만 육상 재배치할 수 있습니다.');
-  if (target.controller !== context.playerFaction) return fail('육상 재배치는 아군 거점 사이의 이동입니다. 적·중립 지역으로 공격하지 않습니다.');
+  if (context.militaryAccess) {
+    const departure = getSiteMilitaryAccess(origin, 'land-departure', { ...context.militaryAccess, week: context.week });
+    if (!departure.allowed) return fail(departure.reason);
+    const destination = getSiteMilitaryAccess(target, 'transit', { ...context.militaryAccess, week: context.week });
+    if (!destination.allowed) return fail(destination.reason);
+  } else {
+    if (origin.controller !== context.playerFaction) return fail('현재 아군이 통제하는 출발지에서만 육상 재배치할 수 있습니다.');
+    if (target.controller !== context.playerFaction) return fail('육상 재배치는 아군 거점 사이의 이동입니다. 적·중립 지역으로 공격하지 않습니다.');
+  }
   if ((origin.theater ?? 'europe') !== (target.theater ?? 'europe')) return fail('다른 전구의 거점으로 한 주 만에 육상 재배치할 수 없습니다.');
   const route = validateLandRoute(origin, target);
   if (!route.allowed) return fail(route.reason);
   if (!Number.isFinite(context.game.commandPoints) || context.game.commandPoints < result.commandCost) return fail(`육상 재배치에는 지휘력 ${result.commandCost}이 필요합니다.`);
   if (!Number.isFinite(context.game.fuel) || context.game.fuel < result.fuelCost) return fail(`육상 재배치에는 연료 ${result.fuelCost}가 필요합니다.`);
-  return { ...result, accepted: true, reason: '다음 주에 인접 아군 육지로 이동합니다. 목적지 통제가 바뀌면 공격으로 전환하지 않고 중단합니다.' };
+  return { ...result, accepted: true, reason: '다음 주에 접근이 허가된 인접 육지로 이동합니다. 접근권·통제가 바뀌면 공격으로 전환하지 않고 중단합니다. 통행권은 소유권·보급권·공격권이 아닙니다.' };
 }
 
 /** The existing land scheduler resolves this next week in both war and nation phases. */

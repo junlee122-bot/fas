@@ -3,12 +3,40 @@ import { territories } from './data';
 import { createJointForcesState, advanceJointOperationsWeek, normalizeJointForcesState, recoverPeacetimeJointForces, forecastJointOperation } from './jointOperations';
 import type { NavalTaskForce } from './jointOperations';
 import type { NationId } from './types';
+import { createMapPoliticalLedger } from './mapPoliticalLedger';
+import { advanceMilitaryAccessWeek, createMilitaryAccessState, executeMilitaryAccessAction, getSiteMilitaryAccess } from './militaryAccess';
+import type { MilitaryAccessContext, MilitaryAccessKind } from './militaryAccess';
 import { advanceFleetNavigationWeek, beginFleetReturn, buildNavalRoute, createFleetNavigation, dispatchFleetTransit,
-  forecastFleetTransit, getAirPatrolCoverage, getFleetNavigationSummary, getMaritimeRouteDistanceNm, getNavalRouteDistance,
-  hasFleetNavigationReservation, nauticalDistance, normalizeFleetNavigation, resolveNavalTerritoryPoint, syncFleetEscortPosition } from './navalNavigation';
+  forecastFleetTransit, getAirBaseAccess, getAirBaseTerritory, getAirPatrolCoverage, getFleetBaseAccess, getFleetBaseTerritory, getFleetNavigationSummary, getMaritimeRouteDistanceNm, getNavalRouteDistance,
+  hasFleetNavigationReservation, nauticalDistance, normalizeFleetNavigation, rebaseFleet, resolveNavalTerritoryPoint, syncFleetEscortPosition } from './navalNavigation';
 
 const britainFleet = () => createJointForcesState('britain').fleets[1];
 const jointContext = { week: 3, theater: 'europe' as const, game: { airPower: 50, navalPower: 50, intelNetwork: 50, enemyPressure: 50 } };
+
+function accessFixture(kind: MilitaryAccessKind = 'naval-base', territoryId = 'belfast') {
+  const sites = territories.map((site) => site.id === territoryId ? { ...site, ownerId: 'usa' as const, controller: 'allies' as const } : { ...site });
+  let context: MilitaryAccessContext = { state: createMilitaryAccessState(), control: createMapPoliticalLedger(sites, 0), nationId: 'britain', week: 0,
+    playerFaction: 'allies', territories: sites, relations: [{ id: 'usa', name: '미국', code: 'US', value: 100, status: '우호', color: '#fff' }],
+    politicalPower: 100, treasury: 100, stability: 100, canNegotiate: true, canRatify: true, approvalSupport: 100, approvalLabel: '국내 승인' };
+  const proposal = executeMilitaryAccessAction(context.state, { kind: 'propose', partnerNationId: 'usa', territoryId, accessKind: kind, direction: 'request', durationWeeks: 13 }, context);
+  expect(proposal.accepted, proposal.reason).toBe(true);
+  context = { ...context, state: proposal.state };
+  for (const week of [1, 2]) {
+    context = { ...context, week };
+    context = { ...context, state: advanceMilitaryAccessWeek(context.state, context).state };
+  }
+  const activated = executeMilitaryAccessAction(context.state, { kind: 'activate', agreementId: context.state.agreements[0].id }, context);
+  expect(activated.accepted).toBe(true);
+  context = { ...context, state: activated.state };
+  return { sites, context, target: sites.find((site) => site.id === territoryId)! };
+}
+
+function revoked(context: MilitaryAccessContext, week: number): MilitaryAccessContext {
+  const current = { ...context, week };
+  const result = executeMilitaryAccessAction(current.state, { kind: 'revoke', agreementId: current.state.agreements[0].id }, current);
+  expect(result.accepted).toBe(true);
+  return { ...current, state: result.state };
+}
 
 describe('physical fleet navigation', () => {
   it('maps every live explicit harbor and island rather than leaving silent zero-distance gaps', () => {
@@ -196,5 +224,215 @@ describe('navigation ownership and air support', () => {
     expect(getAirPatrolCoverage(groups[0], ['truk', 'hawaii'], territories)).toMatchObject({ allowed: false, coverage: 0 });
     expect(getAirPatrolCoverage(groups[1], ['liverpool', 'hawaii'], territories).coverage).toBe(.5);
     expect(getAirPatrolCoverage({ ...groups[1], base: '미확인' }, ['liverpool'], territories).allowed).toBe(false);
+  });
+});
+
+describe('naval basing access and physical relocation', () => {
+  it('resolves seeded air bases without inventing a map territory for the unmodeled Sardinia base', () => {
+    const nations: NationId[] = ['britain', 'usa', 'ussr', 'germany', 'japan', 'china', 'india', 'freefrance', 'italy', 'korea', 'vietnam', 'indonesia', 'philippines'];
+    const missing = nations.flatMap((nation) => createJointForcesState(nation).airGroups)
+      .filter((group) => !getAirBaseTerritory(group, territories)).map((group) => ({ id: group.id, base: group.base }));
+    expect(missing).toEqual([{ id: 'italy-air-2', base: '사르데냐' }]);
+    expect(getAirBaseTerritory(createJointForcesState('korea').airGroups[0], territories)?.id).toBe('china_interior');
+  });
+
+  it('keeps only the original Italian Sardinia air base operational without granting a new deployment right', () => {
+    const group = createJointForcesState('italy').airGroups[1];
+    const access = { state: createMilitaryAccessState(), control: createMapPoliticalLedger(territories, 0), nationId: 'italy' as const, playerFaction: 'axis' as const, week: 0 };
+    const before = JSON.stringify({ group, access, territories });
+    expect(getAirBaseAccess(group, territories, access)).toMatchObject({ allowed: true, reason: expect.stringContaining('미모델링 기존 기지') });
+    expect(getAirBaseAccess({ ...group, id: 'italy-air-copy' }, territories, access).allowed).toBe(false);
+    expect(getAirBaseAccess({ ...group, base: 'sardinia' }, territories, access).allowed).toBe(false);
+    expect(getAirBaseAccess({ ...group, base: '새 사르데냐 기지' }, territories, access).allowed).toBe(false);
+    expect(getAirBaseAccess(group, territories, { ...access, nationId: 'britain' }).allowed).toBe(false);
+    expect(getAirBaseAccess({ ...group, base: '북아일랜드' }, territories, access).allowed).toBe(false);
+    expect(JSON.stringify({ group, access, territories })).toBe(before);
+  });
+
+  it('does not derive air operations from a foreign naval-base agreement', () => {
+    const { sites, context } = accessFixture();
+    const group = { ...createJointForcesState('britain').airGroups[1], base: '북아일랜드' };
+    expect(getAirBaseAccess(group, sites, context).allowed).toBe(false);
+    expect(getAirBaseAccess({ ...group, base: '욱스브리지' }, sites, context).allowed).toBe(true);
+  });
+
+  it.each([['usa', 0], ['usa', 1], ['freefrance', 1]] as const)('preserves only the exact existing off-map base for %s fleet %s', (nationId, index) => {
+    const fleet = createJointForcesState(nationId).fleets[index];
+    const access = { state: createMilitaryAccessState(), control: createMapPoliticalLedger(territories, 0), nationId, playerFaction: 'allies' as const, week: 0 };
+    const before = JSON.stringify({ fleet, access, territories });
+    expect(getFleetBaseTerritory(fleet, territories)).toBeUndefined();
+    for (const purpose of ['naval-base', 'naval-departure', 'offensive'] as const) {
+      expect(getFleetBaseAccess(fleet, territories, access, purpose)).toMatchObject({ allowed: true, reason: expect.stringContaining('미모델링 기존 모항') });
+    }
+    const target = nationId === 'freefrance' ? 'guinea' : index === 0 ? 'brisbane' : 'portsmouth';
+    expect(forecastFleetTransit(fleet, target, territories, 0, [], undefined, access).allowed).toBe(true);
+    expect(rebaseFleet(fleet, fleet.navigation!.homePort.id, territories, 0, access).allowed).toBe(false);
+    expect(getFleetBaseAccess({ ...fleet, id: `${fleet.id}-copy` }, territories, access).allowed).toBe(false);
+    expect(getFleetBaseAccess(fleet, territories, { ...access, nationId: 'britain' }).allowed).toBe(false);
+    for (const point of [
+      { ...fleet.navigation!.homePort, latitude: fleet.navigation!.homePort.latitude + .01 },
+      { ...fleet.navigation!.homePort, id: 'forged-port' },
+      { ...fleet.navigation!.homePort, territoryId: 'forged-control' },
+      { ...fleet.navigation!.homePort, basin: 'atlantic' },
+    ]) {
+      expect(getFleetBaseAccess({ ...fleet, navigation: { ...fleet.navigation!, homePort: point } }, territories, access).allowed).toBe(false);
+    }
+    expect(JSON.stringify({ fleet, access, territories })).toBe(before);
+  });
+
+  it('does not extend an original off-map base exception to a subsequently chosen foreign base', () => {
+    const fleet = createJointForcesState('usa').fleets[1];
+    const point = resolveNavalTerritoryPoint('belfast', territories)!;
+    const access = { state: createMilitaryAccessState(), control: createMapPoliticalLedger(territories, 0), nationId: 'usa' as const, playerFaction: 'axis' as const, week: 0 };
+    const relocated = { ...fleet, navigation: { ...fleet.navigation!, homePort: point, position: point } };
+    expect(getFleetBaseAccess(relocated, territories, access).allowed).toBe(false);
+    expect(rebaseFleet(fleet, 'noumea', territories, 0, access).allowed).toBe(false);
+  });
+
+  it('resolves controlling sites through harbor and air-base aliases without changing the map', () => {
+    const before = JSON.stringify(territories);
+    const forces = createJointForcesState('britain');
+    expect(getFleetBaseTerritory(forces.fleets[0], territories)?.id).toBe('scotland');
+    expect(getFleetBaseTerritory({ ...forces.fleets[0], navigation: undefined }, territories)?.id).toBe('scotland');
+    expect(getFleetBaseTerritory({ ...forces.fleets[0], navigation: undefined, location: 'unmapped' }, territories)).toBeUndefined();
+    expect(getAirBaseTerritory(forces.airGroups[0], territories)?.id).toBe('britain');
+    expect(getAirBaseTerritory(forces.airGroups[1], territories)?.id).toBe('belfast');
+    expect(getAirBaseTerritory({ ...forces.airGroups[0], base: 'unmapped' }, territories)).toBeUndefined();
+    expect(JSON.stringify(territories)).toBe(before);
+  });
+
+  it('moves to an agreed foreign base before refueling, reserving the fleet and preserving ownership', () => {
+    const { sites, context, target } = accessFixture();
+    const original = britainFleet();
+    const fleet = { ...original, navigation: { ...original.navigation!, remainingRangeNm: 2000 } };
+    const before = JSON.stringify({ fleet, sites, context });
+    const result = rebaseFleet(fleet, target.id, sites, 2, context);
+    expect(result.allowed).toBe(true);
+    const departing = result.fleet!;
+    expect(departing.navigation).toMatchObject({ mode: 'returning', position: fleet.navigation.position, remainingRangeNm: 2000, traveledNm: 0 });
+    expect(departing.navigation?.destination?.id).toBe(target.id);
+    expect(departing.status).toBe('assigned');
+    expect(hasFleetNavigationReservation(departing)).toBe(true);
+    expect(rebaseFleet(departing, 'liverpool', sites, 2, context).allowed).toBe(false);
+    expect(advanceFleetNavigationWeek(departing, 2, sites, context)).toBe(departing);
+    const arrived = advanceFleetNavigationWeek(departing, 3, sites, context);
+    expect(arrived.navigation?.mode).toBe('refueling');
+    expect(arrived.navigation?.position.id).toBe(target.id);
+    expect(arrived.navigation!.remainingRangeNm).toBeLessThan(2000);
+    expect(arrived.assignmentId).not.toBeNull();
+    const ready = advanceFleetNavigationWeek(arrived, 4, sites, context);
+    expect(ready.navigation?.mode).toBe('in-port');
+    expect(ready.navigation?.remainingRangeNm).toBe(ready.navigation?.rangeNm);
+    expect(ready.assignmentId).toBeNull();
+    expect(ready.ships).toBe(fleet.ships);
+    expect(getSiteMilitaryAccess(target, 'offensive', { ...context, week: 4 }).allowed).toBe(false);
+    expect(JSON.stringify({ fleet, sites, context })).toBe(before);
+  });
+
+  it('does not treat a land-transit agreement as naval entry or refueling rights', () => {
+    const { sites, context, target } = accessFixture('transit');
+    expect(getSiteMilitaryAccess(target, 'transit', context).allowed).toBe(true);
+    expect(rebaseFleet(britainFleet(), target.id, sites, 2, context).allowed).toBe(false);
+  });
+
+  it('rejects expired, revoked and unmapped destination bases', () => {
+    const { sites, context, target } = accessFixture();
+    const notice = revoked(context, 2);
+    expect(rebaseFleet(britainFleet(), target.id, sites, 2, notice).allowed).toBe(false);
+    expect(rebaseFleet(britainFleet(), target.id, sites, 15, context).allowed).toBe(false);
+    expect(rebaseFleet(britainFleet(), 'unmapped-port', sites, 2, context).allowed).toBe(false);
+    expect(rebaseFleet(britainFleet(), 'atlantic', sites, 2, context).allowed).toBe(false);
+  });
+
+  it('requires an idle seaworthy fleet and enough existing fuel without spending or replenishing it', () => {
+    const { sites, context, target } = accessFixture();
+    const original = britainFleet();
+    const cases: NavalTaskForce[] = [
+      { ...original, status: 'refit' }, { ...original, assignmentId: 'joint-other' }, { ...original, ships: 0 },
+      { ...original, readiness: 20 }, { ...original, organization: 20 },
+      { ...original, navigation: { ...original.navigation!, mode: 'refueling' } },
+      { ...original, navigation: { ...original.navigation!, remainingRangeNm: 1 } },
+      { ...original, navigation: undefined, location: 'unmapped' },
+    ];
+    for (const fleet of cases) {
+      const before = JSON.stringify(fleet);
+      expect(rebaseFleet(fleet, target.id, sites, 2, context).allowed).toBe(false);
+      expect(JSON.stringify(fleet)).toBe(before);
+    }
+    expect(rebaseFleet(original, target.id, sites, -1, context).allowed).toBe(false);
+    expect(rebaseFleet(original, 'liverpool', sites, 2, context).allowed).toBe(false);
+  });
+
+  it('allows only the withdrawal window to leave a revoked foreign base and does not refuel on departure', () => {
+    const { sites, context, target } = accessFixture();
+    const fleet = britainFleet();
+    const point = resolveNavalTerritoryPoint(target.id, sites)!;
+    const visiting = { ...fleet, navigation: { ...fleet.navigation!, homePort: point, position: point, remainingRangeNm: 1500 } };
+    const notice = revoked(context, 3);
+    const result = rebaseFleet(visiting, 'liverpool', sites, 3, notice);
+    expect(result.allowed).toBe(true);
+    expect(result.fleet?.navigation?.position).toEqual(point);
+    expect(result.fleet?.navigation?.remainingRangeNm).toBe(1500);
+    expect(forecastFleetTransit(visiting, 'liverpool', sites, 3, [], undefined, notice).allowed).toBe(false);
+    expect(dispatchFleetTransit(visiting, 'liverpool', sites, 3, 'sea-not-withdrawal', undefined, notice)).toBe(visiting);
+    expect(rebaseFleet(visiting, 'liverpool', sites, 5, notice).allowed).toBe(false);
+    expect(forecastFleetTransit(visiting, 'liverpool', sites, 5, [], undefined, notice).allowed).toBe(false);
+    expect(dispatchFleetTransit(visiting, 'liverpool', sites, 5, 'sea-denied', undefined, notice)).toBe(visiting);
+    expect(forecastFleetTransit(visiting, 'liverpool', sites, 5).allowed).toBe(true);
+  });
+
+  it('rechecks an in-flight grant and reroutes from the real current position with no free movement or fuel', () => {
+    const { sites, context, target } = accessFixture('naval-base', 'alexandria');
+    const original = britainFleet();
+    const fleet = { ...original, navigation: { ...original.navigation!, cruiseKnots: 3 } };
+    const departed = rebaseFleet(fleet, target.id, sites, 2, context).fleet!;
+    const underway = advanceFleetNavigationWeek(departed, 3, sites, context);
+    expect(underway.navigation?.mode).toBe('returning');
+    expect(underway.navigation!.traveledNm).toBeGreaterThan(0);
+    const notice = revoked(context, 4);
+    const rerouted = advanceFleetNavigationWeek(underway, 4, sites, notice);
+    expect(rerouted.navigation?.mode).toBe('returning');
+    expect(rerouted.navigation?.homePort.id).not.toBe(target.id);
+    expect(rerouted.navigation?.route[0]).toEqual(underway.navigation?.position);
+    expect(rerouted.navigation?.position).toEqual(underway.navigation?.position);
+    expect(rerouted.navigation?.remainingRangeNm).toBe(underway.navigation?.remainingRangeNm);
+    expect(advanceFleetNavigationWeek(rerouted, 4, sites, notice)).toBe(rerouted);
+    const moved = advanceFleetNavigationWeek(rerouted, 5, sites, notice);
+    expect(moved.navigation!.remainingRangeNm).toBeLessThan(rerouted.navigation!.remainingRangeNm);
+  });
+
+  it('rechecks permission between arrival and refueling and returns physically to another harbor', () => {
+    const { sites, context, target } = accessFixture();
+    const departing = rebaseFleet(britainFleet(), target.id, sites, 2, context).fleet!;
+    const arrived = advanceFleetNavigationWeek(departing, 3, sites, context);
+    expect(arrived.navigation?.mode).toBe('refueling');
+    const notice = revoked(context, 4);
+    const diverted = advanceFleetNavigationWeek(arrived, 4, sites, notice);
+    expect(diverted.navigation?.mode).toBe('returning');
+    expect(diverted.navigation?.position).toEqual(arrived.navigation?.position);
+    expect(diverted.navigation?.remainingRangeNm).toBe(arrived.navigation?.remainingRangeNm);
+    expect(diverted.navigation?.homePort.id).not.toBe(target.id);
+    expect(diverted.assignmentId).not.toBeNull();
+    const returned = advanceFleetNavigationWeek(diverted, 5, sites, notice);
+    expect(returned.navigation?.mode).toBe('refueling');
+    expect(returned.navigation!.remainingRangeNm).toBeLessThan(arrived.navigation!.remainingRangeNm);
+    expect(advanceFleetNavigationWeek(returned, 6, sites, notice).navigation?.mode).toBe('in-port');
+  });
+
+  it('strands safely if no authorized return base exists, preserving the physical route for later recovery', () => {
+    const { sites, context, target } = accessFixture('naval-base', 'alexandria');
+    const original = britainFleet();
+    const fleet = { ...original, navigation: { ...original.navigation!, cruiseKnots: 3 } };
+    const underway = advanceFleetNavigationWeek(rebaseFleet(fleet, target.id, sites, 2, context).fleet!, 3, sites, context);
+    const notice = revoked(context, 4);
+    const stranded = advanceFleetNavigationWeek(underway, 4, [target], notice);
+    expect(stranded.navigation?.mode).toBe('stranded');
+    expect(stranded.navigation?.position).toEqual(underway.navigation?.position);
+    expect(stranded.navigation?.remainingRangeNm).toBe(underway.navigation?.remainingRangeNm);
+    expect(stranded.navigation?.route).toEqual(underway.navigation?.route);
+    const rescued = beginFleetReturn(stranded, 5, sites, undefined, notice);
+    expect(rescued.navigation?.mode).toBe('returning');
+    expect(rescued.navigation?.route[0]).toEqual(stranded.navigation?.position);
+    expect(rescued.navigation?.remainingRangeNm).toBe(stranded.navigation?.remainingRangeNm);
   });
 });

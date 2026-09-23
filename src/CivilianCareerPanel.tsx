@@ -26,6 +26,8 @@ import {
   getCivilianStageLabel,
 } from './civilianCareer';
 import type { CareerRole, CivilianCareerState, NationProfile } from './types';
+import { GameIllustration } from './GameIllustration';
+import './GovernanceIllustrations.css';
 
 interface CivilianCareerPanelProps {
   state: CivilianCareerState;
@@ -128,6 +130,7 @@ export function CivilianCareerPanel({
           </div>
           <div className="civilian-vocation-note">
             <BookOpen size={15} /><span><strong>{profession.vocation}</strong><small>역사 기반 · {profession.historicalBasis}</small></span>
+            <div className="governance-illustration-slot"><GameIllustration scene="civilian-work" compact /></div>
           </div>
         </section>
 

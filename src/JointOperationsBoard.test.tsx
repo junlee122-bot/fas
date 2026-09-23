@@ -1,6 +1,7 @@
 import { Children, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
+import { ArtworkViewer } from './ArtworkViewer';
 import { nations } from './campaign';
 import { createJointForcesState, forecastJointOperation, jointOperationTemplates, launchJointOperation, type JointForcesState, type JointOperationRecord } from './jointOperations';
 import { createInitialJointBoardSelection, createJointCommandGuard, getJointBoardPlan, getJointForceSelectionReason, getJointSeaEscortAssignment, initialJointBoardSelection, JointOperationsBoard, JointOperationsBoardView, resolveJointSelection, type JointBoardSelection, type JointOperationsBoardProps } from './JointOperationsBoard';
@@ -24,6 +25,9 @@ function elements(node: ReactNode): ReactElement<Record<string, unknown>>[] {
   Children.forEach(node, (child) => {
     if (!isValidElement<Record<string, unknown>>(child)) return;
     result.push(child);
+    // Keep the hook-based, read-only viewer opaque to this command-handler walker.
+    // Its real React rendering is covered by SSR here and ArtworkViewer.test.tsx.
+    if (child.type === ArtworkViewer) return;
     if (typeof child.type === 'function') result.push(...elements((child.type as (props: Record<string, unknown>) => ReactNode)(child.props)));
     else result.push(...elements(child.props.children as ReactNode));
   });
@@ -55,6 +59,17 @@ function reliefState() {
 }
 
 describe('Command Edition joint workspace rendering', () => {
+  it.each([['joint', 'land-operations'], ['naval', 'naval-operations'], ['air', 'air-operations']] as const)('shows neutral %s art without commands or revealing enemy data', (view, scene) => {
+    const props = input({ view });
+    const before = JSON.stringify(props.state);
+    const html = renderToStaticMarkup(present(props));
+    expect(html).toContain(`data-game-illustration="${scene}"`);
+    expect(html).toContain('상징 삽화 · 실제 기록 아님');
+    expect(html.match(/data-game-illustration=/g)).toHaveLength(1);
+    expect(JSON.stringify(props.state)).toBe(before);
+    assertReadOnly(props);
+  });
+
   it('shows a transport escort as a real assignment and links to its voyage without new orders', () => {
     const state = createJointForcesState('britain');
     const operation = { id: 'sea-britain-test', nationId: 'britain', escortFleetId: state.fleets[0].id, divisionName: '왕립 기갑원정군', fromName: '런던', targetName: '벨파스트', stage: 'sailing', elapsedWeeks: 2 } as SeaTransportOperation;

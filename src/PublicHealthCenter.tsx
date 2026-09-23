@@ -5,6 +5,8 @@ import { advancePublicHealthWeek, applyPublicHealthInvestment, calculateWeeklyOu
 import type { PublicHealthContext, PublicHealthInvestmentId, PublicHealthPolicyId, PublicHealthState } from './publicHealth';
 import type { GameState } from './types';
 import './PublicHealthCenter.css';
+import { GameIllustration } from './GameIllustration';
+import './OperationsIllustrations.css';
 
 export type PublicHealthView = 'overview' | 'policy' | 'investments' | 'records';
 export interface PublicHealthCenterProps {
@@ -182,7 +184,7 @@ export function PublicHealthCenter({ state, game, context, onPolicyChange, onInv
   };
 
   return <div className="public-health-center health-command-edition">
-    <header className="ph-heading" id="health-intro"><div><span className="ph-eyebrow"><HeartPulse size={18} /> PUBLIC HEALTH COMMAND</span><h2>{outbreak ? `${outbreak.codeName} 위기 지휘실` : '국가 보건 대비 본부'}</h2><p>{template ? `${template.name} · ${formatOutbreakPhase(outbreak!.phase)}` : '현재 활성 유행이 없습니다. 감시와 대응 역량을 점검하세요.'}</p><small>{context.theater === 'asia' ? '아시아·태평양' : '유럽·지중해'} 감시 전구 · 현재 정책 {activePolicy.name}</small></div><div className="ph-status"><span>{outbreak ? '현재 유효 재생산지수' : '현재 조건의 주간 위험지표'}</span><strong>{outbreak ? outbreak.rEffective.toFixed(2) : formatRisk(risk)}</strong><small>{outbreak ? outbreak.rEffective > 1 ? '1 초과 · 유행 확산' : '1 이하 · 유행 감소' : emergenceEligible ? '다음 결산의 유행 압력 갱신으로 달라질 수 있음' : '초기 주차 또는 종결 직후로 새 유행 발생 보류'}</small></div></header>
+    <header className="ph-heading" id="health-intro"><div className="operations-illustrated-title"><div className="operations-illustrated-copy"><span className="ph-eyebrow"><HeartPulse size={18} /> PUBLIC HEALTH COMMAND</span><h2>{outbreak ? `${outbreak.codeName} 위기 지휘실` : '국가 보건 대비 본부'}</h2><p>{template ? `${template.name} · ${formatOutbreakPhase(outbreak!.phase)}` : '현재 활성 유행이 없습니다. 감시와 대응 역량을 점검하세요.'}</p><small>{context.theater === 'asia' ? '아시아·태평양' : '유럽·지중해'} 감시 전구 · 현재 정책 {activePolicy.name}</small></div><GameIllustration scene="civilian-relief" compact /></div><div className="ph-status"><span>{outbreak ? '현재 유효 재생산지수' : '현재 조건의 주간 위험지표'}</span><strong>{outbreak ? outbreak.rEffective.toFixed(2) : formatRisk(risk)}</strong><small>{outbreak ? outbreak.rEffective > 1 ? '1 초과 · 유행 확산' : '1 이하 · 유행 감소' : emergenceEligible ? '다음 결산의 유행 압력 갱신으로 달라질 수 있음' : '초기 주차 또는 종결 직후로 새 유행 발생 보류'}</small></div></header>
     <nav className="ph-workviews" aria-label="보건 본부 작업보기">{([['overview', '위기 개요'], ['policy', '대응 정책'], ['investments', '역량 투자'], ['records', '기록·사료']] as const).map(([id, label]) => <button type="button" key={id} aria-pressed={view === id} aria-controls={contentId} onClick={() => changeView(id)}>{label}</button>)}</nav>
     {busy ? <p className="ph-warning" role="status">주간 결산 중입니다. 정보는 열람할 수 있으며 작업 승인은 결산 후 가능합니다.</p> : null}
     <p className="ph-meta ph-result-status" role="status" aria-label="보건 작업 결과 안내" aria-live="polite" tabIndex={-1} ref={resultRef}>{message || '정책과 사업은 검토 후 승인합니다. 화면을 열거나 대상을 선택하는 것만으로는 실행되지 않습니다.'}</p>

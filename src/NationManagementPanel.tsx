@@ -1,4 +1,6 @@
 import { getCampaignYearForWeek } from './campaignCalendar';
+import { GameIllustration } from './GameIllustration';
+import './GovernanceIllustrations.css';
 import { lazy, Suspense, useState } from 'react';
 import {
   ArrowRight,
@@ -1067,7 +1069,7 @@ export function NationManagementPanel({
 
       {view === 'strategy' ? <>
 <section className="nation-surface national-strategy-board">
-        <header><div><span>국가 발전 노선</span><h3>내각 전체가 따를 장기 전략</h3></div><small>현재: {currentStrategy.name}</small></header>
+        <header><div><span>국가 발전 노선</span><h3>내각 전체가 따를 장기 전략</h3></div><small>현재: {currentStrategy.name}</small><div className="governance-illustration-slot"><GameIllustration scene="national-reconstruction" compact /></div></header>
         <div className="national-strategy-grid">
           {nationStrategies.map((strategy) => (
             <button key={strategy.id} className={state.strategyId === strategy.id ? 'active' : ''} onClick={() => onStrategyChange(strategy.id)}>
@@ -1083,6 +1085,7 @@ export function NationManagementPanel({
         <header>
           <div><span>개인·가족·혼인</span><h3>한 사람의 삶도 세계선의 일부입니다</h3></div>
           <small>{currentYear}년 · {currentFamilyLaw.name}</small>
+          <div className="governance-illustration-slot"><GameIllustration scene="civilian-work" compact /></div>
         </header>
 
         <div className="personal-life-status-grid">
@@ -1362,6 +1365,7 @@ export function NationManagementPanel({
         <header>
           <div><span>헌정·왕실 운영</span><h3>국가체제, 작위, 영지와 왕위계승</h3></div>
           <small>{currentGovernmentForm.name} · {dynasticAuthority ? '직접 결재 가능' : `${role.title} 권한 밖`}</small>
+          {currentGovernmentForm.monarchy ? <div className="governance-illustration-slot"><GameIllustration scene="royal-council" compact /></div> : null}
         </header>
 
         <div className="dynastic-status-grid">

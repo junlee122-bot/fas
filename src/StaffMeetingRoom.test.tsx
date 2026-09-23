@@ -36,7 +36,11 @@ describe('staff meeting room presentation contract', () => {
     expect(html).toContain('실제 전투 보고의 제한된 요약');
     expect(html).toContain('게임 상황에 맞춘 재구성 의견 · 역사적 인용 아님');
     expect(html).not.toContain('<blockquote');
-    expect(html).not.toContain('<img');
+    expect(html.match(/data-game-illustration="staff-council"/g)).toHaveLength(1);
+    expect(html.match(/data-person-portrait=/g)).toHaveLength(2);
+    expect(html).toContain(`alt="${context.staff[0].name} · AI 재구성 초상 · 실제 사진 아님"`);
+    expect(html).toContain('data-portrait-kind="monogram"');
+    expect(html).toContain('인물 식별용 AI 재구성 초상 · 실제 사진 아님');
     expect(html).toContain('비공개 원문이나 추가 정보는 조회하지 않습니다');
   });
 
@@ -48,6 +52,8 @@ describe('staff meeting room presentation contract', () => {
     expect(html).toContain('지금 검토할 활성 현안이 없습니다');
     expect(html).not.toContain('class="staff-meeting-seat"');
     expect(html).not.toContain('이 내용으로 결재');
+    expect(html).not.toContain('data-game-illustration=');
+    expect(html).not.toContain('data-person-portrait=');
   });
 
   it('disables out-of-scope options and describes command-chain navigation without claiming approval', () => {
@@ -68,8 +74,23 @@ describe('staff meeting room presentation contract', () => {
     context.staff = context.staff.map((person, index) => index === 0 ? { ...person, personId: 'replacement', name: '새 후임자' } : person);
     const html = render(context);
     expect(html).not.toContain('새 후임자');
+    expect(html).not.toContain('alt="앨런 브룩 · AI 재구성 초상 · 실제 사진 아님"');
     expect(html).toContain('퇴임·교체 또는 중복 식별');
     expect(html.match(/class="staff-meeting-seat"/g)).toHaveLength(1);
+    expect(html.match(/data-person-portrait=/g)).toHaveLength(1);
+  });
+
+  it.each(['unregistered-person', 'player'] as const)('does not reuse a historical face for an explicitly identified %s participant', (personId) => {
+    const context = fixture(true);
+    const member = context.staff[0];
+    context.staff = context.staff.map((person) => person.id === member.id ? { ...person, personId } : person);
+    context.state.activeStorylines = context.state.activeStorylines.map((story) => ({ ...story, firstPersonId: personId }));
+    const html = render(context);
+    expect(html.match(/class="staff-meeting-seat"/g)).toHaveLength(1);
+    expect(html).toContain('data-person-portrait="fallback"');
+    expect(html).toContain(`data-portrait-kind="${personId === 'player' ? 'player' : 'monogram'}"`);
+    expect(html).not.toContain(`alt="${member.name} · AI 재구성 초상 · 실제 사진 아님"`);
+    expect(html).not.toContain('data-portrait-kind="illustrated"');
   });
 
   it('contains labelled keyboard tabs, panels, agenda selection and a no-mutation postpone action', () => {

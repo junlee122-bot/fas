@@ -9,6 +9,8 @@ import {
   type SovereignPowerGroup, type SovereignPowerId, type SovereignPowersState,
 } from './sovereignPowers';
 import './SovereignPowersBoard.css';
+import { GameIllustration } from './GameIllustration';
+import './GovernanceIllustrations.css';
 
 export interface SovereignPowersBoardProps {
   state: SovereignPowersState;
@@ -181,6 +183,7 @@ export function SovereignPowersBoard(props: SovereignPowersBoardProps) {
     <header className="sovereign-desk-header">
       <div><span className="sovereign-desk-eyebrow">CONSTITUTION & OFFICE</span><h3 id={`${id}-title`}>직위·왕관·영지 권한</h3><p>{profile.name} · {context.role.title}</p></div>
       <span className="sovereign-desk-office"><Crown size={18} /><strong>{context.role.tier}급 보직</strong><small>각 행위의 헌법·관례를 개별 심사</small></span>
+      {!compact ? <div className="governance-illustration-slot"><GameIllustration scene="constitution-assembly" compact /></div> : null}
     </header>
     <div className="sovereign-desk-principle"><BookOpenCheck size={20} /><div><strong>{context.constitution.enacted?.name ?? '헌법 제정 전·관습 헌정'}</strong><p>{profile.caution} 보직이 높아도 모든 권한이 합법적인 것은 아닙니다.</p></div></div>
     <div className="sovereign-desk-metrics">{[

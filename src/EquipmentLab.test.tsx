@@ -116,7 +116,9 @@ describe('equipment lab focused workspaces', () => {
   it.each<EquipmentLabView>(['overview', 'research', 'prototype', 'deployment'])('does not send commands or mutate inputs while rendering %s', (initialView) => {
     const props = fixture({ initialView });
     const before = JSON.stringify(props);
-    renderToStaticMarkup(<EquipmentLab {...props} />);
+    const html = renderToStaticMarkup(<EquipmentLab {...props} />);
+    expect(html.match(/data-game-illustration=/g)).toHaveLength(1);
+    expect(html).toContain(`data-game-illustration="${initialView === 'research' ? 'research-laboratory' : 'equipment-workbench'}"`);
     expect(JSON.stringify(props)).toBe(before);
     for (const [key, value] of Object.entries(props)) if (key.startsWith('on') && typeof value === 'function') expect(value).not.toHaveBeenCalled();
   });

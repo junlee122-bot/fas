@@ -40,6 +40,7 @@ import { getHistoricalFlag } from './historicalFlags';
 import { withJosa } from './koreanGrammar';
 import { KoreaCampaignBrief } from './KoreaCampaignBrief';
 import { NationFlag } from './NationFlag';
+import { PersonPortrait } from './PersonPortrait';
 import europeMap from './assets/european-theater-war-department-1944.jpg';
 import asiaMap from './assets/far-east-milrose-1943.jpg';
 import './CampaignSetup.css';
@@ -206,7 +207,10 @@ export function CampaignSetupView(props: CampaignSetupViewProps) {
   const roleDescription = selectedBranchRole ?? (step === 3 ? selectedRole : undefined);
   const record = roleDescription ? <div className="campaign-onboarding__dossier">
     <span className="campaign-onboarding__eyebrow">1942 · 실제 재직 기록</span>
-    <h3>{roleDescription.historicalHolderName}</h3>
+    <div className="campaign-onboarding__portrait-heading">
+      <PersonPortrait personId={roleDescription.historicalHolderId} name={roleDescription.historicalHolderName} size="lg" />
+      <div><h3>{roleDescription.historicalHolderName}</h3><small className="campaign-onboarding__portrait-note">대체할 실존 인물의 기록 · 플레이어 얼굴 아님<br />초상 제공 인물: AI 재구성 · 실제 사진 아님</small></div>
+    </div>
     <p className="campaign-onboarding__label">{roleDescription.historicalOffice}</p>
     <p>{roleDescription.historicalBasis}</p>
     <p>{roleDescription.replacementEffect}</p>

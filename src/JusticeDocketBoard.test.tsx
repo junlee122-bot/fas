@@ -1,6 +1,7 @@
 import { Children, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
+import { ArtworkViewer } from './ArtworkViewer';
 import { getRole, nations } from './campaign';
 import { advanceJusticeWeek, createJusticeSystemState, getJusticeDecisionOptions, openJusticeCase, resolveJusticeDecision, type JusticeContext } from './justiceSystem';
 import { assessJusticeDeskReview, createJusticeDeskController, initialJusticeDeskSelection, JusticeDocketBoard, JusticeDocketView, resolveJusticeDeskCase, reviewJusticeDeskCommand, type JusticeDeskReview, type JusticeDeskSelection, type JusticeDocketBoardProps, type JusticeDocketViewProps } from './JusticeDocketBoard';
@@ -17,6 +18,9 @@ function elements(node: ReactNode): ReactElement<Record<string, unknown>>[] {
   Children.forEach(node, (child) => {
     if (!isValidElement<Record<string, unknown>>(child)) return;
     result.push(child);
+    // Keep the hook-based, read-only viewer opaque to this command-handler walker.
+    // Its real React rendering is covered by SSR here and ArtworkViewer.test.tsx.
+    if (child.type === ArtworkViewer) return;
     if (typeof child.type === 'function') result.push(...elements((child.type as (props: Record<string, unknown>) => ReactNode)(child.props)));
     else result.push(...elements(child.props.children as ReactNode));
   });
@@ -33,6 +37,23 @@ function bribery(p: JusticeDocketBoardProps) {
 }
 
 describe('justice workspaces and case identity', () => {
+  it('uses the justice emblem only as a decorative desk identifier', () => {
+    const p = input();
+    const html = renderToStaticMarkup(<JusticeDocketBoard {...p} />);
+    expect(html).toContain('data-game-icon="justice" aria-hidden="true"');
+    expect(html).toContain('<h1>사법 사건실</h1>');
+    noWrites(p);
+  });
+  it.each([undefined, false, true])('keeps the symbolic chamber separate from case evidence, compact=%s', (compact) => {
+    const p = input({ compact });
+    const before = JSON.stringify([p.state, p.context]);
+    const html = renderToStaticMarkup(<JusticeDocketBoard {...p} />);
+    expect(html.includes('data-game-illustration="justice-chamber"')).toBe(!compact);
+    expect(html.match(/data-game-illustration=/g) ?? []).toHaveLength(compact ? 0 : 1);
+    expect(html).toContain('의혹·기소·비공개 증거는 유죄 확정이 아닙니다');
+    expect(JSON.stringify([p.state, p.context])).toBe(before);
+    noWrites(p);
+  });
   it('starts with one actual case, not every decision, intake and history at once', () => {
     const p = input(); const before = JSON.stringify([p.state, p.context]);
     const html = renderToStaticMarkup(<JusticeDocketBoard {...p} />);

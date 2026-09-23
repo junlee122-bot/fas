@@ -49,6 +49,14 @@ function setup(overrides: Partial<TerritorialTreatyBoardProps> = {}): Territoria
 }
 
 describe('territorial treaty review boundary', () => {
+  it('identifies the treaty desk and proposal with a document seal, not ratification status', () => {
+    const p = setup();
+    const html = renderToStaticMarkup(<TerritorialTreatyBoard {...p} />);
+    expect(html.match(/data-game-icon="treaty"/g)).toHaveLength(2);
+    expect(html).toContain('검토할 조약 문서가 없습니다');
+    expect(p.onExecute).not.toHaveBeenCalled();
+    expect(p.onOpenMap).not.toHaveBeenCalled();
+  });
   it.each(['offer', 'request'] as const)('identifies the exact proposal document, site and %s direction inside the review', (direction) => {
     const p = setup();
     const action: TreatyAction = { ...propose, kind: 'propose', direction, territoryId: direction === 'offer' ? 'pyongyang' : 'tianjin', name: '명시적으로 확인할 조약 문서' };

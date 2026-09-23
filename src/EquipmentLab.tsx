@@ -1,4 +1,6 @@
 import { getCampaignYearForWeek } from './campaignCalendar';
+import { GameIllustration } from './GameIllustration';
+import './ManagementIllustrations.css';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ArrowRight, Check, CircleHelp, Factory, FlaskConical, Link2, LockKeyhole, PackageCheck, Plus, ShieldCheck, Wrench } from 'lucide-react';
 import {
@@ -289,7 +291,7 @@ export function EquipmentLab({
   return (
     <section className="equipment-lab equipment-lab-v2 deck-section">
       <div className="deck-section-heading equipment-lab-heading">
-        <div><span className="eyebrow">ARSENAL EVOLUTION · 1942 → OPEN FUTURE</span><h3>통합 장비 개발국</h3></div>
+        <div className={!review ? 'management-art-heading' : undefined}><span className="eyebrow">ARSENAL EVOLUTION · 1942 → OPEN FUTURE</span><h3>통합 장비 개발국</h3>{!review ? <div className="management-art-slot"><GameIllustration scene={view === 'research' ? 'research-laboratory' : 'equipment-workbench'} compact /></div> : null}</div>
         <div className="equipment-program-status">
           {activeNode ? <><FlaskConical size={14} /><span><strong>{activeNode.name}</strong><small>{Math.round(progressPercent)}% · {remainingResearchWeeks === null ? '진행 보류 · 기간 미정' : `${remainingResearchWeeks}주 예상`}</small></span></> : <><Wrench size={14} /><span><strong>개발 슬롯 대기</strong><small>계보에서 다음 사업을 선택하십시오</small></span></>}
         </div>

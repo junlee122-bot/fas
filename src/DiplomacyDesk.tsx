@@ -2,12 +2,15 @@ import { useId, useRef, useState, type Dispatch, type SetStateAction } from 'rea
 import { ArrowRight, BookOpen, Check, Handshake, Search, ShieldCheck } from 'lucide-react';
 import { getNation } from './campaign';
 import { NationFlag } from './NationFlag';
+import { GameIllustration } from './GameIllustration';
+import { GameIcon } from './GameIcon';
 import { getCampaignYearForWeek } from './campaignCalendar';
 import { applyDiplomaticAgendaReward, calculateAgendaReadiness, getDiplomaticAgenda, getDiplomaticAgendaOutcome } from './diplomacy';
 import { getNationArmsProfile, getPolicyEffectLabels, getStageDiplomaticPolicies, getStrategicDecisionId, getStrategicStage, type ArmsDiplomacyPolicy, type ArmsPortfolioState } from './strategicArmsDiplomacy';
 import { diplomacyFeedbackPrecisionNote, formatDiplomacyFeedbackEffects, getArmsPolicyFeedback, getEmergencyStockpileFeedback, getSummitFeedback } from './diplomacyFeedback';
 import type { DiplomaticRelation, GameState, GameTab, NationProfile } from './types';
 import './DiplomacyDesk.css';
+import './GovernanceIllustrations.css';
 
 export interface DiplomacyDeskProps {
   game: GameState;
@@ -164,7 +167,7 @@ export function DiplomacyDesk(p: DiplomacyDeskProps) {
   };
   const action = (order: DiplomacyOrder, label: string) => { const result = reviewDiplomacyOrder(p, order); return <div className="diplomacy-action"><button type="button" className="diplomacy-primary" disabled={!result.review} onClick={() => propose(order)}>{label}<ArrowRight size={16} /></button><p>{result.reason}</p></div>; };
   return <section className="diplomacy-desk" aria-label="외교 작업대">
-    <header className="diplomacy-heading"><div><small>FOREIGN OFFICE · {year}</small><h2>외교 지휘실</h2><p>상대국과 현안을 고르고, 조건을 확인한 뒤 지시하세요.</p></div><span className="diplomacy-badge">정치력 {p.game.politicalPower}</span></header>
+    <header className="diplomacy-heading"><div><small><GameIcon name="diplomacy" size={18} tone="gold" className="inline" />FOREIGN OFFICE · {year}</small><h2>외교 지휘실</h2><p>상대국과 현안을 고르고, 조건을 확인한 뒤 지시하세요.</p></div><span className="diplomacy-badge">정치력 {p.game.politicalPower}</span><div className="governance-illustration-slot"><GameIllustration scene="diplomatic-table" compact /></div></header>
     <nav className="diplomacy-tabs" aria-label="외교 업무">{([['relations', '국가 관계'], ['summit', '회담 의제'], ['policies', '군비·협약'], ['records', '이행 기록']] as const).map(([id, label]) => <button key={id} type="button" aria-pressed={view === id} onClick={() => navigate(id)}>{label}</button>)}</nav>
     {message ? <p role="status" className="diplomacy-message">{message}</p> : null}
     {review ? <section className="diplomacy-review" tabIndex={-1} ref={reviewRef} aria-label="외교 명령 검토"><small>REVIEW · 아직 집행하지 않은 안건</small><h3>{review.title}</h3><dl><div><dt>정치 비용</dt><dd>{review.cost} PP</dd></div><div><dt>예상 국고 변화</dt><dd>{p.formatMoney(review.treasuryDelta, { signed: true })}</dd></div></dl><ul>{review.effects.map((effect) => <li key={effect}>{effect}</li>)}</ul><p>{review.timing}</p>{stale ? <p role="alert">검토 후 조건이 바뀌었습니다. 재검토가 필요합니다.</p> : null}<div className="diplomacy-buttons"><button type="button" onClick={() => setReview(null)}>검토 취소</button>{stale ? <button type="button" onClick={() => propose(review.order)}>최신 조건 재검토</button> : null}<button type="button" className="diplomacy-primary" disabled={Boolean(stale)} onClick={approve}><Check size={16} />명령 승인</button></div></section> : null}

@@ -1,0 +1,8 @@
+.game-illustration{display:block;flex:0 1 224px;inline-size:224px;max-inline-size:100%;min-inline-size:0;margin:0;color:#c2c8be}
+.game-illustration>figcaption{display:grid;gap:3px;margin-block-start:6px;font:500 12px/1.5 var(--font-data,sans-serif);color:#c4cec1;overflow-wrap:anywhere}
+.game-illustration>figcaption>strong{font-size:13px;font-weight:600;color:#d0c19b}
+.game-illustration.game-illustration--compact{flex-basis:var(--support-art-size,132px);inline-size:var(--support-art-size,132px)}
+.game-illustration--compact>figcaption{font-size:12px;line-height:1.5}
+.game-shell.design-v2 .deck-content .game-illustration.game-illustration>figcaption>span{font:500 12px/1.5 var(--font-data,sans-serif);letter-spacing:normal;text-transform:none;color:inherit}
+@media(prefers-contrast:more){.game-illustration>figcaption{color:#f0f2ea}}
+.game-shell.design-v2{--support-art-size:clamp(132px,9.4vw,224px)}
