@@ -133,7 +133,9 @@ describe('regional warehouse desk', () => {
     const state = planRegionalShipment(received, { id: 'reserved-real', quantity: 5 }, { ...context, week: 101 }).state;
     const before = structuredClone(state);
     const { html, onConfigure, onPlanShipment, onCancelReserved } = render(state, { ...context, week: 101 });
-    expect(html).toContain('class="regional-overview">');
+    const overview = html.match(/<div[^>]*class="regional-overview"[^>]*>/)?.[0] ?? '';
+    expect(overview).toContain('tabindex="-1"');
+    expect(overview).not.toContain('hidden');
     expect(html).toContain('class="regional-configuration-view" hidden=""');
     expect(html).toContain('class="regional-dispatch-view" hidden=""');
     expect(html).toContain('class="regional-records-view" hidden=""');
@@ -200,6 +202,7 @@ describe('regional warehouse desk', () => {
   });
   it('disambiguates equal readable labels with record numbers, without shortening or changing command IDs', () => {
     const state = createRegionalIndustryState('britain', 100);
+    state.accounts.britain!.configuration = config;
     const shipment = { id: 'first-full-id', equipmentKey: 'infantryEquipment' as const, quantity: 7, originTerritoryId: 'a', destinationTerritoryId: 'b', status: 'reserved' as const, reservedWeek: 96, remainingWeeks: 2, deliveredWeek: null, heldReason: null };
     state.accounts.britain!.shipments = [shipment, { ...shipment, id: 'second-full-id' }];
     const labels = getRegionalShipmentRecordLabels(state.accounts.britain!.shipments, territories);

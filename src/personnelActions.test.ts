@@ -9,6 +9,8 @@ import {
 } from './personnelActions';
 import type { PersonnelAction, PersonnelActionResult, PersonnelContext } from './personnelActions';
 import type { NationId, StaffCandidate, StaffMember } from './types';
+import { advanceStaffRosterWeek } from './staffManagement';
+import { attachStaffWorkReports } from './staffWorkReport';
 
 function fixture(): PersonnelContext {
   const candidate: StaffCandidate = {
@@ -253,6 +255,33 @@ describe('contact and appointment use real requirements and actual outcomes', ()
     expect(outcome.recruitment).toMatchObject({ weeklyPayrollBefore: 6, weeklyPayrollAfter: 8, incumbent: context.staff[0] });
     expect(outcome.candidates[0]).toMatchObject({ personId: 'person-incumbent', availability: 'displaced', status: 'unscouted', knowledge: 100, shortlisted: false });
     expect(outcome.candidates[0].id).toBe('britain-candidate-displaced-person-incumbent-8');
+  });
+
+  it('does not transfer an actual weekly work report through the incumbent slot to a new hire', () => {
+    const context = fixture();
+    const before = context.staff;
+    const afterWork = advanceStaffRosterWeek(before, null);
+    context.staff = attachStaffWorkReports(before, afterWork, afterWork, { nationId: context.role.nationId, fromWeek: 7, week: 8, developmentFocusId: null });
+    const report = context.staff[0].lastWorkReport;
+    expect(report).toBeDefined();
+    const outcome = result(context, recruit);
+    expect(outcome.recruitment?.success).toBe(true);
+    expect(outcome.staff[0].id).toBe(context.staff[0].id);
+    expect(outcome.staff[0].personId).not.toBe(context.staff[0].personId);
+    expect(outcome.staff[0].lastWorkReport).toBeUndefined();
+    expect(outcome.recruitment?.incumbent.lastWorkReport).toEqual(report);
+    expect(context.staff[0].lastWorkReport).toEqual(report);
+  });
+
+  it('retains the same incumbent report when a recruitment negotiation fails', () => {
+    const context = candidateWith(fixture(), { interest: 20, relationship: 0, rivalInterest: 90 });
+    const afterWork = advanceStaffRosterWeek(context.staff, null);
+    context.staff = attachStaffWorkReports(context.staff, afterWork, afterWork, { nationId: context.role.nationId, fromWeek: 7, week: 8, developmentFocusId: null });
+    const outcome = result(context, recruit);
+    expect(context.staff[0].lastWorkReport).toBeDefined();
+    expect(outcome.recruitment?.success).toBe(false);
+    expect(outcome.staff).toBe(context.staff);
+    expect(outcome.staff[0].lastWorkReport).toBe(context.staff[0].lastWorkReport);
   });
 
   it('retains negotiated term, pay, authority, promises and candidate source data', () => {

@@ -94,8 +94,10 @@ import './OrganizationPanel.css';
 import './StaffPortraits.css';
 
 export type OrganizationWorkspace = 'squad' | 'market';
+export interface OrganizationStaffRequest { nationId: NationProfile['id']; staffId: string; personId: string; sequence?: number }
 
 export interface OrganizationPanelProps {
+  initialStaffRequest?: OrganizationStaffRequest;
   game: GameState;
   nation: NationProfile;
   role: CareerRole;
@@ -154,6 +156,21 @@ export function getOrganizationStaffDecisionInput(props: Pick<OrganizationPanelP
 
 export function getOrganizationSelectedStaff(staff: StaffMember[], identity: { id: string; personId: string } | null) {
   return identity ? staff.find((member) => member.id === identity.id && member.personId === identity.personId) ?? null : null;
+}
+
+export function getOrganizationInitialStaffIdentity(props: Pick<OrganizationPanelProps, 'nation' | 'role' | 'staff' | 'initialStaffRequest'>): { id: string; personId: string } | null {
+  const { nation, role, staff, initialStaffRequest: request } = props;
+  const authority = getStaffAuthorityProfile(role);
+  if (request) {
+    if (request.nationId !== nation.id || role.nationId !== nation.id) return null;
+    const matches = staff.filter(member => member.id === request.staffId);
+    const member = matches.length === 1 ? matches[0] : undefined;
+    return member && member.personId === request.personId
+      && staff.filter(person => person.personId === request.personId).length === 1
+      && authority.visibleDepartments.includes(member.department) ? { id: member.id, personId: member.personId } : null;
+  }
+  const first = staff.find(member => authority.managedDepartments.includes(member.department)) ?? staff[0];
+  return first ? { id: first.id, personId: first.personId } : null;
 }
 
 const departmentLabels: Record<StaffDepartment, string> = {
@@ -267,7 +284,11 @@ const contractRiskLabels = {
   expired: '계약 만료',
 };
 
-export function OrganizationPanel({
+export function OrganizationPanel(props: OrganizationPanelProps) {
+  const request = props.initialStaffRequest;
+  return <OrganizationPanelContent key={`${props.nation.id}:${props.role.id}:${request?.nationId ?? ''}:${request?.sequence ?? 0}:${request?.staffId ?? ''}:${request?.personId ?? ''}`} {...props} />;
+}
+function OrganizationPanelContent({
   game,
   nation,
   role,
@@ -311,6 +332,7 @@ export function OrganizationPanel({
   busy = false,
   onStopScouting,
   staffDecisionInput,
+  initialStaffRequest,
 }: OrganizationPanelProps) {
   const [talentQuery, setTalentQuery] = useState('');
   const [disciplineFilter, setDisciplineFilter] = useState<PersonnelDiscipline | 'all'>('all');
@@ -326,10 +348,7 @@ export function OrganizationPanel({
     if (controlledWorkspace === undefined) setInternalWorkspace(value);
     onWorkspaceChange?.(value);
   };
-  const [selectedStaffIdentity, setSelectedStaffIdentity] = useState<{ id: string; personId: string } | null>(() => {
-    const first = staff.find((member) => getStaffAuthorityProfile(role).managedDepartments.includes(member.department)) ?? staff[0];
-    return first ? { id: first.id, personId: first.personId } : null;
-  });
+  const [selectedStaffIdentity, setSelectedStaffIdentity] = useState(() => getOrganizationInitialStaffIdentity({ nation, role, staff, initialStaffRequest }));
   const [staffReview, setStaffReview] = useState<StaffDeskReview | null>(null);
   const [staffReviewMessage, setStaffReviewMessage] = useState('');
   const staffReviewGate = useRef(createStaffReviewGate());

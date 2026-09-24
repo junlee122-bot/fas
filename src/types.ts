@@ -187,6 +187,8 @@ export interface StaffMember {
   development: number;
   /** Persistent weekly work tempo; absent or invalid legacy values use normal. */
   workPriority?: StaffWorkPriority;
+  /** Latest confirmed weekly staff settlement, never a forecast or a new gameplay bonus. */
+  lastWorkReport?: import('./staffWorkReport').StaffWorkReport;
   morale?: number;
   roleSatisfaction?: number;
   contractWeeksRemaining?: number;

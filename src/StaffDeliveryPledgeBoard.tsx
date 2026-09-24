@@ -5,6 +5,8 @@ import type { StaffDeliveryPledge, StaffDeliveryPledgeCommand, StaffDeliveryPled
 import type { PostwarIndustryReport, PostwarStockpileKey } from './postwarIndustry';
 import { getNation } from './campaign';
 import { getStaffSeatTitle } from './staffOrganization';
+import { DeliveryGoalTracePanel, type DeliveryGoalNavigation } from './DeliveryGoalTracePanel';
+import type { RegionalIndustryContext, RegionalIndustryState } from './regionalIndustry';
 import './StaffDeliveryPledgeBoard.css';
 
 export interface StaffDeliveryPledgeBoardProps {
@@ -17,6 +19,9 @@ export interface StaffDeliveryPledgeBoardProps {
   initialView?: 'records' | 'create';
   onOpenProduction?: () => void;
   onOpenLogistics?: () => void;
+  regional?: { state: RegionalIndustryState; context: RegionalIndustryContext };
+  onNavigateGoal?: (target: DeliveryGoalNavigation) => void;
+  onOpenUnitSupply?: () => void;
 }
 
 const metricLabels: Record<StaffDeliveryPledgeMetric, string> = { 'factory-completed': '공장 생산 완료', 'national-available': '국가 가용 새 편입' };
@@ -33,7 +38,9 @@ export function StaffDeliveryCheckIn({ state, context, onOpen }: { state: StaffD
   return <section className="staff-delivery-check-in" aria-label="회의 후 이행 확인"><header><ClipboardCheck size={19} /><div><h3>회의가 끝난 뒤에도, 약속은 남습니다.</h3><p>{open.length ? `진행 중 ${open.length}건 · 가장 가까운 검증부터 확인하세요.` : '최근 확정된 결과입니다. 현재 담당자의 새 성과로 재해석하지 않습니다.'}</p></div></header><div>{visible.map((pledge) => <button type="button" key={pledge.id} onClick={() => onOpen({ staffId: pledge.staffId, personId: pledge.personId })}><span><strong>{pledge.staffName}</strong><small>{pledge.lineName}</small></span><span><b>{quantity(getStaffDeliveryPledgeQuantity(pledge))} / {quantity(pledge.targetQuantity)}</b><small>{pledge.status === 'open' ? `제${pledge.deadlineWeek + 1}주 검증` : statusLabels[pledge.status]}</small></span><ArrowUpRight size={17} /></button>)}</div></section>;
 }
 
-function PledgeRecord({ pledge, week, currentNationId, onOpenProduction, onOpenLogistics }: { pledge: StaffDeliveryPledge; week: number; currentNationId: string; onOpenProduction?: () => void; onOpenLogistics?: () => void }) {
+function PledgeRecord({ pledge, week, currentNationId, onOpenProduction, onOpenLogistics, context, regional, onNavigateGoal }: { pledge: StaffDeliveryPledge; week: number; currentNationId: string; onOpenProduction?: () => void; onOpenLogistics?: () => void; context: StaffDeliveryPledgeContext; regional?: StaffDeliveryPledgeBoardProps['regional']; onNavigateGoal?: StaffDeliveryPledgeBoardProps['onNavigateGoal'] }) {
+  const [traceExpanded, setTraceExpanded] = useState(false);
+  const traceId = useId();
   const delivered = getStaffDeliveryPledgeQuantity(pledge);
   const waiting = pledge.status === 'open' && week >= pledge.deadlineWeek;
   return <article className={`staff-delivery-record ${pledge.status}`}>
@@ -44,18 +51,19 @@ function PledgeRecord({ pledge, week, currentNationId, onOpenProduction, onOpenL
     <progress value={Math.min(delivered, pledge.targetQuantity)} max={pledge.targetQuantity} aria-label={`${pledge.staffName}의 약속 수량 진행`} />
     {pledge.status === 'open' && delivered >= pledge.targetQuantity ? <p className="staff-delivery-note">수량은 충족했으나 기한의 동일 인물 검증이 남았습니다. 지금 성공으로 확정하지 않습니다.</p> : null}
     {pledge.resolution ? <p>{pledge.resolution}</p> : null}
-    {pledge.nationId === currentNationId && pledge.status !== 'void' && (onOpenProduction || onOpenLogistics) ? <nav className="staff-delivery-next-actions" aria-label={`${pledge.staffName} 약속 관련 작업`}>
+    {pledge.nationId === currentNationId && pledge.status !== 'void' && !onNavigateGoal && (onOpenProduction || onOpenLogistics) ? <nav className="staff-delivery-next-actions" aria-label={`${pledge.staffName} 약속 관련 작업`}>
       {onOpenProduction ? <button type="button" onClick={onOpenProduction}><Factory size={16} />생산 배정 확인<ArrowUpRight size={15} /></button> : null}
       {pledge.metric === 'national-available' && onOpenLogistics ? <button type="button" onClick={onOpenLogistics}><PackageCheck size={16} />수송·도착 확인<ArrowUpRight size={15} /></button> : null}
     </nav> : null}
     <p className="staff-delivery-note">{pledge.metric === 'national-available' ? '기간 중 새 국가 편입량입니다. 이전 창고 생산의 실제 도착도 포함하며 특정 생산라인의 생산 묶음 출처를 증명하지 않습니다.' : '공장의 실제 완료량입니다. 집하창고에 남아 있거나 수송 중이면 국가에서 바로 사용할 수 있다는 뜻은 아닙니다.'}</p>
+    {regional || onNavigateGoal ? <><button type="button" className="staff-delivery-trace-toggle" aria-expanded={traceExpanded} aria-controls={traceId} onClick={() => setTraceExpanded(current => !current)}><ClipboardCheck size={17} />{traceExpanded ? '진행 경로 접기' : '생산·수송 경로 추적'}</button><div id={traceId}>{traceExpanded ? <DeliveryGoalTracePanel pledge={pledge} context={context} regional={regional} onNavigate={onNavigateGoal} /> : null}</div></> : null}
     <details><summary>약속과 실제 영수증 확인</summary><p className="staff-delivery-metadata">약속 ID: {pledge.id}<br />담당 인물 ID: {pledge.personId}<br />보직 ID: {pledge.staffId} · 생산라인 ID: {pledge.lineId}</p>
       {pledge.receipts.length ? <ul>{pledge.receipts.map((receipt) => <li key={receipt.id}><span>제{receipt.week + 1}주 · {sourceLabels[receipt.source]} · {quantity(receipt.quantity)}</span><small>영수증 ID: {receipt.id}</small></li>)}</ul> : <p>현재 집계된 실제 영수증이 없습니다. 계획량·창고 합계로 대신 채우지 않습니다.</p>}
     </details>
   </article>;
 }
 
-export function StaffDeliveryPledgeBoard({ state, context, forecast, routedEquipmentKey, onCreate, initialOwner, initialView, onOpenProduction, onOpenLogistics }: StaffDeliveryPledgeBoardProps) {
+export function StaffDeliveryPledgeBoard({ state, context, forecast, routedEquipmentKey, onCreate, initialOwner, initialView, onOpenProduction, onOpenLogistics, regional, onNavigateGoal, onOpenUnitSupply }: StaffDeliveryPledgeBoardProps) {
   const formId = useId();
   const eligibleStaff = context.staff.filter((member) => context.manageableDepartments.includes(member.department));
   const lines = getStaffDeliveryPledgeLines(context);
@@ -114,7 +122,8 @@ export function StaffDeliveryPledgeBoard({ state, context, forecast, routedEquip
     </form>
     </> : null}
     <p className="staff-delivery-message" role="status" aria-live="polite">{message || '열람·입력·예측은 원래 게임 상태를 바꾸지 않습니다.'}</p>
+    {onOpenUnitSupply ? <div className="staff-delivery-person-context"><PackageCheck size={18} /><span>국가에 편입된 비축은 부대 지급 창구에서 별도 검토합니다. 지급을 이 약속의 새 납품 실적으로 다시 세지 않습니다.</span><button type="button" onClick={onOpenUnitSupply}>부대 지급·권한 확인<ArrowUpRight size={16} /></button></div> : null}
     {normalized.diagnostics.length ? <div className="staff-delivery-blocked">{normalized.diagnostics.map((note, index) => <p key={`${index}:${note}`}>{note}</p>)}</div> : null}
-    {view === 'records' ? <section className="staff-delivery-records" aria-label="실제 저장된 약속과 검증 기록"><h4>약속과 검증 기록</h4><p className="staff-delivery-note">현재 인물·국가·주차와 맞지 않는 기록은 검증 불가로 표시합니다. 열람만으로 게임 상태를 변경하지 않습니다.</p>{displayedRecords.length ? displayedRecords.map((pledge) => <PledgeRecord key={pledge.id} pledge={pledge} week={context.week} currentNationId={context.nationId} onOpenProduction={onOpenProduction} onOpenLogistics={onOpenLogistics} />) : <div className="staff-delivery-empty"><p>{focusedRecords ? '선택 인물의 저장된 약속이 없습니다.' : '아직 저장된 약속이 없습니다.'} 기록이 생긴 뒤 실제 생산·입고·도착 영수증을 모읍니다.</p><button type="button" onClick={() => setView('create')}>첫 이행 약속 작성</button></div>}</section> : null}
+    {view === 'records' ? <section className="staff-delivery-records" aria-label="실제 저장된 약속과 검증 기록"><h4>약속과 검증 기록</h4><p className="staff-delivery-note">현재 인물·국가·주차와 맞지 않는 기록은 검증 불가로 표시합니다. 열람만으로 게임 상태를 변경하지 않습니다.{regional || onNavigateGoal ? ' 목표 카드에서 생산·수송 경로를 펼쳐 다음 작업과 실제 도착 증빙을 확인하세요.' : ''}</p>{displayedRecords.length ? displayedRecords.map((pledge) => <PledgeRecord key={pledge.id} pledge={pledge} week={context.week} currentNationId={context.nationId} context={context} regional={regional} onNavigateGoal={onNavigateGoal} onOpenProduction={onOpenProduction} onOpenLogistics={onOpenLogistics} />) : <div className="staff-delivery-empty"><p>{focusedRecords ? '선택 인물의 저장된 약속이 없습니다.' : '아직 저장된 약속이 없습니다.'} 기록이 생긴 뒤 실제 생산·입고·도착 영수증을 모읍니다.</p><button type="button" onClick={() => setView('create')}>첫 이행 약속 작성</button></div>}</section> : null}
   </section>;
 }

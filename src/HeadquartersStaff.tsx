@@ -11,6 +11,8 @@ import type { StaffMeetingTopic } from './staffManagement';
 import type { StaffNarrativeState } from './staffNarrative';
 import { calculateStaffSuitability, getStaffAuthorityProfile, getStaffSeatDefinition, getStaffSeatTitle, staffSeatDefinitions } from './staffOrganization';
 import { assessStaffWorkPriority, getStaffWorkPriority, projectStaffWorkWeek, staffWorkPriorities } from './staffWork';
+import { getStaffWorkReport } from './staffWorkReport';
+import { StaffWorkReportCard, formatStaffWorkDelta } from './StaffWorkReportCard';
 import type { StaffDepartment, StaffMember, StaffWorkPriority } from './types';
 import './HeadquartersStaff.css';
 
@@ -26,6 +28,7 @@ export interface HeadquartersStaffProps {
   onMeetStaff: (id: string, topic: StaffMeetingTopic) => void;
   staffNarrative: StaffNarrativeState;
   onOpenOrganization: () => void;
+  onOpenBriefing?: () => void;
 }
 
 export function getHeadquartersStaffAccess(context: StaffDeskContext, member: StaffMember) {
@@ -89,6 +92,7 @@ export function HeadquartersStaffTable(props: HeadquartersStaffProps) {
         const access = getHeadquartersStaffAccess(context, member);
         const focused = input.developmentFocusId === member.id;
         const forecast = projectStaffWorkWeek(member, focused);
+        const actual = getStaffWorkReport(member, input.role.nationId, input.game.week, input.developmentFocusId);
         const selected = selectedStaffIdentity?.id === member.id && selectedStaffIdentity.personId === member.personId;
         const issues = getHeadquartersStaffNarrative(member, props.staffNarrative, input.staff).stories.length;
         return <tr key={member.personId} className={selected ? 'is-selected' : undefined} data-staff-person={member.personId}>
@@ -96,7 +100,7 @@ export function HeadquartersStaffTable(props: HeadquartersStaffProps) {
             <PersonPortrait personId={member.personId} name={member.name} size="sm" /><span><strong>{member.name}</strong><small>{getStaffSeatTitle(member.department, input.campaignPhase, input.nationStatus)}</small>
               {!access.allowed ? <em><LockKeyhole size={11} />열람 전용</em> : issues > 0 ? <em>{issues}건의 조직 현안</em> : null}</span></button></th>
           <td><WorkPriorityControl {...props} member={member} /></td>
-          <td><div className="hq-staff-workload" data-load={member.workload >= 80 ? 'high' : 'normal'}><strong>{displayNumber(member.workload)}<span> → {displayNumber(forecast.workload)}</span></strong><meter min={0} max={100} value={member.workload} aria-label={`${member.name} 현재 업무 부담`} /><small>다음 주 기본 전망</small></div></td>
+          <td><div className="hq-staff-workload" data-load={member.workload >= 80 ? 'high' : 'normal'}><strong>{displayNumber(member.workload)}<span> → {displayNumber(forecast.workload)}</span></strong><meter min={0} max={100} value={member.workload} aria-label={`${member.name} 현재 업무 부담`} /><small>다음 주 기본 전망</small>{actual.status === 'available' ? <small className="hq-staff-last-result">제{actual.report.week + 1}주 확정 · 부담 {formatStaffWorkDelta(actual.report.after.workload - actual.report.before.workload)}</small> : <small className="hq-staff-last-result hq-staff-last-result--missing">{actual.status === 'invalid' ? '확정 기록 확인 필요' : '아직 개인 결산 기록 없음'}</small>}</div></td>
           <td><button type="button" className="hq-staff-toggle" aria-label={`${member.name} 책임 위임`} aria-pressed={member.delegated} disabled={Boolean(access.delegationReason)} title={access.delegationReason ?? '담당 참모에게 주간 책임을 맡깁니다.'}
             onClick={() => onToggleDelegation(member.id)}>{member.delegated ? <Check size={14} /> : null}{member.delegated ? '위임 중' : '직접 결재'}</button></td>
           <td><button type="button" className="hq-staff-toggle" aria-label={`${member.name} 집중 육성`} aria-pressed={focused} disabled={!access.allowed} title={access.reason ?? '한 명만 집중 육성할 수 있습니다.'}
@@ -151,6 +155,7 @@ function HeadquartersSelectedStaff(props: HeadquartersStaffProps & { member: Sta
     <p className="hq-staff-responsibility">{seat.responsibility}</p>
     <dl className="hq-staff-person-stats"><div><dt>사기</dt><dd>{getStaffMorale(member)}</dd></div><div><dt>충성</dt><dd>{displayNumber(member.loyalty)}</dd></div><div><dt>부담</dt><dd>{displayNumber(member.workload)}</dd></div><div><dt>역할 만족</dt><dd>{getStaffRoleSatisfaction(member)}</dd></div></dl>
     {access.reason ? <p className="hq-staff-restriction"><LockKeyhole size={15} />{access.reason}</p> : null}
+    <StaffWorkReportCard member={member} nationId={input.role.nationId} week={input.game.week} developmentFocusId={input.developmentFocusId} formatMoney={context.formatMoney} onOpenBriefing={props.onOpenBriefing} />
     <section className="hq-staff-work-settings"><h4>이번 주 업무</h4><WorkPriorityControl {...props} member={member} /><p>{staffWorkPriorities.find((option) => option.id === getStaffWorkPriority(member))?.summary}</p>
       <div className="hq-staff-career-actions"><button type="button" aria-pressed={member.delegated} disabled={Boolean(access.delegationReason)} title={access.delegationReason ?? '이 참모에게 주간 책임을 맡기거나 회수합니다.'} onClick={() => props.onToggleDelegation(member.id)}>{member.delegated ? '책임 위임 회수' : '주간 책임 위임'}</button><button type="button" aria-pressed={focus} disabled={!access.allowed} title={access.reason ?? '집중 육성 대상은 한 명입니다.'} onClick={() => props.onSetDevelopmentFocus(member.id)}>{focus ? '집중 육성 해제' : '집중 육성 지정'}</button></div>
       <p>다음 주 기본 전망 · 부담 {displayNumber(member.workload)} → {displayNumber(forecast.workload)} · 성장도 {displayNumber(member.development)} → {displayNumber(forecast.development)}</p>

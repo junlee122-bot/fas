@@ -168,8 +168,9 @@ function appointedMember(incumbent: StaffMember, candidate: StaffCandidate, offe
     promisedDepartment: candidate.department,
     squadStatus: offer.authority === 'autonomous' ? 'key' : offer.authority === 'executive' ? 'regular' : 'rotation',
     appointmentAuthority: offer.authority, appointmentPromise: offer.promise,
-    // The slot persists, but a new person must not inherit the predecessor's meeting cooldown.
+    // The slot persists, but a new person cannot inherit the predecessor's personal records.
     lastMeetingWeek: undefined,
+    lastWorkReport: undefined,
     discipline: candidate.discipline, birthYear: candidate.birthYear, nationality: candidate.nationality,
     wartimeLocation: candidate.wartimeLocation, historicalConstraint: candidate.historicalConstraint,
     expertise: candidate.expertise, networks: candidate.networks, friction: candidate.friction,

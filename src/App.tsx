@@ -175,6 +175,7 @@ import { createSeaTransportState, normalizeSeaTransportState, getSeaTransportBus
 import { applySeaTransportFleetUpdates, applySeaTransportAirGroupUpdates, getLiveSeaTransportContext, reconcileSeaTransportEscortAssignments } from './seaTransportIntegration';
 import { recoverPeacetimeJointForces, standDownJointOperationsForPeace } from './jointOperations';
 import { SeaTransportBoard, createInitialSeaTransportSelection, type SeaTransportSelection } from './SeaTransportBoard';
+import type { SeaTransportSceneProps } from './SeaTransportScene';
 import { createEnemyMaritimeState, normalizeEnemyMaritimeState, advanceEnemyMaritimeWeek, getEnemyMaritimeInterdictionByRoute, reconcileEnemyMaritimeAssignments, applyEnemyMaritimeFleetUpdates, type EnemyMaritimeState } from './enemyMaritime';
 import { EnemyMaritimeBoard } from './EnemyMaritimeBoard';
 import { hasFleetNavigationReservation } from './navalNavigation';
@@ -235,8 +236,14 @@ import type { RegionalIndustryConfiguration, RegionalIndustryContext } from './r
 import { combineStockpileDeltas, regionalEquipmentProductionCoverage, settleRegionalIndustryDelivery } from './regionalIndustrySettlement';
 import { createStaffDeliveryPledgeState, normalizeStaffDeliveryPledges, createStaffDeliveryPledge, advanceStaffDeliveryPledges, buildStaffDeliveryReceipts } from './staffDeliveryPledges';
 import type { StaffDeliveryPledgeContext, StaffDeliveryPledgeCommand } from './staffDeliveryPledges';
+import { createUnitEquipmentIssueState, normalizeUnitEquipmentIssueState, issueUnitEquipment, unitEquipmentIssueLabels } from './unitEquipmentIssue';
+import type { UnitEquipmentIssueContext, UnitEquipmentIssueCommand } from './unitEquipmentIssue';
+import { UnitEquipmentIssuePanel, type UnitEquipmentIssuePanelProps } from './UnitEquipmentIssuePanel';
 import { StaffDeliveryCheckIn, StaffDeliveryPledgeBoard } from './StaffDeliveryPledgeBoard';
-import { ProductionDesk } from './ProductionDesk';
+import { buildDeliveryGoalTrace } from './deliveryGoalTrace';
+import type { DeliveryGoalNavigation } from './DeliveryGoalTracePanel';
+import { ProductionDesk, type ProductionDeskRequest } from './ProductionDesk';
+import type { OrganizationStaffRequest } from './OrganizationPanel';
 import { ResearchDesk } from './ResearchDesk';
 import { LandForceRoster } from './LandForceRoster';
 import './CapabilityDesks.css';
@@ -264,6 +271,7 @@ import { advanceCandidateScouting, assessPersonnelAction, confirmPersonnelReview
 import type { PersonnelAction, PersonnelActionResult } from './personnelActions';
 import type { RecruitmentOffer } from './recruitment';
 import { advanceStaffRosterWeek, getStaffContractWeeks, getStaffMeetingOption, resolveStaffMeeting } from './staffManagement';
+import { attachStaffWorkReports, normalizeStaffWorkReport } from './staffWorkReport';
 import type { StaffMeetingTopic } from './staffManagement';
 import { assessStaffDecision, confirmStaffReview, createStaffReview, createStaffReviewGate, getStaffOfficeProblem } from './staffDecisions';
 import type { StaffDecisionAction, StaffDecisionInput, StaffDecisionResult } from './staffDecisions';
@@ -533,6 +541,7 @@ import { PoliticalCrisisModal } from './PoliticalCrisisModal';
 import { deriveNationalSimulation } from './nationalSimulation';
 import type { NationalSimulationInput } from './nationalSimulation';
 import { HeadquartersWorkspace } from './HeadquartersWorkspace';
+import { getHeadquartersActionProblem } from './headquartersActionGuard';
 import { assessStaffWorkPriority, getStaffWorkPriority, staffWorkPriorities } from './staffWork';
 import type { StaffWorkPriority } from './types';
 import { reallocateFactory, formatSupplyContribution, selectLivingWorldRecords } from './livingWorld';
@@ -824,6 +833,13 @@ export function App() {
   const regionalIndustryRef = useRef(regionalIndustry);
   useEffect(() => { regionalIndustryRef.current = regionalIndustry; }, [regionalIndustry]);
   const [staffDeliveryPledges, setStaffDeliveryPledges] = useState(createStaffDeliveryPledgeState);
+  const [unitEquipmentIssues, setUnitEquipmentIssues] = useState(createUnitEquipmentIssueState);
+  const unitEquipmentIssuesRef = useRef(unitEquipmentIssues);
+  const unitIssueCommittingRef = useRef(false);
+  useLayoutEffect(() => {
+    unitEquipmentIssuesRef.current = unitEquipmentIssues;
+    unitIssueCommittingRef.current = false;
+  }, [unitEquipmentIssues]);
   const staffDeliveryPledgesRef = useRef(staffDeliveryPledges);
   useEffect(() => { staffDeliveryPledgesRef.current = staffDeliveryPledges; }, [staffDeliveryPledges]);
   const [events, setEvents] = useState<WarEvent[]>(initialEvents);
@@ -839,7 +855,15 @@ export function App() {
   const [seaBoardSelection, setSeaBoardSelection] = useState<SeaTransportSelection | undefined>();
   const [organizationWorkspace, setOrganizationWorkspace] = useState<'squad' | 'market' | 'meeting' | 'pledges'>('squad');
   const [focusedPledgeOwner, setFocusedPledgeOwner] = useState<Pick<StaffDeliveryPledgeCommand, 'staffId' | 'personId'> | undefined>();
+  const [staffNavigationRequest, setStaffNavigationRequest] = useState<OrganizationStaffRequest | null>(null);
   const [industryWorkspace, setIndustryWorkspace] = useState<'production' | 'policy' | 'logistics' | 'pledges'>('production');
+  const [productionDeskRequest, setProductionDeskRequest] = useState<ProductionDeskRequest | null>(null);
+  const [regionalLogisticsRequest, setRegionalLogisticsRequest] = useState<{
+    nationId: RegionalIndustryContext['nationId'];
+    view: 'overview' | 'configure' | 'dispatch' | 'records';
+    shipmentId?: string;
+    sequence: number;
+  } | null>(null);
   const [researchWorkspace, setResearchWorkspace] = useState<'national' | 'equipment'>('national');
   const [diplomacyWorkspace, setDiplomacyWorkspace] = useState<'relations' | 'settlement' | 'treaties' | 'access'>('relations');
   const [equipmentWorkspace, setEquipmentWorkspace] = useState<'overview' | 'research' | 'prototype' | 'deployment'>('overview');
@@ -862,7 +886,10 @@ export function App() {
     setArmyWorkspace('operations');
     setOrganizationWorkspace('squad');
     setFocusedPledgeOwner(undefined);
+    setStaffNavigationRequest(null);
     setIndustryWorkspace('production');
+    setProductionDeskRequest(null);
+    setRegionalLogisticsRequest(null);
     setResearchWorkspace('national');
     setDiplomacyWorkspace('relations');
     setEquipmentWorkspace('overview');
@@ -872,6 +899,10 @@ export function App() {
     regionalIndustryRef.current = next;
     setRegionalIndustry(next);
     if (reset) {
+      const emptyIssues = createUnitEquipmentIssueState();
+      unitEquipmentIssuesRef.current = emptyIssues;
+      unitIssueCommittingRef.current = false;
+      setUnitEquipmentIssues(emptyIssues);
       const emptyPledges = createStaffDeliveryPledgeState();
       staffDeliveryPledgesRef.current = emptyPledges;
       setStaffDeliveryPledges(emptyPledges);
@@ -1295,6 +1326,14 @@ export function App() {
     };
   }, [territories, campaignYear, visibleStrategicFrontIds, playerNation.id, playerFaction, game.week, game.factories, campaignPhase, civilianCareerActive, roleMandates.industry.mode]);
   const regionalAccount = getRegionalIndustryAccount(regionalIndustry, playerNation.id, game.week);
+  const unitIssueAuthorityProblem = getHeadquartersActionProblem({ ...staffDecisionInput, nationId: playerNation.id, week: game.week, mandate: roleMandates.army }, 'army');
+  const unitIssueContext: UnitEquipmentIssueContext = {
+    nationId: playerNation.id, week: game.week, playerFaction, divisions, stockpile,
+    territories: regionalIndustryContext.territories, playableTerritoryIds: regionalIndustryContext.playableTerritoryIds,
+    commandableDivisionIds, authorized: !unitIssueAuthorityProblem,
+    processingWeek: periodAdvanceRemaining > 0 || speed > 0 || showBriefing || Boolean(campaignOutcome),
+    activeDivisionIds: new Set(orders.map(order => order.divisionId)), seaBusyDivisionIds,
+  };
   const routedEquipmentKey = regionalAccount.configuration.mode === 'pilot' && regionalAccount.configuration.acceptNewReceipts !== false
     ? regionalAccount.configuration.equipmentKey : undefined;
   const theaterFrontChronology = useMemo(
@@ -1689,7 +1728,7 @@ export function App() {
     activeResearch: research.filter((project) => project.active && !project.complete).length,
   }), [events, game.week, hasUnreadWorldWeekly, lastReviewedJournalWeek, orders.length, research, uxActions]);
   const savePayload = useMemo<CampaignSavePayload>(() => ({
-    version: 45,
+    version: 46,
     game,
     territories,
     divisions,
@@ -1702,6 +1741,7 @@ export function App() {
     postwarIndustrySettings,
     regionalIndustry,
     staffDeliveryPledges,
+    unitEquipmentIssues,
     orders,
     operationStoppages,
     stockpile,
@@ -1759,7 +1799,7 @@ export function App() {
     nationManagement,
     politicalCrisis,
     pendingCoupIncident,
-  }), [militaryAccess, territorialTreaties, politicalSettlement, mapPoliticalLedger, enemyMaritime, seaTransport, staffDeliveryPledges, operationStoppages, regionalIndustry, achievementUnlocks, activeTheater, armsPortfolio, battleReports, battleStance, campaignOutcome, campaignPhase, career, careerMarket, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, economy, enemyStrategy, equipmentDevelopment, events, game, jointForces, lastReadWorldWeeklyId, lastReviewedJournalWeek, latestPeriodAdvanceReport, nationManagement, objectiveProgress, onboardingMilestones, operations, orders, pendingBattleReportId, pendingCareerOfferId, pendingClandestineMissionId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, politicalCrisis, priorityDivisionId, procurementFocusId, postwarIndustry, postwarIndustrySettings, production, publicHealth, relations, research, resolvedCouncilChoices, roleCommand, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, staffNarrative, stockpile, supplyPolicy, territories, torchAuthorized, uxActionLifecycle, visitedOnboardingTabs, worldChangeBaseline, worldHistoryState, worldWeeklyIssues]);
+  }), [unitEquipmentIssues, militaryAccess, territorialTreaties, politicalSettlement, mapPoliticalLedger, enemyMaritime, seaTransport, staffDeliveryPledges, operationStoppages, regionalIndustry, achievementUnlocks, activeTheater, armsPortfolio, battleReports, battleStance, campaignOutcome, campaignPhase, career, careerMarket, commanderDevelopment, completedDecisions, developmentFocusId, divisions, doctrine, economy, enemyStrategy, equipmentDevelopment, events, game, jointForces, lastReadWorldWeeklyId, lastReviewedJournalWeek, latestPeriodAdvanceReport, nationManagement, objectiveProgress, onboardingMilestones, operations, orders, pendingBattleReportId, pendingCareerOfferId, pendingClandestineMissionId, pendingCouncilEventId, pendingCoupIncident, pendingWorldFlashpointId, politicalCrisis, priorityDivisionId, procurementFocusId, postwarIndustry, postwarIndustrySettings, production, publicHealth, relations, research, resolvedCouncilChoices, roleCommand, selectedDivisionId, selectedPolicies, selectedTerritoryId, staff, staffCandidates, staffNarrative, stockpile, supplyPolicy, territories, torchAuthorized, uxActionLifecycle, visitedOnboardingTabs, worldChangeBaseline, worldHistoryState, worldWeeklyIssues]);
   const campaignDate = getCampaignDate(game.week);
   const strategicPublicHealthPressure = publicHealth.activeOutbreak
     ? Math.max(publicHealth.activeOutbreak.hospitalLoad, publicHealth.activeOutbreak.weeklyCases / 10_000)
@@ -2657,7 +2697,7 @@ export function App() {
     const advancedStaff = advanceStaffRosterWeek(staff, developmentFocusId);
     const manageableStaffIds = new Set(advancedStaff.filter((member) => staffAuthority.managedDepartments.includes(member.department)).map((member) => member.id));
     const staffNarrativeResult = advanceStaffNarrativeWeek(staffNarrative, advancedStaff, nextWeek, manageableStaffIds, staffPlayContext);
-    setStaff(staffNarrativeResult.staff);
+    setStaff(attachStaffWorkReports(staff, advancedStaff, staffNarrativeResult.staff, { nationId: playerNation.id, fromWeek: game.week, week: nextWeek, developmentFocusId }));
     setStaffNarrative(staffNarrativeResult.state);
     const deliveryPledgeResult = advanceStaffDeliveryPledges(staffDeliveryPledgesRef.current, { ...staffDeliveryContext, week: nextWeek, staff: staffNarrativeResult.staff }, buildStaffDeliveryReceipts({
       nationId: playerNation.id, week: nextWeek, industryApplied: industryResult.applied, industryReport: industryResult.report,
@@ -3925,7 +3965,7 @@ export function App() {
     const advancedStaff = advanceStaffRosterWeek(staff, developmentFocusId);
     const manageableStaffIds = new Set(advancedStaff.filter((member) => staffAuthority.managedDepartments.includes(member.department)).map((member) => member.id));
     const staffNarrativeResult = advanceStaffNarrativeWeek(staffNarrative, advancedStaff, nextWeek, manageableStaffIds, staffPlayContext);
-    setStaff(staffNarrativeResult.staff);
+    setStaff(attachStaffWorkReports(staff, advancedStaff, staffNarrativeResult.staff, { nationId: playerNation.id, fromWeek: game.week, week: nextWeek, developmentFocusId }));
     setStaffNarrative(staffNarrativeResult.state);
     staffNarrativeResult.events.forEach((event) => addEvent(event.title, event.detail, event.tone, nextWeek, {
       domain: 'management',
@@ -6038,6 +6078,9 @@ export function App() {
       const restoredRegionalIndustry = normalizeRegionalIndustry(data.regionalIndustry, restoredNation.id, restoredGame.week);
       regionalIndustryRef.current = restoredRegionalIndustry;
       setRegionalIndustry(restoredRegionalIndustry);
+      unitEquipmentIssuesRef.current = normalizeUnitEquipmentIssueState(data.unitEquipmentIssues);
+      unitIssueCommittingRef.current = false;
+      setUnitEquipmentIssues(unitEquipmentIssuesRef.current);
       setSelectedFieldOrderId(undefined);
       staffDecisionLocksRef.current.clear();
       commandSubmissionLocksRef.current.clear();
@@ -6062,7 +6105,7 @@ export function App() {
       setOperations(restoredOperations);
       const historicalStaff = createStaffRoster(restoredNation.id, restoredRole.id);
       const savedStaff: StaffMember[] = data.staff ?? [];
-      const restoredStaff = data.version >= 37 && Array.isArray(data.staff)
+      const restoredStaff = (data.version >= 37 && Array.isArray(data.staff)
         ? savedStaff.filter((member, index, all) => member && typeof member.id === 'string' && all.findIndex((other) => other?.id === member.id) === index)
           .map((member) => ({ ...member, grade: member.grade ?? 1, development: member.development ?? 20 }))
         : historicalStaff.map((fallback) => {
@@ -6080,7 +6123,7 @@ export function App() {
           grade: saved.grade ?? fallback.grade,
           development: saved.development ?? fallback.development,
         };
-      });
+      })).map((member) => ({ ...member, lastWorkReport: normalizeStaffWorkReport(member.lastWorkReport, member, restoredNation.id, restoredGame.week) }));
       setStaff(restoredStaff);
       setStaffNarrative(normalizeStaffNarrativeState(data.staffNarrative, restoredStaff, restoredGame.week));
       const restoredPledges = normalizeStaffDeliveryPledges(data.staffDeliveryPledges, { ...staffDeliveryContext, nationId: restoredNation.id, week: restoredGame.week, phase: restoredPhase, staff: restoredStaff, production: migratedProduction, lineEquipment: getPostwarProductionLineEquipment(migratedProduction) });
@@ -6586,6 +6629,24 @@ export function App() {
     setSpeed(0); setMapFocusMode(false); openGameTab('army');
   };
 
+  const openSeaTransportSceneRecord: SeaTransportSceneProps['onOpen'] = (request) => {
+    // Navigation preserves an unapproved draft but never carries approval into another record.
+    setSeaBoardSelection((current) => ({
+      ...(current ?? createInitialSeaTransportSelection({ state: seaTransport, context: seaTransportContext, initialPlan: seaMapPlan })),
+      workspace: request.workspace, operationId: request.operationId ?? null, recordId: request.recordId ?? null,
+      reviewedSignature: null, returnReviewId: null, rescueReviewedSignature: null, escortReliefReviewedSignature: null,
+      rescueEscortFleetId: undefined, escortReliefFleetId: undefined,
+    }));
+    setArmyMapServiceView('transport'); setArmyWorkspace('forces');
+    setJointMapRequest((current) => current + 1);
+    setSpeed(0); setMapFocusMode(false); openGameTab('army');
+  };
+
+  const openSeaTransportLocation = (id: string) => {
+    // Apply the campaign's default map entry first; the explicitly requested port/sea area wins.
+    setArmyMapServiceView('transport'); openGameTab('map'); focusMapTerritory(id);
+  };
+
   const approveFriendlyRedeployment = (plan: LandRedeploymentPlan) => {
     if (roleMandates.army.mode !== 'direct') { notify(roleMandates.army.reason); return; }
     const key = `redeployment:${playerNation.id}:${game.week}:${plan.divisionId}`;
@@ -6965,7 +7026,10 @@ export function App() {
   };
 
   const toggleResearch = (id: string) => {
-    const activeCount = research.filter((project) => project.active).length;
+    const authorityProblem = getHeadquartersActionProblem({ ...staffDecisionInput, nationId: playerNation.id, week: game.week, mandate: roleMandates.research }, 'research');
+    if (authorityProblem) { notify(authorityProblem); return; }
+    if (typeof id !== 'string' || !id.trim() || research.filter((project) => project.id === id).length !== 1) { notify('선택한 연구 과제를 정확히 확인할 수 없습니다. 다른 과제로 대신 집행하지 않습니다.'); return; }
+    const activeCount = research.filter((project) => project.active && !project.complete).length;
     const project = research.find((item) => item.id === id);
     if (!project || project.complete) return;
     const availability = getResearchAvailability(project, research, campaignYear);
@@ -7223,6 +7287,31 @@ export function App() {
     notify(`${definition.label} 착수 · ${definition.durationWeeks}주 후 검증`);
   };
 
+  const approveUnitEquipmentIssue = (command: UnitEquipmentIssueCommand) => {
+    const authorityProblem = getHeadquartersActionProblem({ ...staffDecisionInput, nationId: playerNation.id, week: game.week, mandate: roleMandates.army }, 'army');
+    if (authorityProblem || unitIssueCommittingRef.current) { notify(authorityProblem ?? '앞선 지급 승인을 반영 중입니다.'); return false; }
+    const result = issueUnitEquipment(unitEquipmentIssuesRef.current, command, {
+      ...unitIssueContext, seaBusyDivisionIds: getSeaTransportBusyDivisionIds(seaTransportRef.current),
+    });
+    if (!result.applied || !result.receipt) { notify(result.reason); return false; }
+    unitIssueCommittingRef.current = true;
+    unitEquipmentIssuesRef.current = result.state;
+    setUnitEquipmentIssues(result.state);
+    setStockpile(result.stockpile);
+    setDivisions([...result.divisions]);
+    const receipt = result.receipt;
+    addEvent('부대 장비 지급 — ' + receipt.divisionName,
+      `${receipt.territoryName}에서 ${unitEquipmentIssueLabels[receipt.equipmentKey]} ${receipt.quantity} 게임 단위를 국가 가용 비축에서 지급했습니다. 비축 ${receipt.stockBefore} → ${receipt.stockAfter}, 기초 보급 ${receipt.supplyBefore} → ${receipt.supplyAfter}. 특정 생산 묶음의 출처나 원격 배송을 뜻하지 않으며 납품 약속 실적에 다시 더하지 않습니다.`, 'good', game.week, {
+        domain: 'management', decision: '국가 비축에서 부대 장비 지급', trigger: '실제 주둔지·관할·정지 상태·재고와 검토안을 최종 대조',
+        factors: [`수령 부대 ${receipt.divisionName}`, `지급 거점 ${receipt.territoryName}`, `영수증 ${receipt.id}`],
+        effects: [{ label: '국가 비축', value: `-${receipt.quantity} ${unitEquipmentIssueLabels[receipt.equipmentKey]}`, tone: 'negative' }, { label: '기초 보급', value: `+${receipt.supplyGain}`, tone: 'positive' }],
+        ongoing: ['이 부대의 이번 주 추가 지급은 잠깁니다. 전투 보급은 장비·준비도 보정을 별도로 적용합니다.'],
+        nextActions: ['부대 현황의 실제 지급 영수증 확인', '부족한 국가 비축은 생산·지역 수송에서 확보'], certainty: 'confirmed',
+      }, { nationId: playerNation.id });
+    notify(result.reason);
+    return true;
+  };
+
   const assignDivisionEquipment = (divisionId: string, equipmentId: string) => {
     if (getSeaTransportBusyDivisionIds(seaTransportRef.current).has(divisionId)) { notify('수송·상륙 중인 부대는 하선·보급 확인 후 장비를 재편할 수 있습니다.'); return; }
     const division = divisions.find((item) => item.id === divisionId);
@@ -7261,6 +7350,9 @@ export function App() {
   };
 
   const adjustFactories = (id: string, amount: number) => {
+    const authorityProblem = getHeadquartersActionProblem({ ...staffDecisionInput, nationId: playerNation.id, week: game.week, mandate: roleMandates.industry }, 'industry');
+    if (authorityProblem) { notify(authorityProblem); return; }
+    if (typeof id !== 'string' || !id.trim() || production.filter((line) => line.id === id).length !== 1) { notify('선택한 생산 라인을 정확히 확인할 수 없습니다. 다른 라인으로 대신 집행하지 않습니다.'); return; }
     const next = reallocateFactory(production, game.factories, id, amount, roleMandates.industry.mode === 'direct');
     if (!next) {
       notify(roleMandates.industry.mode !== 'direct' ? '현재 보직에서는 생산 배치의 직접 결재권이 없습니다.' : '공장 여력과 선택한 생산 라인의 배치를 확인하십시오.');
@@ -8773,13 +8865,71 @@ export function App() {
     setActiveTab(tabId);
     if (window.matchMedia('(max-width: 900px)').matches) setNavigationCollapsed(true);
   }, [civilianCareerActive, focusMapTerritory, isKoreaWarCampaign, notify, roleMandates, uxPreferences.soundOn]);
+  const selectIndustryWorkspace = (workspace: 'production' | 'policy' | 'logistics' | 'pledges') => {
+    setProductionDeskRequest(null);
+    setRegionalLogisticsRequest(null);
+    setIndustryWorkspace(workspace);
+  };
+  const openUnitSupply = () => {
+    setJointMapContext(undefined);
+    setArmyWorkspace('forces');
+    setArmyMapServiceView('land');
+    setJointMapRequest(current => current + 1);
+    openGameTab('army');
+  };
+  const navigateDeliveryGoal = (target: DeliveryGoalNavigation) => {
+    if (target.nationId !== playerNation.id || campaignPhase !== 'nation') {
+      notify('현재 국가·운영 단계와 다른 약속의 대상으로 이동하지 않습니다.');
+      return;
+    }
+    const matches = staffDeliveryPledgesRef.current.pledges.filter(pledge => pledge.id === target.pledgeId && pledge.nationId === target.nationId);
+    if (matches.length !== 1) { notify('약속의 정확한 기록을 확인할 수 없습니다.'); return; }
+    const pledge = matches[0];
+    const trace = buildDeliveryGoalTrace({ pledge, context: staffDeliveryContext, regional: { state: regionalIndustryRef.current, context: regionalIndustryContext } });
+    if (!trace.available) { notify(trace.reason ?? '현재 확인할 수 없는 약속입니다.'); return; }
+    if (target.kind === 'production') {
+      if (!trace.production || trace.production.lineId !== target.lineId || production.filter(line => line.id === target.lineId).length !== 1) {
+        notify('약속의 생산라인이 변경되었습니다. 다른 라인으로 대신 이동하지 않습니다.'); return;
+      }
+      setRegionalLogisticsRequest(null);
+      setProductionDeskRequest(previous => ({ nationId: target.nationId, lineId: target.lineId, sequence: (previous?.sequence ?? 0) + 1 }));
+      setIndustryWorkspace('production');
+      openGameTab('industry');
+      return;
+    }
+    if (target.kind === 'logistics') {
+      const related = target.shipmentId ? trace.relatedShipments.some(row => row.id === target.shipmentId) : false;
+      const evidence = target.shipmentId ? trace.receipts.some(entry => entry.shipmentId === target.shipmentId) : false;
+      const currentDispatch = !target.shipmentId && trace.nextStep.kind === target.view && !trace.nextStep.shipmentId;
+      if (target.view === 'records' ? !related && !evidence : !related && !currentDispatch) {
+        notify('이 목표와 정확히 연결된 수송 기록을 확인할 수 없습니다. 다른 수송으로 대신 이동하지 않습니다.'); return;
+      }
+      setProductionDeskRequest(null);
+      setRegionalLogisticsRequest(previous => ({ nationId: target.nationId, view: target.view, shipmentId: target.shipmentId, sequence: (previous?.sequence ?? 0) + 1 }));
+      setIndustryWorkspace('logistics');
+      openGameTab('industry');
+      return;
+    }
+    const people = staff.filter(member => member.id === target.staffId);
+    const member = people.length === 1 ? people[0] : undefined;
+    if (target.staffId !== pledge.staffId || target.personId !== pledge.personId || !member || member.personId !== target.personId
+      || member.department !== pledge.department || staff.filter(person => person.personId === target.personId).length !== 1
+      || (member.joinedWeek !== undefined && (!Number.isSafeInteger(member.joinedWeek) || member.joinedWeek < 0 || member.joinedWeek > pledge.createdWeek))
+      || !staffAuthority.visibleDepartments.includes(member.department)) {
+      notify('약속의 담당자가 퇴임·교체·재임용되었거나 현재 열람 범위를 벗어났습니다. 다른 재임기의 인물을 대신 선택하지 않습니다.'); return;
+    }
+    setStaffNavigationRequest(previous => ({ nationId: target.nationId, staffId: target.staffId, personId: target.personId, sequence: (previous?.sequence ?? 0) + 1 }));
+    setFocusedPledgeOwner(undefined);
+    setOrganizationWorkspace('squad');
+    openGameTab('organization');
+  };
   const navigateFromPlayGuide = (tab: GameTab) => {
     setShowFieldManual(false);
     // Open a known workplace, without issuing orders or starting tracked alerts.
     if (tab === 'command') setCommandWorkspace('desk');
     if (tab === 'army') setArmyWorkspace('forces');
-    if (tab === 'organization') setOrganizationWorkspace('squad');
-    if (tab === 'industry') setIndustryWorkspace('production');
+    if (tab === 'organization') { setStaffNavigationRequest(null); setOrganizationWorkspace('squad'); }
+    if (tab === 'industry') selectIndustryWorkspace('production');
     if (tab === 'research') setResearchWorkspace('national');
     if (tab === 'diplomacy') setDiplomacyWorkspace('relations');
     deckScrollPositionsRef.current[tab] = 0;
@@ -9450,7 +9600,7 @@ export function App() {
                   { id: 'sea-transport', label: '병력 해상 수송', value: seaTransport.operations.length, detail: '승선 · 항해 · 상륙 · 귀환', tab: 'army' as const },
                   { id: 'logistics', label: '군수물자 수송', value: regionalAccount.shipments.filter((shipment) => shipment.status === 'reserved' || shipment.status === 'in-transit').length, detail: '물자 예약에서 실제 도착까지', tab: 'industry' as const },
                 ].filter((activity) => roleMandates[activity.tab].mode === 'direct')}
-                onActivity={(id, tab) => { if (id === 'sea-transport') { openSeaTransportStatus(); return; } if (id === 'operations') setArmyWorkspace('operations'); if (id === 'meeting') setOrganizationWorkspace('meeting'); if (id === 'logistics') setIndustryWorkspace('logistics'); openGameTab(tab); }}
+                onActivity={(id, tab) => { if (id === 'sea-transport') { openSeaTransportStatus(); return; } if (id === 'operations') setArmyWorkspace('operations'); if (id === 'meeting') setOrganizationWorkspace('meeting'); if (id === 'logistics') selectIndustryWorkspace('logistics'); openGameTab(tab); }}
                 onOpenBriefing={openWeeklyBriefing}
                 role={displayedCareerRole}
                 mandates={roleMandates}
@@ -9470,19 +9620,39 @@ export function App() {
             {activeTab === 'command' && !civilianCareerActive && commandWorkspace === 'world' && (
                 <HeadquartersWorkspace
                   key={`${playerNation.id}:${displayedCareerRole.id}`}
+                  onOpenUnitSupply={openUnitSupply}
                   context={{ input: staffDecisionInput, formatMoney: formatGameMoney, onUpgradeStaff: upgradeStaff, onRenewStaff: renewStaffContract, onAssignStaff: assignStaffToDepartment }}
                   staffNarrative={staffNarrative}
                   onToggleDelegation={toggleStaffDelegation}
                   onSetDevelopmentFocus={changeDevelopmentFocus}
                   onSetWorkPriority={changeStaffWorkPriority}
                   onMeetStaff={meetStaff}
-                  onOpenOrganization={() => { setOrganizationWorkspace('squad'); openGameTab('organization'); }}
+                  onOpenOrganization={() => { setStaffNavigationRequest(null); setOrganizationWorkspace('squad'); openGameTab('organization'); }}
                   mandates={roleMandates}
                   year={campaignYear}
+                  researchControl={{ weeklyGain: projectionResearchGain, onToggle: toggleResearch }}
+                  deliveryGoals={campaignPhase === 'nation' ? {
+                    state: staffDeliveryPledges, context: staffDeliveryContext, forecast: postwarIndustryForecast,
+                    routedEquipmentKey, onCreate: approveStaffDeliveryPledge,
+                    regional: { state: regionalIndustry, context: regionalIndustryContext }, onNavigateGoal: navigateDeliveryGoal, onOpenUnitSupply: openUnitSupply,
+                    onOpenProduction: () => { selectIndustryWorkspace('production'); openGameTab('industry'); },
+                    onOpenLogistics: () => { selectIndustryWorkspace('logistics'); openGameTab('industry'); },
+                  } : undefined}
+                  seaTransport={{ state: seaTransport, context: seaTransportContext, onOpen: openSeaTransportSceneRecord, onOpenLocation: openSeaTransportLocation }}
+                  logistics={campaignPhase === 'nation' ? {
+                    state: regionalIndustry,
+                    context: regionalIndustryContext,
+                    onOpen: (view, shipmentId) => {
+                      setProductionDeskRequest(null);
+                      setRegionalLogisticsRequest((previous) => ({ nationId: playerNation.id, view, shipmentId, sequence: (previous?.sequence ?? 0) + 1 }));
+                      setIndustryWorkspace('logistics');
+                      openGameTab('industry');
+                    },
+                  } : undefined}
                   onOpenFacility={(room, tab) => {
-                    if (room === 'workshop') setIndustryWorkspace('production');
-                    if (room === 'warehouse') setIndustryWorkspace('logistics');
-                    if (room === 'personnel') setOrganizationWorkspace('squad');
+                    if (room === 'workshop') selectIndustryWorkspace('production');
+                    if (room === 'warehouse') selectIndustryWorkspace('logistics');
+                    if (room === 'personnel') { setStaffNavigationRequest(null); setOrganizationWorkspace('squad'); }
                     openGameTab(tab);
                   }}
                   world={{
@@ -9670,15 +9840,16 @@ export function App() {
             )}
             {activeTab === 'organization' && activeTabMandate.mode === 'direct' && (
               <>
-              <FieldWorkspaceSwitch label="조직 작업대 선택" value={organizationWorkspace} onChange={(value) => { setOrganizationWorkspace(value); setFocusedPledgeOwner(undefined); }} items={[{ id: 'squad', label: '참모 스쿼드', detail: '사람 · 배치 · 성장' }, { id: 'market', label: '후보 시장', detail: '탐색 · 조사 · 영입' }, { id: 'meeting', label: '면담·회의', detail: '갈등 · 중재 · 후속 확인' }, ...(campaignPhase === 'nation' ? [{ id: 'pledges' as const, label: '이행 약속', detail: '담당자 · 수량 · 기한' }] : [])]} />
-              {organizationWorkspace === 'pledges' && campaignPhase === 'nation' ? <StaffDeliveryPledgeBoard key={`${playerNation.id}:${focusedPledgeOwner?.personId ?? 'all'}`} state={staffDeliveryPledges} context={staffDeliveryContext} forecast={postwarIndustryForecast} routedEquipmentKey={routedEquipmentKey} onCreate={approveStaffDeliveryPledge} initialOwner={focusedPledgeOwner} onOpenProduction={roleMandates.industry.mode === 'direct' ? () => { setIndustryWorkspace('production'); openGameTab('industry'); } : undefined} onOpenLogistics={roleMandates.industry.mode === 'direct' ? () => { setIndustryWorkspace('logistics'); openGameTab('industry'); } : undefined} /> : organizationWorkspace === 'meeting' ? <Suspense fallback={<DeferredSurface label="참모 회의실 준비 중" />}>
+              <FieldWorkspaceSwitch label="조직 작업대 선택" value={organizationWorkspace} onChange={(value) => { setStaffNavigationRequest(null); setOrganizationWorkspace(value); setFocusedPledgeOwner(undefined); }} items={[{ id: 'squad', label: '참모 스쿼드', detail: '사람 · 배치 · 성장' }, { id: 'market', label: '후보 시장', detail: '탐색 · 조사 · 영입' }, { id: 'meeting', label: '면담·회의', detail: '갈등 · 중재 · 후속 확인' }, ...(campaignPhase === 'nation' ? [{ id: 'pledges' as const, label: '이행 약속', detail: '담당자 · 수량 · 기한' }] : [])]} />
+              {organizationWorkspace === 'pledges' && campaignPhase === 'nation' ? <StaffDeliveryPledgeBoard key={`${playerNation.id}:${focusedPledgeOwner?.personId ?? 'all'}`} state={staffDeliveryPledges} context={staffDeliveryContext} forecast={postwarIndustryForecast} routedEquipmentKey={routedEquipmentKey} onCreate={approveStaffDeliveryPledge} initialOwner={focusedPledgeOwner} regional={{ state: regionalIndustry, context: regionalIndustryContext }} onNavigateGoal={navigateDeliveryGoal} onOpenUnitSupply={openUnitSupply} onOpenProduction={() => { selectIndustryWorkspace('production'); openGameTab('industry'); }} onOpenLogistics={() => { selectIndustryWorkspace('logistics'); openGameTab('industry'); }} /> : organizationWorkspace === 'meeting' ? <Suspense fallback={<DeferredSurface label="참모 회의실 준비 중" />}>
                 {campaignPhase === 'nation' ? <StaffDeliveryCheckIn state={staffDeliveryPledges} context={staffDeliveryContext} onOpen={(owner) => { setFocusedPledgeOwner(owner); setOrganizationWorkspace('pledges'); }} /> : null}
                 <StaffMeetingRoom state={staffNarrative} staff={staff} week={game.week} politicalPower={game.politicalPower} manageableStaffIds={new Set(staff.filter((member) => staffAuthority.managedDepartments.includes(member.department)).map((member) => member.id))} organizationMandate={roleMandates.organization} onResolve={resolveStaffStoryline} onOpenAuthority={() => openGameTab('command')} />
               </Suspense> :
               <Suspense fallback={<DeferredSurface label="조직 운영실 준비 중" />}>
               <OrganizationPanel
+                initialStaffRequest={staffNavigationRequest ?? undefined}
                 workspace={organizationWorkspace === 'market' ? 'market' : 'squad'}
-                onWorkspaceChange={setOrganizationWorkspace}
+                onWorkspaceChange={(workspace) => { setStaffNavigationRequest(null); setOrganizationWorkspace(workspace); }}
                 hideWorkspaceNavigation
                 onOpenDeliveryPledges={campaignPhase === 'nation' && roleMandates.industry.mode === 'direct' ? (staffId) => { const member = staff.find((person) => person.id === staffId); if (!member) return; setFocusedPledgeOwner({ staffId: member.id, personId: member.personId }); setOrganizationWorkspace('pledges'); } : undefined}
                 game={game}
@@ -9773,6 +9944,7 @@ export function App() {
               </Suspense> :
               <ArmyPanel
                 key={`army-map-${jointMapRequest}`}
+                unitEquipment={{ state: unitEquipmentIssues, context: unitIssueContext, onApprove: approveUnitEquipmentIssue, onOpenIndustry: () => { selectIndustryWorkspace('production'); openGameTab('industry'); } }}
                 mapContext={jointMapContext}
                 initialServiceView={armyMapServiceView}
                 initialFleetId={armyMapFleetId}
@@ -9787,7 +9959,7 @@ export function App() {
                 onReturnSeaTransport={recallSeaTransport}
                 onRescueSeaTransport={rescueSeaTransport}
                 onSeaTransportEscortRelief={reinforceSeaTransportEscort}
-                onSeaTransportLocation={(id) => { setArmyMapServiceView('transport'); focusMapTerritory(id); openGameTab('map'); }}
+                onSeaTransportLocation={openSeaTransportLocation}
                 game={game}
                 campaignPhase={campaignPhase}
                 divisions={effectiveDivisions}
@@ -9827,11 +9999,11 @@ export function App() {
               </>
             )}
             {activeTab === 'industry' && activeTabMandate.mode === 'direct' && <>
-              {campaignPhase === 'nation' && <FieldWorkspaceSwitch label="산업 작업대 선택" value={industryWorkspace} onChange={setIndustryWorkspace} items={[{ id: 'production', label: '생산선', detail: '공장 배정 · 품목별 상태' }, { id: 'policy', label: '가동·예산', detail: '방침 · 원료 · 실제 결산' }, { id: 'logistics', label: '집하·수송', detail: '예약 · 자동 지시 · 실제 도착' }, { id: 'pledges', label: '이행 약속', detail: '수량 · 기한 · 검증' }]} />}
-              {campaignPhase === 'nation' && industryWorkspace === 'pledges' ? <StaffDeliveryPledgeBoard key={playerNation.id} state={staffDeliveryPledges} context={staffDeliveryContext} forecast={postwarIndustryForecast} routedEquipmentKey={routedEquipmentKey} onCreate={approveStaffDeliveryPledge} /> : campaignPhase === 'nation' && industryWorkspace === 'logistics' ? <Suspense fallback={<DeferredSurface label="지역 수송실 준비 중" />}>
-                <RegionalIndustryBoard state={regionalIndustry} context={regionalIndustryContext} nationalStockpile={stockpile} onConfigure={configureRegionalLogistics} onPlanShipment={reserveRegionalShipment} onCancelReserved={cancelRegionalShipment} />
+              {campaignPhase === 'nation' && <FieldWorkspaceSwitch label="산업 작업대 선택" value={industryWorkspace} onChange={selectIndustryWorkspace} items={[{ id: 'production', label: '생산선', detail: '공장 배정 · 품목별 상태' }, { id: 'policy', label: '가동·예산', detail: '방침 · 원료 · 실제 결산' }, { id: 'logistics', label: '집하·수송', detail: '예약 · 자동 지시 · 실제 도착' }, { id: 'pledges', label: '이행 약속', detail: '수량 · 기한 · 검증' }]} />}
+              {campaignPhase === 'nation' && industryWorkspace === 'pledges' ? <StaffDeliveryPledgeBoard key={playerNation.id} state={staffDeliveryPledges} context={staffDeliveryContext} forecast={postwarIndustryForecast} routedEquipmentKey={routedEquipmentKey} onCreate={approveStaffDeliveryPledge} regional={{ state: regionalIndustry, context: regionalIndustryContext }} onNavigateGoal={navigateDeliveryGoal} onOpenUnitSupply={openUnitSupply} onOpenProduction={() => selectIndustryWorkspace('production')} onOpenLogistics={() => selectIndustryWorkspace('logistics')} /> : campaignPhase === 'nation' && industryWorkspace === 'logistics' ? <Suspense fallback={<DeferredSurface label="지역 수송실 준비 중" />}>
+              <RegionalIndustryBoard key={`${playerNation.id}:${regionalLogisticsRequest?.sequence ?? 0}`} initialRequest={regionalLogisticsRequest?.nationId === playerNation.id ? regionalLogisticsRequest : undefined} state={regionalIndustry} context={regionalIndustryContext} nationalStockpile={stockpile} onConfigure={configureRegionalLogistics} onPlanShipment={reserveRegionalShipment} onCancelReserved={cancelRegionalShipment} />
               </Suspense> : campaignPhase === 'nation' && industryWorkspace === 'policy' && postwarIndustryInput ? <PostwarIndustryBoard key={playerNation.id} input={postwarIndustryInput} routedEquipmentKey={routedEquipmentKey} lastReport={postwarIndustry.lastReport} canManage={roleMandates.industry.mode === 'direct'} canAuthorizeCash={canAuthorizeIndustryCash} cashAvailable={game.treasury} formatMoney={formatGameMoney} onApprove={approvePostwarIndustrySettings} onPurchase={purchaseIndustryMaterial} onOpenBudget={() => openGameTab('governance', 'budget')} onOpenBriefing={openWeeklyBriefing} /> :
-                <ProductionDesk nationId={playerNation.id} week={game.week} production={production} stockpile={stockpile} factories={game.factories} weeklyGains={postwarIndustryForecast?.delivered ?? productionProjection} onAdjust={adjustFactories} postwarForecast={postwarIndustryForecast ?? undefined} routedEquipmentKey={routedEquipmentKey} busy={periodAdvanceRemaining > 0} onOpenPolicy={campaignPhase === 'nation' ? () => setIndustryWorkspace('policy') : undefined} onOpenLogistics={campaignPhase === 'nation' ? () => setIndustryWorkspace('logistics') : undefined} onOpenEquipment={roleMandates.research.mode === 'direct' ? () => { setResearchWorkspace('equipment'); setEquipmentWorkspace('deployment'); openGameTab('research'); } : undefined} />}
+                <ProductionDesk initialRequest={productionDeskRequest ?? undefined} nationId={playerNation.id} week={game.week} production={production} stockpile={stockpile} factories={game.factories} weeklyGains={postwarIndustryForecast?.delivered ?? productionProjection} onAdjust={adjustFactories} postwarForecast={postwarIndustryForecast ?? undefined} routedEquipmentKey={routedEquipmentKey} busy={periodAdvanceRemaining > 0} onOpenPolicy={campaignPhase === 'nation' ? () => selectIndustryWorkspace('policy') : undefined} onOpenLogistics={campaignPhase === 'nation' ? () => selectIndustryWorkspace('logistics') : undefined} onOpenEquipment={roleMandates.research.mode === 'direct' ? () => { setResearchWorkspace('equipment'); setEquipmentWorkspace('deployment'); openGameTab('research'); } : undefined} />}
             </>}
             {activeTab === 'research' && activeTabMandate.mode === 'direct' && (
               <div className="research-page">
@@ -10781,7 +10953,8 @@ function DecisionCard({ title, detail, cost, done, onClick }: { title: string; d
   );
 }
 
-function ArmyPanel({ game, campaignPhase, divisions, operationalScope, commandableDivisionIds, selectedDivision, selectedEquipmentName, selectedCommander, selectedCommanderDevelopment, commanders, territories, orders, battleStance, battleReports, onSelectDivision, onOpenFieldOrder, onOpenLocation, onIssueOffensive, onAssignCommander, onTrain, onBattleStanceChange, onOpenBattleReport, onUnlockCommanderSkill, onRestCommander, jointForces, activeTheater, stockpile, onLaunchJointOperation, onJointDoctrineChange, onJointForceRefit, onJointCommandResponse, mapContext, onDismissMapContext, enemyMaritime, seaTransport, seaTransportContext, seaMapPlan, seaBoardSelection, onSeaBoardSelectionChange, onLaunchSeaTransport, onReturnSeaTransport, onRescueSeaTransport, onSeaTransportEscortRelief, onSeaTransportLocation, initialFleetId, initialServiceView = 'joint' }: {
+function ArmyPanel({ game, campaignPhase, divisions, operationalScope, commandableDivisionIds, selectedDivision, selectedEquipmentName, selectedCommander, selectedCommanderDevelopment, commanders, territories, orders, battleStance, battleReports, onSelectDivision, onOpenFieldOrder, onOpenLocation, onIssueOffensive, onAssignCommander, onTrain, onBattleStanceChange, onOpenBattleReport, onUnlockCommanderSkill, onRestCommander, jointForces, activeTheater, stockpile, onLaunchJointOperation, onJointDoctrineChange, onJointForceRefit, onJointCommandResponse, mapContext, onDismissMapContext, enemyMaritime, seaTransport, seaTransportContext, seaMapPlan, seaBoardSelection, onSeaBoardSelectionChange, onLaunchSeaTransport, onReturnSeaTransport, onRescueSeaTransport, onSeaTransportEscortRelief, onSeaTransportLocation, initialFleetId, initialServiceView = 'joint', unitEquipment }: {
+  unitEquipment?: Omit<UnitEquipmentIssuePanelProps, 'divisionId'>;
   initialFleetId?: string;
   initialServiceView?: 'land' | 'transport' | JointOperationsView;
   seaTransport: SeaTransportState;
@@ -10897,7 +11070,7 @@ function ArmyPanel({ game, campaignPhase, divisions, operationalScope, commandab
         <div className="division-metrics">
           <Metric label="병력 전력" value={selectedDivision.strength} icon={<Users size={14} />} tone="green" />
           <Metric label="조직력" value={selectedDivision.organization} icon={<Shield size={14} />} />
-          <Metric label="보급 상태" value={selectedDivision.supply} icon={<Cog size={14} />} tone="gold" />
+          <Metric label="전투 보급(보정)" value={selectedDivision.supply} icon={<Cog size={14} />} tone="gold" />
           <Metric label="전투 경험" value={selectedDivision.experience} icon={<Star size={14} />} tone="gold" />
         </div>
         <div className="equipment-grid">
@@ -10906,6 +11079,7 @@ function ArmyPanel({ game, campaignPhase, divisions, operationalScope, commandab
           <div><span>명령 상태</span><strong>{divisionOrder ? '현재 작전 배속' : selectedDivision.status === 'ready' ? '새 명령 가능' : selectedDivision.status === 'recovering' ? '재편 중' : selectedDivision.status === 'combat' ? '교전 중' : '이동 중'}</strong><small>명령과 전력 상태에서 확인한 정보</small></div>
         </div>
       </section>
+      {unitEquipment ? <UnitEquipmentIssuePanel key={`${unitEquipment.context.nationId}:${selectedDivision.id}`} {...unitEquipment} divisionId={selectedDivision.id} /> : null}
       </> : landView === 'commander' ? <>
       <section className="deck-section commander-profile">
         <div className="commander-header">

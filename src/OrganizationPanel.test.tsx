@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { OrganizationPanel, getOrganizationSelectedStaff, getOrganizationStaffDecisionInput, type OrganizationPanelProps } from './OrganizationPanel';
+import { OrganizationPanel, getOrganizationInitialStaffIdentity, getOrganizationSelectedStaff, getOrganizationStaffDecisionInput, type OrganizationPanelProps } from './OrganizationPanel';
 import { createCampaignDivisions, createCampaignProduction, createCareerState, createStaffCandidates, createStaffRoster, getNation, getRole } from './campaign';
 import { createStaffNarrativeState } from './staffNarrative';
 import { getStaffAuthorityProfile } from './staffOrganization';
@@ -45,6 +45,39 @@ function button(html: string, label: string) {
 }
 
 describe('OrganizationPanel Command Edition workspace contract', () => {
+  it('opens an explicitly requested current person without changing their assignment', () => {
+    const props = fixture(); const member = props.staff[2];
+    props.initialStaffRequest = { nationId: props.nation.id, staffId: member.id, personId: member.personId, sequence: 1 };
+    const html = render(props);
+    expect(html).toContain(`aria-label="${member.name} 참모 상세"`);
+    expect(getOrganizationInitialStaffIdentity(props)).toEqual({ id: member.id, personId: member.personId });
+  });
+
+  it.each(['nation', 'replacement', 'missing', 'duplicate-id', 'duplicate-person'] as const)('never selects a substitute for a %s staff request', change => {
+    const props = fixture(); const member = props.staff[2];
+    props.initialStaffRequest = { nationId: props.nation.id, staffId: member.id, personId: member.personId };
+    if (change === 'nation') props.initialStaffRequest.nationId = 'usa';
+    if (change === 'replacement') props.staff[2] = { ...member, personId: 'replacement-person' };
+    if (change === 'missing') props.staff = props.staff.filter(person => person.id !== member.id);
+    if (change === 'duplicate-id') props.staff.push({ ...member, personId: 'another-person' });
+    if (change === 'duplicate-person') props.staff.push({ ...member, id: 'another-seat' });
+    expect(getOrganizationInitialStaffIdentity(props)).toBeNull();
+    const html = render(props);
+    expect(html).toContain('aria-label="참모 상세"');
+    expect(html).not.toContain(`aria-label="${props.staff[0].name} 참모 상세"`);
+  });
+
+  it('remounts exact staff navigation on new request and preserves read-only office restrictions', () => {
+    const props = connect(fixture()); const member = props.staff[1];
+    props.initialStaffRequest = { nationId: props.nation.id, staffId: member.id, personId: member.personId, sequence: 1 };
+    const key = OrganizationPanel(props).key;
+    expect(OrganizationPanel({ ...props, initialStaffRequest: { ...props.initialStaffRequest, sequence: 2 } }).key).not.toBe(key);
+    props.staffDecisionInput!.affiliationStatus = 'dismissed';
+    const html = render(props);
+    expect(html).toContain(`aria-label="${member.name} 참모 상세"`);
+    expect(button(html, '면담 의제 선택')).toContain('disabled');
+  });
+
   it.each(['squad', 'market'] as const)('shows one workspace still life in %s without changing personnel or issuing commands', (workspace) => {
     const html = render({ ...fixture(), workspace });
     expect(html.match(/data-game-illustration=/g)).toHaveLength(1);

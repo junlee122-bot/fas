@@ -5,6 +5,8 @@ import { createStaffNarrativeState } from './staffNarrative';
 import type { StaffStoryline } from './staffNarrative';
 import { getStaffAuthorityProfile, getStaffSeatTitle } from './staffOrganization';
 import { projectStaffWorkWeek } from './staffWork';
+import { advanceStaffRosterWeek } from './staffManagement';
+import { attachStaffWorkReports } from './staffWorkReport';
 import { HeadquartersStaffInspector, HeadquartersStaffTable, getHeadquartersStaffAccess, getHeadquartersStaffNarrative } from './HeadquartersStaff';
 import type { HeadquartersStaffProps } from './HeadquartersStaff';
 
@@ -27,6 +29,19 @@ function fixture(roleId = 'britain-tier1'): HeadquartersStaffProps {
 }
 
 describe('Headquarters staff work assignments', () => {
+  it('connects the captured result to the correct inspector and keeps five table columns', () => {
+    const props = fixture(); const input = props.context.input!;
+    const advanced = advanceStaffRosterWeek(input.staff, input.developmentFocusId);
+    input.staff = attachStaffWorkReports(input.staff, advanced, advanced, { nationId: 'britain', fromWeek: 7, week: 8 });
+    props.onOpenBriefing = vi.fn();
+    const table = renderToStaticMarkup(<HeadquartersStaffTable {...props} />);
+    const inspector = renderToStaticMarkup(<HeadquartersStaffInspector {...props} />);
+    expect(table.match(/<th scope="col"/g)).toHaveLength(5);
+    expect(table).toContain('제9주 확정 · 부담'); expect(table).toContain('다음 주 기본 전망');
+    expect(inspector).toContain('ACTUAL / 확정 기록'); expect(inspector).toContain('전체 주간 브리핑');
+    expect(props.onOpenBriefing).not.toHaveBeenCalled(); expect(props.onSetWorkPriority).not.toHaveBeenCalled();
+  });
+
   it('renders real people and five scoped columns without executing engine callbacks', () => {
     const props = fixture(); const before = JSON.stringify(props.context.input);
     const html = renderToStaticMarkup(<HeadquartersStaffTable {...props} />);

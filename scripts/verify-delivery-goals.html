@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>생산·수송·납품 약속 · 격리 검증</title>
+  <style>
+    :root { color-scheme: dark; font-family: "Malgun Gothic", "Segoe UI", sans-serif; color: #e7eadf; background: #111b16; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    .delivery-fixture { margin: 0 auto; max-width: 2200px; padding: 24px; }
+    .delivery-fixture > header h1 { margin: 0 0 10px; font-size: 24px; }
+    .delivery-fixture > header p { color: #c7d0c2; font-size: 13px; line-height: 1.8; max-width: 1250px; }
+    .delivery-fixture-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 18px 0; }
+    .delivery-fixture-tools button { padding: 10px 14px; background: #30412f; color: #f3eacb; border: 1px solid #798261; border-radius: 4px; font: inherit; font-size: 13px; cursor: pointer; }
+    .delivery-fixture-tools button:disabled { opacity: .45; cursor: not-allowed; }
+    .delivery-fixture-tools label { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+    .delivery-fixture-tools :focus-visible, .delivery-fixture-audit summary:focus-visible { outline: 3px solid #ead18f; outline-offset: 3px; }
+    .delivery-fixture-status { display: block; background: #24352a; border-left: 3px solid #cbb879; padding: 12px 15px; font-size: 13px; line-height: 1.8; }
+    .delivery-fixture-metrics { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; }
+    .delivery-fixture-metrics > div { display: grid; gap: 6px; padding: 12px 16px; border: 1px solid #4e604c; background: #19271e; }
+    .delivery-fixture-metrics dt { font-size: 12px; color: #c6ccba; }
+    .delivery-fixture-metrics dd { margin: 0; color: #eee3be; font-size: 21px; font-variant-numeric: tabular-nums; }
+    .delivery-fixture-audit { margin-top: 18px; border-top: 1px solid #495a46; padding-top: 10px; }
+    .delivery-fixture-audit summary { cursor: pointer; padding: 10px 0; font-size: 14px; }
+    .delivery-fixture-audit pre { max-height: 350px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; line-height: 1.7; background: #0d1811; padding: 16px; }
+    .delivery-fixture-audit li { font-size: 13px; line-height: 1.8; }
+  </style>
+</head>
+<body><div id="root"></div><script type="module" src="./verify-delivery-goals.tsx"></script></body>
+</html>

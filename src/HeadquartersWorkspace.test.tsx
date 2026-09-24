@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createCareerState, createStaffRoster, getNation, getRole } from './campaign';
 import { createEconomyState } from './economy';
 import { headquartersRooms } from './headquarters';
@@ -8,9 +8,21 @@ import { createNationManagementState } from './nationManagement';
 import { deriveNationalSimulation, type NationalSimulationInput } from './nationalSimulation';
 import { createPoliticalCrisisState, getNationPoliticalProfile } from './politicalCrisis';
 import { createPublicHealthState } from './publicHealth';
+import { createRegionalIndustryState } from './regionalIndustry';
+import { createJointForcesState } from './jointOperations';
+import { createSeaTransportState } from './seaTransport';
+import { createStaffDeliveryPledgeState } from './staffDeliveryPledges';
 import { getRoleTabMandates } from './roleMandate';
 import { createStaffNarrativeState } from './staffNarrative';
 import type { GameState } from './types';
+
+// Override only initial UI choices for SSR branch coverage; mounted clicks and
+// focus remain the responsibility of the browser integration fixture.
+const initialUiStates = vi.hoisted(() => ({ values: [] as unknown[] }));
+vi.mock('react', async (importOriginal) => {
+  const react = await importOriginal<typeof import('react')>();
+  return { ...react, useState: (initial: unknown) => react.useState(initialUiStates.values.length ? initialUiStates.values.shift() : initial) };
+});
 
 function fixture(): HeadquartersWorkspaceProps {
   const role = getRole('britain-tier1', 'britain');
@@ -40,7 +52,42 @@ function fixture(): HeadquartersWorkspaceProps {
   };
 }
 
+function withSeaTransport(props = fixture()): HeadquartersWorkspaceProps {
+  return { ...props, seaTransport: {
+    state: createSeaTransportState(),
+    context: { week: props.world.input.game.week, nationId: 'britain', playerFaction: 'allies', phase: props.world.input.phase,
+      divisions: props.world.input.divisions, territories: [], orders: [], commandableDivisionIds: new Set<string>(),
+      game: props.world.input.game, stockpile: props.world.input.stockpile, jointForces: createJointForcesState('britain'), canCommandEscort: false },
+    onOpen: vi.fn(), onOpenLocation: vi.fn(),
+  } };
+}
+
+afterEach(() => { initialUiStates.values = []; vi.restoreAllMocks(); });
+
 describe('headquarters workspace integration', () => {
+  it('connects the goal desk only for the same national phase and current week', () => {
+    const props = fixture(); props.world.input.phase = 'nation'; props.context.input!.campaignPhase = 'nation';
+    props.deliveryGoals = { state: createStaffDeliveryPledgeState(), context: { nationId: 'britain', week: 8, phase: 'nation', staff: props.context.input!.staff, production: props.world.input.production, manageableDepartments: ['armaments'], industryMandate: props.mandates.industry, lineEquipment: [{ lineId: 'rifles', equipmentKey: 'infantryEquipment' }] }, onCreate: vi.fn(() => false) };
+    initialUiStates.values = ['goals'];
+    const html = renderToStaticMarkup(<HeadquartersWorkspace {...props} />);
+    expect(html).toContain('이행 목표'); expect(html).toContain('첫 이행 약속 작성'); expect(html).not.toContain('type="submit"');
+    expect(props.deliveryGoals.onCreate).not.toHaveBeenCalled();
+    for (const change of [{ nationId: 'korea' as const }, { week: 9 }, { phase: 'war' as const }]) {
+      initialUiStates.values = ['goals'];
+      const stale = { ...props, deliveryGoals: { ...props.deliveryGoals, context: { ...props.deliveryGoals.context, ...change } } };
+      const denied = renderToStaticMarkup(<HeadquartersWorkspace {...stale} />);
+      expect(denied).toContain('class="hq-floorplan"'); expect(denied).not.toContain('>이행 목표<');
+    }
+  });
+
+  it('offers a goal shortcut from production without issuing a pledge or instruction', () => {
+    const props = fixture(); props.world.input.phase = 'nation'; props.context.input!.campaignPhase = 'nation';
+    props.deliveryGoals = { state: createStaffDeliveryPledgeState(), context: { nationId: 'britain', week: 8, phase: 'nation', staff: props.context.input!.staff, production: props.world.input.production, manageableDepartments: ['armaments'], industryMandate: props.mandates.industry, lineEquipment: [] }, onCreate: vi.fn(() => false) };
+    initialUiStates.values = ['floor', 'workshop'];
+    const html = renderToStaticMarkup(<HeadquartersWorkspace {...props} />);
+    expect(html).toContain('담당자·납품 목표 추적'); expect(props.deliveryGoals.onCreate).not.toHaveBeenCalled();
+  });
+
   it('starts with three view choices, eight room selectors and seven real person selectors', () => {
     const props = fixture(); const html = renderToStaticMarkup(<HeadquartersWorkspace {...props} />);
     const views = html.match(/<nav class="hq-view-switch"[\s\S]*?<\/nav>/)?.[0] ?? '';
@@ -61,6 +108,71 @@ describe('headquarters workspace integration', () => {
       props.world.onNavigate, props.world.onReallocate, props.world.onOpenBriefing];
     for (const callback of callbacks) expect(callback).not.toHaveBeenCalled();
     expect(JSON.stringify({ staff: props.context.input, nation: props.world.input })).toBe(before);
+  });
+
+  it('offers a fourth logistics view only when real regional state is connected, including read-only access', () => {
+    const props = fixture();
+    props.logistics = {
+      state: createRegionalIndustryState('britain', 8),
+      context: { nationId: 'britain', week: 8, factories: 30, authorized: false, territories: [], playableTerritoryIds: [] },
+      onOpen: vi.fn(),
+    };
+    const before = JSON.stringify(props.logistics);
+    const html = renderToStaticMarkup(<HeadquartersWorkspace {...props} />);
+    const views = html.match(/<nav class="hq-view-switch"[\s\S]*?<\/nav>/)?.[0] ?? '';
+    expect(views.match(/<button\b/g)).toHaveLength(4);
+    expect(views).toContain('물류 현장');
+    expect(views).toMatch(/<button type="button" aria-pressed="false">[\s\S]*?물류 현장<\/button>/);
+    expect(html.match(/class="hq-room-hit"/g)).toHaveLength(8);
+    expect(props.logistics.onOpen).not.toHaveBeenCalled();
+    expect(props.world.onNavigate).not.toHaveBeenCalled();
+    expect(props.world.onReallocate).not.toHaveBeenCalled();
+    expect(props.onSetWorkPriority).not.toHaveBeenCalled();
+    expect(JSON.stringify(props.logistics)).toBe(before);
+  });
+
+  it('offers a sea transport view in war and nation phases without issuing commands or granting authority', () => {
+    for (const phase of ['war', 'nation'] as const) {
+      const props = withSeaTransport(); props.seaTransport!.context.phase = phase;
+      const before = JSON.stringify(props.seaTransport);
+      const html = renderToStaticMarkup(<HeadquartersWorkspace {...props} />);
+      const views = html.match(/<nav class="hq-view-switch"[\s\S]*?<\/nav>/)?.[0] ?? '';
+      expect(views.match(/<button\b/g)).toHaveLength(4);
+      expect(views).toContain('해상 수송');
+      expect(props.seaTransport!.context.commandableDivisionIds.size).toBe(0);
+      expect(props.seaTransport!.onOpen).not.toHaveBeenCalled();
+      expect(props.seaTransport!.onOpenLocation).not.toHaveBeenCalled();
+      expect(JSON.stringify(props.seaTransport)).toBe(before);
+    }
+  });
+
+  it('keeps regional cargo and troop sea transport as separate optional views', () => {
+    const props = withSeaTransport();
+    props.logistics = { state: createRegionalIndustryState('britain', 8), context: { nationId: 'britain', week: 8, factories: 30, authorized: false, territories: [], playableTerritoryIds: [] }, onOpen: vi.fn() };
+    const html = renderToStaticMarkup(<HeadquartersWorkspace {...props} />);
+    const views = html.match(/<nav class="hq-view-switch"[\s\S]*?<\/nav>/)?.[0] ?? '';
+    expect(views.match(/<button\b/g)).toHaveLength(5);
+    expect(views).toContain('물류 현장'); expect(views).toContain('해상 수송');
+  });
+
+  it('offers the warehouse shortcut only when sea transport is connected', () => {
+    for (const connected of [false, true]) {
+      initialUiStates.values = ['floor', 'warehouse'];
+      const props = connected ? withSeaTransport() : fixture();
+      const html = renderToStaticMarkup(<HeadquartersWorkspace {...props} />);
+      expect(html.includes('병력 해상 수송 보기')).toBe(connected);
+      expect(props.world.onNavigate).not.toHaveBeenCalled();
+      initialUiStates.values = [];
+    }
+  });
+
+  it('falls back to the floor if a previously selected sea scene is no longer connected', () => {
+    initialUiStates.values = ['sea'];
+    const html = renderToStaticMarkup(<HeadquartersWorkspace {...fixture()} />);
+    expect(html).toContain('class="hq-floorplan"');
+    const views = html.match(/<nav class="hq-view-switch"[\s\S]*?<\/nav>/)?.[0] ?? '';
+    expect(views).toMatch(/aria-pressed="true"[^>]*>[\s\S]*?지휘부 배치도<\/button>/);
+    expect(views).not.toContain('해상 수송');
   });
 
   it('connects facility and staff selectors to the same real detail region', () => {
@@ -93,10 +205,18 @@ describe('headquarters workspace integration', () => {
     props.context.input!.role = role; props.mandates = getRoleTabMandates(role);
     expect(props.mandates.map.mode).toBe(expected);
     const html = renderToStaticMarkup(<HeadquartersWorkspace {...props} />);
-    const inspector = html.match(/<section class="hq-facility-inspector"[\s\S]*?<\/section>/)?.[0] ?? '';
+    const inspector = html.match(/<section class="hq-facility-inspector"[\s\S]*?<\/aside>/)?.[0] ?? '';
     expect(inspector).toContain(props.mandates.map.label); expect(inspector).toContain(props.mandates.map.reason);
     expect(inspector).toContain(action); expect(props.world.onNavigate).not.toHaveBeenCalled();
     if (expected !== 'direct') expect(inspector).not.toContain('>작전 지도 열기<');
+  });
+
+  it('exposes a navigation-only equipment issue entrance and keeps locked army access hidden', () => {
+    const props = fixture(); const onOpenUnitSupply = vi.fn();
+    const html = renderToStaticMarkup(<HeadquartersWorkspace {...props} onOpenUnitSupply={onOpenUnitSupply} />);
+    expect(html).toContain('부대 지급·수령 창구'); expect(onOpenUnitSupply).not.toHaveBeenCalled();
+    props.mandates = { ...props.mandates, army: { ...props.mandates.army, mode: 'locked' } };
+    expect(renderToStaticMarkup(<HeadquartersWorkspace {...props} onOpenUnitSupply={onOpenUnitSupply} />)).not.toContain('부대 지급·수령 창구');
   });
 
   it('keeps locked map navigation disabled and a missing staff context empty', () => {

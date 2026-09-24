@@ -9,7 +9,8 @@ import './CapabilityDesks.css';
 
 const labels: Record<keyof Stockpile, string> = { infantryEquipment: '보병 장비', tanks: '전차', aircraft: '항공기', convoys: '함선·수송선', artillery: '야포', trucks: '차량' };
 const legacyKeys: Record<string, keyof Stockpile> = { rifle: 'infantryEquipment', sherman: 'tanks', spitfire: 'aircraft', convoy: 'convoys', artillery: 'artillery', truck: 'trucks' };
-interface ProductionDeskProps {
+export interface ProductionDeskRequest { nationId: string; lineId: string; sequence?: number }
+export interface ProductionDeskProps {
   nationId: string;
   week: number;
   production: ProductionLine[];
@@ -23,6 +24,16 @@ interface ProductionDeskProps {
   onOpenPolicy?: () => void;
   onOpenLogistics?: () => void;
   onOpenEquipment?: () => void;
+  initialRequest?: ProductionDeskRequest;
+}
+export function getProductionDeskInitialSelection(props: Pick<ProductionDeskProps, 'nationId' | 'production' | 'initialRequest'>): string {
+  if (props.initialRequest) return props.initialRequest.nationId === props.nationId
+    && props.production.filter(line => line.id === props.initialRequest!.lineId).length === 1 ? props.initialRequest.lineId : '';
+  return props.production[0]?.id ?? '';
+}
+export function getProductionDeskSelectedLine(production: readonly ProductionLine[], selectedId: string): ProductionLine | undefined {
+  const matches = production.filter(line => line.id === selectedId);
+  return selectedId && matches.length === 1 ? matches[0] : undefined;
 }
 export interface FactoryDraft { nationId: string; week: number; lineId: string; delta: -1 | 1; factories: number; base: string }
 export function createFactoryDraft(input: Pick<ProductionDeskProps, 'nationId'|'week'|'production'|'factories'>, lineId: string, delta: -1|1): FactoryDraft {
@@ -34,13 +45,17 @@ export function assessFactoryDraft(draft: FactoryDraft | null, input: Pick<Produ
   return { allowed: Boolean(next), next, reason: changed ? '주차·국가·공장 배정이 바뀌었거나 진행 중입니다. 현재 조건으로 다시 검토하세요.' : next ? '승인하면 공장 배정만 변경합니다. 실제 생산은 다음 주 결산에서 확인하세요.' : '공장 여력이 없거나 변경할 수 없는 생산선입니다.' };
 }
 export function ProductionDesk(props: ProductionDeskProps) {
+  // A new explicit navigation request resets selection and unapproved drafts together.
+  return <ProductionDeskContent key={`${props.nationId}:${props.initialRequest?.nationId ?? ''}:${props.initialRequest?.sequence ?? 0}:${props.initialRequest?.lineId ?? ''}`} {...props} />;
+}
+function ProductionDeskContent(props: ProductionDeskProps) {
   const { production, stockpile, factories, weeklyGains, postwarForecast, routedEquipmentKey, busy, onAdjust, onOpenPolicy, onOpenLogistics, onOpenEquipment } = props;
-  const [selectedId, setSelectedId] = useState(() => production[0]?.id ?? '');
+  const [selectedId, setSelectedId] = useState(() => getProductionDeskInitialSelection(props));
   const [draft, setDraft] = useState<FactoryDraft | null>(null);
   const sent = useRef(false);
   const selectId = useId();
   const used = production.reduce((sum, line) => sum + line.assigned, 0);
-  const selected = production.find((line) => line.id === selectedId);
+  const selected = getProductionDeskSelectedLine(production, selectedId);
   const reportLine = postwarForecast?.perLine.find((line) => line.lineId === selectedId);
   const equipmentKey = reportLine?.stockpileKey ?? legacyKeys[selectedId];
   const assessment = assessFactoryDraft(draft, props);
@@ -63,7 +78,7 @@ export function ProductionDesk(props: ProductionDeskProps) {
       {draft ? <section className="capability-review" aria-label="공장 배정 변경안"><h4>아직 반영되지 않은 배정안</h4>{nextLine ? <dl className="capability-stat-grid"><div><dt>배정</dt><dd>{selected.assigned} → {nextLine.assigned}</dd></div><div><dt>효율</dt><dd>{selected.efficiency}% → {nextLine.efficiency}%</dd></div></dl> : null}<p role="status">{assessment.reason}</p><div className="capability-actions"><button type="button" onClick={() => setDraft(null)}>변경안 취소</button><button type="button" className="capability-primary" disabled={!assessment.allowed} onClick={approve}><Check size={16} />배정 변경 승인</button></div></section> : <small className="capability-muted">회수하면 해당 생산선 효율이 4 내려갑니다(최저 15). ± 버튼은 검토만 열며 승인이 필요합니다.</small>}
       {equipmentKey === routedEquipmentKey && onOpenLogistics ? <button type="button" onClick={onOpenLogistics}>집하·수송 상태 확인<ArrowRight size={16} /></button> : null}
       {selected.reliability !== undefined || selected.unitCost !== undefined ? <details className="capability-fold"><summary>제식 장비 제조 특성</summary><p>신뢰성 {selected.reliability ?? '자료 없음'} · 제조 단가 지수 {selected.unitCost ?? '자료 없음'}</p></details> : null}
-    </> : <p>현재 목록에서 생산선을 직접 선택하세요.</p>}</article></div>
+    </> : <p role="status">{props.initialRequest || selectedId ? '요청하거나 선택했던 생산선을 현재 목록에서 정확히 확인할 수 없습니다. 다른 생산선을 대신 선택하지 않았습니다. ' : ''}현재 목록에서 생산선을 직접 선택하세요.</p>}</article></div>
     <details className="capability-fold"><summary>국가 가용 비축과 다음 주 품목 전망</summary><div className="capability-stock">{(Object.keys(labels) as Array<keyof Stockpile>).map((key) => <div key={key}><small>{labels[key]}</small><strong>{stockpile[key].toLocaleString()}</strong><span>{key === routedEquipmentKey ? '공장 완료 전망' : '주간 전망'} +{weeklyGains[key].toLocaleString()}</span></div>)}</div><p>현재 비축에 창고 보관·수송 중 물량은 포함하지 않습니다. 주간 전망은 현재 조건의 예상이며 최종 순증감과 다를 수 있습니다.</p></details>
   </section>;
 }

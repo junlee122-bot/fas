@@ -4,9 +4,10 @@ import {
   createInitialSeaTransportSelection, createSeaTransportCommandGuard, getSeaTransportBoardPlan, getSeaTransportBoardRescue, getSeaTransportBoardEscortRelief,
   getSeaTransportDivisionReason, getSeaTransportRemainingWeeks, getSeaTransportReturnReason,
   getSeaTransportStages, SeaTransportBoard, SeaTransportBoardView,
+  getSeaTransportBoardSelection, getSeaTransportRecordSelection,
   type SeaTransportBoardProps, type SeaTransportSelection,
 } from './SeaTransportBoard';
-import { createSeaTransportState, dispatchSeaTransportEscortRelief, forecastSeaTransport, forecastSeaTransportEscortRelief, forecastSeaTransportRescue, getSeaTransportEscortOptions, launchSeaTransport, launchSeaTransportRescue, type SeaTransportContext, type SeaTransportPlan } from './seaTransport';
+import { createSeaTransportState, dispatchSeaTransportEscortRelief, forecastSeaTransport, forecastSeaTransportEscortRelief, forecastSeaTransportRescue, getSeaTransportEscortOptions, launchSeaTransport, launchSeaTransportRescue, type SeaTransportContext, type SeaTransportPlan, type SeaTransportRecord } from './seaTransport';
 import { createJointForcesState } from './jointOperations';
 import type { Territory } from './types';
 
@@ -151,7 +152,10 @@ describe('transport progress and report desk', () => {
     expect(getSeaTransportReturnReason(operation, input.context)).toBeNull();
     input.context = { ...input.context, nationId: 'usa' };
     const html = render(input, { workspace: 'active', returnReviewId: operation.id });
-    expect(html).toContain('직접 지휘할 수 없는 수송'); expect(html).not.toContain('철회·귀환 요청 확정');
+    expect(html).toContain('진행 중인 수송이 없습니다'); expect(html).not.toContain('철회·귀환 요청 확정');
+    expect(getSeaTransportReturnReason(operation, input.context)).toContain('직접 지휘할 수 없는 수송');
+    input.context = { ...input.context, nationId: 'britain', commandableDivisionIds: new Set() };
+    expect(render(input, { workspace: 'active' })).toContain('직접 지휘할 수 없는 수송');
   });
   it('explains return loss and delay in a second deliberate confirmation', () => {
     const input = props(); input.state = launchSeaTransport(input.state, initialPlan, input.context).state;
@@ -175,6 +179,7 @@ describe('transport progress and report desk', () => {
   });
   it('separates recorded destination and costs from the current map state', () => {
     const input = props(); input.state.records = [{ id: 'report-1', operationId: 'operation-1', divisionId: 'marine', divisionName: '상륙사단', fromId: 'britain', targetId: 'normandy', fromName: '영국 출발항', targetName: '노르망디 해안', startedWeek: 0, endedWeek: 8, elapsedWeeks: 8, outcome: 'failed-landing', arrivalId: 'belfast', convoysReserved: 24, convoysReturned: 21, convoysLost: 3, strengthLoss: 8, organizationLoss: 12, commandCost: 10, fuelCost: 18, result: '상륙 실패 후 벨파스트에 귀환했습니다. 통제권을 바꾸지 않았습니다.' }];
+    input.context.week = 8;
     const html = render(input, { workspace: 'history' });
     expect(html).toContain('확정 도착지 · 벨파스트'); expect(html).toContain('원래 목적지가 아닌 귀환·대체 거점');
     expect(html).toContain('21 / 3척'); expect(html).toContain('종료 이후의 변화가 반영된 값');
@@ -315,6 +320,7 @@ describe('deliberate rescue dispatch and progression desk', () => {
   });
   it('renders historical escort and repeated rescue totals without mislabeling them as initial costs', () => {
     const input = props(); input.state.records = [{ id: 'rescue-report', operationId: 'sea-1', divisionId: 'marine', divisionName: '상륙사단', fromId: 'britain', targetId: 'normandy', fromName: '영국 출발항', targetName: '노르망디 해안', startedWeek: 0, endedWeek: 14, elapsedWeeks: 14, outcome: 'recalled', arrivalId: 'britain', convoysReserved: 56, convoysReturned: 12, convoysLost: 44, strengthLoss: 20, organizationLoss: 35, commandCost: 20, fuelCost: 41, result: '구조 후 귀환', escortFleetName: '대서양 호송전대', escortShipsLost: 2, rescueDispatches: 2 }];
+    input.context.week = 14;
     const html = render(input, { workspace: 'history' });
     expect(html).toContain('대서양 호송전대'); expect(html).toContain('호위 함정 누적 손실 2척');
     expect(html).toContain('구조선 포함 누적 투입 56척'); expect(html).toContain('수송·호위·구조 총액');
@@ -489,9 +495,97 @@ describe('rescue convoy escort selection', () => {
   it('keeps escort handoff history available in the completed report after active orders disappear', () => {
     const input = props();
     input.state.records = [{ id: 'handoff-report', operationId: 'sea-1', divisionId: 'marine', divisionName: '상륙사단', fromId: 'britain', targetId: 'normandy', fromName: '영국 출발항', targetName: '노르망디 해안', startedWeek: 0, endedWeek: 12, elapsedWeeks: 12, outcome: 'recalled', arrivalId: 'britain', convoysReserved: 40, convoysReturned: 14, convoysLost: 26, strengthLoss: 10, organizationLoss: 12, commandCost: 16, fuelCost: 30, result: '구조 후 귀환', escortFleetName: '구조 호위전대', escortReliefHistory: [{ fleetId: 'rescue-escort', fleetName: '구조 호위전대', source: 'rescue', dispatchedWeek: 4, arrivalWeeks: 2, elapsedWeeks: 2, resolvedWeek: 6, status: 'joined', reason: '고립 부대와 합류해 구조 호위를 인계했습니다.', commandCost: 2, fuelCost: 6 }] }];
+    input.context.week = 12;
     const html = render(input, { workspace: 'history' });
     expect(html).toContain('호위 파견·인계 기록 · 1건'); expect(html).toContain('구조 수송 동행');
     expect(html).toContain('제5주 파견 → 제7주 합류'); expect(html).toContain('지휘력 2·연료 6 소비');
     expect(html).toContain('확정 도착지 · 영국 출발항');
+  });
+});
+
+function completedRecord(overrides: Partial<SeaTransportRecord> = {}): SeaTransportRecord {
+  return { id: 'report-completed', operationId: 'sea-britain-0-completed', divisionId: 'marine', divisionName: '완료한 수송부대',
+    fromId: 'britain', targetId: 'belfast', fromName: '영국 출발항', targetName: '벨파스트', startedWeek: 0, endedWeek: 4, elapsedWeeks: 4,
+    outcome: 'transferred', arrivalId: 'belfast', convoysReserved: 24, convoysReturned: 24, convoysLost: 0, strengthLoss: 0, organizationLoss: 0,
+    commandCost: 10, fuelCost: 18, result: '해당 수송의 확정 결과입니다.', ...overrides };
+}
+
+describe('stable exact selection and shared sea transport visibility', () => {
+  it('never substitutes an unrelated active operation after an explicit selected ID disappears', () => {
+    const input = props(); input.state = launchSeaTransport(input.state, initialPlan, input.context).state;
+    const model = getSeaTransportBoardSelection(input.state, input.context, { operationId: 'removed-operation', recordId: null });
+    expect(model.operation).toBeUndefined(); expect(model.staleOperation).toBe(true);
+    expect(model.operations).toHaveLength(1);
+    const html = render(input, { workspace: 'active', operationId: 'removed-operation' });
+    expect(html).toContain('선택한 수송을 현재 진행 목록에서 찾을 수 없습니다');
+    expect(html).toContain('진행 수송 선택');
+    expect(html).not.toContain('aria-label="선택 수송 진행 상황"');
+    expect(html).not.toContain('철회·귀환 검토');
+    expect(input.onReturn).not.toHaveBeenCalled();
+  });
+
+  it('keeps initial null selection convenience, but does not treat an explicit empty ID as no selection', () => {
+    const input = props(); input.state = launchSeaTransport(input.state, initialPlan, input.context).state;
+    expect(getSeaTransportBoardSelection(input.state, input.context, { operationId: null, recordId: null }).operation?.id).toBe(input.state.operations[0].id);
+    expect(getSeaTransportBoardSelection(input.state, input.context, { operationId: '', recordId: null }).operation).toBeUndefined();
+  });
+
+  it('offers only the exact completed operation report without automatically opening it', () => {
+    const input = props(); input.context.week = 20;
+    const matching = completedRecord();
+    input.state.records = [completedRecord({ id: 'newer-unrelated', operationId: 'sea-britain-0-other', endedWeek: 12, divisionName: '다른 수송부대' }), matching];
+    const selection = { ...createInitialSeaTransportSelection(input), workspace: 'active' as const, operationId: matching.operationId, recordId: 'newer-unrelated' };
+    const model = getSeaTransportBoardSelection(input.state, input.context, selection);
+    expect(model.operation).toBeUndefined(); expect(model.completedRecord?.id).toBe(matching.id);
+    const onSelectionChange = vi.fn();
+    const html = renderToStaticMarkup(<SeaTransportBoardView {...input} selection={selection} onSelectionChange={onSelectionChange} />);
+    expect(html).toContain(`data-completed-record="${matching.id}"`);
+    expect(html).not.toContain('data-completed-record="newer-unrelated"');
+    expect(html).not.toContain('aria-label="선택 수송 확정 보고서"');
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    expect(getSeaTransportRecordSelection(matching.id)).toEqual({ workspace: 'history', recordId: matching.id,
+      returnReviewId: null, rescueReviewedSignature: null, escortReliefReviewedSignature: null });
+    expect(input.onLaunch).not.toHaveBeenCalled(); expect(input.onRescue).not.toHaveBeenCalled();
+  });
+
+  it('does not substitute a different result for a stale explicit report selection', () => {
+    const input = props(); input.context.week = 10; input.state.records = [completedRecord()];
+    const model = getSeaTransportBoardSelection(input.state, input.context, { operationId: null, recordId: 'purged-report' });
+    expect(model.record).toBeUndefined(); expect(model.staleRecord).toBe(true);
+    const html = render(input, { workspace: 'history', recordId: 'purged-report' });
+    expect(html).toContain('선택한 보고서를 현재 목록에서 찾을 수 없습니다');
+    expect(html).toContain('수송 보고서 선택');
+    expect(html).not.toContain('aria-label="선택 수송 확정 보고서"');
+    expect(html).not.toContain('해당 수송의 확정 결과입니다.');
+  });
+
+  it('filters foreign and future active operations from the list, counts and selected details', () => {
+    const input = props(); input.state = launchSeaTransport(input.state, initialPlan, input.context).state;
+    const own = input.state.operations[0];
+    input.state.operations.push({ ...own, id: 'foreign', nationId: 'usa', divisionName: '숨겨야 할 외국 수송' },
+      { ...own, id: 'future', startedWeek: 2, divisionName: '숨겨야 할 미래 수송' });
+    const html = render(input, { workspace: 'active', operationId: 'foreign' });
+    expect(html).toContain('1개 수송'); expect(html).not.toContain('3개 수송');
+    expect(html).not.toContain('숨겨야 할'); expect(html).not.toContain('aria-label="선택 수송 진행 상황"');
+    expect(getSeaTransportBoardSelection(input.state, input.context, { operationId: 'future', recordId: null }).operation).toBeUndefined();
+  });
+
+  it('filters foreign and future reports even when their division ID matches a current unit', () => {
+    const input = props(); input.context.week = 10;
+    input.state.records = [completedRecord(), completedRecord({ id: 'foreign-record', operationId: 'sea-usa-0-foreign', divisionName: '외국 결산 이름' }),
+      completedRecord({ id: 'future-record', endedWeek: 11, divisionName: '미래 결산 이름' })];
+    const html = render(input, { workspace: 'history', recordId: 'foreign-record' });
+    expect(html).toContain('1개 결과'); expect(html).not.toContain('3개 결과');
+    expect(html).not.toContain('외국 결산 이름'); expect(html).not.toContain('미래 결산 이름');
+    expect(html).not.toContain('aria-label="선택 수송 확정 보고서"');
+    expect(getSeaTransportBoardSelection(input.state, input.context, { operationId: 'sea-usa-0-foreign', recordId: null }).completedRecord).toBeUndefined();
+  });
+
+  it('explains a future processed-state mismatch without leaking operation details', () => {
+    const input = props(); input.state = launchSeaTransport(input.state, initialPlan, input.context).state;
+    input.state.lastProcessedWeek = 3;
+    const html = render(input, { workspace: 'active', operationId: input.state.operations[0].id });
+    expect(html).toContain('현재 주차와 해상 수송 결산 자료가 맞지 않습니다');
+    expect(html).toContain('0개 수송'); expect(html).not.toContain('aria-label="선택 수송 진행 상황"');
   });
 });

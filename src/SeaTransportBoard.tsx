@@ -9,6 +9,7 @@ import {
 } from './seaTransport';
 import type { Division, Faction } from './types';
 import { getSeaTransportDestinations } from './seaTransportPlanning';
+import { buildSeaTransportPresentation } from './seaTransportPresentation';
 import { FleetVoyageCard } from './FleetVoyageCard';
 import './SeaTransportBoard.css';
 
@@ -466,24 +467,45 @@ function RecordDetail({ record, context, onOpenLocation }: { record: SeaTranspor
   </section>;
 }
 
+/** Preserve an explicit selection even when its order ends or belongs to another timeline. */
+export function getSeaTransportBoardSelection(state: SeaTransportState, context: SeaTransportContext, selection: Pick<SeaTransportSelection, 'operationId' | 'recordId'>) {
+  const presentation = buildSeaTransportPresentation(state, context);
+  const operationIds = new Set(presentation.operations.map((row) => row.id));
+  const recordIds = new Set(presentation.records.map((row) => row.id));
+  const operations = state.operations.filter((item) => operationIds.has(item.id));
+  const records = state.records.filter((item) => recordIds.has(item.id)).sort((a, b) => b.endedWeek - a.endedWeek);
+  const operation = selection.operationId == null ? operations[0] : operations.find((item) => item.id === selection.operationId);
+  const record = selection.recordId == null ? records[0] : records.find((item) => item.id === selection.recordId);
+  const staleOperation = selection.operationId != null && !operation;
+  const staleRecord = selection.recordId != null && !record;
+  const completedRecord = staleOperation ? records.find((item) => item.operationId === selection.operationId) : undefined;
+  return { operations, records, operation, record, staleOperation, staleRecord, completedRecord, unavailableReason: presentation.unavailableReason };
+}
+
+/** Opening a report is a deliberate read-only navigation and clears obsolete action approvals. */
+export function getSeaTransportRecordSelection(recordId: string): Partial<SeaTransportSelection> {
+  return { workspace: 'history', recordId, returnReviewId: null, rescueReviewedSignature: null, escortReliefReviewedSignature: null };
+}
+
 export function SeaTransportBoardView(props: SeaTransportBoardViewProps) {
   const { state, context, selection, onSelectionChange } = props;
-  const operation = state.operations.find((item) => item.id === selection.operationId) ?? state.operations[0];
-  const records = [...state.records].sort((a, b) => b.endedWeek - a.endedWeek);
-  const record = records.find((item) => item.id === selection.recordId) ?? records[0];
+  const { operations, records, operation, record, staleOperation, staleRecord, completedRecord, unavailableReason } = getSeaTransportBoardSelection(state, context, selection);
   return <div className="sea-transport-board command-edition" data-sea-workspace={selection.workspace}>
     <header className="st-header"><div><span className="st-eyebrow">SEA LIFT COMMAND / 제{context.week + 1}주</span><h1>해상 수송·상륙 본부</h1><p>병력을 바다 건너 보내고, 마지막 보급까지 지휘합니다.</p></div><div className="st-header-mark"><Anchor size={32} aria-hidden="true" /></div></header>
     <nav className="st-workspaces" aria-label="해상 수송 업무">
       <button type="button" aria-pressed={selection.workspace === 'plan'} onClick={() => onSelectionChange({ workspace: 'plan' })}><FileCheck2 size={20} aria-hidden="true" /><span><strong>수송 계획</strong><small>부대·목적지 → 검토 → 승인</small></span></button>
-      <button type="button" aria-pressed={selection.workspace === 'active'} onClick={() => onSelectionChange({ workspace: 'active' })}><Ship size={20} aria-hidden="true" /><span><strong>진행 중</strong><small>{state.operations.length}개 수송 · 항해·상륙·보급</small></span></button>
-      <button type="button" aria-pressed={selection.workspace === 'history'} onClick={() => onSelectionChange({ workspace: 'history' })}><FileText size={20} aria-hidden="true" /><span><strong>확정 보고서</strong><small>{state.records.length}개 결과 · 비용·손실·도착지</small></span></button>
+      <button type="button" aria-pressed={selection.workspace === 'active'} onClick={() => onSelectionChange({ workspace: 'active' })}><Ship size={20} aria-hidden="true" /><span><strong>진행 중</strong><small>{operations.length}개 수송 · 항해·상륙·보급</small></span></button>
+      <button type="button" aria-pressed={selection.workspace === 'history'} onClick={() => onSelectionChange({ workspace: 'history' })}><FileText size={20} aria-hidden="true" /><span><strong>확정 보고서</strong><small>{records.length}개 결과 · 비용·손실·도착지</small></span></button>
     </nav>
     {context.processingWeek ? <div className="st-notice st-warning" role="status"><Clock3 size={19} aria-hidden="true" /><p>주간 결산 중입니다. 계획은 열람할 수 있지만 새 승인·철회 요청은 잠시 중지됩니다.</p></div> : null}
-    {selection.workspace === 'plan' ? <Planning {...props} /> : selection.workspace === 'active' ? operation ? <div className="st-layout">
-      <aside className="st-surface"><header><span className="st-eyebrow">UNDER WAY</span><h2>진행 중인 수송</h2></header><div className="st-choice-list" role="group" aria-label="진행 수송 선택">{state.operations.map((item) => <button key={item.id} type="button" aria-pressed={operation.id === item.id} onClick={() => onSelectionChange({ operationId: item.id, returnReviewId: null, rescueReviewedSignature: null, escortReliefReviewedSignature: null, rescueEscortFleetId: undefined, escortReliefFleetId: undefined })}><strong>{item.divisionName}</strong><small>{item.fromName} → {item.targetName}</small><small>{seaTransportStageLabels[item.stage]} · {item.elapsedWeeks}주 경과</small>{item.pendingEscortRelief ? <small>호위 합류 대기 · {item.pendingEscortRelief.fleetName}</small> : null}</button>)}</div></aside>
-      <ActiveOperation operation={operation} {...props} />
-    </div> : <section className="st-empty"><h2>진행 중인 수송이 없습니다</h2><p>계획 검토 뒤 승인하면 여기에 승선·항해·상륙 진행이 나타납니다. 완료된 명령은 확정 보고서에 남습니다.</p><div className="st-actions"><button type="button" onClick={() => onSelectionChange({ workspace: 'plan' })}>수송 계획으로</button>{state.records.length ? <button type="button" onClick={() => onSelectionChange({ workspace: 'history' })}>확정 보고서 보기</button> : null}</div></section>
-      : record ? <div className="st-layout"><aside className="st-surface"><header><span className="st-eyebrow">ARCHIVE</span><h2>종료된 수송 기록</h2></header><div className="st-choice-list" role="group" aria-label="수송 보고서 선택">{records.map((item) => <button key={item.id} type="button" aria-pressed={item.id === record.id} onClick={() => onSelectionChange({ recordId: item.id })}><strong>{item.divisionName}</strong><small>{item.targetName} · {outcomeLabels[item.outcome]}</small><small>제{item.endedWeek + 1}주 · {item.elapsedWeeks}주 소요</small></button>)}</div></aside><RecordDetail record={record} context={context} onOpenLocation={props.onOpenLocation} /></div>
+    {unavailableReason ? <div className="st-notice st-warning" role="status"><Info size={19} aria-hidden="true" /><p>{unavailableReason}</p></div> : null}
+    {selection.workspace === 'plan' ? <Planning {...props} /> : selection.workspace === 'active' ? operation || staleOperation ? <div className="st-layout">
+      <aside className="st-surface"><header><span className="st-eyebrow">UNDER WAY</span><h2>진행 중인 수송</h2></header><div className="st-choice-list" role="group" aria-label="진행 수송 선택">{operations.map((item) => <button key={item.id} type="button" aria-pressed={operation?.id === item.id} onClick={() => onSelectionChange({ operationId: item.id, returnReviewId: null, rescueReviewedSignature: null, escortReliefReviewedSignature: null, rescueEscortFleetId: undefined, escortReliefFleetId: undefined })}><strong>{item.divisionName}</strong><small>{item.fromName} → {item.targetName}</small><small>{seaTransportStageLabels[item.stage]} · {item.elapsedWeeks}주 경과</small>{item.pendingEscortRelief ? <small>호위 합류 대기 · {item.pendingEscortRelief.fleetName}</small> : null}</button>)}</div>{!operations.length ? <p>현재 열람 가능한 진행 수송이 없습니다.</p> : null}</aside>
+      {operation ? <ActiveOperation operation={operation} {...props} /> : <section className="st-empty" role="status"><h2>선택한 수송을 현재 진행 목록에서 찾을 수 없습니다</h2><p>이미 종료되었거나 현재 소속·시간선에서 볼 수 없는 명령입니다. 다른 수송을 자동으로 선택하지 않았습니다. 진행 중인 수송을 목록에서 직접 다시 선택하십시오.</p>
+        {completedRecord ? <div className="st-actions"><button type="button" data-completed-record={completedRecord.id} onClick={() => onSelectionChange(getSeaTransportRecordSelection(completedRecord.id))}><FileText size={17} aria-hidden="true" />해당 수송의 확정 보고서 · {completedRecord.divisionName}</button></div> : <p>이 수송과 정확히 일치하는 확정 보고서는 현재 열람 목록에 없습니다.</p>}
+      </section>}
+    </div> : <section className="st-empty"><h2>진행 중인 수송이 없습니다</h2><p>계획 검토 뒤 승인하면 여기에 승선·항해·상륙 진행이 나타납니다. 완료된 명령은 확정 보고서에 남습니다.</p><div className="st-actions"><button type="button" onClick={() => onSelectionChange({ workspace: 'plan' })}>수송 계획으로</button>{records.length ? <button type="button" onClick={() => onSelectionChange({ workspace: 'history' })}>확정 보고서 보기</button> : null}</div></section>
+      : record || staleRecord ? <div className="st-layout"><aside className="st-surface"><header><span className="st-eyebrow">ARCHIVE</span><h2>종료된 수송 기록</h2></header><div className="st-choice-list" role="group" aria-label="수송 보고서 선택">{records.map((item) => <button key={item.id} type="button" aria-pressed={item.id === record?.id} onClick={() => onSelectionChange(getSeaTransportRecordSelection(item.id))}><strong>{item.divisionName}</strong><small>{item.targetName} · {outcomeLabels[item.outcome]}</small><small>제{item.endedWeek + 1}주 · {item.elapsedWeeks}주 소요</small></button>)}</div>{!records.length ? <p>현재 열람 가능한 확정 보고서가 없습니다.</p> : null}</aside>{record ? <RecordDetail record={record} context={context} onOpenLocation={props.onOpenLocation} /> : <section className="st-empty" role="status"><h2>선택한 보고서를 현재 목록에서 찾을 수 없습니다</h2><p>현재 소속·시간선의 기록이 아니거나 보관 목록에서 제외된 보고서입니다. 다른 보고서를 대신 열지 않았습니다. 목록에서 확인할 보고서를 직접 다시 선택하십시오.</p></section>}</div>
         : <section className="st-empty"><h2>아직 확정된 수송 보고서가 없습니다</h2><p>수송·상륙·귀환이 종료되면 실제 도착지, 소비 비용과 손실을 같은 화면에서 확인할 수 있습니다. 전망을 확정 결과처럼 기록하지 않습니다.</p></section>}
   </div>;
 }
