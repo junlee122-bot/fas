@@ -1,0 +1,61 @@
+{
+  "provider": "Higgsfield",
+  "transport": "Official @higgsfield/cli 1.1.25",
+  "model": "gpt_image_2_5",
+  "parameters": { "variant": "flare", "quality": "high", "resolution": "2k", "aspect_ratio": "3:2" },
+  "planChanged": false,
+  "credits": { "before": 253, "after": 244, "batchCost": 9, "estimatedPerImage": 3 },
+  "dimensions": { "width": 2048, "height": 1360 },
+  "conversion": { "format": "webp", "lossless": true, "resize": false, "upscale": false, "decodedPixelsIdentical": true },
+  "rightsClearance": "Not independently verified; generation is not a rights-clearance claim.",
+  "historicalStatus": "Fictional unnamed atmosphere, not archival evidence, named-person portraits or verified country-specific offices.",
+  "displayEra": { "from": 1936, "through": 1959, "unknownDate": "omit" },
+  "promptSource": "design/higgsfield-command-desk-production.md",
+  "promptAssembly": "Common style, scene, common restrictions, separated by a blank line; blocks used verbatim.",
+  "commonStyle": "Historically grounded editorial game illustration in restrained oil and gouache,\nwith deliberate brushwork and clear architectural silhouettes. Environments use\ncharcoal blue and muted olive; people and focal documents carry warm ivory and\nsubdued brass, while warning red is reserved for interface signals, not decorative\nlighting. Directional practical light creates a sober, human atmosphere without\ncinematic haze or glossy surfaces. Maintain readable subject separation and a\nconsistent eye-level three-quarter perspective, leaving quiet negative space for\nadjacent interface text.",
+  "commonRestrictions": "Create one landscape supporting illustration for a roughly 3:2 display slot.\nKeep the essential subject readable when reduced to 160–230 pixels wide. Use a\nconsistent medium-wide framing across the set, with a quiet, low-detail left edge.\nShow fictional, unnamed people only. No recognizable historical faces, flags,\nnational emblems, military insignia, medals, identifiable landmarks, readable text,\nnumbers, signatures, seals, dates, borders, coordinates, troop markers, or\ngeographical outlines. No computers, digital screens, modern communications\nequipment, fantasy devices, cinematic smoke, glossy rendering, dramatic red\nlighting, interface elements, buttons, captions, logos, or watermarks. This is\natmospheric game illustration, not an archival photograph or evidence that an\nevent occurred.",
+  "assets": [
+    {
+      "role": "military",
+      "jobId": "02887f6e-3fcc-485d-9598-1204c6a30ad0",
+      "createdAt": "2026-09-17T10:19:25.313537Z",
+      "status": "completed",
+      "source": "design/source-assets/command-desk/military-workroom.png",
+      "runtime": "src/assets/command-desk/military-workroom.webp",
+      "sourceBytes": 3745660,
+      "runtimeBytes": 2531480,
+      "sourceSha256": "0d76a6a4fe42c4ea044f4c4f2dc213c7676652c03404d695c23aa1441db66bb7",
+      "runtimeSha256": "743b0616a85ce6bda082d84dd26187ccfb6a3262d7ec0d44aa86e34bea5ae4fe",
+      "scene": "A modest military staff workroom appropriate to 1936–1959, viewed at desk height.\nTwo anonymous staff members in plain, unmarked period service clothing quietly\ncompare blank dispatch folders beside a wooden document tray and a simple wired\nfield telephone. Their posture suggests routine preparation, not a battle victory,\nemergency, or high-command ceremony. One restrained desk lamp illuminates the\npapers and hands. Keep the room practical and unprestigious so it can support\ndifferent military career ranks. No maps or operational diagrams. Build a clear\ncomposition around the desk, two human silhouettes, and a small area of warm paper.",
+      "review": "Accepted for supporting atmosphere: two staff, dispatches, telephone; no operational map or national insignia. Not a verified uniform reconstruction."
+    },
+    {
+      "role": "politics",
+      "jobId": "b3cc59f9-3fa6-44e4-96a9-973964ae2c88",
+      "createdAt": "2026-09-17T10:19:57.016284Z",
+      "status": "completed",
+      "source": "design/source-assets/command-desk/politics-workroom.png",
+      "runtime": "src/assets/command-desk/politics-workroom.webp",
+      "sourceBytes": 3672327,
+      "runtimeBytes": 2473086,
+      "sourceSha256": "e899722a1dd186d0670b18262be711a3c29345f26dd32cfc9811def02be38428",
+      "runtimeSha256": "3b43bb01e305167ecc0f66e155fd9ee743f221100b7971a0e1558cda3dd74d2a",
+      "scene": "A modest civilian policy workroom appropriate to 1936–1959, viewed at desk height.\nThree anonymous civil staff members in understated period clothing quietly discuss\na set of blank policy folders around a plain wooden table. One person listens\nwhile another indicates an unmarked sheet. Depict ordinary deliberation, not a\ntreaty signing, diplomatic recognition, independence declaration, election result,\nor transfer of territory. No ceremonial furniture or head-of-state setting. A\nshaded practical lamp creates a small warm focal area on the documents, surrounded\nby a calm, subdued room.",
+      "review": "Accepted for supporting atmosphere: three civilian staff in ordinary deliberation; no signed treaty, office seal or claimed historical outcome."
+    },
+    {
+      "role": "intelligence",
+      "jobId": "4dcb56dc-bc0e-4f04-a7f1-7fc12a33e67d",
+      "createdAt": "2026-09-17T10:19:59.421882Z",
+      "status": "completed",
+      "source": "design/source-assets/command-desk/intelligence-workroom.png",
+      "runtime": "src/assets/command-desk/intelligence-workroom.webp",
+      "sourceBytes": 4009930,
+      "runtimeBytes": 2694770,
+      "sourceSha256": "2e81f51514688b8f8b9dc3635f3e0853b45e789f8d62f99f59413a036a2d4e31",
+      "runtimeSha256": "f079596cb23560ad4108c8a53f8a60bc95b3ae515d04790583b95461ecf4819c",
+      "scene": "A modest intelligence communications workroom appropriate to 1936–1959, viewed at\ndesk height. Two anonymous clerical staff members review unmarked message slips\nbeside a compact period radio receiver, wired headphones, a shaded task lamp, and\nclosed document folders. The equipment is simple and mechanically plausible, with\nno readable frequencies or identifying markings. Show quiet assessment and patient\nlistening, not a successful interception, covert raid, named espionage operation,\nor dramatic discovery. Keep faces secondary to the papers, hands, and restrained\nsilhouettes. No maps, pinboards, photographs, or location clues.",
+      "review": "Accepted for supporting atmosphere: radio, wired headphones and clerical review. Slips have faint non-readable marks rather than perfectly blank paper; no real message is conveyed."
+    }
+  ]
+}

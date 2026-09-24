@@ -1,0 +1,111 @@
+.fleet-map-layer .fleet-map-route-completed,
+.fleet-map-layer .fleet-map-route-remaining {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.fleet-map-layer .fleet-map-route-completed {
+  stroke: #76b1b8;
+  stroke-width: 2px;
+  stroke-dasharray: 3 6;
+  opacity: 0.58;
+}
+
+.fleet-map-layer .fleet-map-route-remaining {
+  stroke: #b1eff5;
+  stroke-width: 2.5px;
+  stroke-dasharray: 10 5;
+  paint-order: stroke;
+}
+
+.fleet-map-layer .fleet-map-destination {
+  fill: #18383e;
+  stroke: #b1eff5;
+  stroke-width: 1.5px;
+}
+
+.fleet-map-layer .fleet-map-destination-cross {
+  stroke: #b1eff5;
+  stroke-width: 1px;
+  fill: none;
+}
+
+.fleet-map-layer .fleet-map-marker {
+  cursor: pointer;
+  outline: none;
+  pointer-events: none;
+}
+
+.fleet-map-layer .fleet-map-hitbox {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 2px;
+  pointer-events: all;
+}
+
+.fleet-map-layer .fleet-map-symbol-back {
+  fill: #18363d;
+  stroke: #80cad4;
+  stroke-width: 1.5px;
+  pointer-events: none;
+}
+
+.fleet-map-layer .fleet-map-hull,
+.fleet-map-layer .fleet-map-moving {
+  stroke: #dbf4f4;
+  stroke-width: 1.6px;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fleet-map-layer .fleet-map-marker:hover .fleet-map-symbol-back,
+.fleet-map-layer .fleet-map-marker.is-selected .fleet-map-symbol-back {
+  fill: #315b60;
+  stroke: #e2fcff;
+  stroke-width: 2px;
+}
+
+.fleet-map-layer .fleet-map-marker:focus-visible .fleet-map-hitbox {
+  stroke: #f2df9a;
+}
+
+.fleet-map-layer .fleet-map-marker.is-stranded .fleet-map-symbol-back {
+  stroke: #efb285;
+}
+
+.fleet-map-layer .fleet-map-alert {
+  fill: #fcd2a7;
+  font-size: 15px;
+  font-weight: 800;
+  paint-order: stroke fill;
+  stroke: #18363d;
+  stroke-width: 3px;
+}
+
+.fleet-map-layer .fleet-map-leader {
+  stroke: #95cbd0;
+  stroke-width: 1px;
+  fill: none;
+  pointer-events: none;
+}
+
+.fleet-map-layer .fleet-map-exact-position {
+  fill: #d3f5f5;
+  stroke: #18363d;
+  stroke-width: 1px;
+  pointer-events: none;
+}
+
+.fleet-map-layer .fleet-map-name {
+  fill: #e5f6f6;
+  font-size: 12px;
+  font-weight: 650;
+  text-anchor: middle;
+  paint-order: stroke fill;
+  stroke: #142b30;
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+}

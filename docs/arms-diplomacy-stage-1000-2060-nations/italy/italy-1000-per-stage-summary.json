@@ -1,0 +1,357 @@
+[
+  {
+    "nationId": "italy",
+    "stageId": "total-war",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 654,
+    "dominantPathRate": 1.2,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 28.6,
+    "averageCapabilityGain": 48.4,
+    "averageFinalCapability": 99.9,
+    "averageAutonomy": 69.3,
+    "averageInteroperability": 82.7,
+    "averageRelations": 68.1,
+    "averageTreasury": 209.5,
+    "averageFiscalStress": 2.3,
+    "averageEscalation": 42.3,
+    "averageSupplySecurity": 73.3,
+    "averageProliferation": 15.5,
+    "averageTreatyCompliance": 33.3,
+    "averageDecisionImpact": 19.9,
+    "sanctionsPerSession": 0.06,
+    "procurementFailureRate": 16.1,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "total-war-armor",
+        "uses": 2577
+      },
+      {
+        "id": "total-war-aircraft",
+        "uses": 2552
+      },
+      {
+        "id": "total-war-naval",
+        "uses": 2477
+      },
+      {
+        "id": "total-war-strategic",
+        "uses": 1019
+      },
+      {
+        "id": "total-war-logistics",
+        "uses": 940
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "combined-standards",
+        "uses": 705
+      },
+      {
+        "id": "licensed-mass-production",
+        "uses": 703
+      },
+      {
+        "id": "scientific-mission",
+        "uses": 678
+      },
+      {
+        "id": "emergency-aid",
+        "uses": 661
+      },
+      {
+        "id": "strategic-embargo",
+        "uses": 640
+      }
+    ]
+  },
+  {
+    "nationId": "italy",
+    "stageId": "reconstruction",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 666,
+    "dominantPathRate": 1,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 29.4,
+    "averageCapabilityGain": 51.1,
+    "averageFinalCapability": 99.6,
+    "averageAutonomy": 70.4,
+    "averageInteroperability": 82.3,
+    "averageRelations": 75.7,
+    "averageTreasury": 207.5,
+    "averageFiscalStress": 2.5,
+    "averageEscalation": 33.1,
+    "averageSupplySecurity": 67.5,
+    "averageProliferation": 8.4,
+    "averageTreatyCompliance": 43.3,
+    "averageDecisionImpact": 20.6,
+    "sanctionsPerSession": 0.07,
+    "procurementFailureRate": 16,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "reconstruction-aircraft",
+        "uses": 2622
+      },
+      {
+        "id": "reconstruction-armor",
+        "uses": 2539
+      },
+      {
+        "id": "reconstruction-naval",
+        "uses": 2479
+      },
+      {
+        "id": "reconstruction-strategic",
+        "uses": 1066
+      },
+      {
+        "id": "reconstruction-logistics",
+        "uses": 875
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "decolonization-security-compact",
+        "uses": 720
+      },
+      {
+        "id": "demobilization-control",
+        "uses": 708
+      },
+      {
+        "id": "atomic-oversight",
+        "uses": 668
+      },
+      {
+        "id": "arsenal-reconstruction-credit",
+        "uses": 656
+      },
+      {
+        "id": "mutual-defense",
+        "uses": 650
+      }
+    ]
+  },
+  {
+    "nationId": "italy",
+    "stageId": "bipolar",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 608,
+    "dominantPathRate": 1.1,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 29.2,
+    "averageCapabilityGain": 54.4,
+    "averageFinalCapability": 99.9,
+    "averageAutonomy": 74.4,
+    "averageInteroperability": 77.6,
+    "averageRelations": 70.2,
+    "averageTreasury": 184,
+    "averageFiscalStress": 9.9,
+    "averageEscalation": 54.7,
+    "averageSupplySecurity": 71.3,
+    "averageProliferation": 29.3,
+    "averageTreatyCompliance": 59.7,
+    "averageDecisionImpact": 25,
+    "sanctionsPerSession": 0.11,
+    "procurementFailureRate": 16.2,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "bipolar-aircraft",
+        "uses": 2621
+      },
+      {
+        "id": "bipolar-armor",
+        "uses": 2612
+      },
+      {
+        "id": "bipolar-naval",
+        "uses": 2424
+      },
+      {
+        "id": "bipolar-strategic",
+        "uses": 1026
+      },
+      {
+        "id": "bipolar-logistics",
+        "uses": 879
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "hotline-arms-control",
+        "uses": 771
+      },
+      {
+        "id": "indigenous-deterrent",
+        "uses": 728
+      },
+      {
+        "id": "alliance-standardization",
+        "uses": 640
+      },
+      {
+        "id": "npt-safeguards",
+        "uses": 640
+      },
+      {
+        "id": "nonaligned-diversification",
+        "uses": 619
+      }
+    ]
+  },
+  {
+    "nationId": "italy",
+    "stageId": "networked",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 677,
+    "dominantPathRate": 1.4,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 29.2,
+    "averageCapabilityGain": 57.5,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 65.5,
+    "averageInteroperability": 86.7,
+    "averageRelations": 79.4,
+    "averageTreasury": 177.6,
+    "averageFiscalStress": 10.6,
+    "averageEscalation": 43.8,
+    "averageSupplySecurity": 70.5,
+    "averageProliferation": 9.1,
+    "averageTreatyCompliance": 58.4,
+    "averageDecisionImpact": 21,
+    "sanctionsPerSession": 0.07,
+    "procurementFailureRate": 15.4,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "networked-aircraft",
+        "uses": 2673
+      },
+      {
+        "id": "networked-armor",
+        "uses": 2607
+      },
+      {
+        "id": "networked-naval",
+        "uses": 2340
+      },
+      {
+        "id": "networked-strategic",
+        "uses": 1012
+      },
+      {
+        "id": "networked-logistics",
+        "uses": 926
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "joint-procurement",
+        "uses": 711
+      },
+      {
+        "id": "precision-network-access",
+        "uses": 700
+      },
+      {
+        "id": "regional-code-conduct",
+        "uses": 685
+      },
+      {
+        "id": "responsible-export-controls",
+        "uses": 662
+      },
+      {
+        "id": "illicit-transfer-interdiction",
+        "uses": 631
+      }
+    ]
+  },
+  {
+    "nationId": "italy",
+    "stageId": "horizon",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 670,
+    "dominantPathRate": 1.1,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 28.7,
+    "averageCapabilityGain": 60.5,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 75.1,
+    "averageInteroperability": 84.6,
+    "averageRelations": 70.5,
+    "averageTreasury": 149.7,
+    "averageFiscalStress": 17.1,
+    "averageEscalation": 52,
+    "averageSupplySecurity": 71.9,
+    "averageProliferation": 28.2,
+    "averageTreatyCompliance": 67.4,
+    "averageDecisionImpact": 23.1,
+    "sanctionsPerSession": 0.11,
+    "procurementFailureRate": 17.1,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "horizon-aircraft",
+        "uses": 2602
+      },
+      {
+        "id": "horizon-armor",
+        "uses": 2598
+      },
+      {
+        "id": "horizon-naval",
+        "uses": 2465
+      },
+      {
+        "id": "horizon-strategic",
+        "uses": 1041
+      },
+      {
+        "id": "horizon-systems",
+        "uses": 908
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "space-incident-regime",
+        "uses": 697
+      },
+      {
+        "id": "human-control-protocol",
+        "uses": 696
+      },
+      {
+        "id": "cyber-confidence-network",
+        "uses": 693
+      },
+      {
+        "id": "sovereign-ai-deterrent",
+        "uses": 673
+      },
+      {
+        "id": "autonomous-joint-lab",
+        "uses": 624
+      }
+    ]
+  }
+]

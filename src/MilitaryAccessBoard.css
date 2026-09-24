@@ -1,0 +1,113 @@
+.game-shell.design-v2 .deck-content .military-access-board {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+  color: var(--ui-text, #e8e8de);
+  font-family: var(--font-ui, sans-serif);
+  line-height: 1.65;
+}
+.military-access-board *, .military-access-board *::before, .military-access-board *::after { box-sizing: border-box; }
+.game-shell.design-v2 .deck-content .military-access-board :is(h2, h3, h4, p, dl, ol, ul) { margin: 0; }
+.game-shell.design-v2 .deck-content .military-access-board :is(h2, h3, h4, p, dd, strong, button, label, small) { overflow-wrap: anywhere; }
+.game-shell.design-v2 .deck-content .military-access-board h2 { font-size: 25px; letter-spacing: -.03em; line-height: 1.4; }
+.game-shell.design-v2 .deck-content .military-access-board h3 { font-size: 17px; line-height: 1.5; }
+.game-shell.design-v2 .deck-content .military-access-board h4 { font-size: 15px; }
+.game-shell.design-v2 .deck-content .military-access-board p { font-size: 14px; }
+.game-shell.design-v2 .deck-content .military-access-board small { font-size: 12px; line-height: 1.6; }
+.game-shell.design-v2 .deck-content .military-access-board :is(button, select) { min-height: 44px; max-width: 100%; font: inherit; font-size: 14px; }
+.game-shell.design-v2 .deck-content .military-access-board button { padding: 10px 15px; white-space: normal; height: auto; border: 1px solid var(--ui-border, #3e4941); background: var(--ui-surface, #18231e); color: var(--ui-text, #e8e8de); cursor: pointer; }
+.game-shell.design-v2 .deck-content .military-access-board button:disabled { cursor: not-allowed; opacity: .58; }
+.game-shell.design-v2 .deck-content .military-access-board :is(button, select, summary):focus-visible { outline: 2px solid var(--ui-accent, #c6a86b); outline-offset: 3px; }
+.game-shell.design-v2 .deck-content .military-access-board select { display: block; width: 100%; min-width: 0; padding: 10px 32px 10px 12px; color: var(--ui-text, #e8e8de); border: 1px solid var(--ui-border, #3e4941); background-color: var(--ui-surface, #18231e); }
+.game-shell.design-v2 .deck-content .military-access-board label { display: grid; gap: 8px; min-width: 0; font-size: 13px; }
+.game-shell.design-v2 .deck-content .military-access-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
+.game-shell.design-v2 .deck-content .military-access-heading > div { display: grid; gap: 8px; }
+.game-shell.design-v2 .deck-content .military-access-heading > .military-access-header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; max-width: 100%; min-width: 0; }
+.game-shell.design-v2 .deck-content .military-access-header-actions .military-access-date { padding-top: 0; }
+.game-shell.design-v2 .deck-content .military-access-board .military-access-proposal-jump { border-color: var(--ui-accent, #c6a86b); color: var(--ui-accent, #c6a86b); font-weight: 600; }
+.game-shell.design-v2 .deck-content .military-access-heading p { color: var(--ui-muted, #a5afa6); }
+.game-shell.design-v2 .deck-content .military-access-eyebrow { display: flex; align-items: center; gap: 9px; font-size: 12px; letter-spacing: .035em; color: var(--ui-accent, #c6a86b); }
+.game-shell.design-v2 .deck-content .military-access-date { padding-top: 4px; font-family: var(--font-data, monospace); font-size: 12px; color: var(--ui-muted, #a5afa6); font-variant-numeric: tabular-nums; }
+.game-shell.design-v2 .deck-content .military-access-authority { border-left: 2px solid var(--ui-border, #3e4941); padding: 7px 0 7px 14px; color: var(--ui-muted, #a5afa6); }
+.game-shell.design-v2 .deck-content .military-access-counters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; padding: 16px 0; border-block: 1px solid var(--ui-border, #3e4941); }
+.game-shell.design-v2 .deck-content .military-access-counters dt { font-size: 12px; color: var(--ui-muted, #a5afa6); }
+.game-shell.design-v2 .deck-content .military-access-counters dd { margin: 4px 0 0; font-size: 25px; font-variant-numeric: tabular-nums; }
+.game-shell.design-v2 .deck-content .military-access-counters small { margin-left: 8px; color: var(--ui-muted, #a5afa6); }
+.game-shell.design-v2 .deck-content .military-access-boundaries { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px; }
+.game-shell.design-v2 .deck-content .military-access-boundaries > section { display: grid; gap: 10px; }
+.game-shell.design-v2 .deck-content .military-access-boundaries h3 { display: flex; align-items: center; gap: 10px; }
+.game-shell.design-v2 .deck-content .military-access-scope-note { color: var(--ui-muted, #a5afa6); max-width: 95ch; }
+.game-shell.design-v2 .deck-content .military-access-message { padding: 12px 16px; border-left: 3px solid var(--ui-accent, #c6a86b); background: var(--ui-surface, #18231e); }
+.game-shell.design-v2 .deck-content .military-access-workspace { display: grid; grid-template-columns: minmax(235px, .7fr) minmax(0, 1.6fr); gap: 30px; align-items: start; }
+.game-shell.design-v2 .deck-content .military-access-ledger { min-width: 0; }
+.game-shell.design-v2 .deck-content .military-access-ledger > header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--ui-border, #3e4941); }
+.game-shell.design-v2 .deck-content .military-access-ledger > header span { color: var(--ui-muted, #a5afa6); font-size: 12px; }
+.game-shell.design-v2 .deck-content .military-access-ledger ul { padding: 0; list-style: none; max-height: 550px; overflow-y: auto; scrollbar-gutter: stable; }
+.game-shell.design-v2 .deck-content .military-access-ledger li { margin: 0; padding: 0; }
+.game-shell.design-v2 .deck-content .military-access-ledger li button { display: grid; gap: 5px; width: 100%; padding: 15px 12px; text-align: left; border: 0; border-left: 2px solid transparent; border-bottom: 1px solid var(--ui-border, #3e4941); border-radius: 0; background: transparent; }
+.game-shell.design-v2 .deck-content .military-access-ledger li button[aria-pressed=true] { border-left-color: var(--ui-accent, #c6a86b); background: var(--ui-surface, #18231e); }
+.game-shell.design-v2 .deck-content .military-access-ledger li button:focus-visible { outline-offset: -3px; }
+.game-shell.design-v2 .deck-content .military-access-ledger li strong { font-size: 15px; font-weight: 600; }
+.game-shell.design-v2 .deck-content .military-access-ledger li span { color: var(--ui-muted, #a5afa6); font-size: 12px; }
+.game-shell.design-v2 .deck-content .military-access-record { display: grid; gap: 18px; padding-left: 30px; border-left: 1px solid var(--ui-border, #3e4941); min-width: 0; }
+.game-shell.design-v2 .deck-content .military-access-record > header { display: flex; gap: 14px; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; }
+.game-shell.design-v2 .deck-content .military-access-record > header > div { display: grid; gap: 6px; }
+.game-shell.design-v2 .deck-content .military-access-board .military-access-status { color: var(--ui-accent, #c6a86b); font-size: 12px; line-height: 1.6; }
+.game-shell.design-v2 .deck-content .military-access-board .military-access-status-active { color: #98c5ad; }
+.game-shell.design-v2 .deck-content .military-access-board :is(.military-access-status-notice, .military-access-status-expired, .military-access-status-revoked, .military-access-status-rejected) { color: #e0aa8e; }
+.game-shell.design-v2 .deck-content .military-access-board .military-access-status-withdrawn { color: var(--ui-muted, #a5afa6); }
+.game-shell.design-v2 .deck-content .military-access-parties { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding-block: 14px; border-block: 1px solid var(--ui-border, #3e4941); }
+.game-shell.design-v2 .deck-content .military-access-parties dt { font-size: 12px; color: var(--ui-muted, #a5afa6); }
+.game-shell.design-v2 .deck-content .military-access-parties dd { margin: 5px 0 0; font-size: 14px; font-weight: 600; }
+.game-shell.design-v2 .deck-content .military-access-reason { padding-left: 12px; border-left: 2px solid var(--ui-accent, #c6a86b); }
+.game-shell.design-v2 .deck-content .military-access-timeline { padding: 0; list-style: none; }
+.game-shell.design-v2 .deck-content .military-access-timeline li { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 16px; padding: 8px 0; border-bottom: 1px solid var(--ui-border, #3e4941); }
+.game-shell.design-v2 .deck-content .military-access-timeline span { font-size: 12px; color: var(--ui-muted, #a5afa6); }
+.game-shell.design-v2 .deck-content .military-access-timeline strong { font-size: 13px; font-weight: 400; font-variant-numeric: tabular-nums; }
+.game-shell.design-v2 .deck-content .military-access-timing { color: var(--ui-accent, #c6a86b); }
+.game-shell.design-v2 .deck-content .military-access-warning { padding-left: 12px; border-left: 2px solid #d6a185; color: #e0b39c; }
+.game-shell.design-v2 .deck-content .military-access-map-link { display: flex; align-items: center; gap: 8px; justify-self: start; }
+.game-shell.design-v2 .deck-content .military-access-record-actions { display: grid; gap: 14px; }
+.game-shell.design-v2 .deck-content .military-access-record-actions > div { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 14px; align-items: center; }
+.game-shell.design-v2 .deck-content .military-access-record-actions p { font-size: 13px; }
+.game-shell.design-v2 .deck-content .military-access-record-actions small { grid-column: 1 / -1; color: var(--ui-muted, #a5afa6); }
+.game-shell.design-v2 .deck-content .military-access-board .military-access-muted { color: var(--ui-muted, #a5afa6); font-size: 12px; }
+.game-shell.design-v2 .deck-content .military-access-empty { display: grid; justify-items: start; gap: 12px; padding: 22px 0; color: var(--ui-muted, #a5afa6); font-size: 14px; }
+.game-shell.design-v2 .deck-content .military-access-rebase { display: grid; gap: 12px; padding: 17px 0; border-block: 1px solid var(--ui-border, #3e4941); }
+.game-shell.design-v2 .deck-content .military-access-rebase > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: end; }
+.game-shell.design-v2 .deck-content .military-access-rebase :is(p, small) { color: var(--ui-muted, #a5afa6); font-size: 12px; }
+.game-shell.design-v2 .deck-content .military-access-proposal { display: grid; gap: 18px; border-top: 1px solid var(--ui-border, #3e4941); padding-top: 25px; scroll-margin-block: 24px; }
+.game-shell.design-v2 .deck-content .military-access-proposal:focus { outline: 2px solid var(--ui-accent, #c6a86b); outline-offset: 6px; }
+.game-shell.design-v2 .deck-content .military-access-proposal > header { display: grid; gap: 8px; }
+.game-shell.design-v2 .deck-content .military-access-proposal > header p { color: var(--ui-muted, #a5afa6); font-size: 13px; }
+.game-shell.design-v2 .deck-content .military-access-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.game-shell.design-v2 .deck-content .military-access-form legend { margin-bottom: 12px; font-size: 13px; color: var(--ui-muted, #a5afa6); }
+.game-shell.design-v2 .deck-content .military-access-site-field { grid-column: span 2; }
+.game-shell.design-v2 .deck-content .military-access-proposal-direction { font-weight: 600; }
+.game-shell.design-v2 .deck-content .military-access-proposal-action { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+.game-shell.design-v2 .deck-content .military-access-proposal-action p { flex: 1 1 300px; font-size: 13px; }
+.game-shell.design-v2 .deck-content .military-access-rules { border-top: 1px solid var(--ui-border, #3e4941); padding-top: 4px; color: var(--ui-muted, #a5afa6); }
+.game-shell.design-v2 .deck-content .military-access-rules summary { padding: 10px 0; min-height: 44px; cursor: pointer; font-size: 13px; }
+.game-shell.design-v2 .deck-content .military-access-rules p { padding: 8px 0; max-width: 110ch; font-size: 13px; }
+.game-shell.design-v2 .deck-content .military-access-review { display: grid; gap: 17px; padding: 24px; border: 1px solid var(--ui-accent, #c6a86b); border-left-width: 3px; background: var(--ui-surface, #18231e); scroll-margin-block: 24px; min-width: 0; }
+.game-shell.design-v2 .deck-content .military-access-review:focus { outline: 2px solid var(--ui-accent, #c6a86b); outline-offset: 3px; }
+.game-shell.design-v2 .deck-content .military-access-review-subject { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; padding: 15px 0; border-block: 1px solid var(--ui-border, #3e4941); }
+.game-shell.design-v2 .deck-content .military-access-review-subject dt { color: var(--ui-muted, #a5afa6); font-size: 12px; }
+.game-shell.design-v2 .deck-content .military-access-review-subject dd { margin: 5px 0 0; font-size: 17px; font-weight: 600; }
+.game-shell.design-v2 .deck-content .military-access-review-subject small { display: block; margin-top: 4px; font-size: 12px; font-weight: 400; }
+.game-shell.design-v2 .deck-content .military-access-costs { display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 18px; }
+.game-shell.design-v2 .deck-content .military-access-costs dt { color: var(--ui-muted, #a5afa6); font-size: 12px; }
+.game-shell.design-v2 .deck-content .military-access-costs dd { margin: 5px 0 0; font-size: 17px; font-variant-numeric: tabular-nums; }
+.game-shell.design-v2 .deck-content .military-access-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.game-shell.design-v2 .deck-content .military-access-board .military-access-confirm { background: var(--ui-accent, #c6a86b); border-color: var(--ui-accent, #c6a86b); color: var(--ui-ink, #111913); font-weight: 650; }
+@media (max-width: 1350px) {
+  .game-shell.design-v2 .deck-content .military-access-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .game-shell.design-v2 .deck-content .military-access-workspace { gap: 24px; }
+  .game-shell.design-v2 .deck-content .military-access-record { padding-left: 24px; }
+  .game-shell.design-v2 .deck-content .military-access-record-actions > div { grid-template-columns: minmax(0, 1fr); justify-items: start; }
+}
+@media (max-width: 1100px) {
+  .game-shell.design-v2 .deck-content .military-access-workspace { grid-template-columns: minmax(0, 1fr); }
+  .game-shell.design-v2 .deck-content .military-access-record { padding: 22px 0 0; border-left: 0; border-top: 1px solid var(--ui-border, #3e4941); }
+  .game-shell.design-v2 .deck-content .military-access-ledger ul { max-height: 300px; }
+}

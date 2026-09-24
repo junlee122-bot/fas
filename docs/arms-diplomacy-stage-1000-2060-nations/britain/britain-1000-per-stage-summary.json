@@ -1,0 +1,357 @@
+[
+  {
+    "nationId": "britain",
+    "stageId": "total-war",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 622,
+    "dominantPathRate": 1.1,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 30.9,
+    "averageCapabilityGain": 43.9,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 77.8,
+    "averageInteroperability": 88.6,
+    "averageRelations": 68.9,
+    "averageTreasury": 210.3,
+    "averageFiscalStress": 1.4,
+    "averageEscalation": 42.8,
+    "averageSupplySecurity": 83.6,
+    "averageProliferation": 15.6,
+    "averageTreatyCompliance": 33.3,
+    "averageDecisionImpact": 19,
+    "sanctionsPerSession": 0.06,
+    "procurementFailureRate": 11.5,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "total-war-systems",
+        "uses": 2731
+      },
+      {
+        "id": "total-war-aircraft",
+        "uses": 2565
+      },
+      {
+        "id": "total-war-naval",
+        "uses": 2367
+      },
+      {
+        "id": "total-war-strategic",
+        "uses": 1035
+      },
+      {
+        "id": "total-war-logistics",
+        "uses": 894
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "combined-standards",
+        "uses": 709
+      },
+      {
+        "id": "licensed-mass-production",
+        "uses": 698
+      },
+      {
+        "id": "scientific-mission",
+        "uses": 671
+      },
+      {
+        "id": "strategic-embargo",
+        "uses": 655
+      },
+      {
+        "id": "emergency-aid",
+        "uses": 652
+      }
+    ]
+  },
+  {
+    "nationId": "britain",
+    "stageId": "reconstruction",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 635,
+    "dominantPathRate": 1.6,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 30.6,
+    "averageCapabilityGain": 46.6,
+    "averageFinalCapability": 99.7,
+    "averageAutonomy": 78,
+    "averageInteroperability": 89,
+    "averageRelations": 76.8,
+    "averageTreasury": 209.9,
+    "averageFiscalStress": 1.6,
+    "averageEscalation": 33.3,
+    "averageSupplySecurity": 78.8,
+    "averageProliferation": 7.8,
+    "averageTreatyCompliance": 43.6,
+    "averageDecisionImpact": 19.5,
+    "sanctionsPerSession": 0.05,
+    "procurementFailureRate": 11.8,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "reconstruction-systems",
+        "uses": 2673
+      },
+      {
+        "id": "reconstruction-aircraft",
+        "uses": 2609
+      },
+      {
+        "id": "reconstruction-naval",
+        "uses": 2468
+      },
+      {
+        "id": "reconstruction-strategic",
+        "uses": 1019
+      },
+      {
+        "id": "reconstruction-logistics",
+        "uses": 871
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "decolonization-security-compact",
+        "uses": 719
+      },
+      {
+        "id": "demobilization-control",
+        "uses": 717
+      },
+      {
+        "id": "atomic-oversight",
+        "uses": 686
+      },
+      {
+        "id": "arsenal-reconstruction-credit",
+        "uses": 656
+      },
+      {
+        "id": "mutual-defense",
+        "uses": 644
+      }
+    ]
+  },
+  {
+    "nationId": "britain",
+    "stageId": "bipolar",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 588,
+    "dominantPathRate": 1.4,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 31,
+    "averageCapabilityGain": 49.8,
+    "averageFinalCapability": 99.9,
+    "averageAutonomy": 81.6,
+    "averageInteroperability": 84.5,
+    "averageRelations": 70.6,
+    "averageTreasury": 195.4,
+    "averageFiscalStress": 5.8,
+    "averageEscalation": 55.6,
+    "averageSupplySecurity": 82.1,
+    "averageProliferation": 29.9,
+    "averageTreatyCompliance": 60.3,
+    "averageDecisionImpact": 24.9,
+    "sanctionsPerSession": 0.12,
+    "procurementFailureRate": 12,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "bipolar-systems",
+        "uses": 2688
+      },
+      {
+        "id": "bipolar-aircraft",
+        "uses": 2622
+      },
+      {
+        "id": "bipolar-naval",
+        "uses": 2443
+      },
+      {
+        "id": "bipolar-strategic",
+        "uses": 994
+      },
+      {
+        "id": "bipolar-logistics",
+        "uses": 873
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "hotline-arms-control",
+        "uses": 795
+      },
+      {
+        "id": "indigenous-deterrent",
+        "uses": 781
+      },
+      {
+        "id": "npt-safeguards",
+        "uses": 650
+      },
+      {
+        "id": "proxy-military-aid",
+        "uses": 605
+      },
+      {
+        "id": "alliance-standardization",
+        "uses": 601
+      }
+    ]
+  },
+  {
+    "nationId": "britain",
+    "stageId": "networked",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 657,
+    "dominantPathRate": 1.2,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 31.6,
+    "averageCapabilityGain": 52.9,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 74.5,
+    "averageInteroperability": 92.1,
+    "averageRelations": 80,
+    "averageTreasury": 192.7,
+    "averageFiscalStress": 6.2,
+    "averageEscalation": 45.9,
+    "averageSupplySecurity": 81.9,
+    "averageProliferation": 9.3,
+    "averageTreatyCompliance": 58.3,
+    "averageDecisionImpact": 20.7,
+    "sanctionsPerSession": 0.06,
+    "procurementFailureRate": 11.4,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "networked-systems",
+        "uses": 2706
+      },
+      {
+        "id": "networked-aircraft",
+        "uses": 2612
+      },
+      {
+        "id": "networked-naval",
+        "uses": 2384
+      },
+      {
+        "id": "networked-strategic",
+        "uses": 1012
+      },
+      {
+        "id": "networked-logistics",
+        "uses": 865
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "joint-procurement",
+        "uses": 705
+      },
+      {
+        "id": "precision-network-access",
+        "uses": 697
+      },
+      {
+        "id": "responsible-export-controls",
+        "uses": 686
+      },
+      {
+        "id": "regional-code-conduct",
+        "uses": 657
+      },
+      {
+        "id": "peacekeeping-assistance",
+        "uses": 634
+      }
+    ]
+  },
+  {
+    "nationId": "britain",
+    "stageId": "horizon",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 624,
+    "dominantPathRate": 0.9,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 30.5,
+    "averageCapabilityGain": 55.9,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 83,
+    "averageInteroperability": 90.8,
+    "averageRelations": 71.4,
+    "averageTreasury": 167.5,
+    "averageFiscalStress": 11.9,
+    "averageEscalation": 52.7,
+    "averageSupplySecurity": 82.8,
+    "averageProliferation": 29.3,
+    "averageTreatyCompliance": 67.7,
+    "averageDecisionImpact": 22.7,
+    "sanctionsPerSession": 0.12,
+    "procurementFailureRate": 12,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "horizon-systems",
+        "uses": 2617
+      },
+      {
+        "id": "horizon-aircraft",
+        "uses": 2605
+      },
+      {
+        "id": "horizon-naval",
+        "uses": 2424
+      },
+      {
+        "id": "horizon-strategic",
+        "uses": 1109
+      },
+      {
+        "id": "horizon-logistics",
+        "uses": 883
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "cyber-confidence-network",
+        "uses": 751
+      },
+      {
+        "id": "sovereign-ai-deterrent",
+        "uses": 704
+      },
+      {
+        "id": "space-incident-regime",
+        "uses": 697
+      },
+      {
+        "id": "human-control-protocol",
+        "uses": 667
+      },
+      {
+        "id": "resilient-supply-club",
+        "uses": 602
+      }
+    ]
+  }
+]

@@ -1,0 +1,357 @@
+[
+  {
+    "nationId": "japan",
+    "stageId": "total-war",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 650,
+    "dominantPathRate": 1.1,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 30.6,
+    "averageCapabilityGain": 44.3,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 79.2,
+    "averageInteroperability": 79.4,
+    "averageRelations": 67,
+    "averageTreasury": 209.9,
+    "averageFiscalStress": 1.3,
+    "averageEscalation": 44.9,
+    "averageSupplySecurity": 74,
+    "averageProliferation": 15.6,
+    "averageTreatyCompliance": 33.3,
+    "averageDecisionImpact": 19.7,
+    "sanctionsPerSession": 0.07,
+    "procurementFailureRate": 13.6,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "total-war-systems",
+        "uses": 2718
+      },
+      {
+        "id": "total-war-aircraft",
+        "uses": 2575
+      },
+      {
+        "id": "total-war-naval",
+        "uses": 2374
+      },
+      {
+        "id": "total-war-strategic",
+        "uses": 1068
+      },
+      {
+        "id": "total-war-logistics",
+        "uses": 873
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "combined-standards",
+        "uses": 715
+      },
+      {
+        "id": "scientific-mission",
+        "uses": 681
+      },
+      {
+        "id": "licensed-mass-production",
+        "uses": 666
+      },
+      {
+        "id": "emergency-aid",
+        "uses": 657
+      },
+      {
+        "id": "strategic-embargo",
+        "uses": 655
+      }
+    ]
+  },
+  {
+    "nationId": "japan",
+    "stageId": "reconstruction",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 640,
+    "dominantPathRate": 1.1,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 30.5,
+    "averageCapabilityGain": 47,
+    "averageFinalCapability": 99.7,
+    "averageAutonomy": 79.8,
+    "averageInteroperability": 78.7,
+    "averageRelations": 74.8,
+    "averageTreasury": 208.1,
+    "averageFiscalStress": 1.6,
+    "averageEscalation": 35.8,
+    "averageSupplySecurity": 68.5,
+    "averageProliferation": 8.2,
+    "averageTreatyCompliance": 43.6,
+    "averageDecisionImpact": 20.4,
+    "sanctionsPerSession": 0.09,
+    "procurementFailureRate": 13.7,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "reconstruction-systems",
+        "uses": 2661
+      },
+      {
+        "id": "reconstruction-aircraft",
+        "uses": 2591
+      },
+      {
+        "id": "reconstruction-naval",
+        "uses": 2414
+      },
+      {
+        "id": "reconstruction-strategic",
+        "uses": 1067
+      },
+      {
+        "id": "reconstruction-logistics",
+        "uses": 922
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "decolonization-security-compact",
+        "uses": 720
+      },
+      {
+        "id": "demobilization-control",
+        "uses": 719
+      },
+      {
+        "id": "atomic-oversight",
+        "uses": 686
+      },
+      {
+        "id": "mutual-defense",
+        "uses": 655
+      },
+      {
+        "id": "arsenal-reconstruction-credit",
+        "uses": 646
+      }
+    ]
+  },
+  {
+    "nationId": "japan",
+    "stageId": "bipolar",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 622,
+    "dominantPathRate": 1.4,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 30.4,
+    "averageCapabilityGain": 50.2,
+    "averageFinalCapability": 99.9,
+    "averageAutonomy": 82.6,
+    "averageInteroperability": 74.2,
+    "averageRelations": 69.2,
+    "averageTreasury": 195.7,
+    "averageFiscalStress": 5.1,
+    "averageEscalation": 56.9,
+    "averageSupplySecurity": 71.6,
+    "averageProliferation": 29.5,
+    "averageTreatyCompliance": 59.8,
+    "averageDecisionImpact": 25.7,
+    "sanctionsPerSession": 0.14,
+    "procurementFailureRate": 14,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "bipolar-systems",
+        "uses": 2688
+      },
+      {
+        "id": "bipolar-aircraft",
+        "uses": 2580
+      },
+      {
+        "id": "bipolar-naval",
+        "uses": 2371
+      },
+      {
+        "id": "bipolar-strategic",
+        "uses": 1031
+      },
+      {
+        "id": "bipolar-armor",
+        "uses": 906
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "hotline-arms-control",
+        "uses": 783
+      },
+      {
+        "id": "indigenous-deterrent",
+        "uses": 736
+      },
+      {
+        "id": "alliance-standardization",
+        "uses": 644
+      },
+      {
+        "id": "npt-safeguards",
+        "uses": 634
+      },
+      {
+        "id": "nonaligned-diversification",
+        "uses": 603
+      }
+    ]
+  },
+  {
+    "nationId": "japan",
+    "stageId": "networked",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 667,
+    "dominantPathRate": 0.8,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 30.8,
+    "averageCapabilityGain": 53.3,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 76,
+    "averageInteroperability": 83.2,
+    "averageRelations": 78.5,
+    "averageTreasury": 193.9,
+    "averageFiscalStress": 5.6,
+    "averageEscalation": 47.4,
+    "averageSupplySecurity": 70.9,
+    "averageProliferation": 9.6,
+    "averageTreatyCompliance": 58.5,
+    "averageDecisionImpact": 21.9,
+    "sanctionsPerSession": 0.09,
+    "procurementFailureRate": 14,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "networked-systems",
+        "uses": 2724
+      },
+      {
+        "id": "networked-aircraft",
+        "uses": 2467
+      },
+      {
+        "id": "networked-naval",
+        "uses": 2352
+      },
+      {
+        "id": "networked-strategic",
+        "uses": 1079
+      },
+      {
+        "id": "networked-logistics",
+        "uses": 901
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "regional-code-conduct",
+        "uses": 702
+      },
+      {
+        "id": "joint-procurement",
+        "uses": 692
+      },
+      {
+        "id": "precision-network-access",
+        "uses": 675
+      },
+      {
+        "id": "illicit-transfer-interdiction",
+        "uses": 652
+      },
+      {
+        "id": "responsible-export-controls",
+        "uses": 644
+      }
+    ]
+  },
+  {
+    "nationId": "japan",
+    "stageId": "horizon",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 649,
+    "dominantPathRate": 1.3,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 30.1,
+    "averageCapabilityGain": 56.3,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 84.2,
+    "averageInteroperability": 81.1,
+    "averageRelations": 69.4,
+    "averageTreasury": 169.5,
+    "averageFiscalStress": 11.3,
+    "averageEscalation": 53.4,
+    "averageSupplySecurity": 72.1,
+    "averageProliferation": 28.6,
+    "averageTreatyCompliance": 67.7,
+    "averageDecisionImpact": 23.6,
+    "sanctionsPerSession": 0.15,
+    "procurementFailureRate": 14.6,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "horizon-systems",
+        "uses": 2818
+      },
+      {
+        "id": "horizon-aircraft",
+        "uses": 2592
+      },
+      {
+        "id": "horizon-naval",
+        "uses": 2404
+      },
+      {
+        "id": "horizon-strategic",
+        "uses": 1022
+      },
+      {
+        "id": "horizon-logistics",
+        "uses": 853
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "cyber-confidence-network",
+        "uses": 740
+      },
+      {
+        "id": "space-incident-regime",
+        "uses": 705
+      },
+      {
+        "id": "sovereign-ai-deterrent",
+        "uses": 689
+      },
+      {
+        "id": "human-control-protocol",
+        "uses": 670
+      },
+      {
+        "id": "autonomous-joint-lab",
+        "uses": 606
+      }
+    ]
+  }
+]

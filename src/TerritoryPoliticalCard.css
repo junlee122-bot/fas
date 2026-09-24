@@ -1,0 +1,99 @@
+.territory-political-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #43564a;
+  border-radius: 7px;
+  background: #17231e;
+  color: #e3e9dc;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.territory-political-card:focus-visible { outline: 2px solid #f2d890; outline-offset: 3px; }
+
+.territory-political-card .territory-political-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+}
+
+.territory-political-card .territory-political-heading > div { min-width: 0; }
+.territory-political-card .territory-political-eyebrow { color: #aebfae; font-size: 12px; line-height: 1.5; }
+.territory-political-card .territory-political-heading h3 { margin: 3px 0 0; color: #f1ead4; font-size: 15px; line-height: 1.45; }
+.territory-political-card .territory-political-readonly { flex-shrink: 0; color: #c6c8ac; font-size: 11px; line-height: 1.5; padding: 3px 6px; border: 1px solid #495545; border-radius: 4px; }
+
+.territory-political-card .territory-political-facts {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+}
+
+.territory-political-card .territory-political-facts > div {
+  display: grid;
+  grid-template-columns: minmax(92px, 0.8fr) minmax(0, 1.2fr);
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+
+.territory-political-card .territory-political-facts dt { color: #b4c0b3; font-size: 12px; line-height: 1.6; }
+.territory-political-card .territory-political-facts dd { min-width: 0; margin: 0; color: #e3e9dc; font-size: 13px; line-height: 1.6; font-weight: 650; }
+.territory-political-card .territory-political-facts dd.territory-political-unverified { color: #c6c6b4; font-weight: 400; }
+.territory-political-card .territory-political-faction { display: inline-block; padding: 1px 6px; border-radius: 3px; background: #343e34; color: #dedfc6; }
+.territory-political-card .territory-political-faction[data-faction="allies"] { background: #283f49; color: #bbdce5; }
+.territory-political-card .territory-political-faction[data-faction="axis"] { background: #4a302c; color: #f1c4ad; }
+
+.territory-political-card .territory-political-caution {
+  margin: 12px 0;
+  padding: 8px 10px;
+  border-left: 2px solid #baaa71;
+  background: #262c20;
+  color: #d1ccb4;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.territory-political-card .territory-political-history { border-top: 1px solid #405144; }
+.territory-political-card .territory-political-history > summary {
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 10px 0;
+  color: #e7d695;
+  font-size: 13px;
+  line-height: 1.6;
+  cursor: pointer;
+}
+.territory-political-card .territory-political-history > summary span { margin-left: 6px; color: #b7c4b2; font-size: 12px; }
+.territory-political-card .territory-political-history > summary:hover { color: #fff0b8; }
+.territory-political-card .territory-political-history > summary:focus-visible { outline: 2px solid #f2d890; outline-offset: 2px; border-radius: 3px; }
+.territory-political-card .territory-political-history-body { max-height: 330px; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 1px 3px 2px 0; }
+.territory-political-card .territory-political-history-baseline { margin: 0 0 6px; color: #d9dbbd; font-size: 12px; line-height: 1.6; font-variant-numeric: tabular-nums; }
+.territory-political-card .territory-political-history-note { margin: 6px 0; color: #b4c0b3; font-size: 12px; line-height: 1.6; }
+.territory-political-card .territory-political-empty { padding: 10px; margin: 10px 0 0; background: #1d2e25; color: #bdcdbb; font-size: 12px; line-height: 1.6; }
+.territory-political-card .territory-political-change-list { display: grid; gap: 9px; padding: 0; margin: 12px 0 0; list-style: none; }
+.territory-political-card .territory-political-change { min-width: 0; padding: 10px; border: 1px solid #3c4d41; border-radius: 4px; background: #1d2b23; }
+.territory-political-card .territory-political-change-meta { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; line-height: 1.6; }
+.territory-political-card .territory-political-change-meta strong { color: #e7d695; font-variant-numeric: tabular-nums; }
+.territory-political-card .territory-political-change-meta span { color: #aebfaf; }
+.territory-political-card .territory-political-change-source { margin: 5px 0 8px; color: #e3e9dc; font-size: 13px; line-height: 1.6; }
+.territory-political-card .territory-political-change dl { display: grid; gap: 6px; margin: 0; }
+.territory-political-card .territory-political-change dl > div { min-width: 0; }
+.territory-political-card .territory-political-change dt { color: #aebfaf; font-size: 11px; line-height: 1.6; }
+.territory-political-card .territory-political-change dd { margin: 1px 0 0; color: #c5cfc0; font-size: 12px; line-height: 1.6; }
+.territory-political-card .territory-political-change dd strong { color: #ecedd5; }
+.territory-political-card .territory-political-change-arrow { color: #d5c586; }
+
+.territory-political-card .territory-political-government { padding: 10px; margin: 8px 0; border: 1px solid #405144; border-radius: 4px; background: #1d2b23; }
+.territory-political-card .territory-political-government h4 { margin: 0 0 5px; color: #ede3bf; font-size: 14px; line-height: 1.5; }
+.territory-political-card .territory-political-government p { font-size: 12px; line-height: 1.6; margin: 5px 0; }
+.territory-political-card .territory-political-government dl { display: grid; gap: 8px; margin: 10px 0 0; }
+.territory-political-card .territory-political-government dt { color: #b4c0b3; font-size: 11px; line-height: 1.6; }
+.territory-political-card .territory-political-government dd { margin: 0; font-size: 13px; line-height: 1.6; }
+.territory-political-card .territory-political-open-process { display: block; width: 100%; min-height: 40px; margin: 10px 0; padding: 8px 10px; border: 1px solid #8c8154; border-radius: 4px; background: #333d2d; color: #f0df9c; font: inherit; font-size: 13px; cursor: pointer; }
+.territory-political-card .territory-political-open-process:hover { background: #424b33; }
+.territory-political-card .territory-political-open-process:focus-visible { outline: 2px solid #f2d890; outline-offset: 2px; }

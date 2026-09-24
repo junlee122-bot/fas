@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>참모 주간 결산 · 격리 검증</title>
+  <style>
+    :root { color-scheme: dark; font-family: "Malgun Gothic", "Segoe UI", sans-serif; color: #e7eadf; background: #111b16; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    .staff-fixture { max-width: 1500px; padding: 32px; margin: 0 auto; }
+    .staff-fixture h1 { font-size: 25px; margin: 0 0 8px; }
+    .staff-fixture h2 { font-size: 18px; margin: 0 0 12px; }
+    .staff-fixture p { line-height: 1.7; color: #c0cabf; }
+    .staff-fixture-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 20px 0; }
+    .staff-fixture button, .staff-fixture select { border: 1px solid #65765c; border-radius: 4px; background: #293b2c; color: #edf0de; padding: 10px 13px; font: inherit; font-size: 14px; }
+    .staff-fixture button { cursor: pointer; }
+    .staff-fixture button:disabled { opacity: .45; cursor: not-allowed; }
+    .staff-fixture button[aria-pressed="true"] { border-color: #d4c18b; background: #4a4d30; }
+    .staff-fixture button:focus-visible, .staff-fixture select:focus-visible, .staff-fixture summary:focus-visible { outline: 2px solid #e2c986; outline-offset: 3px; }
+    .staff-fixture-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 24px; align-items: start; }
+    .staff-fixture-panel { min-width: 0; border: 1px solid #3f5143; border-radius: 5px; background: #19271e; padding: 22px; }
+    .staff-fixture-current { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .staff-fixture-current dt { color: #b7c2b1; font-size: 13px; }
+    .staff-fixture-current dd { margin: 5px 0 0; font-size: 21px; font-variant-numeric: tabular-nums; }
+    .staff-fixture-status { display: block; padding: 14px; margin: 16px 0; border-left: 3px solid #b6aa70; background: #303a29; line-height: 1.7; }
+    .staff-fixture pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; line-height: 1.5; max-height: 380px; overflow: auto; background: #111b16; padding: 14px; }
+    .staff-fixture summary { cursor: pointer; padding: 10px 0; }
+    .staff-fixture-event-list { padding-left: 22px; color: #c7d1c2; font-size: 13px; line-height: 1.7; }
+    .staff-fixture-event-list li + li { margin-top: 10px; }
+    .staff-fixture small { color: #b6c1af; }
+  </style>
+</head>
+<body><div id="root"></div><script type="module" src="./verify-staff-work-reports.tsx"></script></body>
+</html>

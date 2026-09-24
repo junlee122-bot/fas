@@ -1,0 +1,889 @@
+{
+  "generatedAt": "2026-07-25T13:38:03.367Z",
+  "methodology": "13 playable nations × 500 deterministic careers from 1942 to 2060; 6,500 sessions and 39,884,000 weekly state transitions across every available role, five ranks, three branches and 6 behavior profiles.",
+  "nationId": "philippines",
+  "nationName": "필리핀",
+  "aggregate": {
+    "sessionCount": 500,
+    "weeksPerSession": 6136,
+    "totalWeeks": 3068000,
+    "reached2060Rate": 100,
+    "nationCoverage": 1,
+    "roleCoverage": 13,
+    "tierCoverage": 5,
+    "branchCoverage": 3,
+    "profileCoverage": 6,
+    "averageWarYears": 2.4,
+    "averageNationYears": 115.6,
+    "warPhaseShare": 2,
+    "averageBattles": 95.8,
+    "averageBattleWinRate": 1,
+    "averageStrategicOperations": 125,
+    "promptsPerWeek": 1.17,
+    "urgentWeekRate": 6.7,
+    "quietWeekRate": 87.5,
+    "decisionWeeksRate": 20.4,
+    "decisionsPerYear": 8.1,
+    "interruptionsPerYear": 1.9,
+    "promptToDecisionRatio": 7.59,
+    "medianResearchCompleteYear": null,
+    "medianResearchDroughtYears": 2.7,
+    "researchActiveWeekRate": 63.8,
+    "averageFinalResearchCompleted": 58.6,
+    "averageLastFlashpointYear": 2054,
+    "averageFlashpointDroughtYears": 6,
+    "averageFlashpoints": 213,
+    "averageHistoricalCouncilCoverage": 100,
+    "inflationWarningWeekRate": 1.4,
+    "hyperinflationSessionRate": 0,
+    "treasuryZeroSessionRate": 79.4,
+    "nationalScoreCeilingSessionRate": 5,
+    "averageNationalScoreCeilingYears": 0,
+    "excessivePoliticalPowerSessionRate": 0,
+    "zeroEnemyPressureSessionRate": 0,
+    "coupSessionRate": 85.8,
+    "successfulCoupSessionRate": 25.4,
+    "averageCoupAttempts": 1.9,
+    "outbreakSessionRate": 100,
+    "averageOutbreaks": 28.7,
+    "averageYearsBetweenOutbreaks": 4.5,
+    "averageElections": 93.3,
+    "averageElectionActionsPerElection": 1.9,
+    "averageStaffFrozenYears": 0,
+    "missedPostwarCandidateSessionRate": 0,
+    "uniqueWorldlineCodes": 334,
+    "uniqueEndings": 335,
+    "uniqueChoiceSignatures": 7,
+    "endingCollisionRate": 33,
+    "mostCommonEndingShare": 1.4,
+    "topRepeatedActions": [
+      {
+        "id": "nation-election-campaign",
+        "sessions": 500,
+        "longestRunWeeksTotal": 1962,
+        "averageLongestRunWeeks": 3.9
+      },
+      {
+        "id": "nation-inflation",
+        "sessions": 474,
+        "longestRunWeeksTotal": 1827,
+        "averageLongestRunWeeks": 3.9
+      },
+      {
+        "id": "nation-mandate",
+        "sessions": 436,
+        "longestRunWeeksTotal": 1730,
+        "averageLongestRunWeeks": 4
+      },
+      {
+        "id": "political-crisis",
+        "sessions": 357,
+        "longestRunWeeksTotal": 1417,
+        "averageLongestRunWeeks": 4
+      },
+      {
+        "id": "idle-formations",
+        "sessions": 251,
+        "longestRunWeeksTotal": 1004,
+        "averageLongestRunWeeks": 4
+      },
+      {
+        "id": "commander-skill",
+        "sessions": 250,
+        "longestRunWeeksTotal": 1000,
+        "averageLongestRunWeeks": 4
+      },
+      {
+        "id": "economy-inflation",
+        "sessions": 192,
+        "longestRunWeeksTotal": 768,
+        "averageLongestRunWeeks": 4
+      },
+      {
+        "id": "economy-operating-deficit",
+        "sessions": 186,
+        "longestRunWeeksTotal": 744,
+        "averageLongestRunWeeks": 4
+      },
+      {
+        "id": "national-policy",
+        "sessions": 168,
+        "longestRunWeeksTotal": 504,
+        "averageLongestRunWeeks": 3
+      },
+      {
+        "id": "public-health-crisis",
+        "sessions": 122,
+        "longestRunWeeksTotal": 488,
+        "averageLongestRunWeeks": 4
+      },
+      {
+        "id": "nation-unrest",
+        "sessions": 116,
+        "longestRunWeeksTotal": 460,
+        "averageLongestRunWeeks": 4
+      },
+      {
+        "id": "research-slot",
+        "sessions": 84,
+        "longestRunWeeksTotal": 336,
+        "averageLongestRunWeeks": 4
+      },
+      {
+        "id": "nation-research-slot",
+        "sessions": 84,
+        "longestRunWeeksTotal": 336,
+        "averageLongestRunWeeks": 4
+      },
+      {
+        "id": "nation-health",
+        "sessions": 84,
+        "longestRunWeeksTotal": 336,
+        "averageLongestRunWeeks": 4
+      },
+      {
+        "id": "idle-factories",
+        "sessions": 83,
+        "longestRunWeeksTotal": 332,
+        "averageLongestRunWeeks": 4
+      }
+    ],
+    "eraTimeline": [
+      {
+        "era": "1942–1949",
+        "startYear": 1942,
+        "endYear": 1949,
+        "weeks": 207500,
+        "promptsPerWeek": 2.44,
+        "urgentWeekRate": 11.9,
+        "quietWeekRate": 77,
+        "decisionsPerYear": 46.9,
+        "interruptionsPerYear": 4.1,
+        "battlesPerYear": 12,
+        "strategicOperationsPerYear": 0.2,
+        "flashpointsPerDecade": 29.5,
+        "electionsPerDecade": 8.1,
+        "coupsPerDecade": 1.3,
+        "outbreaksPerDecade": 3,
+        "researchActiveWeekRate": 37.2,
+        "inflationWarningWeekRate": 16,
+        "nationalScoreCeilingWeekRate": 0,
+        "averageInflation": 8.4,
+        "averageNationalScore": 57.2,
+        "averageEnemyPressure": 47.8
+      },
+      {
+        "era": "1950–1959",
+        "startYear": 1950,
+        "endYear": 1959,
+        "weeks": 260000,
+        "promptsPerWeek": 1.3,
+        "urgentWeekRate": 8.2,
+        "quietWeekRate": 84.7,
+        "decisionsPerYear": 7.4,
+        "interruptionsPerYear": 3.2,
+        "battlesPerYear": 0,
+        "strategicOperationsPerYear": 0.6,
+        "flashpointsPerDecade": 31,
+        "electionsPerDecade": 9.5,
+        "coupsPerDecade": 0.3,
+        "outbreaksPerDecade": 2.9,
+        "researchActiveWeekRate": 64.5,
+        "inflationWarningWeekRate": 2.5,
+        "nationalScoreCeilingWeekRate": 0,
+        "averageInflation": 5.3,
+        "averageNationalScore": 84.3,
+        "averageEnemyPressure": 29.5
+      },
+      {
+        "era": "1960–1969",
+        "startYear": 1960,
+        "endYear": 1969,
+        "weeks": 260000,
+        "promptsPerWeek": 1.11,
+        "urgentWeekRate": 8,
+        "quietWeekRate": 85.6,
+        "decisionsPerYear": 6.7,
+        "interruptionsPerYear": 3,
+        "battlesPerYear": 0,
+        "strategicOperationsPerYear": 0.8,
+        "flashpointsPerDecade": 30,
+        "electionsPerDecade": 10,
+        "coupsPerDecade": 0.3,
+        "outbreaksPerDecade": 2.5,
+        "researchActiveWeekRate": 66.4,
+        "inflationWarningWeekRate": 0.6,
+        "nationalScoreCeilingWeekRate": 0,
+        "averageInflation": 4,
+        "averageNationalScore": 91.3,
+        "averageEnemyPressure": 25.7
+      },
+      {
+        "era": "1970–1979",
+        "startYear": 1970,
+        "endYear": 1979,
+        "weeks": 260000,
+        "promptsPerWeek": 1.09,
+        "urgentWeekRate": 6.9,
+        "quietWeekRate": 87.9,
+        "decisionsPerYear": 6.6,
+        "interruptionsPerYear": 3.1,
+        "battlesPerYear": 0,
+        "strategicOperationsPerYear": 0.9,
+        "flashpointsPerDecade": 31,
+        "electionsPerDecade": 8.7,
+        "coupsPerDecade": 0.1,
+        "outbreaksPerDecade": 2.4,
+        "researchActiveWeekRate": 71.5,
+        "inflationWarningWeekRate": 0.1,
+        "nationalScoreCeilingWeekRate": 0.1,
+        "averageInflation": 4.1,
+        "averageNationalScore": 93.6,
+        "averageEnemyPressure": 28.5
+      },
+      {
+        "era": "1980–1989",
+        "startYear": 1980,
+        "endYear": 1989,
+        "weeks": 260000,
+        "promptsPerWeek": 1.07,
+        "urgentWeekRate": 6.1,
+        "quietWeekRate": 88.8,
+        "decisionsPerYear": 6.5,
+        "interruptionsPerYear": 3,
+        "battlesPerYear": 0,
+        "strategicOperationsPerYear": 1.1,
+        "flashpointsPerDecade": 30,
+        "electionsPerDecade": 7.7,
+        "coupsPerDecade": 0,
+        "outbreaksPerDecade": 2.1,
+        "researchActiveWeekRate": 56.6,
+        "inflationWarningWeekRate": 0.1,
+        "nationalScoreCeilingWeekRate": 0,
+        "averageInflation": 3.2,
+        "averageNationalScore": 93.6,
+        "averageEnemyPressure": 25.6
+      },
+      {
+        "era": "1990–1999",
+        "startYear": 1990,
+        "endYear": 1999,
+        "weeks": 260000,
+        "promptsPerWeek": 1.07,
+        "urgentWeekRate": 6.1,
+        "quietWeekRate": 88.9,
+        "decisionsPerYear": 5.5,
+        "interruptionsPerYear": 2.3,
+        "battlesPerYear": 0,
+        "strategicOperationsPerYear": 1.1,
+        "flashpointsPerDecade": 23.4,
+        "electionsPerDecade": 6.8,
+        "coupsPerDecade": 0,
+        "outbreaksPerDecade": 3,
+        "researchActiveWeekRate": 39.8,
+        "inflationWarningWeekRate": 0,
+        "nationalScoreCeilingWeekRate": 0,
+        "averageInflation": 2.5,
+        "averageNationalScore": 93.1,
+        "averageEnemyPressure": 27.1
+      },
+      {
+        "era": "2000–2009",
+        "startYear": 2000,
+        "endYear": 2009,
+        "weeks": 260000,
+        "promptsPerWeek": 1.05,
+        "urgentWeekRate": 6.1,
+        "quietWeekRate": 88.9,
+        "decisionsPerYear": 4.1,
+        "interruptionsPerYear": 1,
+        "battlesPerYear": 0,
+        "strategicOperationsPerYear": 1.1,
+        "flashpointsPerDecade": 10,
+        "electionsPerDecade": 7.7,
+        "coupsPerDecade": 0,
+        "outbreaksPerDecade": 2.8,
+        "researchActiveWeekRate": 41.8,
+        "inflationWarningWeekRate": 0,
+        "nationalScoreCeilingWeekRate": 0,
+        "averageInflation": 2.5,
+        "averageNationalScore": 92.7,
+        "averageEnemyPressure": 26.8
+      },
+      {
+        "era": "2010–2019",
+        "startYear": 2010,
+        "endYear": 2019,
+        "weeks": 260000,
+        "promptsPerWeek": 1.04,
+        "urgentWeekRate": 5.7,
+        "quietWeekRate": 89.9,
+        "decisionsPerYear": 4.6,
+        "interruptionsPerYear": 1.5,
+        "battlesPerYear": 0,
+        "strategicOperationsPerYear": 1.2,
+        "flashpointsPerDecade": 15,
+        "electionsPerDecade": 7,
+        "coupsPerDecade": 0,
+        "outbreaksPerDecade": 2.3,
+        "researchActiveWeekRate": 63.4,
+        "inflationWarningWeekRate": 0,
+        "nationalScoreCeilingWeekRate": 0,
+        "averageInflation": 2.4,
+        "averageNationalScore": 92.2,
+        "averageEnemyPressure": 25
+      },
+      {
+        "era": "2020–2029",
+        "startYear": 2020,
+        "endYear": 2029,
+        "weeks": 260000,
+        "promptsPerWeek": 1.05,
+        "urgentWeekRate": 5.8,
+        "quietWeekRate": 88,
+        "decisionsPerYear": 4.3,
+        "interruptionsPerYear": 0.6,
+        "battlesPerYear": 0,
+        "strategicOperationsPerYear": 1.3,
+        "flashpointsPerDecade": 6,
+        "electionsPerDecade": 7.8,
+        "coupsPerDecade": 0,
+        "outbreaksPerDecade": 2.3,
+        "researchActiveWeekRate": 69.4,
+        "inflationWarningWeekRate": 0,
+        "nationalScoreCeilingWeekRate": 0,
+        "averageInflation": 2.6,
+        "averageNationalScore": 91.6,
+        "averageEnemyPressure": 27.6
+      },
+      {
+        "era": "2030–2039",
+        "startYear": 2030,
+        "endYear": 2039,
+        "weeks": 260000,
+        "promptsPerWeek": 1.04,
+        "urgentWeekRate": 5.5,
+        "quietWeekRate": 89.1,
+        "decisionsPerYear": 3.9,
+        "interruptionsPerYear": 0.5,
+        "battlesPerYear": 0,
+        "strategicOperationsPerYear": 1.4,
+        "flashpointsPerDecade": 5,
+        "electionsPerDecade": 6.7,
+        "coupsPerDecade": 0,
+        "outbreaksPerDecade": 2.6,
+        "researchActiveWeekRate": 83.2,
+        "inflationWarningWeekRate": 0,
+        "nationalScoreCeilingWeekRate": 0,
+        "averageInflation": 2.4,
+        "averageNationalScore": 90.7,
+        "averageEnemyPressure": 23.4
+      },
+      {
+        "era": "2040–2049",
+        "startYear": 2040,
+        "endYear": 2049,
+        "weeks": 260000,
+        "promptsPerWeek": 1.05,
+        "urgentWeekRate": 5.8,
+        "quietWeekRate": 88.4,
+        "decisionsPerYear": 4.2,
+        "interruptionsPerYear": 0.5,
+        "battlesPerYear": 0,
+        "strategicOperationsPerYear": 1.4,
+        "flashpointsPerDecade": 5,
+        "electionsPerDecade": 7.8,
+        "coupsPerDecade": 0,
+        "outbreaksPerDecade": 1.7,
+        "researchActiveWeekRate": 83.2,
+        "inflationWarningWeekRate": 0.1,
+        "nationalScoreCeilingWeekRate": 0,
+        "averageInflation": 2.6,
+        "averageNationalScore": 89.8,
+        "averageEnemyPressure": 26.3
+      },
+      {
+        "era": "2050–2059",
+        "startYear": 2050,
+        "endYear": 2059,
+        "weeks": 260000,
+        "promptsPerWeek": 1.04,
+        "urgentWeekRate": 5.5,
+        "quietWeekRate": 90.5,
+        "decisionsPerYear": 3.7,
+        "interruptionsPerYear": 0.3,
+        "battlesPerYear": 0,
+        "strategicOperationsPerYear": 1.4,
+        "flashpointsPerDecade": 3,
+        "electionsPerDecade": 7.2,
+        "coupsPerDecade": 0,
+        "outbreaksPerDecade": 1.7,
+        "researchActiveWeekRate": 83.2,
+        "inflationWarningWeekRate": 0,
+        "nationalScoreCeilingWeekRate": 0,
+        "averageInflation": 2.4,
+        "averageNationalScore": 89.1,
+        "averageEnemyPressure": 22.8
+      },
+      {
+        "era": "2060–2069",
+        "startYear": 2060,
+        "endYear": 2069,
+        "weeks": 500,
+        "promptsPerWeek": 1,
+        "urgentWeekRate": 0,
+        "quietWeekRate": 100,
+        "decisionsPerYear": 21.5,
+        "interruptionsPerYear": 0,
+        "battlesPerYear": 0,
+        "strategicOperationsPerYear": 21.5,
+        "flashpointsPerDecade": 0,
+        "electionsPerDecade": 0,
+        "coupsPerDecade": 0,
+        "outbreaksPerDecade": 0,
+        "researchActiveWeekRate": 83.2,
+        "inflationWarningWeekRate": 0,
+        "nationalScoreCeilingWeekRate": 0,
+        "averageInflation": 2.2,
+        "averageNationalScore": 88,
+        "averageEnemyPressure": 15.9
+      }
+    ],
+    "byProfile": {
+      "guided": {
+        "sessions": 84,
+        "urgentWeekRate": 2.2,
+        "quietWeekRate": 91.8,
+        "decisionsPerYear": 7,
+        "averageFinalInflation": 1.7,
+        "averageFinalNationalScore": 89,
+        "averageFinalUnrest": 0,
+        "averageFlashpointDroughtYears": 6,
+        "uniqueEndings": 58
+      },
+      "rushed": {
+        "sessions": 84,
+        "urgentWeekRate": 24.4,
+        "quietWeekRate": 71,
+        "decisionsPerYear": 1.9,
+        "averageFinalInflation": 3.2,
+        "averageFinalNationalScore": 85.8,
+        "averageFinalUnrest": 0,
+        "averageFlashpointDroughtYears": 6,
+        "uniqueEndings": 13
+      },
+      "military": {
+        "sessions": 83,
+        "urgentWeekRate": 5.1,
+        "quietWeekRate": 88,
+        "decisionsPerYear": 13.5,
+        "averageFinalInflation": 2.6,
+        "averageFinalNationalScore": 89,
+        "averageFinalUnrest": 0,
+        "averageFlashpointDroughtYears": 6,
+        "uniqueEndings": 81
+      },
+      "state-builder": {
+        "sessions": 83,
+        "urgentWeekRate": 3.6,
+        "quietWeekRate": 89.9,
+        "decisionsPerYear": 6.2,
+        "averageFinalInflation": 1.3,
+        "averageFinalNationalScore": 85.4,
+        "averageFinalUnrest": 0,
+        "averageFlashpointDroughtYears": 6,
+        "uniqueEndings": 56
+      },
+      "completionist": {
+        "sessions": 83,
+        "urgentWeekRate": 2.3,
+        "quietWeekRate": 92.1,
+        "decisionsPerYear": 11.8,
+        "averageFinalInflation": 2.8,
+        "averageFinalNationalScore": 90.8,
+        "averageFinalUnrest": 0,
+        "averageFlashpointDroughtYears": 6,
+        "uniqueEndings": 70
+      },
+      "opportunist": {
+        "sessions": 83,
+        "urgentWeekRate": 2.5,
+        "quietWeekRate": 92.2,
+        "decisionsPerYear": 8,
+        "averageFinalInflation": 1.4,
+        "averageFinalNationalScore": 87.8,
+        "averageFinalUnrest": 0,
+        "averageFlashpointDroughtYears": 6,
+        "uniqueEndings": 57
+      }
+    },
+    "outliers": [
+      {
+        "id": 259,
+        "nationId": "philippines",
+        "roleId": "philippines-military-staff",
+        "profile": "rushed",
+        "frictionScore": 66.4,
+        "urgentWeekRate": 25.4,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 1273,
+        "nationId": "philippines",
+        "roleId": "philippines-military-staff",
+        "profile": "rushed",
+        "frictionScore": 66.4,
+        "urgentWeekRate": 25.4,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 2287,
+        "nationId": "philippines",
+        "roleId": "philippines-military-staff",
+        "profile": "rushed",
+        "frictionScore": 66.4,
+        "urgentWeekRate": 25.4,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 3301,
+        "nationId": "philippines",
+        "roleId": "philippines-military-staff",
+        "profile": "rushed",
+        "frictionScore": 66.4,
+        "urgentWeekRate": 25.4,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 4315,
+        "nationId": "philippines",
+        "roleId": "philippines-military-staff",
+        "profile": "rushed",
+        "frictionScore": 66.4,
+        "urgentWeekRate": 25.4,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 5329,
+        "nationId": "philippines",
+        "roleId": "philippines-military-staff",
+        "profile": "rushed",
+        "frictionScore": 66.4,
+        "urgentWeekRate": 25.4,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 6343,
+        "nationId": "philippines",
+        "roleId": "philippines-military-staff",
+        "profile": "rushed",
+        "frictionScore": 66.4,
+        "urgentWeekRate": 25.4,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 493,
+        "nationId": "philippines",
+        "roleId": "philippines-tier3",
+        "profile": "rushed",
+        "frictionScore": 66,
+        "urgentWeekRate": 24.9,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 1507,
+        "nationId": "philippines",
+        "roleId": "philippines-tier3",
+        "profile": "rushed",
+        "frictionScore": 66,
+        "urgentWeekRate": 24.9,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 2521,
+        "nationId": "philippines",
+        "roleId": "philippines-tier3",
+        "profile": "rushed",
+        "frictionScore": 66,
+        "urgentWeekRate": 24.9,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 3535,
+        "nationId": "philippines",
+        "roleId": "philippines-tier3",
+        "profile": "rushed",
+        "frictionScore": 66,
+        "urgentWeekRate": 24.9,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 4549,
+        "nationId": "philippines",
+        "roleId": "philippines-tier3",
+        "profile": "rushed",
+        "frictionScore": 66,
+        "urgentWeekRate": 24.9,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 5563,
+        "nationId": "philippines",
+        "roleId": "philippines-tier3",
+        "profile": "rushed",
+        "frictionScore": 66,
+        "urgentWeekRate": 24.9,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 181,
+        "nationId": "philippines",
+        "roleId": "philippines-tier1",
+        "profile": "rushed",
+        "frictionScore": 65.9,
+        "urgentWeekRate": 24.7,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 727,
+        "nationId": "philippines",
+        "roleId": "philippines-political-regional",
+        "profile": "rushed",
+        "frictionScore": 65.9,
+        "urgentWeekRate": 24.7,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 1195,
+        "nationId": "philippines",
+        "roleId": "philippines-tier1",
+        "profile": "rushed",
+        "frictionScore": 65.9,
+        "urgentWeekRate": 24.7,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 1741,
+        "nationId": "philippines",
+        "roleId": "philippines-political-regional",
+        "profile": "rushed",
+        "frictionScore": 65.9,
+        "urgentWeekRate": 24.7,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 2209,
+        "nationId": "philippines",
+        "roleId": "philippines-tier1",
+        "profile": "rushed",
+        "frictionScore": 65.9,
+        "urgentWeekRate": 24.7,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 2755,
+        "nationId": "philippines",
+        "roleId": "philippines-political-regional",
+        "profile": "rushed",
+        "frictionScore": 65.9,
+        "urgentWeekRate": 24.7,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      },
+      {
+        "id": 3223,
+        "nationId": "philippines",
+        "roleId": "philippines-tier1",
+        "profile": "rushed",
+        "frictionScore": 65.9,
+        "urgentWeekRate": 24.7,
+        "interruptionsPerYear": 1.9,
+        "longestRepeatedActionWeeks": 4,
+        "researchDroughtYears": 117.9,
+        "flashpointDroughtYears": 6,
+        "reasons": [
+          "연구 공백 117.9년"
+        ]
+      }
+    ]
+  },
+  "findings": [
+    {
+      "priority": "P2",
+      "id": "post-2020-content-void",
+      "title": "개선됨 · 연구와 세계사 분기가 2060년까지 이어집니다",
+      "evidence": "연구 공백 중앙값은 2.7년, 마지막 세계 위기 뒤 공백은 평균 6.0년입니다. 2050–2059 연구 활성 주차는 83.2%, 세계 위기는 10년당 3.0건입니다.",
+      "funImpact": "2060년까지 이어지는 캠페인에서 미래를 기다릴 이유가 사라지고 다음 주 버튼만 반복하게 됩니다.",
+      "recommendation": "2021–2060 연구 세대와 기후·AI·우주·인구·에너지·신냉전 사건군을 추가하고, 세계 상태에서 후속 위기를 합성하는 감독기를 두십시오."
+    },
+    {
+      "priority": "P2",
+      "id": "strategic-mode-collapse",
+      "title": "평시 전략작전이 직무 정체성을 유지하지만 작전군 다양성은 계속 검증해야 합니다",
+      "evidence": "평균 전쟁 단계는 2.4년, 국가운영은 115.6년입니다. 1942–1949 연간 전투 12.0회, 후기 전투 0.0회, 후기 평시 전략작전 1.4회입니다.",
+      "funImpact": "군사·정보 직무로 시작해도 장기적으로 같은 내정 루프를 수행해 역할 판타지와 재플레이 차이가 약해집니다.",
+      "recommendation": "냉전·지역전·평화유지·비밀전·군비경쟁을 국가운영 단계 안의 상시 작전 모드로 만들고 직무별 전용 주간 행동을 유지하십시오."
+    },
+    {
+      "priority": "P0",
+      "id": "century-agency-dilution",
+      "title": "118년 동안 실질 결정 밀도가 낮아져 시간 진행이 플레이를 대체합니다",
+      "evidence": "전체 결정 주차 비중은 20.4%, 연간 결정은 8.1회이며 프롬프트 7.6개당 실질 결정 1회입니다. 후기 연간 결정은 3.7회입니다.",
+      "funImpact": "선택의 결과를 기다리는 시간보다 의미 없는 주간 반복이 길어져 플레이어가 장기 목표를 잊게 됩니다.",
+      "recommendation": "평시에는 월 단위 진행을 기본으로 하고 사건·전쟁 때만 주 단위로 확대하며, 1·5·10년 국가계획과 중간 검증 지점을 제공하십시오."
+    },
+    {
+      "priority": "P2",
+      "id": "alert-repetition",
+      "title": "개선됨 · 반복 경고가 검증 대기와 장기 과제로 전환됩니다",
+      "evidence": "긴급 상태 주차 6.7%, 연간 중단 1.9회입니다. 최장 반복 행동은 nation-election-campaign로 해당 세션에서 평균 3.9주 연속 노출됐습니다.",
+      "funImpact": "경고를 읽고 판단하기보다 무시하거나 기계적으로 같은 조치를 누르는 습관을 만듭니다.",
+      "recommendation": "반복 원인을 하나의 추적 카드로 승격하고 다음 확인 시점까지 숨기며, 자동 위임·조건부 대응 규칙을 제공하십시오."
+    },
+    {
+      "priority": "P2",
+      "id": "late-game-saturation",
+      "title": "개선됨 · 상대 경쟁력과 구조 비용이 국가점수 포화를 억제합니다",
+      "evidence": "2050–2059 국가점수 상한 주차 0.0%, 평균 국가점수 89.1, 평균 외부압력 22.8입니다. 전체 세션 중 국가점수 상한 경험은 5.0%입니다.",
+      "funImpact": "성공한 국가가 더 이상 새로운 위험이나 선택 비용을 만나지 않아 최적화와 성장의 의미가 사라집니다.",
+      "recommendation": "절대 상한 대신 시대별 상대 경쟁력, 인구구조·환경비용·패권 유지비·제도 노후화를 적용하십시오."
+    },
+    {
+      "priority": "P2",
+      "id": "ending-collision",
+      "title": "500개의 가능세계가 제한된 결말 조합으로 충돌합니다",
+      "evidence": "고유 세계선 334개, 선택 서명 7개, 고유 결말 335개입니다. 결말 충돌률은 33.0%, 최빈 결말 비중은 1.4%입니다.",
+      "funImpact": "서로 다른 국가·직무·성향으로 118년을 플레이해도 같은 결말 문구가 나오면 선택의 소유감이 약해집니다.",
+      "recommendation": "결말 ID와 서술에 국가·직무·지역질서·핵심 인물·후기 20년의 결정 연쇄를 포함하고 문장 중복률을 자동 검사하십시오."
+    },
+    {
+      "priority": "P2",
+      "id": "profile-polarization",
+      "title": "개선됨 · 행동 성향별 성과 격차가 역할극을 압도하지 않습니다",
+      "evidence": "행동 성향별 최종 국가점수 격차는 5.4점입니다. 가장 높은 성향과 낮은 성향 사이에서 긴급 주차·불안·인플레이션도 함께 갈라집니다.",
+      "funImpact": "일부 플레이 방식만 사실상의 정답이 되면 역할극과 대체역사 실험이 벌점처럼 느껴집니다.",
+      "recommendation": "각 성향에 다른 승리 조건과 회복 수단을 주고, 위험한 선택에도 독자적 보상·서사·단기 우위를 배정하십시오."
+    },
+    {
+      "priority": "P2",
+      "id": "election-loop-repetition",
+      "title": "개선됨 · 시대별 선거 문법과 감소효율이 반복 클릭을 억제합니다",
+      "evidence": "세션당 평균 선거 93.3회, 선거 1회당 캠페인 행동 1.9회입니다.",
+      "funImpact": "세대와 미디어 환경이 바뀌어도 같은 유세 행동을 반복하면 1940년대와 2050년대의 차이가 체감되지 않습니다.",
+      "recommendation": "시대별 미디어·정당·후보·지역 의제를 교체하고, 반복 클릭 대신 캠페인 전략과 예산 배분을 한 번에 예약하게 하십시오."
+    }
+  ]
+}

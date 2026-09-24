@@ -1,0 +1,141 @@
+.regional-industry {
+  --regional-bg: #121820;
+  --regional-surface: var(--ui-surface, #18212b);
+  --regional-raised: var(--ui-raised, #202c38);
+  --regional-text: var(--ui-text, #edf0ec);
+  --regional-muted: var(--ui-muted, #9dacb8);
+  --regional-accent: var(--ui-accent, #c7a16c);
+  --regional-border: var(--ui-border, #34424c);
+  margin: 20px 0; padding: 28px; border: 1px solid var(--regional-border); border-radius: 8px;
+  background: var(--regional-bg); color: var(--regional-text); font-size: 16px; line-height: 1.65;
+}
+.regional-industry header, .regional-intake, .regional-shipments li, .regional-config-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.regional-industry header { padding-bottom: 20px; border-bottom: 1px solid var(--regional-border); margin-bottom: 20px; }
+.regional-industry header span, .regional-eyebrow, .regional-section-heading > span { color: var(--regional-accent); font-size: 12px; letter-spacing: .1em; }
+.regional-industry h3 { margin: 8px 0 0; font-size: 24px; line-height: 1.4; font-weight: 500; letter-spacing: -.025em; }
+.regional-industry h4 { margin: 6px 0 10px; font-size: 18px; line-height: 1.5; font-weight: 500; }
+.regional-industry p { font-size: 16px; color: var(--regional-text); line-height: 1.65; }
+.regional-industry :is(small, figcaption, dt, .regional-basis) { font-size: 12px; color: var(--regional-muted); line-height: 1.7; }
+.regional-industry label { display: grid; align-content: start; gap: 8px; font-size: 14px; font-weight: 400; min-width: 0; }
+.regional-status { padding: 7px 12px; border: 1px solid var(--regional-border); border-radius: 8px; color: var(--regional-accent); font-size: 14px; font-weight: 400; }
+.regional-section-heading { margin: 24px 0 16px; }
+.regional-section-heading p { margin: 6px 0; color: var(--regional-muted); }
+.regional-config fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin: 0 0 16px; border: 1px solid var(--regional-border); border-radius: 8px; padding: 20px; background: var(--regional-surface); min-width: 0; }
+.regional-config legend { padding: 0 8px; color: var(--regional-text); font-size: 14px; font-weight: 400; }
+.regional-industry :is(select, input, button) { border: 1px solid var(--regional-border); border-radius: 8px; padding: 10px 12px; color: var(--regional-text); background: var(--regional-raised); font-family: inherit; font-size: 14px; font-weight: 400; min-height: 44px; max-width: 100%; }
+.regional-industry :is(select, input) { width: 100%; box-sizing: border-box; }
+.regional-industry button { cursor: pointer; transition: border-color .15s ease, background-color .15s ease; }
+.regional-industry button:not(:disabled):hover { border-color: var(--regional-accent); background: #293643; }
+.regional-industry .regional-primary { background: var(--regional-accent); border-color: var(--regional-accent); color: #18212b; }
+.regional-industry .regional-primary:not(:disabled):hover { background: #d7b582; }
+.regional-industry :is(button, input, select):disabled { opacity: .5; cursor: not-allowed; }
+.regional-industry fieldset:disabled { color: var(--regional-muted); }
+.regional-industry :focus-visible { outline: 2px solid var(--regional-accent); outline-offset: 3px; }
+.regional-config-actions { justify-content: flex-start; }
+.regional-config-actions p { margin: 0; color: var(--regional-muted); }
+.regional-capacity, .regional-inventory dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border: 1px solid var(--regional-border); border-radius: 8px; overflow: hidden; }
+.regional-capacity > div, .regional-inventory dl > div { padding: 16px; background: var(--regional-surface); border-right: 1px solid var(--regional-border); }
+.regional-capacity > div:last-child, .regional-inventory dl > div:last-child { border-right: 0; }
+.regional-industry dd { margin: 8px 0 0; color: var(--regional-text); font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.regional-warning { border: 1px solid var(--regional-border); border-left: 3px solid var(--regional-accent); border-radius: 8px; padding: 14px 16px; background: var(--regional-surface); color: var(--regional-text); }
+.regional-basis { padding: 8px 0; }
+.regional-route { margin: 20px 0; padding: 18px; border: 1px solid var(--regional-border); border-radius: 8px; background: var(--regional-surface); }
+.regional-route svg { width: 100%; height: 180px; }
+.regional-route line { stroke: var(--regional-accent); stroke-width: 1; stroke-dasharray: 3 2; }
+.regional-route circle { fill: var(--regional-accent); }
+.regional-route text { fill: var(--regional-text); font-size: 6px; }
+.regional-intake { justify-content: flex-start; margin: 20px 0; }
+.regional-intake span { flex: 1; min-width: 180px; color: var(--regional-muted); font-size: 14px; line-height: 1.65; }
+.regional-automation { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 20px; align-items: start; margin: 20px 0; padding: 20px; border: 1px solid var(--regional-border); border-radius: 8px; background: var(--regional-surface); }
+.regional-automation p { margin: 8px 0; }
+.regional-automation-basis { grid-column: 1 / -1; border-top: 1px solid var(--regional-border); padding-top: 12px; }
+.regional-throughput { margin: 20px 0; padding: 20px; border: 1px solid var(--regional-border); border-radius: 8px; background: var(--regional-surface); }
+.regional-throughput > strong { color: var(--regional-accent); font-size: 20px; font-weight: 500; }
+.regional-throughput p { margin: 8px 0; }
+.regional-shipping { display: grid; grid-template-columns: minmax(100px, 200px) auto; gap: 14px; align-items: end; margin-top: 20px; }
+.regional-shipping p { grid-column: 1 / -1; margin: 0; }
+.regional-shipments { list-style: none; padding: 0; display: grid; gap: 10px; }
+.regional-shipments li { padding: 16px; border: 1px solid var(--regional-border); background: var(--regional-surface); border-radius: 8px; }
+.regional-shipments li div { display: grid; gap: 6px; }
+.regional-shipments li span { color: var(--regional-muted); font-size: 14px; }
+.regional-receipt { overflow-wrap: anywhere; border-top: 1px solid var(--regional-border); padding-top: 16px; }
+/* Explicit specificity beats the older deck-wide 10px readable-ui rules. */
+.game-shell.readable-ui .deck-content .regional-industry { font-size: 16px; line-height: 1.65; }
+.game-shell.readable-ui .deck-content .regional-industry p { font-size: 16px; line-height: 1.65; }
+.game-shell.readable-ui .deck-content .regional-industry :is(label, input, select, button, legend, li, strong, span) { font-size: 14px; line-height: 1.65; font-weight: 400; }
+.game-shell.readable-ui .deck-content .regional-industry :is(small, figcaption, dt, em, .regional-basis, .regional-eyebrow, .regional-section-heading > span) { font-size: 12px; line-height: 1.7; }
+.game-shell.readable-ui .deck-content .regional-industry :is(input, select, button) { min-height: 44px; }
+.game-shell.readable-ui .deck-content .regional-industry header > div > span { font-size: 12px; }
+.game-shell.readable-ui .deck-content .regional-industry h3 { font-size: 24px; font-weight: 500; }
+.game-shell.readable-ui .deck-content .regional-industry h4 { font-size: 18px; font-weight: 500; }
+.game-shell.readable-ui .deck-content .regional-industry dd { font-size: 22px; line-height: 1.5; }
+.game-shell.readable-ui .deck-content .regional-industry .regional-throughput > strong { font-size: 20px; font-weight: 500; }
+@media (max-width: 720px) {
+  .regional-industry { padding: 18px; }
+  .regional-config fieldset { grid-template-columns: 1fr; padding: 16px; }
+  .regional-capacity, .regional-inventory dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .regional-capacity > div, .regional-inventory dl > div { border-bottom: 1px solid var(--regional-border); }
+  .regional-capacity > div:nth-child(even), .regional-inventory dl > div:nth-child(even) { border-right: 0; }
+  .regional-capacity > div:nth-last-child(-n+2), .regional-inventory dl > div:nth-last-child(-n+2) { border-bottom: 0; }
+  .regional-shipping, .regional-automation { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .regional-industry button { transition: none; } }
+
+/* Flow-first Command Edition workspace. Never expose every editor at once. */
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) { --regional-bg:var(--ui-bg,#121820); display:flex; flex-direction:column; gap:16px; margin:0; padding:20px; width:100%; min-width:0; background:var(--regional-surface); font-size:16px; line-height:1.6; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) * { box-sizing:border-box; min-width:0; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) [hidden] { display:none !important; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) :is(p,span,strong,dd) { font-size:16px; line-height:1.6; color:var(--regional-text); }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) :is(button,input,select,label,legend,summary) { font-size:14px; line-height:1.5; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) :is(button,input,select,summary) { min-height:44px; max-width:100%; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) :is(small,figcaption,dt,em,.regional-basis,.regional-eyebrow,.regional-section-heading > span) { color:var(--regional-muted); font-size:12px; line-height:1.5; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) :is(p,span,strong,small,dd,button,h3,h4) { word-break:keep-all; overflow-wrap:anywhere; white-space:normal; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) p { margin:8px 0; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) button { display:inline-flex; align-items:center; gap:8px; box-shadow:none; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) > header { margin:0; padding:0 0 14px; background:none; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) > header > div > span { font-size:12px; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) h3 { margin:4px 0 0; font-size:24px; line-height:1.3; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-status { font-size:12px; padding:4px 8px; color:var(--regional-accent); }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-workspace-tabs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-workspace-tabs button { justify-content:center; padding:10px 6px; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) button[aria-pressed=true] { border-color:var(--regional-accent); color:var(--regional-accent); }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) :is(.regional-overview,.regional-configuration-view,.regional-dispatch-view,.regional-records-view) { display:grid; gap:16px; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-approved-route { display:grid; gap:6px; padding:14px; border:1px solid var(--regional-border); border-radius:8px; background:var(--regional-bg); }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-approved-route > span { font-size:12px; color:var(--regional-muted); }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-approved-route > strong { font-size:20px; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-flow-stages { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-flow-stages button { display:grid; align-content:start; justify-items:start; gap:8px; padding:14px; text-align:left; background:var(--regional-bg); }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-flow-stages strong { font-size:22px; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-flow-stages span { font-size:12px; color:var(--regional-muted); }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-next-step { padding:16px; background:var(--regional-bg); border:1px solid var(--regional-border); border-left:3px solid var(--regional-accent); border-radius:6px; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-next-step p { color:var(--regional-muted); }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-warning { margin:0; background:var(--regional-bg); }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-section-heading { margin:0 0 16px; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-config fieldset { padding:16px; gap:16px; background:var(--regional-bg); }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) :is(.regional-capacity,.regional-inventory dl) { margin:0; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) :is(.regional-capacity > div,.regional-inventory dl > div) { background:var(--regional-bg); }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) dd { font-size:20px; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) :is(.regional-automation,.regional-throughput,.regional-intake,.regional-shipping) { margin:0; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) :is(.regional-automation,.regional-throughput) { padding:16px; background:var(--regional-bg); }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-detail { padding:0 14px; background:var(--regional-bg); border:1px solid var(--regional-border); border-radius:6px; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-detail > summary { display:flex; align-items:center; cursor:pointer; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-route { margin:0 0 14px; background:var(--regional-surface); }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-record-selectors { display:grid; grid-template-columns:180px minmax(0,1fr); gap:12px; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-selected-shipment { display:grid; gap:12px; padding:18px; border:1px solid var(--regional-border); border-radius:8px; background:var(--regional-bg); }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-selected-shipment > header { margin:0; padding:0 0 12px; background:none; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-selected-shipment > header > span { font-size:12px; color:var(--regional-accent); }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-selected-shipment dl { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:0; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-selected-shipment dd { margin:6px 0 0; font-size:16px; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-selected-shipment > button { justify-self:start; }
+:is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-empty { padding:16px; border:1px solid var(--regional-border); color:var(--regional-muted); }
+@media(max-width:760px){
+  :is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry){padding:14px;gap:12px}
+  :is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) > header > div > span{display:none}
+  :is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) h3{font-size:20px}
+  :is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) :is(.regional-workspace-tabs,.regional-flow-stages,.regional-capacity,.regional-inventory dl){grid-template-columns:repeat(2,minmax(0,1fr))}
+  :is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) :is(.regional-record-selectors,.regional-shipping,.regional-automation,.regional-config fieldset,.regional-selected-shipment dl){grid-template-columns:1fr}
+  :is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-flow-stages button{padding:12px}
+  :is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-flow-stages strong{font-size:20px}
+  :is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-selected-shipment{padding:14px}
+  :is(.regional-industry, .game-shell.design-v2 .deck-content .regional-industry) .regional-shipping > button{justify-content:center}
+}

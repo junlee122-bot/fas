@@ -1,0 +1,6 @@
+.world-site-art{display:grid;grid-template-columns:112px minmax(0,1fr);align-items:center;gap:12px;margin:0 0 18px;padding:10px;border:1px solid #4b5749;border-radius:7px;background:#17221d}
+.world-site-art img{display:block;width:100%;height:auto;object-fit:cover;border-radius:4px}
+.world-site-art figcaption{display:grid;gap:4px;color:#c5d0c2;font-size:11px;line-height:1.7;overflow-wrap:anywhere}
+.world-site-art figcaption strong{color:#e0d2a4;font-size:12px;font-weight:600}
+.world-site-art figcaption span{font-size:11px}.world-site-art figcaption small{color:#aebcaf;font-size:10px}
+@container(max-width:390px){.world-site-art{grid-template-columns:82px minmax(0,1fr);gap:10px;padding:8px}.world-site-art figcaption small{grid-column:1/-1}}

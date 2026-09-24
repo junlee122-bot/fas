@@ -1,0 +1,229 @@
+{
+  "generatedAt": "2026-07-22T00:33:20.197Z",
+  "methodology": "300 deterministic production-engine campaigns from 1942 to 2020; 1,216,800 simulated weeks across nations, roles and six behavior profiles.",
+  "aggregate": {
+    "sessionCount": 300,
+    "weeksPerSession": 4056,
+    "totalWeeks": 1216800,
+    "nationCoverage": 13,
+    "roleCoverage": 169,
+    "tierCoverage": 5,
+    "branchCoverage": 3,
+    "profileCoverage": 6,
+    "reached2020Rate": 100,
+    "actionPrompts": 1493810,
+    "actionPromptsPerWeek": 1.23,
+    "urgentWeekRate": 23,
+    "quietWeekRate": 70,
+    "decisionInteractions": 209693,
+    "decisionWeeks": 441628,
+    "promptToDecisionRatio": 7.12,
+    "interruptionCount": 61427,
+    "interruptionsPerYear": 2.6,
+    "medianResearchCompleteYear": null,
+    "medianResearchDroughtYears": 25.826923076923077,
+    "researchActiveWeekRate": 55.7,
+    "averageFinalResearchCompleted": 37.8,
+    "averageHistoricalCouncilCoverage": 100,
+    "averageFlashpointCount": 194,
+    "averageLastFlashpointYear": 2017,
+    "averageFlashpointDroughtYears": 3,
+    "acceleratedFlashpointRate": 37.5,
+    "medianMaximumFlashpointAccelerationYears": 5,
+    "inflationWarningWeekRate": 1.8,
+    "hyperinflationSessionRate": 0,
+    "excessivePoliticalPowerSessionRate": 0,
+    "zeroEnemyPressureSessionRate": 0,
+    "averageStaffFrozenYears": 0,
+    "missedPostwarCandidateSessionRate": 0,
+    "averageMissedPostwarCandidates": 0,
+    "coupSessionRate": 68,
+    "successfulCoupSessionRate": 29.3,
+    "outbreakSessionRate": 100,
+    "uniqueWorldlineCodes": 300,
+    "uniqueEndings": 128,
+    "mostCommonEndingShare": 16.7,
+    "topRepeatedActions": [
+      {
+        "id": "political-crisis",
+        "sessions": 280,
+        "weeks": 208756
+      },
+      {
+        "id": "nation-research-slot",
+        "sessions": 50,
+        "weeks": 200200
+      },
+      {
+        "id": "idle-formations",
+        "sessions": 300,
+        "weeks": 37700
+      },
+      {
+        "id": "nation-mandate",
+        "sessions": 244,
+        "weeks": 31728
+      },
+      {
+        "id": "recovering-formations",
+        "sessions": 250,
+        "weeks": 27823
+      },
+      {
+        "id": "nation-health",
+        "sessions": 300,
+        "weeks": 23417
+      },
+      {
+        "id": "nation-stable",
+        "sessions": 233,
+        "weeks": 19750
+      },
+      {
+        "id": "economy-operating-deficit",
+        "sessions": 186,
+        "weeks": 18668
+      },
+      {
+        "id": "commander-skill",
+        "sessions": 272,
+        "weeks": 11531
+      },
+      {
+        "id": "economy-inflation",
+        "sessions": 206,
+        "weeks": 10780
+      },
+      {
+        "id": "nation-unrest",
+        "sessions": 64,
+        "weeks": 8246
+      },
+      {
+        "id": "nation-inflation",
+        "sessions": 248,
+        "weeks": 6670
+      }
+    ],
+    "byProfile": {
+      "guided": {
+        "sessions": 50,
+        "promptsPerWeek": 1.09,
+        "urgentWeekRate": 4.2,
+        "decisionsPerYear": 6.9,
+        "averageFinalInflation": 2.7,
+        "averageFinalNationalScore": 100,
+        "averageFlashpointDroughtYears": 3,
+        "averageMissedPostwarCandidates": 0
+      },
+      "rushed": {
+        "sessions": 50,
+        "promptsPerWeek": 1.35,
+        "urgentWeekRate": 99.9,
+        "decisionsPerYear": 2.6,
+        "averageFinalInflation": 3.5,
+        "averageFinalNationalScore": 97.3,
+        "averageFlashpointDroughtYears": 3,
+        "averageMissedPostwarCandidates": 0
+      },
+      "military": {
+        "sessions": 50,
+        "promptsPerWeek": 1.53,
+        "urgentWeekRate": 17.5,
+        "decisionsPerYear": 17.3,
+        "averageFinalInflation": 3.3,
+        "averageFinalNationalScore": 95.9,
+        "averageFlashpointDroughtYears": 3,
+        "averageMissedPostwarCandidates": 0
+      },
+      "state-builder": {
+        "sessions": 50,
+        "promptsPerWeek": 1.09,
+        "urgentWeekRate": 6.3,
+        "decisionsPerYear": 5.6,
+        "averageFinalInflation": 2.3,
+        "averageFinalNationalScore": 97.8,
+        "averageFlashpointDroughtYears": 3,
+        "averageMissedPostwarCandidates": 0
+      },
+      "completionist": {
+        "sessions": 50,
+        "promptsPerWeek": 1.16,
+        "urgentWeekRate": 4.8,
+        "decisionsPerYear": 13.2,
+        "averageFinalInflation": 3.5,
+        "averageFinalNationalScore": 100,
+        "averageFlashpointDroughtYears": 3,
+        "averageMissedPostwarCandidates": 0
+      },
+      "opportunist": {
+        "sessions": 50,
+        "promptsPerWeek": 1.14,
+        "urgentWeekRate": 5.1,
+        "decisionsPerYear": 8.2,
+        "averageFinalInflation": 2.3,
+        "averageFinalNationalScore": 98.9,
+        "averageFlashpointDroughtYears": 3,
+        "averageMissedPostwarCandidates": 0
+      }
+    }
+  },
+  "findings": [
+    {
+      "priority": "P2",
+      "id": "postwar-personnel-freeze",
+      "title": "해결됨 · 전후에도 참모와 후보 시장이 순환합니다",
+      "evidence": "참모 진행 동결 평균 0.0년, 전후 후보 누락 세션 0.0%로 감소했습니다.",
+      "funImpact": "FM식 세대교체와 스쿼드 재건이 전후 캠페인에서 사라져 장기 플레이의 핵심 동기가 끊깁니다.",
+      "recommendation": "분기 후보 시장과 4년 조직 개편 주기를 유지하면서 국가·직급별 후보 품질만 추가 조정합니다."
+    },
+    {
+      "priority": "P2",
+      "id": "research-content-cliff",
+      "title": "해결됨 · 연구가 2020년까지 시대별 프로그램으로 이어집니다",
+      "evidence": "세션당 평균 37.8개 연구를 완료했고 전체 기간의 55.7%에 활성 연구가 있었습니다.",
+      "funImpact": "1940년대 무기에서 냉전·현대 기술로 발전한다는 장기 목표가 실제 주간 선택으로 이어지지 않습니다.",
+      "recommendation": "연도·선행 연구 잠금을 유지하고 각 시대의 민간·군사 파급효과를 더 세분화합니다."
+    },
+    {
+      "priority": "P2",
+      "id": "history-frontloaded",
+      "title": "해결됨 · 세계 위기가 역사적 시기와 인과를 따라 2020년까지 계속됩니다",
+      "evidence": "마지막 위기는 평균 2017년에 발생했고 후반 공백은 3.0년, 최대 조기 발생 중앙값은 5년입니다.",
+      "funImpact": "초반에는 모달이 몰리고 1970~2020년에는 세계가 반응하지 않아 대체역사 장기 서사가 약해집니다.",
+      "recommendation": "동일 범주 연속 발생을 억제한 상태에서 지역별 후속 사건 사슬을 확장합니다."
+    },
+    {
+      "priority": "P2",
+      "id": "macro-saturation",
+      "title": "해결됨 · 물가·정치력·외부 압력이 장기 균형으로 복귀합니다",
+      "evidence": "초인플레이션, 정치력 1,000 초과, 외부 압력 0 고착 세션이 모두 0.0%입니다.",
+      "funImpact": "자원 선택의 기회비용과 위험 신호가 의미를 잃고, 같은 경고를 무시하며 다음 주만 누르는 흐름이 됩니다.",
+      "recommendation": "국가별 경기 주기와 전쟁·평화기 목표 범위를 계속 보정합니다."
+    },
+    {
+      "priority": "P2",
+      "id": "wartime-event-lockout",
+      "title": "해결됨 · 1940년대 국가 사건이 전후 운영에서도 이어집니다",
+      "evidence": "국가별 1940년대 역사 사건 평균 체험률이 100.0%입니다.",
+      "funImpact": "방금 추가한 독립·종전·재건 사건이 정상적인 전후 전환 플레이에서 보이지 않아 콘텐츠 밀도가 체감되지 않습니다.",
+      "recommendation": "전시·전환기·건국기 우선순위를 유지하면서 미해결 국가 사건을 먼저 제시합니다."
+    },
+    {
+      "priority": "P2",
+      "id": "attention-fatigue",
+      "title": "개선됨 · 긴급 알림이 실제 악화 신호에 집중됩니다",
+      "evidence": "긴급 상태 주차가 23.0%이며, 조치한 항목은 검증·관찰 상태를 거친 뒤 재발합니다.",
+      "funImpact": "중요도 차이가 흐려지고 플레이어가 알림을 읽기보다 일괄 넘기게 됩니다.",
+      "recommendation": "행동 성향별로 남은 반복 경고를 분석해 15% 이하를 목표로 조정합니다."
+    },
+    {
+      "priority": "P2",
+      "id": "ending-convergence",
+      "title": "해결됨 · 결말이 다섯 영역의 에필로그와 결정 연쇄를 설명합니다",
+      "evidence": "고유 결말 128개, 최빈 결말 16.7%에 더해 정부·경제·사회·기술·국제질서와 상위 10개 결정 요인을 출력합니다.",
+      "funImpact": "선택 수는 많지만 서로 다른 플레이가 같은 결과 카드로 끝나면 대체역사의 소유감이 약해집니다.",
+      "recommendation": "후속 검증에서는 선택 조합별 에필로그 문장 중복률과 인과 설명의 가독성을 측정합니다."
+    }
+  ]
+}

@@ -1,0 +1,357 @@
+[
+  {
+    "nationId": "korea",
+    "stageId": "total-war",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 653,
+    "dominantPathRate": 1.3,
+    "dominantRoute": "license",
+    "dominantRouteRate": 22.5,
+    "averageCapabilityGain": 53.6,
+    "averageFinalCapability": 92.5,
+    "averageAutonomy": 38.1,
+    "averageInteroperability": 85.1,
+    "averageRelations": 69.6,
+    "averageTreasury": 150.1,
+    "averageFiscalStress": 19.9,
+    "averageEscalation": 40.6,
+    "averageSupplySecurity": 53.4,
+    "averageProliferation": 15.9,
+    "averageTreatyCompliance": 33.3,
+    "averageDecisionImpact": 18.5,
+    "sanctionsPerSession": 0.12,
+    "procurementFailureRate": 27.1,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 99.2,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "total-war-logistics",
+        "uses": 2687
+      },
+      {
+        "id": "total-war-systems",
+        "uses": 2676
+      },
+      {
+        "id": "total-war-infantry",
+        "uses": 2373
+      },
+      {
+        "id": "total-war-strategic",
+        "uses": 1038
+      },
+      {
+        "id": "total-war-armor",
+        "uses": 866
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "combined-standards",
+        "uses": 769
+      },
+      {
+        "id": "licensed-mass-production",
+        "uses": 765
+      },
+      {
+        "id": "emergency-aid",
+        "uses": 727
+      },
+      {
+        "id": "strategic-embargo",
+        "uses": 624
+      },
+      {
+        "id": "scientific-mission",
+        "uses": 609
+      }
+    ]
+  },
+  {
+    "nationId": "korea",
+    "stageId": "reconstruction",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 654,
+    "dominantPathRate": 1.2,
+    "dominantRoute": "license",
+    "dominantRouteRate": 22.4,
+    "averageCapabilityGain": 56.2,
+    "averageFinalCapability": 92.1,
+    "averageAutonomy": 41.8,
+    "averageInteroperability": 84.3,
+    "averageRelations": 77.2,
+    "averageTreasury": 147,
+    "averageFiscalStress": 19.4,
+    "averageEscalation": 31.4,
+    "averageSupplySecurity": 45.5,
+    "averageProliferation": 8.6,
+    "averageTreatyCompliance": 43.2,
+    "averageDecisionImpact": 18.9,
+    "sanctionsPerSession": 0.1,
+    "procurementFailureRate": 25.9,
+    "obsoleteLockInRate": 4.6,
+    "viabilityRate": 93.6,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "reconstruction-systems",
+        "uses": 2722
+      },
+      {
+        "id": "reconstruction-logistics",
+        "uses": 2706
+      },
+      {
+        "id": "reconstruction-infantry",
+        "uses": 2429
+      },
+      {
+        "id": "reconstruction-strategic",
+        "uses": 976
+      },
+      {
+        "id": "reconstruction-aircraft",
+        "uses": 827
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "arsenal-reconstruction-credit",
+        "uses": 838
+      },
+      {
+        "id": "decolonization-security-compact",
+        "uses": 677
+      },
+      {
+        "id": "atomic-oversight",
+        "uses": 657
+      },
+      {
+        "id": "demobilization-control",
+        "uses": 648
+      },
+      {
+        "id": "mutual-defense",
+        "uses": 635
+      }
+    ]
+  },
+  {
+    "nationId": "korea",
+    "stageId": "bipolar",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 674,
+    "dominantPathRate": 1.5,
+    "dominantRoute": "license",
+    "dominantRouteRate": 23,
+    "averageCapabilityGain": 61.4,
+    "averageFinalCapability": 94.3,
+    "averageAutonomy": 45.8,
+    "averageInteroperability": 81.4,
+    "averageRelations": 72,
+    "averageTreasury": 105.7,
+    "averageFiscalStress": 29.9,
+    "averageEscalation": 52,
+    "averageSupplySecurity": 49.3,
+    "averageProliferation": 29.2,
+    "averageTreatyCompliance": 57.8,
+    "averageDecisionImpact": 23.9,
+    "sanctionsPerSession": 0.19,
+    "procurementFailureRate": 26.2,
+    "obsoleteLockInRate": 1.3,
+    "viabilityRate": 97.5,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "bipolar-systems",
+        "uses": 2690
+      },
+      {
+        "id": "bipolar-logistics",
+        "uses": 2667
+      },
+      {
+        "id": "bipolar-infantry",
+        "uses": 2406
+      },
+      {
+        "id": "bipolar-strategic",
+        "uses": 964
+      },
+      {
+        "id": "bipolar-armor",
+        "uses": 843
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "alliance-standardization",
+        "uses": 834
+      },
+      {
+        "id": "hotline-arms-control",
+        "uses": 699
+      },
+      {
+        "id": "indigenous-deterrent",
+        "uses": 694
+      },
+      {
+        "id": "npt-safeguards",
+        "uses": 604
+      },
+      {
+        "id": "proxy-military-aid",
+        "uses": 586
+      }
+    ]
+  },
+  {
+    "nationId": "korea",
+    "stageId": "networked",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 686,
+    "dominantPathRate": 1,
+    "dominantRoute": "license",
+    "dominantRouteRate": 22.7,
+    "averageCapabilityGain": 66.3,
+    "averageFinalCapability": 96.2,
+    "averageAutonomy": 32.5,
+    "averageInteroperability": 88.7,
+    "averageRelations": 80.5,
+    "averageTreasury": 97.4,
+    "averageFiscalStress": 30.5,
+    "averageEscalation": 42.2,
+    "averageSupplySecurity": 47.4,
+    "averageProliferation": 10.3,
+    "averageTreatyCompliance": 57,
+    "averageDecisionImpact": 20.6,
+    "sanctionsPerSession": 0.11,
+    "procurementFailureRate": 25.1,
+    "obsoleteLockInRate": 2,
+    "viabilityRate": 96.8,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "networked-logistics",
+        "uses": 2715
+      },
+      {
+        "id": "networked-systems",
+        "uses": 2662
+      },
+      {
+        "id": "networked-infantry",
+        "uses": 2346
+      },
+      {
+        "id": "networked-strategic",
+        "uses": 1038
+      },
+      {
+        "id": "networked-aircraft",
+        "uses": 868
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "joint-procurement",
+        "uses": 833
+      },
+      {
+        "id": "precision-network-access",
+        "uses": 671
+      },
+      {
+        "id": "regional-code-conduct",
+        "uses": 634
+      },
+      {
+        "id": "illicit-transfer-interdiction",
+        "uses": 630
+      },
+      {
+        "id": "peacekeeping-assistance",
+        "uses": 625
+      }
+    ]
+  },
+  {
+    "nationId": "korea",
+    "stageId": "horizon",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 720,
+    "dominantPathRate": 1.3,
+    "dominantRoute": "joint",
+    "dominantRouteRate": 22.7,
+    "averageCapabilityGain": 70.8,
+    "averageFinalCapability": 97.7,
+    "averageAutonomy": 46.3,
+    "averageInteroperability": 87.1,
+    "averageRelations": 72.7,
+    "averageTreasury": 64,
+    "averageFiscalStress": 38.1,
+    "averageEscalation": 48.3,
+    "averageSupplySecurity": 51.6,
+    "averageProliferation": 28.2,
+    "averageTreatyCompliance": 65.4,
+    "averageDecisionImpact": 24,
+    "sanctionsPerSession": 0.15,
+    "procurementFailureRate": 26.2,
+    "obsoleteLockInRate": 1.1,
+    "viabilityRate": 96.9,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "horizon-logistics",
+        "uses": 2719
+      },
+      {
+        "id": "horizon-systems",
+        "uses": 2625
+      },
+      {
+        "id": "horizon-infantry",
+        "uses": 2452
+      },
+      {
+        "id": "horizon-strategic",
+        "uses": 978
+      },
+      {
+        "id": "horizon-aircraft",
+        "uses": 846
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "resilient-supply-club",
+        "uses": 803
+      },
+      {
+        "id": "space-incident-regime",
+        "uses": 672
+      },
+      {
+        "id": "cyber-confidence-network",
+        "uses": 665
+      },
+      {
+        "id": "human-control-protocol",
+        "uses": 629
+      },
+      {
+        "id": "sovereign-ai-deterrent",
+        "uses": 627
+      }
+    ]
+  }
+]

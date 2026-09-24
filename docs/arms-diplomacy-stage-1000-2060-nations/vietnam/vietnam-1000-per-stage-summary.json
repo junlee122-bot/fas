@@ -1,0 +1,357 @@
+[
+  {
+    "nationId": "vietnam",
+    "stageId": "total-war",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 695,
+    "dominantPathRate": 0.8,
+    "dominantRoute": "license",
+    "dominantRouteRate": 24.5,
+    "averageCapabilityGain": 51.6,
+    "averageFinalCapability": 87.1,
+    "averageAutonomy": 51.6,
+    "averageInteroperability": 62.7,
+    "averageRelations": 62.8,
+    "averageTreasury": 130.9,
+    "averageFiscalStress": 25.1,
+    "averageEscalation": 46.7,
+    "averageSupplySecurity": 56.8,
+    "averageProliferation": 17.9,
+    "averageTreatyCompliance": 33.3,
+    "averageDecisionImpact": 18.5,
+    "sanctionsPerSession": 0.12,
+    "procurementFailureRate": 32.9,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 99.9,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "total-war-logistics",
+        "uses": 2736
+      },
+      {
+        "id": "total-war-infantry",
+        "uses": 2510
+      },
+      {
+        "id": "total-war-artillery",
+        "uses": 2481
+      },
+      {
+        "id": "total-war-strategic",
+        "uses": 1030
+      },
+      {
+        "id": "total-war-aircraft",
+        "uses": 843
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "licensed-mass-production",
+        "uses": 729
+      },
+      {
+        "id": "emergency-aid",
+        "uses": 724
+      },
+      {
+        "id": "combined-standards",
+        "uses": 675
+      },
+      {
+        "id": "strategic-embargo",
+        "uses": 645
+      },
+      {
+        "id": "neutral-procurement",
+        "uses": 619
+      }
+    ]
+  },
+  {
+    "nationId": "vietnam",
+    "stageId": "reconstruction",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 721,
+    "dominantPathRate": 0.8,
+    "dominantRoute": "license",
+    "dominantRouteRate": 23.8,
+    "averageCapabilityGain": 53.2,
+    "averageFinalCapability": 85.7,
+    "averageAutonomy": 53.8,
+    "averageInteroperability": 60.1,
+    "averageRelations": 70.9,
+    "averageTreasury": 129.8,
+    "averageFiscalStress": 24,
+    "averageEscalation": 37.4,
+    "averageSupplySecurity": 49.3,
+    "averageProliferation": 10.8,
+    "averageTreatyCompliance": 43.2,
+    "averageDecisionImpact": 19.1,
+    "sanctionsPerSession": 0.13,
+    "procurementFailureRate": 32.7,
+    "obsoleteLockInRate": 3,
+    "viabilityRate": 96.5,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "reconstruction-logistics",
+        "uses": 2806
+      },
+      {
+        "id": "reconstruction-infantry",
+        "uses": 2500
+      },
+      {
+        "id": "reconstruction-artillery",
+        "uses": 2381
+      },
+      {
+        "id": "reconstruction-strategic",
+        "uses": 1040
+      },
+      {
+        "id": "reconstruction-systems",
+        "uses": 892
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "arsenal-reconstruction-credit",
+        "uses": 762
+      },
+      {
+        "id": "decolonization-security-compact",
+        "uses": 687
+      },
+      {
+        "id": "demobilization-control",
+        "uses": 678
+      },
+      {
+        "id": "atomic-oversight",
+        "uses": 659
+      },
+      {
+        "id": "mutual-defense",
+        "uses": 613
+      }
+    ]
+  },
+  {
+    "nationId": "vietnam",
+    "stageId": "bipolar",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 723,
+    "dominantPathRate": 1.1,
+    "dominantRoute": "license",
+    "dominantRouteRate": 24.1,
+    "averageCapabilityGain": 58.4,
+    "averageFinalCapability": 88,
+    "averageAutonomy": 57.8,
+    "averageInteroperability": 56.7,
+    "averageRelations": 66.2,
+    "averageTreasury": 89,
+    "averageFiscalStress": 34.3,
+    "averageEscalation": 56.3,
+    "averageSupplySecurity": 53.1,
+    "averageProliferation": 32,
+    "averageTreatyCompliance": 58.7,
+    "averageDecisionImpact": 24.4,
+    "sanctionsPerSession": 0.19,
+    "procurementFailureRate": 32.3,
+    "obsoleteLockInRate": 0.8,
+    "viabilityRate": 98.5,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "bipolar-logistics",
+        "uses": 2617
+      },
+      {
+        "id": "bipolar-infantry",
+        "uses": 2494
+      },
+      {
+        "id": "bipolar-artillery",
+        "uses": 2430
+      },
+      {
+        "id": "bipolar-strategic",
+        "uses": 1056
+      },
+      {
+        "id": "bipolar-aircraft",
+        "uses": 861
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "hotline-arms-control",
+        "uses": 760
+      },
+      {
+        "id": "alliance-standardization",
+        "uses": 714
+      },
+      {
+        "id": "indigenous-deterrent",
+        "uses": 685
+      },
+      {
+        "id": "proxy-military-aid",
+        "uses": 634
+      },
+      {
+        "id": "nonaligned-diversification",
+        "uses": 608
+      }
+    ]
+  },
+  {
+    "nationId": "vietnam",
+    "stageId": "networked",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 716,
+    "dominantPathRate": 0.7,
+    "dominantRoute": "license",
+    "dominantRouteRate": 24.6,
+    "averageCapabilityGain": 63.9,
+    "averageFinalCapability": 90.4,
+    "averageAutonomy": 46.2,
+    "averageInteroperability": 68.6,
+    "averageRelations": 75.1,
+    "averageTreasury": 79.8,
+    "averageFiscalStress": 35.1,
+    "averageEscalation": 46.4,
+    "averageSupplySecurity": 51.8,
+    "averageProliferation": 12,
+    "averageTreatyCompliance": 57.1,
+    "averageDecisionImpact": 21.6,
+    "sanctionsPerSession": 0.13,
+    "procurementFailureRate": 30.6,
+    "obsoleteLockInRate": 0.7,
+    "viabilityRate": 98.5,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "networked-logistics",
+        "uses": 2664
+      },
+      {
+        "id": "networked-artillery",
+        "uses": 2476
+      },
+      {
+        "id": "networked-infantry",
+        "uses": 2464
+      },
+      {
+        "id": "networked-strategic",
+        "uses": 1050
+      },
+      {
+        "id": "networked-systems",
+        "uses": 863
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "joint-procurement",
+        "uses": 738
+      },
+      {
+        "id": "precision-network-access",
+        "uses": 715
+      },
+      {
+        "id": "peacekeeping-assistance",
+        "uses": 670
+      },
+      {
+        "id": "illicit-transfer-interdiction",
+        "uses": 642
+      },
+      {
+        "id": "regional-code-conduct",
+        "uses": 623
+      }
+    ]
+  },
+  {
+    "nationId": "vietnam",
+    "stageId": "horizon",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 731,
+    "dominantPathRate": 0.6,
+    "dominantRoute": "license",
+    "dominantRouteRate": 24.5,
+    "averageCapabilityGain": 69.2,
+    "averageFinalCapability": 92.7,
+    "averageAutonomy": 59.2,
+    "averageInteroperability": 64.7,
+    "averageRelations": 66,
+    "averageTreasury": 47.2,
+    "averageFiscalStress": 42.5,
+    "averageEscalation": 52.7,
+    "averageSupplySecurity": 55,
+    "averageProliferation": 31,
+    "averageTreatyCompliance": 66.8,
+    "averageDecisionImpact": 25.3,
+    "sanctionsPerSession": 0.18,
+    "procurementFailureRate": 33.2,
+    "obsoleteLockInRate": 0.8,
+    "viabilityRate": 90,
+    "collapseRate": 0.2,
+    "topPrograms": [
+      {
+        "id": "horizon-logistics",
+        "uses": 2620
+      },
+      {
+        "id": "horizon-infantry",
+        "uses": 2506
+      },
+      {
+        "id": "horizon-artillery",
+        "uses": 2466
+      },
+      {
+        "id": "horizon-strategic",
+        "uses": 1056
+      },
+      {
+        "id": "horizon-aircraft",
+        "uses": 887
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "cyber-confidence-network",
+        "uses": 714
+      },
+      {
+        "id": "resilient-supply-club",
+        "uses": 688
+      },
+      {
+        "id": "space-incident-regime",
+        "uses": 682
+      },
+      {
+        "id": "sovereign-ai-deterrent",
+        "uses": 667
+      },
+      {
+        "id": "human-control-protocol",
+        "uses": 660
+      }
+    ]
+  }
+]

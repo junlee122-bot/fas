@@ -1,0 +1,4 @@
+id,role,type,path,dimensions,source,era,provenance_status
+desk-military,command desk supporting figure,illustration,src/assets/command-desk/military-workroom.webp,2048x1360,Higgsfield GPT Image 2.5 high 2k,1936-1959,original and job metadata in command-desk-generation.json; not archival evidence
+desk-politics,command desk supporting figure,illustration,src/assets/command-desk/politics-workroom.webp,2048x1360,Higgsfield GPT Image 2.5 high 2k,1936-1959,original and job metadata in command-desk-generation.json; not archival evidence
+desk-intelligence,command desk supporting figure,illustration,src/assets/command-desk/intelligence-workroom.webp,2048x1360,Higgsfield GPT Image 2.5 high 2k,1936-1959,original and job metadata in command-desk-generation.json; not archival evidence

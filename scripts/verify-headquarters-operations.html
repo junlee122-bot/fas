@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>지휘부 운영 흐름 · 격리 검증</title>
+  <style>
+    :root { color-scheme: dark; font-family: "Malgun Gothic", "Segoe UI", sans-serif; color: #e7eadf; background: #111b16; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    .hq-fixture { padding: 20px; margin: 0 auto; max-width: 3800px; }
+    .hq-fixture > header h1 { font-size: 23px; margin: 0 0 8px; }
+    .hq-fixture > header p { color: #c3cdbf; font-size: 13px; line-height: 1.7; max-width: 1250px; }
+    .hq-fixture-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 0; }
+    .hq-fixture-tools label { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+    .hq-fixture-tools button, .hq-fixture-tools select { font: inherit; font-size: 13px; color: #eee7d0; background: #2c3a2d; border: 1px solid #6b765d; border-radius: 3px; padding: 9px 12px; }
+    .hq-fixture-tools button { cursor: pointer; }
+    .hq-fixture-tools button:disabled { opacity: .5; cursor: not-allowed; }
+    .hq-fixture-tools :focus-visible, .hq-fixture-audit summary:focus-visible { outline: 3px solid #e8c884; outline-offset: 3px; }
+    .hq-fixture-status { display: block; padding: 10px 14px; background: #263628; border-left: 3px solid #c5b775; font-size: 13px; line-height: 1.7; }
+    .hq-fixture-counters { display: flex; flex-wrap: wrap; gap: 16px; margin: 12px 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+    .hq-fixture-counters output { padding: 8px 12px; border: 1px solid #526148; background: #19271e; }
+    .hq-fixture-audit { margin: 14px 0 26px; color: #c8d0bf; font-size: 13px; }
+    .hq-fixture-audit summary { cursor: pointer; padding: 10px 0; }
+    .hq-fixture-audit pre { max-height: 360px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; background: #0e1813; padding: 15px; }
+    .hq-fixture-audit li { line-height: 1.8; }
+  </style>
+</head>
+<body><div id="root"></div><script type="module" src="./verify-headquarters-operations.tsx"></script></body>
+</html>

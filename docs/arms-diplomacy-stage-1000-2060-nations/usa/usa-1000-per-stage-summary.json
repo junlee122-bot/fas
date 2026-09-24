@@ -1,0 +1,357 @@
+[
+  {
+    "nationId": "usa",
+    "stageId": "total-war",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 636,
+    "dominantPathRate": 1.1,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 34.1,
+    "averageCapabilityGain": 38.7,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 87.8,
+    "averageInteroperability": 90.7,
+    "averageRelations": 69.6,
+    "averageTreasury": 212.2,
+    "averageFiscalStress": 1.3,
+    "averageEscalation": 43.1,
+    "averageSupplySecurity": 91.6,
+    "averageProliferation": 15.6,
+    "averageTreatyCompliance": 33.3,
+    "averageDecisionImpact": 18,
+    "sanctionsPerSession": 0.05,
+    "procurementFailureRate": 11.5,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "total-war-logistics",
+        "uses": 2689
+      },
+      {
+        "id": "total-war-aircraft",
+        "uses": 2548
+      },
+      {
+        "id": "total-war-naval",
+        "uses": 2472
+      },
+      {
+        "id": "total-war-strategic",
+        "uses": 1024
+      },
+      {
+        "id": "total-war-systems",
+        "uses": 861
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "combined-standards",
+        "uses": 711
+      },
+      {
+        "id": "scientific-mission",
+        "uses": 692
+      },
+      {
+        "id": "strategic-embargo",
+        "uses": 665
+      },
+      {
+        "id": "emergency-aid",
+        "uses": 662
+      },
+      {
+        "id": "neutral-procurement",
+        "uses": 639
+      }
+    ]
+  },
+  {
+    "nationId": "usa",
+    "stageId": "reconstruction",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 652,
+    "dominantPathRate": 0.9,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 34,
+    "averageCapabilityGain": 41.4,
+    "averageFinalCapability": 99.7,
+    "averageAutonomy": 87.7,
+    "averageInteroperability": 91.4,
+    "averageRelations": 77.2,
+    "averageTreasury": 210.6,
+    "averageFiscalStress": 1.5,
+    "averageEscalation": 33,
+    "averageSupplySecurity": 88.2,
+    "averageProliferation": 8.1,
+    "averageTreatyCompliance": 43.4,
+    "averageDecisionImpact": 18.8,
+    "sanctionsPerSession": 0.05,
+    "procurementFailureRate": 10.8,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "reconstruction-logistics",
+        "uses": 2696
+      },
+      {
+        "id": "reconstruction-aircraft",
+        "uses": 2588
+      },
+      {
+        "id": "reconstruction-naval",
+        "uses": 2376
+      },
+      {
+        "id": "reconstruction-strategic",
+        "uses": 1041
+      },
+      {
+        "id": "reconstruction-systems",
+        "uses": 862
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "demobilization-control",
+        "uses": 771
+      },
+      {
+        "id": "decolonization-security-compact",
+        "uses": 733
+      },
+      {
+        "id": "atomic-oversight",
+        "uses": 675
+      },
+      {
+        "id": "mutual-defense",
+        "uses": 653
+      },
+      {
+        "id": "arsenal-reconstruction-credit",
+        "uses": 619
+      }
+    ]
+  },
+  {
+    "nationId": "usa",
+    "stageId": "bipolar",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 612,
+    "dominantPathRate": 1.5,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 33.7,
+    "averageCapabilityGain": 44.6,
+    "averageFinalCapability": 99.9,
+    "averageAutonomy": 89.2,
+    "averageInteroperability": 87,
+    "averageRelations": 71.7,
+    "averageTreasury": 205.6,
+    "averageFiscalStress": 2.4,
+    "averageEscalation": 54.7,
+    "averageSupplySecurity": 91.2,
+    "averageProliferation": 29.6,
+    "averageTreatyCompliance": 60.5,
+    "averageDecisionImpact": 25.1,
+    "sanctionsPerSession": 0.08,
+    "procurementFailureRate": 11.4,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "bipolar-logistics",
+        "uses": 2753
+      },
+      {
+        "id": "bipolar-aircraft",
+        "uses": 2581
+      },
+      {
+        "id": "bipolar-naval",
+        "uses": 2311
+      },
+      {
+        "id": "bipolar-strategic",
+        "uses": 1077
+      },
+      {
+        "id": "bipolar-systems",
+        "uses": 900
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "hotline-arms-control",
+        "uses": 787
+      },
+      {
+        "id": "indigenous-deterrent",
+        "uses": 733
+      },
+      {
+        "id": "npt-safeguards",
+        "uses": 663
+      },
+      {
+        "id": "alliance-standardization",
+        "uses": 632
+      },
+      {
+        "id": "proxy-military-aid",
+        "uses": 607
+      }
+    ]
+  },
+  {
+    "nationId": "usa",
+    "stageId": "networked",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 675,
+    "dominantPathRate": 0.8,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 33.3,
+    "averageCapabilityGain": 47.7,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 85,
+    "averageInteroperability": 94,
+    "averageRelations": 80.5,
+    "averageTreasury": 206.9,
+    "averageFiscalStress": 2.3,
+    "averageEscalation": 44.1,
+    "averageSupplySecurity": 90.9,
+    "averageProliferation": 9,
+    "averageTreatyCompliance": 58.9,
+    "averageDecisionImpact": 21.7,
+    "sanctionsPerSession": 0.04,
+    "procurementFailureRate": 10.6,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "networked-logistics",
+        "uses": 2727
+      },
+      {
+        "id": "networked-aircraft",
+        "uses": 2513
+      },
+      {
+        "id": "networked-naval",
+        "uses": 2380
+      },
+      {
+        "id": "networked-strategic",
+        "uses": 1009
+      },
+      {
+        "id": "networked-armor",
+        "uses": 905
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "precision-network-access",
+        "uses": 693
+      },
+      {
+        "id": "regional-code-conduct",
+        "uses": 684
+      },
+      {
+        "id": "responsible-export-controls",
+        "uses": 675
+      },
+      {
+        "id": "joint-procurement",
+        "uses": 674
+      },
+      {
+        "id": "illicit-transfer-interdiction",
+        "uses": 664
+      }
+    ]
+  },
+  {
+    "nationId": "usa",
+    "stageId": "horizon",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 632,
+    "dominantPathRate": 1,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 33.7,
+    "averageCapabilityGain": 50.7,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 91.7,
+    "averageInteroperability": 92.8,
+    "averageRelations": 71.8,
+    "averageTreasury": 199,
+    "averageFiscalStress": 4.6,
+    "averageEscalation": 51,
+    "averageSupplySecurity": 91.5,
+    "averageProliferation": 28.8,
+    "averageTreatyCompliance": 67.7,
+    "averageDecisionImpact": 23.7,
+    "sanctionsPerSession": 0.07,
+    "procurementFailureRate": 11.3,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "horizon-logistics",
+        "uses": 2632
+      },
+      {
+        "id": "horizon-aircraft",
+        "uses": 2630
+      },
+      {
+        "id": "horizon-naval",
+        "uses": 2392
+      },
+      {
+        "id": "horizon-strategic",
+        "uses": 1035
+      },
+      {
+        "id": "horizon-armor",
+        "uses": 869
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "cyber-confidence-network",
+        "uses": 745
+      },
+      {
+        "id": "sovereign-ai-deterrent",
+        "uses": 697
+      },
+      {
+        "id": "space-incident-regime",
+        "uses": 688
+      },
+      {
+        "id": "human-control-protocol",
+        "uses": 683
+      },
+      {
+        "id": "autonomous-joint-lab",
+        "uses": 615
+      }
+    ]
+  }
+]

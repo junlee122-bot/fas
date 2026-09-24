@@ -1,0 +1,41 @@
+/* Portraits occupy the existing identity slots, not personnel action space. */
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2, .staff-meeting-room) .staff-portrait {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--org-border, #7a8164);
+  border-radius: 8px;
+  background: var(--org-surface, #26362b);
+  color: var(--org-accent, #d6bf7d);
+  font: 600 14px/1.2 var(--font-ui, sans-serif);
+  vertical-align: middle;
+}
+
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2, .staff-meeting-room) .staff-portrait > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2, .staff-meeting-room) .staff-portrait > .person-portrait__monogram { font: inherit; color: inherit; }
+
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-portrait--detail { width: 64px; height: 64px; font-size: 22px; }
+/* Keep dense roster rows unchanged; give only the selected person a readable face. */
+@media (min-width: 1100px) {
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-portrait--detail { width: clamp(88px, 5.5vw, 112px); height: clamp(88px, 5.5vw, 112px); border-radius: 5px; }
+}
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-portrait--seat { width: 29px; height: 29px; font-size: 11px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-portrait--dynamic { width: 32px; height: 32px; font-size: 12px; }
+:is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-portrait-note { margin: 0; font-size: 12px; line-height: 1.5; color: var(--org-muted); }
+:is(.staff-meeting-room, .game-shell.design-v2 .deck-content .staff-meeting-room) .staff-portrait--meeting { width: 100%; height: 100%; border: 0; border-radius: 50%; font-size: 20px; }
+
+@media (max-width: 460px) {
+  :is(.organization-panel-v2, .game-shell.design-v2 .deck-content .organization-panel-v2) .staff-portrait--detail { width: 44px; height: 44px; font-size: 16px; }
+}

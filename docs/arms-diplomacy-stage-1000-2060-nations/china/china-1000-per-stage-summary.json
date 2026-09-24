@@ -1,0 +1,357 @@
+[
+  {
+    "nationId": "china",
+    "stageId": "total-war",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 704,
+    "dominantPathRate": 1.3,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 28.8,
+    "averageCapabilityGain": 50.7,
+    "averageFinalCapability": 99.3,
+    "averageAutonomy": 63.3,
+    "averageInteroperability": 70.7,
+    "averageRelations": 64.7,
+    "averageTreasury": 210.3,
+    "averageFiscalStress": 3.1,
+    "averageEscalation": 45,
+    "averageSupplySecurity": 66.5,
+    "averageProliferation": 15.2,
+    "averageTreatyCompliance": 33.3,
+    "averageDecisionImpact": 21.2,
+    "sanctionsPerSession": 0.06,
+    "procurementFailureRate": 21.8,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "total-war-systems",
+        "uses": 2673
+      },
+      {
+        "id": "total-war-infantry",
+        "uses": 2453
+      },
+      {
+        "id": "total-war-artillery",
+        "uses": 2442
+      },
+      {
+        "id": "total-war-strategic",
+        "uses": 1017
+      },
+      {
+        "id": "total-war-aircraft",
+        "uses": 869
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "combined-standards",
+        "uses": 700
+      },
+      {
+        "id": "emergency-aid",
+        "uses": 677
+      },
+      {
+        "id": "licensed-mass-production",
+        "uses": 676
+      },
+      {
+        "id": "strategic-embargo",
+        "uses": 668
+      },
+      {
+        "id": "neutral-procurement",
+        "uses": 643
+      }
+    ]
+  },
+  {
+    "nationId": "china",
+    "stageId": "reconstruction",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 725,
+    "dominantPathRate": 0.7,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 28.2,
+    "averageCapabilityGain": 53.4,
+    "averageFinalCapability": 99,
+    "averageAutonomy": 64.9,
+    "averageInteroperability": 69.2,
+    "averageRelations": 72.8,
+    "averageTreasury": 208.2,
+    "averageFiscalStress": 3.1,
+    "averageEscalation": 35.6,
+    "averageSupplySecurity": 60.2,
+    "averageProliferation": 8.6,
+    "averageTreatyCompliance": 43.1,
+    "averageDecisionImpact": 21.7,
+    "sanctionsPerSession": 0.07,
+    "procurementFailureRate": 20.4,
+    "obsoleteLockInRate": 0.2,
+    "viabilityRate": 99.8,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "reconstruction-systems",
+        "uses": 2709
+      },
+      {
+        "id": "reconstruction-infantry",
+        "uses": 2452
+      },
+      {
+        "id": "reconstruction-artillery",
+        "uses": 2436
+      },
+      {
+        "id": "reconstruction-strategic",
+        "uses": 1054
+      },
+      {
+        "id": "reconstruction-logistics",
+        "uses": 864
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "demobilization-control",
+        "uses": 740
+      },
+      {
+        "id": "decolonization-security-compact",
+        "uses": 698
+      },
+      {
+        "id": "arsenal-reconstruction-credit",
+        "uses": 673
+      },
+      {
+        "id": "atomic-oversight",
+        "uses": 650
+      },
+      {
+        "id": "mutual-defense",
+        "uses": 635
+      }
+    ]
+  },
+  {
+    "nationId": "china",
+    "stageId": "bipolar",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 696,
+    "dominantPathRate": 0.9,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 28.3,
+    "averageCapabilityGain": 57,
+    "averageFinalCapability": 99.7,
+    "averageAutonomy": 68.8,
+    "averageInteroperability": 64.6,
+    "averageRelations": 67.5,
+    "averageTreasury": 183.8,
+    "averageFiscalStress": 11.4,
+    "averageEscalation": 56.4,
+    "averageSupplySecurity": 63.4,
+    "averageProliferation": 30.6,
+    "averageTreatyCompliance": 58.8,
+    "averageDecisionImpact": 26.2,
+    "sanctionsPerSession": 0.1,
+    "procurementFailureRate": 20.5,
+    "obsoleteLockInRate": 0.1,
+    "viabilityRate": 99.9,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "bipolar-systems",
+        "uses": 2704
+      },
+      {
+        "id": "bipolar-infantry",
+        "uses": 2448
+      },
+      {
+        "id": "bipolar-artillery",
+        "uses": 2422
+      },
+      {
+        "id": "bipolar-strategic",
+        "uses": 1037
+      },
+      {
+        "id": "bipolar-aircraft",
+        "uses": 890
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "hotline-arms-control",
+        "uses": 781
+      },
+      {
+        "id": "indigenous-deterrent",
+        "uses": 734
+      },
+      {
+        "id": "proxy-military-aid",
+        "uses": 647
+      },
+      {
+        "id": "alliance-standardization",
+        "uses": 633
+      },
+      {
+        "id": "nonaligned-diversification",
+        "uses": 616
+      }
+    ]
+  },
+  {
+    "nationId": "china",
+    "stageId": "networked",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 723,
+    "dominantPathRate": 0.8,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 28.7,
+    "averageCapabilityGain": 60.3,
+    "averageFinalCapability": 99.9,
+    "averageAutonomy": 58.9,
+    "averageInteroperability": 75.3,
+    "averageRelations": 76.6,
+    "averageTreasury": 178.2,
+    "averageFiscalStress": 11.6,
+    "averageEscalation": 47.2,
+    "averageSupplySecurity": 62.5,
+    "averageProliferation": 9.5,
+    "averageTreatyCompliance": 58.5,
+    "averageDecisionImpact": 22.7,
+    "sanctionsPerSession": 0.07,
+    "procurementFailureRate": 19.9,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "networked-systems",
+        "uses": 2775
+      },
+      {
+        "id": "networked-infantry",
+        "uses": 2420
+      },
+      {
+        "id": "networked-artillery",
+        "uses": 2394
+      },
+      {
+        "id": "networked-strategic",
+        "uses": 1056
+      },
+      {
+        "id": "networked-aircraft",
+        "uses": 898
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "precision-network-access",
+        "uses": 730
+      },
+      {
+        "id": "illicit-transfer-interdiction",
+        "uses": 671
+      },
+      {
+        "id": "responsible-export-controls",
+        "uses": 660
+      },
+      {
+        "id": "regional-code-conduct",
+        "uses": 655
+      },
+      {
+        "id": "joint-procurement",
+        "uses": 654
+      }
+    ]
+  },
+  {
+    "nationId": "china",
+    "stageId": "horizon",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 710,
+    "dominantPathRate": 0.9,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 28.8,
+    "averageCapabilityGain": 63.4,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 69.9,
+    "averageInteroperability": 72.3,
+    "averageRelations": 67.3,
+    "averageTreasury": 147.9,
+    "averageFiscalStress": 19,
+    "averageEscalation": 53.5,
+    "averageSupplySecurity": 64.4,
+    "averageProliferation": 28.9,
+    "averageTreatyCompliance": 67.7,
+    "averageDecisionImpact": 24.5,
+    "sanctionsPerSession": 0.12,
+    "procurementFailureRate": 21.4,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "horizon-systems",
+        "uses": 2705
+      },
+      {
+        "id": "horizon-infantry",
+        "uses": 2444
+      },
+      {
+        "id": "horizon-artillery",
+        "uses": 2376
+      },
+      {
+        "id": "horizon-strategic",
+        "uses": 1057
+      },
+      {
+        "id": "horizon-logistics",
+        "uses": 893
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "sovereign-ai-deterrent",
+        "uses": 714
+      },
+      {
+        "id": "cyber-confidence-network",
+        "uses": 713
+      },
+      {
+        "id": "space-incident-regime",
+        "uses": 700
+      },
+      {
+        "id": "human-control-protocol",
+        "uses": 692
+      },
+      {
+        "id": "resilient-supply-club",
+        "uses": 593
+      }
+    ]
+  }
+]

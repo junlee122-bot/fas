@@ -1,0 +1,421 @@
+{
+  "generatedAt": "2026-07-24T02:01:41.747Z",
+  "methodology": "500 deterministic clandestine-only careers from 1942 to 2060; 3,068,000 weekly state transitions across nations, roles, ranks and six behavior profiles.",
+  "aggregate": {
+    "sessionCount": 500,
+    "weeksPerSession": 6136,
+    "totalWeeks": 3068000,
+    "nationCoverage": 13,
+    "handlerNationCoverage": 13,
+    "roleCoverage": 156,
+    "branchCoverage": 3,
+    "tierCoverage": 4,
+    "profileCoverage": 6,
+    "activeAt2060Rate": 62.8,
+    "closedCareerRate": 37.2,
+    "extractionRate": 50,
+    "cutTiesRate": 16.6,
+    "controlledDoubleRate": 47.6,
+    "averageCareerArcs": 19.4,
+    "multiArcCareerRate": 50,
+    "averageExtractionTransitions": 17,
+    "averageCutTieTransitions": 1.7,
+    "averageActiveYears": 76.1,
+    "averageDormantYears": 41.9,
+    "averageMissions": 474,
+    "missionSuccessRate": 80.2,
+    "averageUniqueMissionCodenames": 23.6,
+    "averageUniqueMissionDomains": 6,
+    "averageLongestRepeatedCodenameRun": 3.5,
+    "averageIncidents": 48.5,
+    "incidentsPerDecade": 6.4,
+    "attentionWeekRate": 25.7,
+    "highExposureWeekRate": 8.4,
+    "highStressWeekRate": 0.1,
+    "averageLongestDecisionGapWeeks": 18.2,
+    "excessiveInterruptionSessionRate": 0,
+    "repetitiveMissionSessionRate": 0.6,
+    "dormantDecadesSessionRate": 0,
+    "byProfile": {
+      "home-loyalist": {
+        "sessions": 84,
+        "activeAt2060Rate": 100,
+        "averageActiveYears": 118,
+        "averageMissions": 758.5,
+        "missionSuccessRate": 87.6,
+        "incidentsPerDecade": 3.8,
+        "attentionWeekRate": 26,
+        "averageFinalExposure": 57.2,
+        "averageFinalStress": 2.1
+      },
+      "foreign-asset": {
+        "sessions": 84,
+        "activeAt2060Rate": 26.2,
+        "averageActiveYears": 40.6,
+        "averageMissions": 272.3,
+        "missionSuccessRate": 67.6,
+        "incidentsPerDecade": 21.3,
+        "attentionWeekRate": 31.5,
+        "averageFinalExposure": 90.8,
+        "averageFinalStress": 21.4
+      },
+      "survivor": {
+        "sessions": 83,
+        "activeAt2060Rate": 100,
+        "averageActiveYears": 118,
+        "averageMissions": 801.2,
+        "missionSuccessRate": 77.5,
+        "incidentsPerDecade": 0.1,
+        "attentionWeekRate": 26.1,
+        "averageFinalExposure": 42.9,
+        "averageFinalStress": 1.7
+      },
+      "deceiver": {
+        "sessions": 83,
+        "activeAt2060Rate": 100,
+        "averageActiveYears": 118,
+        "averageMissions": 757.8,
+        "missionSuccessRate": 87.5,
+        "incidentsPerDecade": 4.5,
+        "attentionWeekRate": 26.2,
+        "averageFinalExposure": 58.5,
+        "averageFinalStress": 2.1
+      },
+      "defector": {
+        "sessions": 83,
+        "activeAt2060Rate": 12,
+        "averageActiveYears": 15.9,
+        "averageMissions": 71.5,
+        "missionSuccessRate": 63.3,
+        "incidentsPerDecade": 32.9,
+        "attentionWeekRate": 23.6,
+        "averageFinalExposure": 24.4,
+        "averageFinalStress": 22
+      },
+      "opportunist": {
+        "sessions": 83,
+        "activeAt2060Rate": 38.6,
+        "averageActiveYears": 46.3,
+        "averageMissions": 181.8,
+        "missionSuccessRate": 56.8,
+        "incidentsPerDecade": 11.5,
+        "attentionWeekRate": 18.6,
+        "averageFinalExposure": 40.2,
+        "averageFinalStress": 16.5
+      }
+    },
+    "eraTimeline": [
+      {
+        "era": "제2차 세계대전·전후",
+        "startYear": 1942,
+        "endYear": 1949,
+        "activeCareerRate": 68,
+        "attentionWeekRate": 24.1,
+        "highExposureWeekRate": 5.7,
+        "highStressWeekRate": 0.1,
+        "missionsPerActiveYear": 5.9,
+        "missionSuccessRate": 72.5,
+        "incidentsPerActiveDecade": 6,
+        "decisionsPerActiveYear": 7.7
+      },
+      {
+        "era": "초기 냉전·탈식민",
+        "startYear": 1950,
+        "endYear": 1969,
+        "activeCareerRate": 64.7,
+        "attentionWeekRate": 25.4,
+        "highExposureWeekRate": 8.1,
+        "highStressWeekRate": 0,
+        "missionsPerActiveYear": 6.1,
+        "missionSuccessRate": 77.3,
+        "incidentsPerActiveDecade": 6.5,
+        "decisionsPerActiveYear": 7.9
+      },
+      {
+        "era": "데탕트·후기 냉전",
+        "startYear": 1970,
+        "endYear": 1989,
+        "activeCareerRate": 64.2,
+        "attentionWeekRate": 25.9,
+        "highExposureWeekRate": 8.6,
+        "highStressWeekRate": 0.1,
+        "missionsPerActiveYear": 6.3,
+        "missionSuccessRate": 81,
+        "incidentsPerActiveDecade": 6.4,
+        "decisionsPerActiveYear": 8.1
+      },
+      {
+        "era": "탈냉전·세계화",
+        "startYear": 1990,
+        "endYear": 2009,
+        "activeCareerRate": 63.5,
+        "attentionWeekRate": 26.1,
+        "highExposureWeekRate": 8.5,
+        "highStressWeekRate": 0.1,
+        "missionsPerActiveYear": 6.3,
+        "missionSuccessRate": 81.7,
+        "incidentsPerActiveDecade": 6.3,
+        "decisionsPerActiveYear": 8.1
+      },
+      {
+        "era": "네트워크 경쟁",
+        "startYear": 2010,
+        "endYear": 2029,
+        "activeCareerRate": 64.4,
+        "attentionWeekRate": 26,
+        "highExposureWeekRate": 8.7,
+        "highStressWeekRate": 0.2,
+        "missionsPerActiveYear": 6.3,
+        "missionSuccessRate": 82.7,
+        "incidentsPerActiveDecade": 6.3,
+        "decisionsPerActiveYear": 8.1
+      },
+      {
+        "era": "미래 질서",
+        "startYear": 2030,
+        "endYear": 2060,
+        "activeCareerRate": 64.5,
+        "attentionWeekRate": 25.9,
+        "highExposureWeekRate": 8.7,
+        "highStressWeekRate": 0.1,
+        "missionsPerActiveYear": 6.3,
+        "missionSuccessRate": 81,
+        "incidentsPerActiveDecade": 6.4,
+        "decisionsPerActiveYear": 8.1
+      }
+    ],
+    "responseDistribution": {
+      "controlled-double": 129617,
+      "comply-full": 25805,
+      "comply-selective": 12454,
+      "disinform": 66013,
+      "refuse": 3083
+    },
+    "incidentResponseDistribution": {
+      "cooperate-home": 7931,
+      "misdirect-investigation": 5705,
+      "request-extraction": 8842,
+      "cut-ties": 857,
+      "lay-low": 935
+    },
+    "incidentKindDistribution": {
+      "colleague-suspicion": 3067,
+      "handler-doubt": 2993,
+      "internal-audit": 3077,
+      "loyalty-review": 3112,
+      "emergency-extraction": 12021
+    },
+    "worstSessions": [
+      {
+        "id": 73,
+        "profile": "foreign-asset",
+        "homeNationId": "india",
+        "roleId": "india-politics-tier3-playtest",
+        "frictionScore": 81.4,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 79,
+        "profile": "foreign-asset",
+        "homeNationId": "india",
+        "roleId": "india-military-tier5-playtest",
+        "frictionScore": 81.2,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 55,
+        "profile": "foreign-asset",
+        "homeNationId": "japan",
+        "roleId": "japan-military-tier5-playtest",
+        "frictionScore": 81.1,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 127,
+        "profile": "foreign-asset",
+        "homeNationId": "vietnam",
+        "roleId": "vietnam-military-tier5-playtest",
+        "frictionScore": 81.1,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 85,
+        "profile": "foreign-asset",
+        "homeNationId": "freefrance",
+        "roleId": "freefrance-politics-tier3-playtest",
+        "frictionScore": 81,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 463,
+        "profile": "foreign-asset",
+        "homeNationId": "philippines",
+        "roleId": "philippines-military-tier5-playtest",
+        "frictionScore": 81,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 247,
+        "profile": "foreign-asset",
+        "homeNationId": "freefrance",
+        "roleId": "freefrance-military-tier5-playtest",
+        "frictionScore": 81,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 487,
+        "profile": "foreign-asset",
+        "homeNationId": "usa",
+        "roleId": "usa-military-tier5-playtest",
+        "frictionScore": 81,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 313,
+        "profile": "foreign-asset",
+        "homeNationId": "britain",
+        "roleId": "britain-politics-tier3-playtest",
+        "frictionScore": 80.9,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 49,
+        "profile": "foreign-asset",
+        "homeNationId": "japan",
+        "roleId": "japan-politics-tier3-playtest",
+        "frictionScore": 80.8,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 499,
+        "profile": "foreign-asset",
+        "homeNationId": "ussr",
+        "roleId": "ussr-military-tier5-playtest",
+        "frictionScore": 80.7,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 163,
+        "profile": "foreign-asset",
+        "homeNationId": "britain",
+        "roleId": "britain-military-tier5-playtest",
+        "frictionScore": 80.7,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 307,
+        "profile": "foreign-asset",
+        "homeNationId": "philippines",
+        "roleId": "philippines-military-tier5-playtest",
+        "frictionScore": 80.7,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 7,
+        "profile": "foreign-asset",
+        "homeNationId": "britain",
+        "roleId": "britain-military-tier5-playtest",
+        "frictionScore": 80.7,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 253,
+        "profile": "foreign-asset",
+        "homeNationId": "italy",
+        "roleId": "italy-politics-tier3-playtest",
+        "frictionScore": 80.6,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 397,
+        "profile": "foreign-asset",
+        "homeNationId": "freefrance",
+        "roleId": "freefrance-politics-tier3-playtest",
+        "frictionScore": 80.5,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 157,
+        "profile": "foreign-asset",
+        "homeNationId": "britain",
+        "roleId": "britain-politics-tier3-playtest",
+        "frictionScore": 80.5,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 469,
+        "profile": "foreign-asset",
+        "homeNationId": "britain",
+        "roleId": "britain-politics-tier3-playtest",
+        "frictionScore": 80.5,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 145,
+        "profile": "foreign-asset",
+        "homeNationId": "philippines",
+        "roleId": "philippines-politics-tier3-playtest",
+        "frictionScore": 80.3,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      },
+      {
+        "id": 229,
+        "profile": "foreign-asset",
+        "homeNationId": "india",
+        "roleId": "india-politics-tier3-playtest",
+        "frictionScore": 80.2,
+        "reasons": [
+          "활동 기간 30% 이상 고노출 상태"
+        ]
+      }
+    ]
+  },
+  "findings": [
+    {
+      "priority": "P2",
+      "id": "healthy-baseline",
+      "title": "장기 비밀 커리어의 주요 피로 임계치를 통과했습니다",
+      "evidence": "임무 성공률 80.2%, 10년당 사건 6.4건, 중단 주차 25.7%입니다.",
+      "funImpact": "시대 변화와 선택의 긴장이 장기 진행을 막지 않는 범위에 있습니다.",
+      "recommendation": "시대별 사례와 UI 설명을 계속 확장하되 현재 빈도 상한을 유지합니다."
+    }
+  ]
+}

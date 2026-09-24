@@ -1,0 +1,273 @@
+/** WGS84 geographic anchors, independent of archive-image and game-board coordinates. */
+export interface GeographicCoordinate {
+  latitude: number;
+  longitude: number;
+}
+
+export interface TerritoryGeographicAnchor extends GeographicCoordinate {
+  anchorName: string;
+  kind: 'city' | 'region' | 'sea';
+  /** A region is represented by this stated place, never by a claimed boundary. */
+  note?: string;
+}
+
+/**
+ * Geographic source references (checked 2026-09-15):
+ * - Natural Earth populated places 5.1.2, public domain, for major city anchors:
+ *   https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/
+ *   https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_populated_places_simple.geojson
+ *   https://www.naturalearthdata.com/about/terms-of-use/
+ * - GSI Gazetteer of Japan (geographical coordinates and feature classifications):
+ *   https://www.gsi.go.jp/ENGLISH/pape_e300284.html
+ * - Historical feature identity, not a transfer of an archival map's pixel positions:
+ *   https://www.awm.gov.au/collection/LIB52636 (Buna–Gona campaign area)
+ *   https://history.army.mil/Publications/Publications-Catalog/Capture-of-Makin/
+ *   https://memorials.iwm.org.uk/memorial/61728 (Lyness, Scapa Flow)
+ *   https://www.nps.gov/articles/000/invasion-of-kiska.htm
+ *   https://www.nps.gov/aleu/planyourvisit/upload/Attu-Forgotten-Battle-Optimized-508.pdf
+ *
+ * Coordinates are rounded representative points, not surveyed city boundaries,
+ * exact 1942 waterfronts, or a navigation chart. Small islands, airfields and
+ * operational regions use explicitly named feature anchors. Historical names
+ * remain authored by strategicMapData; changing a label does not move a city.
+ * Some existing IDs describe the same city and intentionally share coordinates.
+ * Coastal approaches for ships are separate data in navalNavigation.ts.
+ */
+const city = (anchorName: string, latitude: number, longitude: number, note?: string): TerritoryGeographicAnchor =>
+  ({ anchorName, latitude, longitude, kind: 'city', ...(note ? { note } : {}) });
+const region = (anchorName: string, latitude: number, longitude: number, note: string): TerritoryGeographicAnchor =>
+  ({ anchorName, latitude, longitude, kind: 'region', note });
+const sea = (anchorName: string, latitude: number, longitude: number, note: string): TerritoryGeographicAnchor =>
+  ({ anchorName, latitude, longitude, kind: 'sea', note });
+
+export const territoryGeography: Record<string, TerritoryGeographicAnchor> = {
+  // Existing theater-scale IDs retain their named city, not a naval harbor alias.
+  britain: city('런던', 51.502, -0.119),
+  atlantic: sea('영국 서부접근로', 50, -12, '서부접근로의 대표 해상 지점이며 해역 경계가 아닙니다.'),
+  channel: sea('영불해협 중앙부', 50, -1, '도버 또는 프랑스 도시가 아닌 해협의 작전 지점입니다.'),
+  france: city('파리', 48.858, 2.353),
+  lowlands: city('브뤼셀', 50.835, 4.331),
+  germany: city('베를린', 52.524, 13.400),
+  denmark: city('코펜하겐', 55.676, 12.568, '도시의 위치입니다. 덴마크 해협의 항해 경로와 구분됩니다.'),
+  norway: city('오슬로', 59.919, 10.748),
+  finland: region('비푸리·카렐리야 지협', 60.704, 28.755, '핀란드·카렐리야 전구를 비푸리(비보르크)로 대표합니다.'),
+  poland: city('바르샤바', 52.231, 21.005),
+  baltic: city('리가', 56.950, 24.100),
+  moscow: city('모스크바', 55.754, 37.614),
+  ukraine: city('키예프', 50.435, 30.515),
+  caucasus: region('날치크·캅카스 북록', 43.498, 43.618, '캅카스 산악전선의 대표 지점은 날치크입니다. 바쿠나 흑해 항구를 뜻하지 않습니다.'),
+  alps: region('인스브루크·브레너 접근로', 47.280, 11.410, '알프스 전구를 인스브루크로 대표하며 산맥 전체의 중심이나 국경은 아닙니다.'),
+  italy: city('로마', 41.898, 12.481),
+  balkans: region('니시·발칸 내륙', 43.321, 21.896, '발칸 내륙 전구의 대표 도시는 니시입니다.'),
+  anatolia: city('앙카라', 39.929, 32.862),
+  spain: city('마드리드', 40.402, -3.685),
+  morocco: region('마라케시·모로코 내륙', 31.632, -8.002, '모로코 내륙을 마라케시로 대표합니다. 카사블랑카 항구와 별개입니다.'),
+  algeria: region('비스크라·알제리 내륙', 34.860, 5.730, '알제리 내륙을 비스크라로 대표합니다. 알제 항구와 별개입니다.'),
+  tunisia: city('비제르테', 37.290, 9.855),
+  sicily: city('팔레르모', 38.127, 13.348),
+  malta: city('발레타', 35.900, 14.515),
+  libya: region('시르테·리비아 사막 회랑', 31.210, 16.590, '리비아 사막 회랑의 대표 도시는 시르테입니다.'),
+  egypt: region('카이로 지휘구', 30.052, 31.248, '지휘구 기준점은 카이로입니다. cairo 도시 ID와 같은 위치를 사용합니다.'),
+  levant: region('다마스쿠스·레반트', 33.502, 36.298, '레반트 전구 기준점은 다마스쿠스이며 damascus 도시 ID와 같습니다.'),
+  india: city('델리', 28.672, 77.228),
+  ceylon: city('콜롬보', 6.932, 79.858),
+  assam: city('레도', 27.286, 95.740),
+  burma: city('랑군', 16.785, 96.165),
+  malaya: city('쿠알라룸푸르', 3.140, 101.689),
+  singapore: city('싱가포르', 1.295, 103.854),
+  mongolia: city('울란바토르', 47.919, 106.915),
+  china_interior: city('충칭', 29.567, 106.593),
+  yunnan: city('쿤밍', 25.043, 102.697),
+  north_china: city('베이징·북평', 39.902, 116.394),
+  central_china: city('우한', 30.582, 114.268),
+  south_china: city('광저우', 23.125, 113.262),
+  indochina: city('하노이', 21.035, 105.848),
+  soviet_far_east: city('블라디보스토크', 43.130, 131.910),
+  manchuria: city('묵덴·봉천', 41.805, 123.432),
+  korea: city('경성', 37.568, 126.998),
+  japan_home: city('도쿄', 35.687, 139.749),
+  philippines: city('마닐라', 14.606, 120.980),
+  dutch_east_indies: city('바타비아', -6.172, 106.827),
+  new_guinea: region('부나', -8.673, 148.408, '부나·고나 전구를 부나 마을로 대표합니다. 뉴기니 섬 전체의 중심이 아닙니다.'),
+  coral_sea: sea('산호해', -17, 154, '산호해 항로의 대표 해상 지점이며 호주의 육상 통제 지점이 아닙니다.'),
+  solomons: region('과달카날·헨더슨 비행장', -9.428, 160.054, '과달카날 전구를 헨더슨 비행장으로 대표합니다.'),
+  midway: region('미드웨이·샌드섬', 28.207, -177.376, '환초의 바다 중앙 대신 샌드섬을 표식 기준점으로 사용합니다.'),
+  hawaii: region('진주만·포드섬', 21.364, -157.962, '하와이 군도의 중심이 아니라 진주만 해군기지의 포드섬 기준점입니다.'),
+
+  // Europe, North Africa and the Middle East.
+  scotland: region('스캐파플로·라이네스', 58.834, -3.198, '스코틀랜드·스캐파플로 복합 거점은 호이섬 라이네스 해군기지로 대표합니다.'),
+  liverpool: city('리버풀', 53.405, -2.962),
+  belfast: city('벨파스트', 54.594, -5.928),
+  iceland: city('레이캬비크', 64.143, -21.937),
+  netherlands: city('로테르담', 51.922, 4.478),
+  calais: city('칼레', 50.950, 1.833),
+  normandy: city('캉', 49.184, -0.350),
+  brittany: city('브레스트', 48.390, -4.495),
+  lyon: city('리옹', 45.772, 4.828),
+  marseille: city('마르세유', 43.292, 5.373, '마르세유·툴롱 복합 거점의 표식은 마르세유에 둡니다.'),
+  ruhr: region('에센·루르 공업지대', 51.450, 7.017, '루르 공업지대를 에센 도심으로 대표합니다.'),
+  hamburg: city('함부르크', 53.552, 9.998),
+  munich: city('뮌헨', 48.132, 11.573),
+  east_prussia: city('쾨니히스베르크', 54.700, 20.497),
+  narvik: city('나르비크', 68.383, 17.290),
+  leningrad: city('레닌그라드', 59.934, 30.335),
+  minsk: city('민스크', 53.902, 27.565),
+  smolensk: city('스몰렌스크', 54.783, 32.047),
+  kharkov: city('하르키우', 50.002, 36.248),
+  stalingrad: city('스탈린그라드', 48.712, 44.498),
+  rostov: city('로스토프나도누', 47.237, 39.711),
+  crimea: city('세바스토폴', 44.604, 33.524),
+  baku: city('바쿠', 40.397, 49.860),
+  prague: city('프라하', 50.087, 14.423),
+  vienna: city('빈', 48.202, 16.365),
+  budapest: city('부다페스트', 47.502, 19.081),
+  bucharest: city('부쿠레슈티', 44.435, 26.098, '부쿠레슈티·플로이에슈티 복합 거점의 표식은 부쿠레슈티에 둡니다.'),
+  belgrade: city('베오그라드', 44.821, 20.466),
+  sofia: city('소피아', 42.685, 23.315),
+  greece: city('아테네', 37.985, 23.731),
+  crete: region('이라클리온·크레타', 35.339, 25.134, '크레타의 대표 도시 이라클리온을 기준으로 표시합니다.'),
+  naples: city('나폴리', 40.842, 14.243),
+  salerno: city('살레르노', 40.680, 14.770),
+  monte_cassino: region('몬테카시노 수도원', 41.490, 13.814, '구스타프선 전체가 아니라 몬테카시노 수도원 능선의 기준점입니다.'),
+  anzio: city('안치오', 41.448, 12.629),
+  po_valley: city('볼로냐', 44.500, 11.340),
+  casablanca: city('카사블랑카', 33.602, -7.618),
+  oran: city('오랑', 35.712, -0.622),
+  algiers: city('알제', 36.765, 3.049),
+  kasserine: region('카세린 고개', 35.258, 8.747, '카세린 도시 북쪽의 고개를 대표하는 지점이며 전투 전역의 경계가 아닙니다.'),
+  tunis: city('튀니스', 36.803, 10.180),
+  tripoli: city('트리폴리', 32.893, 13.180),
+  el_agheila: city('엘아게일라', 30.257, 19.200),
+  tobruk: city('토브루크', 32.083, 23.967),
+  el_alamein: city('엘알라메인', 30.817, 28.950),
+  alexandria: city('알렉산드리아', 31.202, 29.948),
+  cairo: city('카이로', 30.052, 31.248),
+  suez: region('수에즈·운하 남단', 29.974, 32.549, '수에즈 운하 전구의 표식은 남단 수에즈 도시에 둡니다. 운하 통과 항로는 별도입니다.'),
+  beirut: city('베이루트', 33.874, 35.508),
+  baghdad: city('바그다드', 33.341, 44.392),
+  tehran: city('테헤란', 35.674, 51.422),
+  plymouth: city('플리머스', 50.385, -4.160),
+  portsmouth: city('포츠머스', 50.800, -1.080, '포츠머스·사우샘프턴 복합 거점은 포츠머스를 기준으로 합니다.'),
+  dunkirk: city('됭케르크', 51.034, 2.377),
+  antwerp: city('안트베르펜', 51.219, 4.402),
+  bordeaux: city('보르도', 44.852, -0.597),
+  murmansk: city('무르만스크', 68.970, 33.100),
+  archangel: city('아르한겔스크', 64.540, 40.544),
+  cherbourg: city('셰르부르', 49.650, -1.650),
+  saint_lo: city('생로', 49.115, -1.090),
+  cologne: city('쾰른', 50.932, 6.948),
+  aachen: city('아헨', 50.776, 6.084),
+  frankfurt: city('프랑크푸르트암마인', 50.100, 8.675),
+  rzhev: city('르제프', 56.257, 34.327),
+  vyazma: city('뱌지마', 55.212, 34.292),
+  kursk: city('쿠르스크', 51.740, 36.190),
+  orel: city('오룔', 52.970, 36.070),
+  voronezh: city('보로네시', 51.665, 39.187),
+  dnipropetrovsk: city('드네프로페트롭스크', 48.482, 34.998),
+  donetsk: city('스탈리노', 48.002, 37.828),
+  mariupol: city('마리우폴', 47.096, 37.556),
+  odessa: city('오데사', 46.492, 30.708),
+  nikolaev: city('니콜라예프', 46.968, 31.984),
+  maikop: city('마이코프', 44.610, 40.120),
+  grozny: city('그로즈니', 43.319, 45.699),
+  zagreb: city('자그레브', 45.800, 16.000),
+  sarajevo: city('사라예보', 43.850, 18.383),
+  messina: city('메시나', 38.200, 15.550, '시칠리아섬의 메시나 도시입니다. 해협 중앙의 물 위에 배치하지 않습니다.'),
+  taranto: city('타란토', 40.508, 17.230),
+  damascus: city('다마스쿠스', 33.502, 36.298),
+  jerusalem: city('예루살렘', 31.778, 35.207),
+  basra: city('바스라', 30.515, 47.812),
+
+  // Asia and Pacific islands; the date line is represented with signed WGS84 longitudes.
+  bombay: city('봄베이', 18.940, 72.836, '1940년대 항만·구도심을 대표하는 봄베이 포트 지구입니다.'),
+  madras: city('마드라스', 13.092, 80.278),
+  calcutta: city('캘커타', 22.570, 88.369),
+  kohima: city('코히마', 25.667, 94.117),
+  imphal: city('임팔', 24.800, 93.950),
+  arakan: city('아키아브', 20.140, 92.880),
+  myitkyina: city('미치나', 25.360, 97.393),
+  lashio: city('라시오', 22.936, 97.749),
+  chindwin: region('모니와·친드윈 강', 22.105, 95.150, '친드윈 강 방면은 강변 도시 모니와로 대표합니다.'),
+  mandalay: city('만달레이', 21.972, 96.083),
+  saigon: city('사이공', 10.762, 106.703),
+  shanghai: city('상하이', 31.218, 121.435),
+  nanjing: city('난징', 32.052, 118.778),
+  shandong: city('지난', 36.677, 116.993),
+  xian: city('시안', 34.277, 108.893),
+  changsha: city('창사', 28.202, 112.968),
+  hengyang: city('헝양', 26.882, 112.588),
+  guilin: city('구이린', 25.282, 110.278),
+  hong_kong: city('홍콩', 22.307, 114.183),
+  taiwan: city('다이호쿠·타이베이', 25.036, 121.568),
+  harbin: city('하얼빈', 45.752, 126.648),
+  busan: city('부산', 35.097, 129.008, '부산·진해 복합 거점은 부산 구항 시가지를 기준으로 합니다.'),
+  osaka_kure: city('오사카', 34.694, 135.502, '오사카·구레 복합 거점은 오사카로 대표합니다. 두 도시 사이 바다를 중심으로 삼지 않습니다.'),
+  hokkaido: city('삿포로', 43.077, 141.338),
+  okinawa: region('나하·오키나와', 26.207, 127.673, '오키나와 전구의 대표 도시는 나하입니다.'),
+  bataan: region('마리벨레스·바탄', 14.436, 120.486, '바탄 반도 남단 마리벨레스를 기준으로 합니다. 코레히도르와 별개의 육상 위치입니다.'),
+  leyte: region('타클로반·레이테', 11.250, 125.000, '레이테·사마르 복합 거점을 레이테섬 타클로반으로 대표합니다.'),
+  mindanao: region('다바오·민다나오', 7.112, 125.628, '민다나오 전구 기준점은 다바오이며 davao 도시 ID와 같습니다.'),
+  sumatra: city('팔렘방', -2.978, 104.748),
+  borneo: city('발릭파판', -1.250, 116.830),
+  celebes: city('마카사르', -5.138, 119.430),
+  timor: region('딜리·티모르', -8.559, 125.579, '티모르 전구의 대표 도시 딜리를 기준으로 표시합니다.'),
+  port_moresby: city('포트모르즈비', -9.465, 147.193),
+  lae: city('라에', -6.733, 146.990, '라에·살라마우아 복합 거점의 표식은 라에에 둡니다.'),
+  hollandia: city('홀란디아', -2.533, 140.700, '홀란디아·아이타페 복합 거점의 표식은 홀란디아에 둡니다.'),
+  rabaul: city('라바울', -4.205, 152.143),
+  bougainville: region('키에타·부건빌', -6.216, 155.634, '부건빌 전구의 대표 도시 키에타를 기준으로 표시합니다.'),
+  guam: region('아가냐·괌', 13.475, 144.751, '괌의 대표 도시 아가냐를 기준으로 표시합니다.'),
+  saipan: region('가라판·사이판', 15.211, 145.718, '사이판·티니안 복합 거점은 사이판섬 가라판으로 대표합니다.'),
+  truk: region('웨노·트루크', 7.446, 151.847, '트루크 환초의 웨노섬을 표식 기준점으로 사용합니다.'),
+  palau: region('펠렐리우·팔라우', 7.001, 134.244, '팔라우·펠렐리우 복합 거점은 펠렐리우섬으로 대표합니다.'),
+  marshalls: region('콰잘레인·마셜 제도', 8.717, 167.733, '표시 이름의 대표 거점 콰잘레인을 사용하며 kwajalein ID와 같은 위치입니다.'),
+  attu: region('애투·치차고프 해변', 52.925, 173.246, '애투섬 치차고프만 안쪽 해변의 기준점입니다. NPS 지명록의 Chichagof Beach 좌표를 반올림했습니다.'),
+  darwin: city('다윈', -12.425, 130.850),
+  brisbane: city('브리즈번', -27.453, 153.033),
+  karachi: city('카라치', 24.872, 66.988),
+  chittagong: city('치타공', 22.332, 91.798),
+  dimapur: city('디마푸르', 25.904, 93.727),
+  meiktila: city('메이크틸라', 20.878, 95.858),
+  pegu: city('페구', 17.320, 96.515),
+  bangkok: city('방콕', 13.752, 100.515),
+  penang: city('조지타운·페낭', 5.414, 100.329),
+  haiphong: city('하이퐁', 20.832, 106.678),
+  tianjin: city('톈진', 39.083, 117.197, '톈진·대고구 복합 거점은 톈진 시가지를 기준으로 합니다. 하구 항로와 구분됩니다.'),
+  taiyuan: city('타이위안', 37.877, 112.543),
+  zhengzhou: city('정저우', 34.757, 113.663),
+  nanchang: city('난창', 28.682, 115.878),
+  changde: city('창더', 29.032, 111.678),
+  xinjing: city('신징·창춘', 43.867, 125.338),
+  dalian: city('다이렌·다롄', 38.925, 121.628),
+  sinuiju: city('신의주', 40.086, 124.421),
+  pyongyang: city('평양', 39.021, 125.753),
+  nagoya: city('나고야', 35.157, 136.913),
+  yokosuka: city('요코스카', 35.281, 139.672),
+  hiroshima: city('히로시마', 34.390, 132.441, '히로시마·구레 공업축은 히로시마 시가지를 기준으로 합니다.'),
+  sasebo: city('사세보', 33.163, 129.718),
+  lingayen: region('링가옌·상륙 해안', 16.021, 120.230, '링가옌만 남안의 링가옌 시가지를 표식 기준점으로 사용합니다.'),
+  clark: region('클라크 비행장', 15.186, 120.560, '비행장 부지의 대표 지점이며 공항 경계를 뜻하지 않습니다.'),
+  cebu: city('세부', 10.322, 123.898),
+  davao: city('다바오', 7.112, 125.628),
+  kavieng: city('캐비엥', -2.581, 150.813),
+  admiralties: region('로렝가우·마누스', -2.032, 147.280, '애드미럴티 제도를 마누스섬 로렝가우로 대표합니다.'),
+  kwajalein: region('콰잘레인섬', 8.717, 167.733, '환초의 바다 중앙 대신 남단 콰잘레인섬을 기준으로 표시합니다.'),
+  eniwetok: region('에니웨톡섬', 11.337, 162.325, '환초 남단 에니웨톡섬을 기준으로 표시합니다.'),
+  tarawa: region('베티오·타라와', 1.358, 172.922, '타라와 전투의 베티오섬을 기준으로 표시합니다.'),
+  makin: region('부타리타리·마킨 전구', 3.071, 172.790, '1943년 마킨 전투의 부타리타리입니다. 북동쪽의 오늘날 마킨섬과 구분됩니다.'),
+  kiska: region('키스카 항만 거점', 51.975, -177.551, '키스카섬 남동부 항만의 육상 기지 부근을 기준으로 표시합니다.'),
+  dutch_harbor: city('더치하버·아마크낙', 53.889, -166.543),
+  surabaya: city('수라바야', -7.247, 112.749),
+  ambon: city('암본', -3.717, 128.200),
+  biak: region('비악·목메르 비행장', -1.190, 136.108, '비악 비행장 전구를 목메르 비행장으로 대표합니다.'),
+  milne_bay: region('길리길리·밀른만', -10.310, 150.361, '밀른만 전구는 만 서단 길리길리의 육상 기지로 대표합니다.'),
+  tulagi: region('툴라기', -9.103, 160.150, '플로리다 제도 가운데 툴라기섬의 대표 지점입니다.'),
+  wake: region('웨이크섬', 19.282, 166.636, '환초의 웨이크 본섬을 표식 기준점으로 사용합니다.'),
+  iwo_jima: region('이오지마', 24.754, 141.290, '이오지마 본섬의 대표 지점입니다.'),
+  townsville: city('타운즈빌', -19.250, 146.770),
+};
+
+/** Unknown/custom IDs must be handled explicitly by the caller, never guessed. */
+export function getTerritoryGeography(id: string): TerritoryGeographicAnchor | undefined {
+  return Object.hasOwn(territoryGeography, id) ? territoryGeography[id] : undefined;
+}

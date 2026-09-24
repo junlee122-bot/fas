@@ -1,0 +1,52 @@
+{
+  "sessionCount": 225,
+  "weeksPerSession": 104,
+  "totalWeeks": 23400,
+  "coverage": {
+    "nations": 13,
+    "roles": 169,
+    "tiers": 5,
+    "branches": 3,
+    "playerProfiles": 5
+  },
+  "interactionLoad": {
+    "actionPrompts": 92383,
+    "actionPromptsPerWeek": 3.95,
+    "reviewVisits": 23175,
+    "briefingVisits": 23175,
+    "navigationVisits": 46350,
+    "decisionInteractions": 34484,
+    "navigationToDecisionRatio": 1.34,
+    "prematureAdvanceAttempts": 4635
+  },
+  "attention": {
+    "urgentPromptWeeks": 20204,
+    "urgentWeekRate": 86.3,
+    "recommendedPromptWeeks": 23400,
+    "recommendedWeekRate": 100
+  },
+  "onboarding": {
+    "completionRate": 37.8,
+    "medianCompletionWeek": 4,
+    "guidedCompletionRate": 88.9,
+    "rushedCompletionRate": 0,
+    "militaryCompletionRate": 0,
+    "stateBuilderCompletionRate": 0,
+    "completionistCompletionRate": 100
+  },
+  "systems": {
+    "outbreakSessions": 134,
+    "deficitSessionRate": 100,
+    "inflationWarningSessionRate": 100
+  },
+  "longestRepeatedActionTotals": [
+    { "id": "idle-formations", "sessions": 225, "weeks": 23400 },
+    { "id": "research-slot", "sessions": 225, "weeks": 19849 },
+    { "id": "economy-operating-deficit", "sessions": 213, "weeks": 15279 },
+    { "id": "national-policy", "sessions": 225, "weeks": 10071 },
+    { "id": "commander-skill", "sessions": 95, "weeks": 8991 },
+    { "id": "public-health-crisis", "sessions": 130, "weeks": 4545 },
+    { "id": "economy-inflation", "sessions": 212, "weeks": 3842 },
+    { "id": "idle-factories", "sessions": 45, "weeks": 2946 }
+  ]
+}

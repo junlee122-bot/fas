@@ -1,0 +1,357 @@
+[
+  {
+    "nationId": "freefrance",
+    "stageId": "total-war",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 622,
+    "dominantPathRate": 1.4,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 30,
+    "averageCapabilityGain": 46.1,
+    "averageFinalCapability": 99.9,
+    "averageAutonomy": 73.5,
+    "averageInteroperability": 90.7,
+    "averageRelations": 69.6,
+    "averageTreasury": 207.7,
+    "averageFiscalStress": 2.1,
+    "averageEscalation": 51.1,
+    "averageSupplySecurity": 73.8,
+    "averageProliferation": 24.5,
+    "averageTreatyCompliance": 33.3,
+    "averageDecisionImpact": 20.5,
+    "sanctionsPerSession": 0.08,
+    "procurementFailureRate": 13.2,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "total-war-strategic",
+        "uses": 2949
+      },
+      {
+        "id": "total-war-aircraft",
+        "uses": 2530
+      },
+      {
+        "id": "total-war-armor",
+        "uses": 2525
+      },
+      {
+        "id": "total-war-systems",
+        "uses": 879
+      },
+      {
+        "id": "total-war-logistics",
+        "uses": 810
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "combined-standards",
+        "uses": 714
+      },
+      {
+        "id": "licensed-mass-production",
+        "uses": 690
+      },
+      {
+        "id": "scientific-mission",
+        "uses": 687
+      },
+      {
+        "id": "emergency-aid",
+        "uses": 656
+      },
+      {
+        "id": "strategic-embargo",
+        "uses": 650
+      }
+    ]
+  },
+  {
+    "nationId": "freefrance",
+    "stageId": "reconstruction",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 635,
+    "dominantPathRate": 1.1,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 29.3,
+    "averageCapabilityGain": 48.9,
+    "averageFinalCapability": 99.7,
+    "averageAutonomy": 74.2,
+    "averageInteroperability": 91,
+    "averageRelations": 77.1,
+    "averageTreasury": 206.7,
+    "averageFiscalStress": 2.3,
+    "averageEscalation": 42.4,
+    "averageSupplySecurity": 67.7,
+    "averageProliferation": 18.2,
+    "averageTreatyCompliance": 43.5,
+    "averageDecisionImpact": 21.4,
+    "sanctionsPerSession": 0.09,
+    "procurementFailureRate": 12.7,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "reconstruction-strategic",
+        "uses": 2911
+      },
+      {
+        "id": "reconstruction-aircraft",
+        "uses": 2558
+      },
+      {
+        "id": "reconstruction-armor",
+        "uses": 2522
+      },
+      {
+        "id": "reconstruction-logistics",
+        "uses": 882
+      },
+      {
+        "id": "reconstruction-systems",
+        "uses": 825
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "decolonization-security-compact",
+        "uses": 739
+      },
+      {
+        "id": "demobilization-control",
+        "uses": 731
+      },
+      {
+        "id": "atomic-oversight",
+        "uses": 679
+      },
+      {
+        "id": "mutual-defense",
+        "uses": 647
+      },
+      {
+        "id": "arsenal-reconstruction-credit",
+        "uses": 641
+      }
+    ]
+  },
+  {
+    "nationId": "freefrance",
+    "stageId": "bipolar",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 583,
+    "dominantPathRate": 1.8,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 31,
+    "averageCapabilityGain": 52.1,
+    "averageFinalCapability": 99.9,
+    "averageAutonomy": 78.1,
+    "averageInteroperability": 86.7,
+    "averageRelations": 71,
+    "averageTreasury": 183.1,
+    "averageFiscalStress": 9,
+    "averageEscalation": 60.6,
+    "averageSupplySecurity": 71.4,
+    "averageProliferation": 43.1,
+    "averageTreatyCompliance": 60.4,
+    "averageDecisionImpact": 26.1,
+    "sanctionsPerSession": 0.2,
+    "procurementFailureRate": 13,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "bipolar-strategic",
+        "uses": 2966
+      },
+      {
+        "id": "bipolar-aircraft",
+        "uses": 2538
+      },
+      {
+        "id": "bipolar-armor",
+        "uses": 2505
+      },
+      {
+        "id": "bipolar-logistics",
+        "uses": 891
+      },
+      {
+        "id": "bipolar-systems",
+        "uses": 851
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "hotline-arms-control",
+        "uses": 831
+      },
+      {
+        "id": "indigenous-deterrent",
+        "uses": 743
+      },
+      {
+        "id": "npt-safeguards",
+        "uses": 625
+      },
+      {
+        "id": "alliance-standardization",
+        "uses": 613
+      },
+      {
+        "id": "proxy-military-aid",
+        "uses": 606
+      }
+    ]
+  },
+  {
+    "nationId": "freefrance",
+    "stageId": "networked",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 656,
+    "dominantPathRate": 1.2,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 29.4,
+    "averageCapabilityGain": 55.2,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 69.7,
+    "averageInteroperability": 94.1,
+    "averageRelations": 80.7,
+    "averageTreasury": 182,
+    "averageFiscalStress": 9.3,
+    "averageEscalation": 51,
+    "averageSupplySecurity": 70.6,
+    "averageProliferation": 21,
+    "averageTreatyCompliance": 58.3,
+    "averageDecisionImpact": 22,
+    "sanctionsPerSession": 0.09,
+    "procurementFailureRate": 12.9,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "networked-strategic",
+        "uses": 2958
+      },
+      {
+        "id": "networked-aircraft",
+        "uses": 2586
+      },
+      {
+        "id": "networked-armor",
+        "uses": 2447
+      },
+      {
+        "id": "networked-logistics",
+        "uses": 884
+      },
+      {
+        "id": "networked-systems",
+        "uses": 836
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "precision-network-access",
+        "uses": 692
+      },
+      {
+        "id": "regional-code-conduct",
+        "uses": 689
+      },
+      {
+        "id": "joint-procurement",
+        "uses": 686
+      },
+      {
+        "id": "illicit-transfer-interdiction",
+        "uses": 654
+      },
+      {
+        "id": "peacekeeping-assistance",
+        "uses": 645
+      }
+    ]
+  },
+  {
+    "nationId": "freefrance",
+    "stageId": "horizon",
+    "sessions": 1000,
+    "doctrineCoverage": 6,
+    "uniquePaths": 597,
+    "dominantPathRate": 1.3,
+    "dominantRoute": "indigenous",
+    "dominantRouteRate": 29.3,
+    "averageCapabilityGain": 58.2,
+    "averageFinalCapability": 100,
+    "averageAutonomy": 78.9,
+    "averageInteroperability": 92.9,
+    "averageRelations": 71.8,
+    "averageTreasury": 153,
+    "averageFiscalStress": 15.7,
+    "averageEscalation": 56.6,
+    "averageSupplySecurity": 72.1,
+    "averageProliferation": 45.4,
+    "averageTreatyCompliance": 67.9,
+    "averageDecisionImpact": 24.4,
+    "sanctionsPerSession": 0.2,
+    "procurementFailureRate": 12.8,
+    "obsoleteLockInRate": 0,
+    "viabilityRate": 100,
+    "collapseRate": 0,
+    "topPrograms": [
+      {
+        "id": "horizon-strategic",
+        "uses": 2970
+      },
+      {
+        "id": "horizon-aircraft",
+        "uses": 2491
+      },
+      {
+        "id": "horizon-armor",
+        "uses": 2478
+      },
+      {
+        "id": "horizon-logistics",
+        "uses": 919
+      },
+      {
+        "id": "horizon-systems",
+        "uses": 836
+      }
+    ],
+    "topPolicies": [
+      {
+        "id": "cyber-confidence-network",
+        "uses": 736
+      },
+      {
+        "id": "space-incident-regime",
+        "uses": 708
+      },
+      {
+        "id": "human-control-protocol",
+        "uses": 682
+      },
+      {
+        "id": "sovereign-ai-deterrent",
+        "uses": 667
+      },
+      {
+        "id": "autonomous-joint-lab",
+        "uses": 624
+      }
+    ]
+  }
+]

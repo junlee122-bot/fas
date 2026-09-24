@@ -1,0 +1,4782 @@
+{
+  "generatedAt": "2026-07-27T12:15:55.224Z",
+  "methodology": "13개 국가 × 5개 시대 단계 × 단계별 1,000회 결정론적 시뮬레이션. 각 세션은 12개 무기체계 사업과 4개 외교·조달 정책 결정을 평가합니다.",
+  "sessions": 65000,
+  "simulationsPerNationStage": 1000,
+  "nationCoverage": 13,
+  "stageCoverage": 5,
+  "doctrineCoverage": 6,
+  "totalDecisions": 1040000,
+  "totalWeaponProgramUses": 780000,
+  "totalDiplomaticPolicyUses": 260000,
+  "averageCapabilityGain": 54,
+  "averageAutonomy": 67.8,
+  "averageInteroperability": 79.9,
+  "averageRelations": 71.9,
+  "averageFiscalStress": 13.8,
+  "averageEscalation": 48,
+  "averageSupplySecurity": 67.2,
+  "averageProliferation": 21.7,
+  "averageTreatyCompliance": 52.3,
+  "viabilityRate": 98.6,
+  "collapseRate": 0,
+  "obsoleteLockInRate": 0.6,
+  "byNationStage": [
+    {
+      "nationId": "britain",
+      "stageId": "total-war",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 622,
+      "dominantPathRate": 1.1,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 30.9,
+      "averageCapabilityGain": 43.9,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 77.8,
+      "averageInteroperability": 88.6,
+      "averageRelations": 68.9,
+      "averageTreasury": 210.3,
+      "averageFiscalStress": 1.4,
+      "averageEscalation": 42.8,
+      "averageSupplySecurity": 83.6,
+      "averageProliferation": 15.6,
+      "averageTreatyCompliance": 33.3,
+      "averageDecisionImpact": 19,
+      "sanctionsPerSession": 0.06,
+      "procurementFailureRate": 11.5,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "total-war-systems",
+          "uses": 2731
+        },
+        {
+          "id": "total-war-aircraft",
+          "uses": 2565
+        },
+        {
+          "id": "total-war-naval",
+          "uses": 2367
+        },
+        {
+          "id": "total-war-strategic",
+          "uses": 1035
+        },
+        {
+          "id": "total-war-logistics",
+          "uses": 894
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "combined-standards",
+          "uses": 709
+        },
+        {
+          "id": "licensed-mass-production",
+          "uses": 698
+        },
+        {
+          "id": "scientific-mission",
+          "uses": 671
+        },
+        {
+          "id": "strategic-embargo",
+          "uses": 655
+        },
+        {
+          "id": "emergency-aid",
+          "uses": 652
+        }
+      ]
+    },
+    {
+      "nationId": "britain",
+      "stageId": "reconstruction",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 635,
+      "dominantPathRate": 1.6,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 30.6,
+      "averageCapabilityGain": 46.6,
+      "averageFinalCapability": 99.7,
+      "averageAutonomy": 78,
+      "averageInteroperability": 89,
+      "averageRelations": 76.8,
+      "averageTreasury": 209.9,
+      "averageFiscalStress": 1.6,
+      "averageEscalation": 33.3,
+      "averageSupplySecurity": 78.8,
+      "averageProliferation": 7.8,
+      "averageTreatyCompliance": 43.6,
+      "averageDecisionImpact": 19.5,
+      "sanctionsPerSession": 0.05,
+      "procurementFailureRate": 11.8,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "reconstruction-systems",
+          "uses": 2673
+        },
+        {
+          "id": "reconstruction-aircraft",
+          "uses": 2609
+        },
+        {
+          "id": "reconstruction-naval",
+          "uses": 2468
+        },
+        {
+          "id": "reconstruction-strategic",
+          "uses": 1019
+        },
+        {
+          "id": "reconstruction-logistics",
+          "uses": 871
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "decolonization-security-compact",
+          "uses": 719
+        },
+        {
+          "id": "demobilization-control",
+          "uses": 717
+        },
+        {
+          "id": "atomic-oversight",
+          "uses": 686
+        },
+        {
+          "id": "arsenal-reconstruction-credit",
+          "uses": 656
+        },
+        {
+          "id": "mutual-defense",
+          "uses": 644
+        }
+      ]
+    },
+    {
+      "nationId": "britain",
+      "stageId": "bipolar",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 588,
+      "dominantPathRate": 1.4,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 31,
+      "averageCapabilityGain": 49.8,
+      "averageFinalCapability": 99.9,
+      "averageAutonomy": 81.6,
+      "averageInteroperability": 84.5,
+      "averageRelations": 70.6,
+      "averageTreasury": 195.4,
+      "averageFiscalStress": 5.8,
+      "averageEscalation": 55.6,
+      "averageSupplySecurity": 82.1,
+      "averageProliferation": 29.9,
+      "averageTreatyCompliance": 60.3,
+      "averageDecisionImpact": 24.9,
+      "sanctionsPerSession": 0.12,
+      "procurementFailureRate": 12,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "bipolar-systems",
+          "uses": 2688
+        },
+        {
+          "id": "bipolar-aircraft",
+          "uses": 2622
+        },
+        {
+          "id": "bipolar-naval",
+          "uses": 2443
+        },
+        {
+          "id": "bipolar-strategic",
+          "uses": 994
+        },
+        {
+          "id": "bipolar-logistics",
+          "uses": 873
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "hotline-arms-control",
+          "uses": 795
+        },
+        {
+          "id": "indigenous-deterrent",
+          "uses": 781
+        },
+        {
+          "id": "npt-safeguards",
+          "uses": 650
+        },
+        {
+          "id": "proxy-military-aid",
+          "uses": 605
+        },
+        {
+          "id": "alliance-standardization",
+          "uses": 601
+        }
+      ]
+    },
+    {
+      "nationId": "britain",
+      "stageId": "networked",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 657,
+      "dominantPathRate": 1.2,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 31.6,
+      "averageCapabilityGain": 52.9,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 74.5,
+      "averageInteroperability": 92.1,
+      "averageRelations": 80,
+      "averageTreasury": 192.7,
+      "averageFiscalStress": 6.2,
+      "averageEscalation": 45.9,
+      "averageSupplySecurity": 81.9,
+      "averageProliferation": 9.3,
+      "averageTreatyCompliance": 58.3,
+      "averageDecisionImpact": 20.7,
+      "sanctionsPerSession": 0.06,
+      "procurementFailureRate": 11.4,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "networked-systems",
+          "uses": 2706
+        },
+        {
+          "id": "networked-aircraft",
+          "uses": 2612
+        },
+        {
+          "id": "networked-naval",
+          "uses": 2384
+        },
+        {
+          "id": "networked-strategic",
+          "uses": 1012
+        },
+        {
+          "id": "networked-logistics",
+          "uses": 865
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "joint-procurement",
+          "uses": 705
+        },
+        {
+          "id": "precision-network-access",
+          "uses": 697
+        },
+        {
+          "id": "responsible-export-controls",
+          "uses": 686
+        },
+        {
+          "id": "regional-code-conduct",
+          "uses": 657
+        },
+        {
+          "id": "peacekeeping-assistance",
+          "uses": 634
+        }
+      ]
+    },
+    {
+      "nationId": "britain",
+      "stageId": "horizon",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 624,
+      "dominantPathRate": 0.9,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 30.5,
+      "averageCapabilityGain": 55.9,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 83,
+      "averageInteroperability": 90.8,
+      "averageRelations": 71.4,
+      "averageTreasury": 167.5,
+      "averageFiscalStress": 11.9,
+      "averageEscalation": 52.7,
+      "averageSupplySecurity": 82.8,
+      "averageProliferation": 29.3,
+      "averageTreatyCompliance": 67.7,
+      "averageDecisionImpact": 22.7,
+      "sanctionsPerSession": 0.12,
+      "procurementFailureRate": 12,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "horizon-systems",
+          "uses": 2617
+        },
+        {
+          "id": "horizon-aircraft",
+          "uses": 2605
+        },
+        {
+          "id": "horizon-naval",
+          "uses": 2424
+        },
+        {
+          "id": "horizon-strategic",
+          "uses": 1109
+        },
+        {
+          "id": "horizon-logistics",
+          "uses": 883
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "cyber-confidence-network",
+          "uses": 751
+        },
+        {
+          "id": "sovereign-ai-deterrent",
+          "uses": 704
+        },
+        {
+          "id": "space-incident-regime",
+          "uses": 697
+        },
+        {
+          "id": "human-control-protocol",
+          "uses": 667
+        },
+        {
+          "id": "resilient-supply-club",
+          "uses": 602
+        }
+      ]
+    },
+    {
+      "nationId": "usa",
+      "stageId": "total-war",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 636,
+      "dominantPathRate": 1.1,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 34.1,
+      "averageCapabilityGain": 38.7,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 87.8,
+      "averageInteroperability": 90.7,
+      "averageRelations": 69.6,
+      "averageTreasury": 212.2,
+      "averageFiscalStress": 1.3,
+      "averageEscalation": 43.1,
+      "averageSupplySecurity": 91.6,
+      "averageProliferation": 15.6,
+      "averageTreatyCompliance": 33.3,
+      "averageDecisionImpact": 18,
+      "sanctionsPerSession": 0.05,
+      "procurementFailureRate": 11.5,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "total-war-logistics",
+          "uses": 2689
+        },
+        {
+          "id": "total-war-aircraft",
+          "uses": 2548
+        },
+        {
+          "id": "total-war-naval",
+          "uses": 2472
+        },
+        {
+          "id": "total-war-strategic",
+          "uses": 1024
+        },
+        {
+          "id": "total-war-systems",
+          "uses": 861
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "combined-standards",
+          "uses": 711
+        },
+        {
+          "id": "scientific-mission",
+          "uses": 692
+        },
+        {
+          "id": "strategic-embargo",
+          "uses": 665
+        },
+        {
+          "id": "emergency-aid",
+          "uses": 662
+        },
+        {
+          "id": "neutral-procurement",
+          "uses": 639
+        }
+      ]
+    },
+    {
+      "nationId": "usa",
+      "stageId": "reconstruction",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 652,
+      "dominantPathRate": 0.9,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 34,
+      "averageCapabilityGain": 41.4,
+      "averageFinalCapability": 99.7,
+      "averageAutonomy": 87.7,
+      "averageInteroperability": 91.4,
+      "averageRelations": 77.2,
+      "averageTreasury": 210.6,
+      "averageFiscalStress": 1.5,
+      "averageEscalation": 33,
+      "averageSupplySecurity": 88.2,
+      "averageProliferation": 8.1,
+      "averageTreatyCompliance": 43.4,
+      "averageDecisionImpact": 18.8,
+      "sanctionsPerSession": 0.05,
+      "procurementFailureRate": 10.8,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "reconstruction-logistics",
+          "uses": 2696
+        },
+        {
+          "id": "reconstruction-aircraft",
+          "uses": 2588
+        },
+        {
+          "id": "reconstruction-naval",
+          "uses": 2376
+        },
+        {
+          "id": "reconstruction-strategic",
+          "uses": 1041
+        },
+        {
+          "id": "reconstruction-systems",
+          "uses": 862
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "demobilization-control",
+          "uses": 771
+        },
+        {
+          "id": "decolonization-security-compact",
+          "uses": 733
+        },
+        {
+          "id": "atomic-oversight",
+          "uses": 675
+        },
+        {
+          "id": "mutual-defense",
+          "uses": 653
+        },
+        {
+          "id": "arsenal-reconstruction-credit",
+          "uses": 619
+        }
+      ]
+    },
+    {
+      "nationId": "usa",
+      "stageId": "bipolar",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 612,
+      "dominantPathRate": 1.5,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 33.7,
+      "averageCapabilityGain": 44.6,
+      "averageFinalCapability": 99.9,
+      "averageAutonomy": 89.2,
+      "averageInteroperability": 87,
+      "averageRelations": 71.7,
+      "averageTreasury": 205.6,
+      "averageFiscalStress": 2.4,
+      "averageEscalation": 54.7,
+      "averageSupplySecurity": 91.2,
+      "averageProliferation": 29.6,
+      "averageTreatyCompliance": 60.5,
+      "averageDecisionImpact": 25.1,
+      "sanctionsPerSession": 0.08,
+      "procurementFailureRate": 11.4,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "bipolar-logistics",
+          "uses": 2753
+        },
+        {
+          "id": "bipolar-aircraft",
+          "uses": 2581
+        },
+        {
+          "id": "bipolar-naval",
+          "uses": 2311
+        },
+        {
+          "id": "bipolar-strategic",
+          "uses": 1077
+        },
+        {
+          "id": "bipolar-systems",
+          "uses": 900
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "hotline-arms-control",
+          "uses": 787
+        },
+        {
+          "id": "indigenous-deterrent",
+          "uses": 733
+        },
+        {
+          "id": "npt-safeguards",
+          "uses": 663
+        },
+        {
+          "id": "alliance-standardization",
+          "uses": 632
+        },
+        {
+          "id": "proxy-military-aid",
+          "uses": 607
+        }
+      ]
+    },
+    {
+      "nationId": "usa",
+      "stageId": "networked",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 675,
+      "dominantPathRate": 0.8,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 33.3,
+      "averageCapabilityGain": 47.7,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 85,
+      "averageInteroperability": 94,
+      "averageRelations": 80.5,
+      "averageTreasury": 206.9,
+      "averageFiscalStress": 2.3,
+      "averageEscalation": 44.1,
+      "averageSupplySecurity": 90.9,
+      "averageProliferation": 9,
+      "averageTreatyCompliance": 58.9,
+      "averageDecisionImpact": 21.7,
+      "sanctionsPerSession": 0.04,
+      "procurementFailureRate": 10.6,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "networked-logistics",
+          "uses": 2727
+        },
+        {
+          "id": "networked-aircraft",
+          "uses": 2513
+        },
+        {
+          "id": "networked-naval",
+          "uses": 2380
+        },
+        {
+          "id": "networked-strategic",
+          "uses": 1009
+        },
+        {
+          "id": "networked-armor",
+          "uses": 905
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "precision-network-access",
+          "uses": 693
+        },
+        {
+          "id": "regional-code-conduct",
+          "uses": 684
+        },
+        {
+          "id": "responsible-export-controls",
+          "uses": 675
+        },
+        {
+          "id": "joint-procurement",
+          "uses": 674
+        },
+        {
+          "id": "illicit-transfer-interdiction",
+          "uses": 664
+        }
+      ]
+    },
+    {
+      "nationId": "usa",
+      "stageId": "horizon",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 632,
+      "dominantPathRate": 1,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 33.7,
+      "averageCapabilityGain": 50.7,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 91.7,
+      "averageInteroperability": 92.8,
+      "averageRelations": 71.8,
+      "averageTreasury": 199,
+      "averageFiscalStress": 4.6,
+      "averageEscalation": 51,
+      "averageSupplySecurity": 91.5,
+      "averageProliferation": 28.8,
+      "averageTreatyCompliance": 67.7,
+      "averageDecisionImpact": 23.7,
+      "sanctionsPerSession": 0.07,
+      "procurementFailureRate": 11.3,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "horizon-logistics",
+          "uses": 2632
+        },
+        {
+          "id": "horizon-aircraft",
+          "uses": 2630
+        },
+        {
+          "id": "horizon-naval",
+          "uses": 2392
+        },
+        {
+          "id": "horizon-strategic",
+          "uses": 1035
+        },
+        {
+          "id": "horizon-armor",
+          "uses": 869
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "cyber-confidence-network",
+          "uses": 745
+        },
+        {
+          "id": "sovereign-ai-deterrent",
+          "uses": 697
+        },
+        {
+          "id": "space-incident-regime",
+          "uses": 688
+        },
+        {
+          "id": "human-control-protocol",
+          "uses": 683
+        },
+        {
+          "id": "autonomous-joint-lab",
+          "uses": 615
+        }
+      ]
+    },
+    {
+      "nationId": "ussr",
+      "stageId": "total-war",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 678,
+      "dominantPathRate": 1.9,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 33,
+      "averageCapabilityGain": 41.8,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 86.6,
+      "averageInteroperability": 70.3,
+      "averageRelations": 63.4,
+      "averageTreasury": 207.5,
+      "averageFiscalStress": 1.4,
+      "averageEscalation": 56.8,
+      "averageSupplySecurity": 84.7,
+      "averageProliferation": 26.2,
+      "averageTreatyCompliance": 33.3,
+      "averageDecisionImpact": 21.3,
+      "sanctionsPerSession": 0.12,
+      "procurementFailureRate": 14.8,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "total-war-strategic",
+          "uses": 2941
+        },
+        {
+          "id": "total-war-armor",
+          "uses": 2525
+        },
+        {
+          "id": "total-war-artillery",
+          "uses": 2358
+        },
+        {
+          "id": "total-war-logistics",
+          "uses": 944
+        },
+        {
+          "id": "total-war-aircraft",
+          "uses": 840
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "combined-standards",
+          "uses": 704
+        },
+        {
+          "id": "emergency-aid",
+          "uses": 684
+        },
+        {
+          "id": "scientific-mission",
+          "uses": 661
+        },
+        {
+          "id": "licensed-mass-production",
+          "uses": 657
+        },
+        {
+          "id": "neutral-procurement",
+          "uses": 651
+        }
+      ]
+    },
+    {
+      "nationId": "ussr",
+      "stageId": "reconstruction",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 677,
+      "dominantPathRate": 1.1,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 33.6,
+      "averageCapabilityGain": 44.5,
+      "averageFinalCapability": 99.7,
+      "averageAutonomy": 86.5,
+      "averageInteroperability": 68.9,
+      "averageRelations": 71.6,
+      "averageTreasury": 207.6,
+      "averageFiscalStress": 1.7,
+      "averageEscalation": 48.4,
+      "averageSupplySecurity": 80.6,
+      "averageProliferation": 20.6,
+      "averageTreatyCompliance": 43.2,
+      "averageDecisionImpact": 21.8,
+      "sanctionsPerSession": 0.09,
+      "procurementFailureRate": 14.5,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "reconstruction-strategic",
+          "uses": 3028
+        },
+        {
+          "id": "reconstruction-armor",
+          "uses": 2587
+        },
+        {
+          "id": "reconstruction-artillery",
+          "uses": 2346
+        },
+        {
+          "id": "reconstruction-systems",
+          "uses": 860
+        },
+        {
+          "id": "reconstruction-logistics",
+          "uses": 852
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "demobilization-control",
+          "uses": 780
+        },
+        {
+          "id": "decolonization-security-compact",
+          "uses": 732
+        },
+        {
+          "id": "atomic-oversight",
+          "uses": 656
+        },
+        {
+          "id": "mutual-defense",
+          "uses": 634
+        },
+        {
+          "id": "arsenal-reconstruction-credit",
+          "uses": 632
+        }
+      ]
+    },
+    {
+      "nationId": "ussr",
+      "stageId": "bipolar",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 588,
+      "dominantPathRate": 2.2,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 33.9,
+      "averageCapabilityGain": 47.7,
+      "averageFinalCapability": 99.9,
+      "averageAutonomy": 88.3,
+      "averageInteroperability": 64,
+      "averageRelations": 65.5,
+      "averageTreasury": 194.1,
+      "averageFiscalStress": 3.3,
+      "averageEscalation": 64.5,
+      "averageSupplySecurity": 83.2,
+      "averageProliferation": 45.4,
+      "averageTreatyCompliance": 60.2,
+      "averageDecisionImpact": 28,
+      "sanctionsPerSession": 0.25,
+      "procurementFailureRate": 14.9,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "bipolar-strategic",
+          "uses": 3011
+        },
+        {
+          "id": "bipolar-armor",
+          "uses": 2615
+        },
+        {
+          "id": "bipolar-artillery",
+          "uses": 2400
+        },
+        {
+          "id": "bipolar-systems",
+          "uses": 875
+        },
+        {
+          "id": "bipolar-aircraft",
+          "uses": 842
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "hotline-arms-control",
+          "uses": 832
+        },
+        {
+          "id": "indigenous-deterrent",
+          "uses": 742
+        },
+        {
+          "id": "npt-safeguards",
+          "uses": 618
+        },
+        {
+          "id": "proxy-military-aid",
+          "uses": 613
+        },
+        {
+          "id": "alliance-standardization",
+          "uses": 607
+        }
+      ]
+    },
+    {
+      "nationId": "ussr",
+      "stageId": "networked",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 686,
+      "dominantPathRate": 1.6,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 33,
+      "averageCapabilityGain": 50.8,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 83.9,
+      "averageInteroperability": 74.7,
+      "averageRelations": 75.6,
+      "averageTreasury": 199.4,
+      "averageFiscalStress": 3.2,
+      "averageEscalation": 55,
+      "averageSupplySecurity": 83.3,
+      "averageProliferation": 22.8,
+      "averageTreatyCompliance": 58.6,
+      "averageDecisionImpact": 24.1,
+      "sanctionsPerSession": 0.12,
+      "procurementFailureRate": 14.3,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "networked-strategic",
+          "uses": 2961
+        },
+        {
+          "id": "networked-armor",
+          "uses": 2576
+        },
+        {
+          "id": "networked-artillery",
+          "uses": 2448
+        },
+        {
+          "id": "networked-logistics",
+          "uses": 898
+        },
+        {
+          "id": "networked-aircraft",
+          "uses": 834
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "regional-code-conduct",
+          "uses": 726
+        },
+        {
+          "id": "peacekeeping-assistance",
+          "uses": 684
+        },
+        {
+          "id": "precision-network-access",
+          "uses": 676
+        },
+        {
+          "id": "responsible-export-controls",
+          "uses": 641
+        },
+        {
+          "id": "illicit-transfer-interdiction",
+          "uses": 638
+        }
+      ]
+    },
+    {
+      "nationId": "ussr",
+      "stageId": "horizon",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 638,
+      "dominantPathRate": 1.9,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 33.2,
+      "averageCapabilityGain": 53.8,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 90.8,
+      "averageInteroperability": 71.7,
+      "averageRelations": 65.7,
+      "averageTreasury": 184.3,
+      "averageFiscalStress": 6.7,
+      "averageEscalation": 59.5,
+      "averageSupplySecurity": 83.8,
+      "averageProliferation": 46.6,
+      "averageTreatyCompliance": 69.1,
+      "averageDecisionImpact": 26.6,
+      "sanctionsPerSession": 0.24,
+      "procurementFailureRate": 14.2,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "horizon-strategic",
+          "uses": 2934
+        },
+        {
+          "id": "horizon-armor",
+          "uses": 2607
+        },
+        {
+          "id": "horizon-artillery",
+          "uses": 2387
+        },
+        {
+          "id": "horizon-systems",
+          "uses": 903
+        },
+        {
+          "id": "horizon-logistics",
+          "uses": 840
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "space-incident-regime",
+          "uses": 736
+        },
+        {
+          "id": "cyber-confidence-network",
+          "uses": 732
+        },
+        {
+          "id": "human-control-protocol",
+          "uses": 723
+        },
+        {
+          "id": "sovereign-ai-deterrent",
+          "uses": 685
+        },
+        {
+          "id": "autonomous-joint-lab",
+          "uses": 589
+        }
+      ]
+    },
+    {
+      "nationId": "germany",
+      "stageId": "total-war",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 669,
+      "dominantPathRate": 1.4,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 31.6,
+      "averageCapabilityGain": 41.5,
+      "averageFinalCapability": 99.9,
+      "averageAutonomy": 82.9,
+      "averageInteroperability": 74.8,
+      "averageRelations": 63.7,
+      "averageTreasury": 207.6,
+      "averageFiscalStress": 1.3,
+      "averageEscalation": 50.4,
+      "averageSupplySecurity": 76.5,
+      "averageProliferation": 17.3,
+      "averageTreatyCompliance": 33.3,
+      "averageDecisionImpact": 20.2,
+      "sanctionsPerSession": 0.14,
+      "procurementFailureRate": 14.7,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "total-war-systems",
+          "uses": 2680
+        },
+        {
+          "id": "total-war-aircraft",
+          "uses": 2581
+        },
+        {
+          "id": "total-war-armor",
+          "uses": 2577
+        },
+        {
+          "id": "total-war-strategic",
+          "uses": 1036
+        },
+        {
+          "id": "total-war-logistics",
+          "uses": 876
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "strategic-embargo",
+          "uses": 700
+        },
+        {
+          "id": "combined-standards",
+          "uses": 690
+        },
+        {
+          "id": "scientific-mission",
+          "uses": 688
+        },
+        {
+          "id": "licensed-mass-production",
+          "uses": 667
+        },
+        {
+          "id": "emergency-aid",
+          "uses": 653
+        }
+      ]
+    },
+    {
+      "nationId": "germany",
+      "stageId": "reconstruction",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 659,
+      "dominantPathRate": 1,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 32.2,
+      "averageCapabilityGain": 44.2,
+      "averageFinalCapability": 99.7,
+      "averageAutonomy": 83,
+      "averageInteroperability": 73.6,
+      "averageRelations": 72,
+      "averageTreasury": 205.4,
+      "averageFiscalStress": 1.6,
+      "averageEscalation": 40.5,
+      "averageSupplySecurity": 71.1,
+      "averageProliferation": 9.3,
+      "averageTreatyCompliance": 43.5,
+      "averageDecisionImpact": 20.8,
+      "sanctionsPerSession": 0.14,
+      "procurementFailureRate": 14.5,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "reconstruction-systems",
+          "uses": 2665
+        },
+        {
+          "id": "reconstruction-aircraft",
+          "uses": 2630
+        },
+        {
+          "id": "reconstruction-armor",
+          "uses": 2571
+        },
+        {
+          "id": "reconstruction-strategic",
+          "uses": 976
+        },
+        {
+          "id": "reconstruction-logistics",
+          "uses": 837
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "demobilization-control",
+          "uses": 746
+        },
+        {
+          "id": "decolonization-security-compact",
+          "uses": 711
+        },
+        {
+          "id": "atomic-oversight",
+          "uses": 678
+        },
+        {
+          "id": "arsenal-reconstruction-credit",
+          "uses": 659
+        },
+        {
+          "id": "mutual-defense",
+          "uses": 639
+        }
+      ]
+    },
+    {
+      "nationId": "germany",
+      "stageId": "bipolar",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 620,
+      "dominantPathRate": 1.2,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 31.4,
+      "averageCapabilityGain": 47.4,
+      "averageFinalCapability": 99.9,
+      "averageAutonomy": 86.2,
+      "averageInteroperability": 68.9,
+      "averageRelations": 66.1,
+      "averageTreasury": 195.8,
+      "averageFiscalStress": 3.4,
+      "averageEscalation": 60.2,
+      "averageSupplySecurity": 74.3,
+      "averageProliferation": 32,
+      "averageTreatyCompliance": 59.3,
+      "averageDecisionImpact": 26.4,
+      "sanctionsPerSession": 0.22,
+      "procurementFailureRate": 15.2,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "bipolar-systems",
+          "uses": 2650
+        },
+        {
+          "id": "bipolar-armor",
+          "uses": 2589
+        },
+        {
+          "id": "bipolar-aircraft",
+          "uses": 2556
+        },
+        {
+          "id": "bipolar-strategic",
+          "uses": 1031
+        },
+        {
+          "id": "bipolar-logistics",
+          "uses": 828
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "hotline-arms-control",
+          "uses": 781
+        },
+        {
+          "id": "indigenous-deterrent",
+          "uses": 767
+        },
+        {
+          "id": "proxy-military-aid",
+          "uses": 618
+        },
+        {
+          "id": "nonaligned-diversification",
+          "uses": 617
+        },
+        {
+          "id": "npt-safeguards",
+          "uses": 613
+        }
+      ]
+    },
+    {
+      "nationId": "germany",
+      "stageId": "networked",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 668,
+      "dominantPathRate": 1,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 31.5,
+      "averageCapabilityGain": 50.5,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 79.5,
+      "averageInteroperability": 79.1,
+      "averageRelations": 76,
+      "averageTreasury": 198.8,
+      "averageFiscalStress": 3.5,
+      "averageEscalation": 51.4,
+      "averageSupplySecurity": 73.8,
+      "averageProliferation": 10.4,
+      "averageTreatyCompliance": 58.7,
+      "averageDecisionImpact": 22.8,
+      "sanctionsPerSession": 0.13,
+      "procurementFailureRate": 13.9,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "networked-systems",
+          "uses": 2706
+        },
+        {
+          "id": "networked-armor",
+          "uses": 2541
+        },
+        {
+          "id": "networked-aircraft",
+          "uses": 2525
+        },
+        {
+          "id": "networked-strategic",
+          "uses": 995
+        },
+        {
+          "id": "networked-logistics",
+          "uses": 921
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "precision-network-access",
+          "uses": 702
+        },
+        {
+          "id": "illicit-transfer-interdiction",
+          "uses": 686
+        },
+        {
+          "id": "regional-code-conduct",
+          "uses": 667
+        },
+        {
+          "id": "joint-procurement",
+          "uses": 659
+        },
+        {
+          "id": "responsible-export-controls",
+          "uses": 652
+        }
+      ]
+    },
+    {
+      "nationId": "germany",
+      "stageId": "horizon",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 666,
+      "dominantPathRate": 0.8,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 31.6,
+      "averageCapabilityGain": 53.5,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 87.6,
+      "averageInteroperability": 76.3,
+      "averageRelations": 65.9,
+      "averageTreasury": 178.1,
+      "averageFiscalStress": 8.1,
+      "averageEscalation": 56.6,
+      "averageSupplySecurity": 74.6,
+      "averageProliferation": 30.1,
+      "averageTreatyCompliance": 67.8,
+      "averageDecisionImpact": 24.7,
+      "sanctionsPerSession": 0.26,
+      "procurementFailureRate": 15,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "horizon-armor",
+          "uses": 2621
+        },
+        {
+          "id": "horizon-systems",
+          "uses": 2585
+        },
+        {
+          "id": "horizon-aircraft",
+          "uses": 2552
+        },
+        {
+          "id": "horizon-strategic",
+          "uses": 989
+        },
+        {
+          "id": "horizon-logistics",
+          "uses": 863
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "space-incident-regime",
+          "uses": 723
+        },
+        {
+          "id": "sovereign-ai-deterrent",
+          "uses": 722
+        },
+        {
+          "id": "cyber-confidence-network",
+          "uses": 697
+        },
+        {
+          "id": "human-control-protocol",
+          "uses": 688
+        },
+        {
+          "id": "autonomous-joint-lab",
+          "uses": 591
+        }
+      ]
+    },
+    {
+      "nationId": "japan",
+      "stageId": "total-war",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 650,
+      "dominantPathRate": 1.1,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 30.6,
+      "averageCapabilityGain": 44.3,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 79.2,
+      "averageInteroperability": 79.4,
+      "averageRelations": 67,
+      "averageTreasury": 209.9,
+      "averageFiscalStress": 1.3,
+      "averageEscalation": 44.9,
+      "averageSupplySecurity": 74,
+      "averageProliferation": 15.6,
+      "averageTreatyCompliance": 33.3,
+      "averageDecisionImpact": 19.7,
+      "sanctionsPerSession": 0.07,
+      "procurementFailureRate": 13.6,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "total-war-systems",
+          "uses": 2718
+        },
+        {
+          "id": "total-war-aircraft",
+          "uses": 2575
+        },
+        {
+          "id": "total-war-naval",
+          "uses": 2374
+        },
+        {
+          "id": "total-war-strategic",
+          "uses": 1068
+        },
+        {
+          "id": "total-war-logistics",
+          "uses": 873
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "combined-standards",
+          "uses": 715
+        },
+        {
+          "id": "scientific-mission",
+          "uses": 681
+        },
+        {
+          "id": "licensed-mass-production",
+          "uses": 666
+        },
+        {
+          "id": "emergency-aid",
+          "uses": 657
+        },
+        {
+          "id": "strategic-embargo",
+          "uses": 655
+        }
+      ]
+    },
+    {
+      "nationId": "japan",
+      "stageId": "reconstruction",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 640,
+      "dominantPathRate": 1.1,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 30.5,
+      "averageCapabilityGain": 47,
+      "averageFinalCapability": 99.7,
+      "averageAutonomy": 79.8,
+      "averageInteroperability": 78.7,
+      "averageRelations": 74.8,
+      "averageTreasury": 208.1,
+      "averageFiscalStress": 1.6,
+      "averageEscalation": 35.8,
+      "averageSupplySecurity": 68.5,
+      "averageProliferation": 8.2,
+      "averageTreatyCompliance": 43.6,
+      "averageDecisionImpact": 20.4,
+      "sanctionsPerSession": 0.09,
+      "procurementFailureRate": 13.7,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "reconstruction-systems",
+          "uses": 2661
+        },
+        {
+          "id": "reconstruction-aircraft",
+          "uses": 2591
+        },
+        {
+          "id": "reconstruction-naval",
+          "uses": 2414
+        },
+        {
+          "id": "reconstruction-strategic",
+          "uses": 1067
+        },
+        {
+          "id": "reconstruction-logistics",
+          "uses": 922
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "decolonization-security-compact",
+          "uses": 720
+        },
+        {
+          "id": "demobilization-control",
+          "uses": 719
+        },
+        {
+          "id": "atomic-oversight",
+          "uses": 686
+        },
+        {
+          "id": "mutual-defense",
+          "uses": 655
+        },
+        {
+          "id": "arsenal-reconstruction-credit",
+          "uses": 646
+        }
+      ]
+    },
+    {
+      "nationId": "japan",
+      "stageId": "bipolar",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 622,
+      "dominantPathRate": 1.4,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 30.4,
+      "averageCapabilityGain": 50.2,
+      "averageFinalCapability": 99.9,
+      "averageAutonomy": 82.6,
+      "averageInteroperability": 74.2,
+      "averageRelations": 69.2,
+      "averageTreasury": 195.7,
+      "averageFiscalStress": 5.1,
+      "averageEscalation": 56.9,
+      "averageSupplySecurity": 71.6,
+      "averageProliferation": 29.5,
+      "averageTreatyCompliance": 59.8,
+      "averageDecisionImpact": 25.7,
+      "sanctionsPerSession": 0.14,
+      "procurementFailureRate": 14,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "bipolar-systems",
+          "uses": 2688
+        },
+        {
+          "id": "bipolar-aircraft",
+          "uses": 2580
+        },
+        {
+          "id": "bipolar-naval",
+          "uses": 2371
+        },
+        {
+          "id": "bipolar-strategic",
+          "uses": 1031
+        },
+        {
+          "id": "bipolar-armor",
+          "uses": 906
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "hotline-arms-control",
+          "uses": 783
+        },
+        {
+          "id": "indigenous-deterrent",
+          "uses": 736
+        },
+        {
+          "id": "alliance-standardization",
+          "uses": 644
+        },
+        {
+          "id": "npt-safeguards",
+          "uses": 634
+        },
+        {
+          "id": "nonaligned-diversification",
+          "uses": 603
+        }
+      ]
+    },
+    {
+      "nationId": "japan",
+      "stageId": "networked",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 667,
+      "dominantPathRate": 0.8,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 30.8,
+      "averageCapabilityGain": 53.3,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 76,
+      "averageInteroperability": 83.2,
+      "averageRelations": 78.5,
+      "averageTreasury": 193.9,
+      "averageFiscalStress": 5.6,
+      "averageEscalation": 47.4,
+      "averageSupplySecurity": 70.9,
+      "averageProliferation": 9.6,
+      "averageTreatyCompliance": 58.5,
+      "averageDecisionImpact": 21.9,
+      "sanctionsPerSession": 0.09,
+      "procurementFailureRate": 14,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "networked-systems",
+          "uses": 2724
+        },
+        {
+          "id": "networked-aircraft",
+          "uses": 2467
+        },
+        {
+          "id": "networked-naval",
+          "uses": 2352
+        },
+        {
+          "id": "networked-strategic",
+          "uses": 1079
+        },
+        {
+          "id": "networked-logistics",
+          "uses": 901
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "regional-code-conduct",
+          "uses": 702
+        },
+        {
+          "id": "joint-procurement",
+          "uses": 692
+        },
+        {
+          "id": "precision-network-access",
+          "uses": 675
+        },
+        {
+          "id": "illicit-transfer-interdiction",
+          "uses": 652
+        },
+        {
+          "id": "responsible-export-controls",
+          "uses": 644
+        }
+      ]
+    },
+    {
+      "nationId": "japan",
+      "stageId": "horizon",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 649,
+      "dominantPathRate": 1.3,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 30.1,
+      "averageCapabilityGain": 56.3,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 84.2,
+      "averageInteroperability": 81.1,
+      "averageRelations": 69.4,
+      "averageTreasury": 169.5,
+      "averageFiscalStress": 11.3,
+      "averageEscalation": 53.4,
+      "averageSupplySecurity": 72.1,
+      "averageProliferation": 28.6,
+      "averageTreatyCompliance": 67.7,
+      "averageDecisionImpact": 23.6,
+      "sanctionsPerSession": 0.15,
+      "procurementFailureRate": 14.6,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "horizon-systems",
+          "uses": 2818
+        },
+        {
+          "id": "horizon-aircraft",
+          "uses": 2592
+        },
+        {
+          "id": "horizon-naval",
+          "uses": 2404
+        },
+        {
+          "id": "horizon-strategic",
+          "uses": 1022
+        },
+        {
+          "id": "horizon-logistics",
+          "uses": 853
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "cyber-confidence-network",
+          "uses": 740
+        },
+        {
+          "id": "space-incident-regime",
+          "uses": 705
+        },
+        {
+          "id": "sovereign-ai-deterrent",
+          "uses": 689
+        },
+        {
+          "id": "human-control-protocol",
+          "uses": 670
+        },
+        {
+          "id": "autonomous-joint-lab",
+          "uses": 606
+        }
+      ]
+    },
+    {
+      "nationId": "china",
+      "stageId": "total-war",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 704,
+      "dominantPathRate": 1.3,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 28.8,
+      "averageCapabilityGain": 50.7,
+      "averageFinalCapability": 99.3,
+      "averageAutonomy": 63.3,
+      "averageInteroperability": 70.7,
+      "averageRelations": 64.7,
+      "averageTreasury": 210.3,
+      "averageFiscalStress": 3.1,
+      "averageEscalation": 45,
+      "averageSupplySecurity": 66.5,
+      "averageProliferation": 15.2,
+      "averageTreatyCompliance": 33.3,
+      "averageDecisionImpact": 21.2,
+      "sanctionsPerSession": 0.06,
+      "procurementFailureRate": 21.8,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "total-war-systems",
+          "uses": 2673
+        },
+        {
+          "id": "total-war-infantry",
+          "uses": 2453
+        },
+        {
+          "id": "total-war-artillery",
+          "uses": 2442
+        },
+        {
+          "id": "total-war-strategic",
+          "uses": 1017
+        },
+        {
+          "id": "total-war-aircraft",
+          "uses": 869
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "combined-standards",
+          "uses": 700
+        },
+        {
+          "id": "emergency-aid",
+          "uses": 677
+        },
+        {
+          "id": "licensed-mass-production",
+          "uses": 676
+        },
+        {
+          "id": "strategic-embargo",
+          "uses": 668
+        },
+        {
+          "id": "neutral-procurement",
+          "uses": 643
+        }
+      ]
+    },
+    {
+      "nationId": "china",
+      "stageId": "reconstruction",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 725,
+      "dominantPathRate": 0.7,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 28.2,
+      "averageCapabilityGain": 53.4,
+      "averageFinalCapability": 99,
+      "averageAutonomy": 64.9,
+      "averageInteroperability": 69.2,
+      "averageRelations": 72.8,
+      "averageTreasury": 208.2,
+      "averageFiscalStress": 3.1,
+      "averageEscalation": 35.6,
+      "averageSupplySecurity": 60.2,
+      "averageProliferation": 8.6,
+      "averageTreatyCompliance": 43.1,
+      "averageDecisionImpact": 21.7,
+      "sanctionsPerSession": 0.07,
+      "procurementFailureRate": 20.4,
+      "obsoleteLockInRate": 0.2,
+      "viabilityRate": 99.8,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "reconstruction-systems",
+          "uses": 2709
+        },
+        {
+          "id": "reconstruction-infantry",
+          "uses": 2452
+        },
+        {
+          "id": "reconstruction-artillery",
+          "uses": 2436
+        },
+        {
+          "id": "reconstruction-strategic",
+          "uses": 1054
+        },
+        {
+          "id": "reconstruction-logistics",
+          "uses": 864
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "demobilization-control",
+          "uses": 740
+        },
+        {
+          "id": "decolonization-security-compact",
+          "uses": 698
+        },
+        {
+          "id": "arsenal-reconstruction-credit",
+          "uses": 673
+        },
+        {
+          "id": "atomic-oversight",
+          "uses": 650
+        },
+        {
+          "id": "mutual-defense",
+          "uses": 635
+        }
+      ]
+    },
+    {
+      "nationId": "china",
+      "stageId": "bipolar",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 696,
+      "dominantPathRate": 0.9,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 28.3,
+      "averageCapabilityGain": 57,
+      "averageFinalCapability": 99.7,
+      "averageAutonomy": 68.8,
+      "averageInteroperability": 64.6,
+      "averageRelations": 67.5,
+      "averageTreasury": 183.8,
+      "averageFiscalStress": 11.4,
+      "averageEscalation": 56.4,
+      "averageSupplySecurity": 63.4,
+      "averageProliferation": 30.6,
+      "averageTreatyCompliance": 58.8,
+      "averageDecisionImpact": 26.2,
+      "sanctionsPerSession": 0.1,
+      "procurementFailureRate": 20.5,
+      "obsoleteLockInRate": 0.1,
+      "viabilityRate": 99.9,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "bipolar-systems",
+          "uses": 2704
+        },
+        {
+          "id": "bipolar-infantry",
+          "uses": 2448
+        },
+        {
+          "id": "bipolar-artillery",
+          "uses": 2422
+        },
+        {
+          "id": "bipolar-strategic",
+          "uses": 1037
+        },
+        {
+          "id": "bipolar-aircraft",
+          "uses": 890
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "hotline-arms-control",
+          "uses": 781
+        },
+        {
+          "id": "indigenous-deterrent",
+          "uses": 734
+        },
+        {
+          "id": "proxy-military-aid",
+          "uses": 647
+        },
+        {
+          "id": "alliance-standardization",
+          "uses": 633
+        },
+        {
+          "id": "nonaligned-diversification",
+          "uses": 616
+        }
+      ]
+    },
+    {
+      "nationId": "china",
+      "stageId": "networked",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 723,
+      "dominantPathRate": 0.8,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 28.7,
+      "averageCapabilityGain": 60.3,
+      "averageFinalCapability": 99.9,
+      "averageAutonomy": 58.9,
+      "averageInteroperability": 75.3,
+      "averageRelations": 76.6,
+      "averageTreasury": 178.2,
+      "averageFiscalStress": 11.6,
+      "averageEscalation": 47.2,
+      "averageSupplySecurity": 62.5,
+      "averageProliferation": 9.5,
+      "averageTreatyCompliance": 58.5,
+      "averageDecisionImpact": 22.7,
+      "sanctionsPerSession": 0.07,
+      "procurementFailureRate": 19.9,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "networked-systems",
+          "uses": 2775
+        },
+        {
+          "id": "networked-infantry",
+          "uses": 2420
+        },
+        {
+          "id": "networked-artillery",
+          "uses": 2394
+        },
+        {
+          "id": "networked-strategic",
+          "uses": 1056
+        },
+        {
+          "id": "networked-aircraft",
+          "uses": 898
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "precision-network-access",
+          "uses": 730
+        },
+        {
+          "id": "illicit-transfer-interdiction",
+          "uses": 671
+        },
+        {
+          "id": "responsible-export-controls",
+          "uses": 660
+        },
+        {
+          "id": "regional-code-conduct",
+          "uses": 655
+        },
+        {
+          "id": "joint-procurement",
+          "uses": 654
+        }
+      ]
+    },
+    {
+      "nationId": "china",
+      "stageId": "horizon",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 710,
+      "dominantPathRate": 0.9,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 28.8,
+      "averageCapabilityGain": 63.4,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 69.9,
+      "averageInteroperability": 72.3,
+      "averageRelations": 67.3,
+      "averageTreasury": 147.9,
+      "averageFiscalStress": 19,
+      "averageEscalation": 53.5,
+      "averageSupplySecurity": 64.4,
+      "averageProliferation": 28.9,
+      "averageTreatyCompliance": 67.7,
+      "averageDecisionImpact": 24.5,
+      "sanctionsPerSession": 0.12,
+      "procurementFailureRate": 21.4,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "horizon-systems",
+          "uses": 2705
+        },
+        {
+          "id": "horizon-infantry",
+          "uses": 2444
+        },
+        {
+          "id": "horizon-artillery",
+          "uses": 2376
+        },
+        {
+          "id": "horizon-strategic",
+          "uses": 1057
+        },
+        {
+          "id": "horizon-logistics",
+          "uses": 893
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "sovereign-ai-deterrent",
+          "uses": 714
+        },
+        {
+          "id": "cyber-confidence-network",
+          "uses": 713
+        },
+        {
+          "id": "space-incident-regime",
+          "uses": 700
+        },
+        {
+          "id": "human-control-protocol",
+          "uses": 692
+        },
+        {
+          "id": "resilient-supply-club",
+          "uses": 593
+        }
+      ]
+    },
+    {
+      "nationId": "india",
+      "stageId": "total-war",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 699,
+      "dominantPathRate": 1.3,
+      "dominantRoute": "license",
+      "dominantRouteRate": 22.3,
+      "averageCapabilityGain": 49.6,
+      "averageFinalCapability": 99.8,
+      "averageAutonomy": 64.9,
+      "averageInteroperability": 83.3,
+      "averageRelations": 68.3,
+      "averageTreasury": 204,
+      "averageFiscalStress": 4.5,
+      "averageEscalation": 50.6,
+      "averageSupplySecurity": 68.5,
+      "averageProliferation": 25.1,
+      "averageTreatyCompliance": 33.3,
+      "averageDecisionImpact": 21.1,
+      "sanctionsPerSession": 0.07,
+      "procurementFailureRate": 18.9,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "total-war-strategic",
+          "uses": 2986
+        },
+        {
+          "id": "total-war-aircraft",
+          "uses": 2561
+        },
+        {
+          "id": "total-war-naval",
+          "uses": 2339
+        },
+        {
+          "id": "total-war-systems",
+          "uses": 873
+        },
+        {
+          "id": "total-war-armor",
+          "uses": 854
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "combined-standards",
+          "uses": 719
+        },
+        {
+          "id": "licensed-mass-production",
+          "uses": 688
+        },
+        {
+          "id": "strategic-embargo",
+          "uses": 675
+        },
+        {
+          "id": "neutral-procurement",
+          "uses": 646
+        },
+        {
+          "id": "scientific-mission",
+          "uses": 645
+        }
+      ]
+    },
+    {
+      "nationId": "india",
+      "stageId": "reconstruction",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 694,
+      "dominantPathRate": 0.8,
+      "dominantRoute": "joint",
+      "dominantRouteRate": 22.4,
+      "averageCapabilityGain": 52.3,
+      "averageFinalCapability": 99.5,
+      "averageAutonomy": 65.7,
+      "averageInteroperability": 83.4,
+      "averageRelations": 76.3,
+      "averageTreasury": 200.6,
+      "averageFiscalStress": 4.7,
+      "averageEscalation": 41.9,
+      "averageSupplySecurity": 61.8,
+      "averageProliferation": 18.9,
+      "averageTreatyCompliance": 43.2,
+      "averageDecisionImpact": 21.6,
+      "sanctionsPerSession": 0.08,
+      "procurementFailureRate": 18,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "reconstruction-strategic",
+          "uses": 2946
+        },
+        {
+          "id": "reconstruction-aircraft",
+          "uses": 2624
+        },
+        {
+          "id": "reconstruction-naval",
+          "uses": 2369
+        },
+        {
+          "id": "reconstruction-logistics",
+          "uses": 857
+        },
+        {
+          "id": "reconstruction-systems",
+          "uses": 856
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "decolonization-security-compact",
+          "uses": 737
+        },
+        {
+          "id": "demobilization-control",
+          "uses": 673
+        },
+        {
+          "id": "atomic-oversight",
+          "uses": 660
+        },
+        {
+          "id": "mutual-defense",
+          "uses": 658
+        },
+        {
+          "id": "arsenal-reconstruction-credit",
+          "uses": 652
+        }
+      ]
+    },
+    {
+      "nationId": "india",
+      "stageId": "bipolar",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 647,
+      "dominantPathRate": 1.1,
+      "dominantRoute": "joint",
+      "dominantRouteRate": 22.8,
+      "averageCapabilityGain": 55.6,
+      "averageFinalCapability": 99.8,
+      "averageAutonomy": 69.6,
+      "averageInteroperability": 79.1,
+      "averageRelations": 71.1,
+      "averageTreasury": 164.3,
+      "averageFiscalStress": 14.1,
+      "averageEscalation": 60.3,
+      "averageSupplySecurity": 65.9,
+      "averageProliferation": 42.8,
+      "averageTreatyCompliance": 60.2,
+      "averageDecisionImpact": 25.8,
+      "sanctionsPerSession": 0.18,
+      "procurementFailureRate": 18,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 99.9,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "bipolar-strategic",
+          "uses": 2984
+        },
+        {
+          "id": "bipolar-aircraft",
+          "uses": 2535
+        },
+        {
+          "id": "bipolar-naval",
+          "uses": 2330
+        },
+        {
+          "id": "bipolar-logistics",
+          "uses": 910
+        },
+        {
+          "id": "bipolar-systems",
+          "uses": 880
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "hotline-arms-control",
+          "uses": 825
+        },
+        {
+          "id": "indigenous-deterrent",
+          "uses": 696
+        },
+        {
+          "id": "alliance-standardization",
+          "uses": 639
+        },
+        {
+          "id": "npt-safeguards",
+          "uses": 622
+        },
+        {
+          "id": "nonaligned-diversification",
+          "uses": 616
+        }
+      ]
+    },
+    {
+      "nationId": "india",
+      "stageId": "networked",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 672,
+      "dominantPathRate": 1.3,
+      "dominantRoute": "license",
+      "dominantRouteRate": 22.3,
+      "averageCapabilityGain": 58.8,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 60.5,
+      "averageInteroperability": 87.4,
+      "averageRelations": 79.8,
+      "averageTreasury": 156.4,
+      "averageFiscalStress": 15,
+      "averageEscalation": 50.7,
+      "averageSupplySecurity": 65,
+      "averageProliferation": 21.8,
+      "averageTreatyCompliance": 58.1,
+      "averageDecisionImpact": 21.9,
+      "sanctionsPerSession": 0.09,
+      "procurementFailureRate": 17.7,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "networked-strategic",
+          "uses": 3001
+        },
+        {
+          "id": "networked-aircraft",
+          "uses": 2583
+        },
+        {
+          "id": "networked-naval",
+          "uses": 2342
+        },
+        {
+          "id": "networked-systems",
+          "uses": 876
+        },
+        {
+          "id": "networked-logistics",
+          "uses": 839
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "joint-procurement",
+          "uses": 691
+        },
+        {
+          "id": "regional-code-conduct",
+          "uses": 691
+        },
+        {
+          "id": "precision-network-access",
+          "uses": 676
+        },
+        {
+          "id": "illicit-transfer-interdiction",
+          "uses": 670
+        },
+        {
+          "id": "peacekeeping-assistance",
+          "uses": 662
+        }
+      ]
+    },
+    {
+      "nationId": "india",
+      "stageId": "horizon",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 678,
+      "dominantPathRate": 1.2,
+      "dominantRoute": "license",
+      "dominantRouteRate": 22.7,
+      "averageCapabilityGain": 61.8,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 70.3,
+      "averageInteroperability": 85.8,
+      "averageRelations": 71.3,
+      "averageTreasury": 125,
+      "averageFiscalStress": 22,
+      "averageEscalation": 55.5,
+      "averageSupplySecurity": 66.7,
+      "averageProliferation": 45.2,
+      "averageTreatyCompliance": 68.4,
+      "averageDecisionImpact": 24.6,
+      "sanctionsPerSession": 0.2,
+      "procurementFailureRate": 18.6,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 99.9,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "horizon-strategic",
+          "uses": 2970
+        },
+        {
+          "id": "horizon-aircraft",
+          "uses": 2541
+        },
+        {
+          "id": "horizon-naval",
+          "uses": 2374
+        },
+        {
+          "id": "horizon-logistics",
+          "uses": 925
+        },
+        {
+          "id": "horizon-systems",
+          "uses": 833
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "cyber-confidence-network",
+          "uses": 747
+        },
+        {
+          "id": "space-incident-regime",
+          "uses": 717
+        },
+        {
+          "id": "human-control-protocol",
+          "uses": 690
+        },
+        {
+          "id": "sovereign-ai-deterrent",
+          "uses": 635
+        },
+        {
+          "id": "resilient-supply-club",
+          "uses": 616
+        }
+      ]
+    },
+    {
+      "nationId": "freefrance",
+      "stageId": "total-war",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 622,
+      "dominantPathRate": 1.4,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 30,
+      "averageCapabilityGain": 46.1,
+      "averageFinalCapability": 99.9,
+      "averageAutonomy": 73.5,
+      "averageInteroperability": 90.7,
+      "averageRelations": 69.6,
+      "averageTreasury": 207.7,
+      "averageFiscalStress": 2.1,
+      "averageEscalation": 51.1,
+      "averageSupplySecurity": 73.8,
+      "averageProliferation": 24.5,
+      "averageTreatyCompliance": 33.3,
+      "averageDecisionImpact": 20.5,
+      "sanctionsPerSession": 0.08,
+      "procurementFailureRate": 13.2,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "total-war-strategic",
+          "uses": 2949
+        },
+        {
+          "id": "total-war-aircraft",
+          "uses": 2530
+        },
+        {
+          "id": "total-war-armor",
+          "uses": 2525
+        },
+        {
+          "id": "total-war-systems",
+          "uses": 879
+        },
+        {
+          "id": "total-war-logistics",
+          "uses": 810
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "combined-standards",
+          "uses": 714
+        },
+        {
+          "id": "licensed-mass-production",
+          "uses": 690
+        },
+        {
+          "id": "scientific-mission",
+          "uses": 687
+        },
+        {
+          "id": "emergency-aid",
+          "uses": 656
+        },
+        {
+          "id": "strategic-embargo",
+          "uses": 650
+        }
+      ]
+    },
+    {
+      "nationId": "freefrance",
+      "stageId": "reconstruction",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 635,
+      "dominantPathRate": 1.1,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 29.3,
+      "averageCapabilityGain": 48.9,
+      "averageFinalCapability": 99.7,
+      "averageAutonomy": 74.2,
+      "averageInteroperability": 91,
+      "averageRelations": 77.1,
+      "averageTreasury": 206.7,
+      "averageFiscalStress": 2.3,
+      "averageEscalation": 42.4,
+      "averageSupplySecurity": 67.7,
+      "averageProliferation": 18.2,
+      "averageTreatyCompliance": 43.5,
+      "averageDecisionImpact": 21.4,
+      "sanctionsPerSession": 0.09,
+      "procurementFailureRate": 12.7,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "reconstruction-strategic",
+          "uses": 2911
+        },
+        {
+          "id": "reconstruction-aircraft",
+          "uses": 2558
+        },
+        {
+          "id": "reconstruction-armor",
+          "uses": 2522
+        },
+        {
+          "id": "reconstruction-logistics",
+          "uses": 882
+        },
+        {
+          "id": "reconstruction-systems",
+          "uses": 825
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "decolonization-security-compact",
+          "uses": 739
+        },
+        {
+          "id": "demobilization-control",
+          "uses": 731
+        },
+        {
+          "id": "atomic-oversight",
+          "uses": 679
+        },
+        {
+          "id": "mutual-defense",
+          "uses": 647
+        },
+        {
+          "id": "arsenal-reconstruction-credit",
+          "uses": 641
+        }
+      ]
+    },
+    {
+      "nationId": "freefrance",
+      "stageId": "bipolar",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 583,
+      "dominantPathRate": 1.8,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 31,
+      "averageCapabilityGain": 52.1,
+      "averageFinalCapability": 99.9,
+      "averageAutonomy": 78.1,
+      "averageInteroperability": 86.7,
+      "averageRelations": 71,
+      "averageTreasury": 183.1,
+      "averageFiscalStress": 9,
+      "averageEscalation": 60.6,
+      "averageSupplySecurity": 71.4,
+      "averageProliferation": 43.1,
+      "averageTreatyCompliance": 60.4,
+      "averageDecisionImpact": 26.1,
+      "sanctionsPerSession": 0.2,
+      "procurementFailureRate": 13,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "bipolar-strategic",
+          "uses": 2966
+        },
+        {
+          "id": "bipolar-aircraft",
+          "uses": 2538
+        },
+        {
+          "id": "bipolar-armor",
+          "uses": 2505
+        },
+        {
+          "id": "bipolar-logistics",
+          "uses": 891
+        },
+        {
+          "id": "bipolar-systems",
+          "uses": 851
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "hotline-arms-control",
+          "uses": 831
+        },
+        {
+          "id": "indigenous-deterrent",
+          "uses": 743
+        },
+        {
+          "id": "npt-safeguards",
+          "uses": 625
+        },
+        {
+          "id": "alliance-standardization",
+          "uses": 613
+        },
+        {
+          "id": "proxy-military-aid",
+          "uses": 606
+        }
+      ]
+    },
+    {
+      "nationId": "freefrance",
+      "stageId": "networked",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 656,
+      "dominantPathRate": 1.2,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 29.4,
+      "averageCapabilityGain": 55.2,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 69.7,
+      "averageInteroperability": 94.1,
+      "averageRelations": 80.7,
+      "averageTreasury": 182,
+      "averageFiscalStress": 9.3,
+      "averageEscalation": 51,
+      "averageSupplySecurity": 70.6,
+      "averageProliferation": 21,
+      "averageTreatyCompliance": 58.3,
+      "averageDecisionImpact": 22,
+      "sanctionsPerSession": 0.09,
+      "procurementFailureRate": 12.9,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "networked-strategic",
+          "uses": 2958
+        },
+        {
+          "id": "networked-aircraft",
+          "uses": 2586
+        },
+        {
+          "id": "networked-armor",
+          "uses": 2447
+        },
+        {
+          "id": "networked-logistics",
+          "uses": 884
+        },
+        {
+          "id": "networked-systems",
+          "uses": 836
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "precision-network-access",
+          "uses": 692
+        },
+        {
+          "id": "regional-code-conduct",
+          "uses": 689
+        },
+        {
+          "id": "joint-procurement",
+          "uses": 686
+        },
+        {
+          "id": "illicit-transfer-interdiction",
+          "uses": 654
+        },
+        {
+          "id": "peacekeeping-assistance",
+          "uses": 645
+        }
+      ]
+    },
+    {
+      "nationId": "freefrance",
+      "stageId": "horizon",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 597,
+      "dominantPathRate": 1.3,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 29.3,
+      "averageCapabilityGain": 58.2,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 78.9,
+      "averageInteroperability": 92.9,
+      "averageRelations": 71.8,
+      "averageTreasury": 153,
+      "averageFiscalStress": 15.7,
+      "averageEscalation": 56.6,
+      "averageSupplySecurity": 72.1,
+      "averageProliferation": 45.4,
+      "averageTreatyCompliance": 67.9,
+      "averageDecisionImpact": 24.4,
+      "sanctionsPerSession": 0.2,
+      "procurementFailureRate": 12.8,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "horizon-strategic",
+          "uses": 2970
+        },
+        {
+          "id": "horizon-aircraft",
+          "uses": 2491
+        },
+        {
+          "id": "horizon-armor",
+          "uses": 2478
+        },
+        {
+          "id": "horizon-logistics",
+          "uses": 919
+        },
+        {
+          "id": "horizon-systems",
+          "uses": 836
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "cyber-confidence-network",
+          "uses": 736
+        },
+        {
+          "id": "space-incident-regime",
+          "uses": 708
+        },
+        {
+          "id": "human-control-protocol",
+          "uses": 682
+        },
+        {
+          "id": "sovereign-ai-deterrent",
+          "uses": 667
+        },
+        {
+          "id": "autonomous-joint-lab",
+          "uses": 624
+        }
+      ]
+    },
+    {
+      "nationId": "italy",
+      "stageId": "total-war",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 654,
+      "dominantPathRate": 1.2,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 28.6,
+      "averageCapabilityGain": 48.4,
+      "averageFinalCapability": 99.9,
+      "averageAutonomy": 69.3,
+      "averageInteroperability": 82.7,
+      "averageRelations": 68.1,
+      "averageTreasury": 209.5,
+      "averageFiscalStress": 2.3,
+      "averageEscalation": 42.3,
+      "averageSupplySecurity": 73.3,
+      "averageProliferation": 15.5,
+      "averageTreatyCompliance": 33.3,
+      "averageDecisionImpact": 19.9,
+      "sanctionsPerSession": 0.06,
+      "procurementFailureRate": 16.1,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "total-war-armor",
+          "uses": 2577
+        },
+        {
+          "id": "total-war-aircraft",
+          "uses": 2552
+        },
+        {
+          "id": "total-war-naval",
+          "uses": 2477
+        },
+        {
+          "id": "total-war-strategic",
+          "uses": 1019
+        },
+        {
+          "id": "total-war-logistics",
+          "uses": 940
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "combined-standards",
+          "uses": 705
+        },
+        {
+          "id": "licensed-mass-production",
+          "uses": 703
+        },
+        {
+          "id": "scientific-mission",
+          "uses": 678
+        },
+        {
+          "id": "emergency-aid",
+          "uses": 661
+        },
+        {
+          "id": "strategic-embargo",
+          "uses": 640
+        }
+      ]
+    },
+    {
+      "nationId": "italy",
+      "stageId": "reconstruction",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 666,
+      "dominantPathRate": 1,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 29.4,
+      "averageCapabilityGain": 51.1,
+      "averageFinalCapability": 99.6,
+      "averageAutonomy": 70.4,
+      "averageInteroperability": 82.3,
+      "averageRelations": 75.7,
+      "averageTreasury": 207.5,
+      "averageFiscalStress": 2.5,
+      "averageEscalation": 33.1,
+      "averageSupplySecurity": 67.5,
+      "averageProliferation": 8.4,
+      "averageTreatyCompliance": 43.3,
+      "averageDecisionImpact": 20.6,
+      "sanctionsPerSession": 0.07,
+      "procurementFailureRate": 16,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "reconstruction-aircraft",
+          "uses": 2622
+        },
+        {
+          "id": "reconstruction-armor",
+          "uses": 2539
+        },
+        {
+          "id": "reconstruction-naval",
+          "uses": 2479
+        },
+        {
+          "id": "reconstruction-strategic",
+          "uses": 1066
+        },
+        {
+          "id": "reconstruction-logistics",
+          "uses": 875
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "decolonization-security-compact",
+          "uses": 720
+        },
+        {
+          "id": "demobilization-control",
+          "uses": 708
+        },
+        {
+          "id": "atomic-oversight",
+          "uses": 668
+        },
+        {
+          "id": "arsenal-reconstruction-credit",
+          "uses": 656
+        },
+        {
+          "id": "mutual-defense",
+          "uses": 650
+        }
+      ]
+    },
+    {
+      "nationId": "italy",
+      "stageId": "bipolar",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 608,
+      "dominantPathRate": 1.1,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 29.2,
+      "averageCapabilityGain": 54.4,
+      "averageFinalCapability": 99.9,
+      "averageAutonomy": 74.4,
+      "averageInteroperability": 77.6,
+      "averageRelations": 70.2,
+      "averageTreasury": 184,
+      "averageFiscalStress": 9.9,
+      "averageEscalation": 54.7,
+      "averageSupplySecurity": 71.3,
+      "averageProliferation": 29.3,
+      "averageTreatyCompliance": 59.7,
+      "averageDecisionImpact": 25,
+      "sanctionsPerSession": 0.11,
+      "procurementFailureRate": 16.2,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "bipolar-aircraft",
+          "uses": 2621
+        },
+        {
+          "id": "bipolar-armor",
+          "uses": 2612
+        },
+        {
+          "id": "bipolar-naval",
+          "uses": 2424
+        },
+        {
+          "id": "bipolar-strategic",
+          "uses": 1026
+        },
+        {
+          "id": "bipolar-logistics",
+          "uses": 879
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "hotline-arms-control",
+          "uses": 771
+        },
+        {
+          "id": "indigenous-deterrent",
+          "uses": 728
+        },
+        {
+          "id": "alliance-standardization",
+          "uses": 640
+        },
+        {
+          "id": "npt-safeguards",
+          "uses": 640
+        },
+        {
+          "id": "nonaligned-diversification",
+          "uses": 619
+        }
+      ]
+    },
+    {
+      "nationId": "italy",
+      "stageId": "networked",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 677,
+      "dominantPathRate": 1.4,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 29.2,
+      "averageCapabilityGain": 57.5,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 65.5,
+      "averageInteroperability": 86.7,
+      "averageRelations": 79.4,
+      "averageTreasury": 177.6,
+      "averageFiscalStress": 10.6,
+      "averageEscalation": 43.8,
+      "averageSupplySecurity": 70.5,
+      "averageProliferation": 9.1,
+      "averageTreatyCompliance": 58.4,
+      "averageDecisionImpact": 21,
+      "sanctionsPerSession": 0.07,
+      "procurementFailureRate": 15.4,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "networked-aircraft",
+          "uses": 2673
+        },
+        {
+          "id": "networked-armor",
+          "uses": 2607
+        },
+        {
+          "id": "networked-naval",
+          "uses": 2340
+        },
+        {
+          "id": "networked-strategic",
+          "uses": 1012
+        },
+        {
+          "id": "networked-logistics",
+          "uses": 926
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "joint-procurement",
+          "uses": 711
+        },
+        {
+          "id": "precision-network-access",
+          "uses": 700
+        },
+        {
+          "id": "regional-code-conduct",
+          "uses": 685
+        },
+        {
+          "id": "responsible-export-controls",
+          "uses": 662
+        },
+        {
+          "id": "illicit-transfer-interdiction",
+          "uses": 631
+        }
+      ]
+    },
+    {
+      "nationId": "italy",
+      "stageId": "horizon",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 670,
+      "dominantPathRate": 1.1,
+      "dominantRoute": "indigenous",
+      "dominantRouteRate": 28.7,
+      "averageCapabilityGain": 60.5,
+      "averageFinalCapability": 100,
+      "averageAutonomy": 75.1,
+      "averageInteroperability": 84.6,
+      "averageRelations": 70.5,
+      "averageTreasury": 149.7,
+      "averageFiscalStress": 17.1,
+      "averageEscalation": 52,
+      "averageSupplySecurity": 71.9,
+      "averageProliferation": 28.2,
+      "averageTreatyCompliance": 67.4,
+      "averageDecisionImpact": 23.1,
+      "sanctionsPerSession": 0.11,
+      "procurementFailureRate": 17.1,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 100,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "horizon-aircraft",
+          "uses": 2602
+        },
+        {
+          "id": "horizon-armor",
+          "uses": 2598
+        },
+        {
+          "id": "horizon-naval",
+          "uses": 2465
+        },
+        {
+          "id": "horizon-strategic",
+          "uses": 1041
+        },
+        {
+          "id": "horizon-systems",
+          "uses": 908
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "space-incident-regime",
+          "uses": 697
+        },
+        {
+          "id": "human-control-protocol",
+          "uses": 696
+        },
+        {
+          "id": "cyber-confidence-network",
+          "uses": 693
+        },
+        {
+          "id": "sovereign-ai-deterrent",
+          "uses": 673
+        },
+        {
+          "id": "autonomous-joint-lab",
+          "uses": 624
+        }
+      ]
+    },
+    {
+      "nationId": "korea",
+      "stageId": "total-war",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 653,
+      "dominantPathRate": 1.3,
+      "dominantRoute": "license",
+      "dominantRouteRate": 22.5,
+      "averageCapabilityGain": 53.6,
+      "averageFinalCapability": 92.5,
+      "averageAutonomy": 38.1,
+      "averageInteroperability": 85.1,
+      "averageRelations": 69.6,
+      "averageTreasury": 150.1,
+      "averageFiscalStress": 19.9,
+      "averageEscalation": 40.6,
+      "averageSupplySecurity": 53.4,
+      "averageProliferation": 15.9,
+      "averageTreatyCompliance": 33.3,
+      "averageDecisionImpact": 18.5,
+      "sanctionsPerSession": 0.12,
+      "procurementFailureRate": 27.1,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 99.2,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "total-war-logistics",
+          "uses": 2687
+        },
+        {
+          "id": "total-war-systems",
+          "uses": 2676
+        },
+        {
+          "id": "total-war-infantry",
+          "uses": 2373
+        },
+        {
+          "id": "total-war-strategic",
+          "uses": 1038
+        },
+        {
+          "id": "total-war-armor",
+          "uses": 866
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "combined-standards",
+          "uses": 769
+        },
+        {
+          "id": "licensed-mass-production",
+          "uses": 765
+        },
+        {
+          "id": "emergency-aid",
+          "uses": 727
+        },
+        {
+          "id": "strategic-embargo",
+          "uses": 624
+        },
+        {
+          "id": "scientific-mission",
+          "uses": 609
+        }
+      ]
+    },
+    {
+      "nationId": "korea",
+      "stageId": "reconstruction",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 654,
+      "dominantPathRate": 1.2,
+      "dominantRoute": "license",
+      "dominantRouteRate": 22.4,
+      "averageCapabilityGain": 56.2,
+      "averageFinalCapability": 92.1,
+      "averageAutonomy": 41.8,
+      "averageInteroperability": 84.3,
+      "averageRelations": 77.2,
+      "averageTreasury": 147,
+      "averageFiscalStress": 19.4,
+      "averageEscalation": 31.4,
+      "averageSupplySecurity": 45.5,
+      "averageProliferation": 8.6,
+      "averageTreatyCompliance": 43.2,
+      "averageDecisionImpact": 18.9,
+      "sanctionsPerSession": 0.1,
+      "procurementFailureRate": 25.9,
+      "obsoleteLockInRate": 4.6,
+      "viabilityRate": 93.6,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "reconstruction-systems",
+          "uses": 2722
+        },
+        {
+          "id": "reconstruction-logistics",
+          "uses": 2706
+        },
+        {
+          "id": "reconstruction-infantry",
+          "uses": 2429
+        },
+        {
+          "id": "reconstruction-strategic",
+          "uses": 976
+        },
+        {
+          "id": "reconstruction-aircraft",
+          "uses": 827
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "arsenal-reconstruction-credit",
+          "uses": 838
+        },
+        {
+          "id": "decolonization-security-compact",
+          "uses": 677
+        },
+        {
+          "id": "atomic-oversight",
+          "uses": 657
+        },
+        {
+          "id": "demobilization-control",
+          "uses": 648
+        },
+        {
+          "id": "mutual-defense",
+          "uses": 635
+        }
+      ]
+    },
+    {
+      "nationId": "korea",
+      "stageId": "bipolar",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 674,
+      "dominantPathRate": 1.5,
+      "dominantRoute": "license",
+      "dominantRouteRate": 23,
+      "averageCapabilityGain": 61.4,
+      "averageFinalCapability": 94.3,
+      "averageAutonomy": 45.8,
+      "averageInteroperability": 81.4,
+      "averageRelations": 72,
+      "averageTreasury": 105.7,
+      "averageFiscalStress": 29.9,
+      "averageEscalation": 52,
+      "averageSupplySecurity": 49.3,
+      "averageProliferation": 29.2,
+      "averageTreatyCompliance": 57.8,
+      "averageDecisionImpact": 23.9,
+      "sanctionsPerSession": 0.19,
+      "procurementFailureRate": 26.2,
+      "obsoleteLockInRate": 1.3,
+      "viabilityRate": 97.5,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "bipolar-systems",
+          "uses": 2690
+        },
+        {
+          "id": "bipolar-logistics",
+          "uses": 2667
+        },
+        {
+          "id": "bipolar-infantry",
+          "uses": 2406
+        },
+        {
+          "id": "bipolar-strategic",
+          "uses": 964
+        },
+        {
+          "id": "bipolar-armor",
+          "uses": 843
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "alliance-standardization",
+          "uses": 834
+        },
+        {
+          "id": "hotline-arms-control",
+          "uses": 699
+        },
+        {
+          "id": "indigenous-deterrent",
+          "uses": 694
+        },
+        {
+          "id": "npt-safeguards",
+          "uses": 604
+        },
+        {
+          "id": "proxy-military-aid",
+          "uses": 586
+        }
+      ]
+    },
+    {
+      "nationId": "korea",
+      "stageId": "networked",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 686,
+      "dominantPathRate": 1,
+      "dominantRoute": "license",
+      "dominantRouteRate": 22.7,
+      "averageCapabilityGain": 66.3,
+      "averageFinalCapability": 96.2,
+      "averageAutonomy": 32.5,
+      "averageInteroperability": 88.7,
+      "averageRelations": 80.5,
+      "averageTreasury": 97.4,
+      "averageFiscalStress": 30.5,
+      "averageEscalation": 42.2,
+      "averageSupplySecurity": 47.4,
+      "averageProliferation": 10.3,
+      "averageTreatyCompliance": 57,
+      "averageDecisionImpact": 20.6,
+      "sanctionsPerSession": 0.11,
+      "procurementFailureRate": 25.1,
+      "obsoleteLockInRate": 2,
+      "viabilityRate": 96.8,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "networked-logistics",
+          "uses": 2715
+        },
+        {
+          "id": "networked-systems",
+          "uses": 2662
+        },
+        {
+          "id": "networked-infantry",
+          "uses": 2346
+        },
+        {
+          "id": "networked-strategic",
+          "uses": 1038
+        },
+        {
+          "id": "networked-aircraft",
+          "uses": 868
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "joint-procurement",
+          "uses": 833
+        },
+        {
+          "id": "precision-network-access",
+          "uses": 671
+        },
+        {
+          "id": "regional-code-conduct",
+          "uses": 634
+        },
+        {
+          "id": "illicit-transfer-interdiction",
+          "uses": 630
+        },
+        {
+          "id": "peacekeeping-assistance",
+          "uses": 625
+        }
+      ]
+    },
+    {
+      "nationId": "korea",
+      "stageId": "horizon",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 720,
+      "dominantPathRate": 1.3,
+      "dominantRoute": "joint",
+      "dominantRouteRate": 22.7,
+      "averageCapabilityGain": 70.8,
+      "averageFinalCapability": 97.7,
+      "averageAutonomy": 46.3,
+      "averageInteroperability": 87.1,
+      "averageRelations": 72.7,
+      "averageTreasury": 64,
+      "averageFiscalStress": 38.1,
+      "averageEscalation": 48.3,
+      "averageSupplySecurity": 51.6,
+      "averageProliferation": 28.2,
+      "averageTreatyCompliance": 65.4,
+      "averageDecisionImpact": 24,
+      "sanctionsPerSession": 0.15,
+      "procurementFailureRate": 26.2,
+      "obsoleteLockInRate": 1.1,
+      "viabilityRate": 96.9,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "horizon-logistics",
+          "uses": 2719
+        },
+        {
+          "id": "horizon-systems",
+          "uses": 2625
+        },
+        {
+          "id": "horizon-infantry",
+          "uses": 2452
+        },
+        {
+          "id": "horizon-strategic",
+          "uses": 978
+        },
+        {
+          "id": "horizon-aircraft",
+          "uses": 846
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "resilient-supply-club",
+          "uses": 803
+        },
+        {
+          "id": "space-incident-regime",
+          "uses": 672
+        },
+        {
+          "id": "cyber-confidence-network",
+          "uses": 665
+        },
+        {
+          "id": "human-control-protocol",
+          "uses": 629
+        },
+        {
+          "id": "sovereign-ai-deterrent",
+          "uses": 627
+        }
+      ]
+    },
+    {
+      "nationId": "vietnam",
+      "stageId": "total-war",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 695,
+      "dominantPathRate": 0.8,
+      "dominantRoute": "license",
+      "dominantRouteRate": 24.5,
+      "averageCapabilityGain": 51.6,
+      "averageFinalCapability": 87.1,
+      "averageAutonomy": 51.6,
+      "averageInteroperability": 62.7,
+      "averageRelations": 62.8,
+      "averageTreasury": 130.9,
+      "averageFiscalStress": 25.1,
+      "averageEscalation": 46.7,
+      "averageSupplySecurity": 56.8,
+      "averageProliferation": 17.9,
+      "averageTreatyCompliance": 33.3,
+      "averageDecisionImpact": 18.5,
+      "sanctionsPerSession": 0.12,
+      "procurementFailureRate": 32.9,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 99.9,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "total-war-logistics",
+          "uses": 2736
+        },
+        {
+          "id": "total-war-infantry",
+          "uses": 2510
+        },
+        {
+          "id": "total-war-artillery",
+          "uses": 2481
+        },
+        {
+          "id": "total-war-strategic",
+          "uses": 1030
+        },
+        {
+          "id": "total-war-aircraft",
+          "uses": 843
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "licensed-mass-production",
+          "uses": 729
+        },
+        {
+          "id": "emergency-aid",
+          "uses": 724
+        },
+        {
+          "id": "combined-standards",
+          "uses": 675
+        },
+        {
+          "id": "strategic-embargo",
+          "uses": 645
+        },
+        {
+          "id": "neutral-procurement",
+          "uses": 619
+        }
+      ]
+    },
+    {
+      "nationId": "vietnam",
+      "stageId": "reconstruction",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 721,
+      "dominantPathRate": 0.8,
+      "dominantRoute": "license",
+      "dominantRouteRate": 23.8,
+      "averageCapabilityGain": 53.2,
+      "averageFinalCapability": 85.7,
+      "averageAutonomy": 53.8,
+      "averageInteroperability": 60.1,
+      "averageRelations": 70.9,
+      "averageTreasury": 129.8,
+      "averageFiscalStress": 24,
+      "averageEscalation": 37.4,
+      "averageSupplySecurity": 49.3,
+      "averageProliferation": 10.8,
+      "averageTreatyCompliance": 43.2,
+      "averageDecisionImpact": 19.1,
+      "sanctionsPerSession": 0.13,
+      "procurementFailureRate": 32.7,
+      "obsoleteLockInRate": 3,
+      "viabilityRate": 96.5,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "reconstruction-logistics",
+          "uses": 2806
+        },
+        {
+          "id": "reconstruction-infantry",
+          "uses": 2500
+        },
+        {
+          "id": "reconstruction-artillery",
+          "uses": 2381
+        },
+        {
+          "id": "reconstruction-strategic",
+          "uses": 1040
+        },
+        {
+          "id": "reconstruction-systems",
+          "uses": 892
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "arsenal-reconstruction-credit",
+          "uses": 762
+        },
+        {
+          "id": "decolonization-security-compact",
+          "uses": 687
+        },
+        {
+          "id": "demobilization-control",
+          "uses": 678
+        },
+        {
+          "id": "atomic-oversight",
+          "uses": 659
+        },
+        {
+          "id": "mutual-defense",
+          "uses": 613
+        }
+      ]
+    },
+    {
+      "nationId": "vietnam",
+      "stageId": "bipolar",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 723,
+      "dominantPathRate": 1.1,
+      "dominantRoute": "license",
+      "dominantRouteRate": 24.1,
+      "averageCapabilityGain": 58.4,
+      "averageFinalCapability": 88,
+      "averageAutonomy": 57.8,
+      "averageInteroperability": 56.7,
+      "averageRelations": 66.2,
+      "averageTreasury": 89,
+      "averageFiscalStress": 34.3,
+      "averageEscalation": 56.3,
+      "averageSupplySecurity": 53.1,
+      "averageProliferation": 32,
+      "averageTreatyCompliance": 58.7,
+      "averageDecisionImpact": 24.4,
+      "sanctionsPerSession": 0.19,
+      "procurementFailureRate": 32.3,
+      "obsoleteLockInRate": 0.8,
+      "viabilityRate": 98.5,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "bipolar-logistics",
+          "uses": 2617
+        },
+        {
+          "id": "bipolar-infantry",
+          "uses": 2494
+        },
+        {
+          "id": "bipolar-artillery",
+          "uses": 2430
+        },
+        {
+          "id": "bipolar-strategic",
+          "uses": 1056
+        },
+        {
+          "id": "bipolar-aircraft",
+          "uses": 861
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "hotline-arms-control",
+          "uses": 760
+        },
+        {
+          "id": "alliance-standardization",
+          "uses": 714
+        },
+        {
+          "id": "indigenous-deterrent",
+          "uses": 685
+        },
+        {
+          "id": "proxy-military-aid",
+          "uses": 634
+        },
+        {
+          "id": "nonaligned-diversification",
+          "uses": 608
+        }
+      ]
+    },
+    {
+      "nationId": "vietnam",
+      "stageId": "networked",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 716,
+      "dominantPathRate": 0.7,
+      "dominantRoute": "license",
+      "dominantRouteRate": 24.6,
+      "averageCapabilityGain": 63.9,
+      "averageFinalCapability": 90.4,
+      "averageAutonomy": 46.2,
+      "averageInteroperability": 68.6,
+      "averageRelations": 75.1,
+      "averageTreasury": 79.8,
+      "averageFiscalStress": 35.1,
+      "averageEscalation": 46.4,
+      "averageSupplySecurity": 51.8,
+      "averageProliferation": 12,
+      "averageTreatyCompliance": 57.1,
+      "averageDecisionImpact": 21.6,
+      "sanctionsPerSession": 0.13,
+      "procurementFailureRate": 30.6,
+      "obsoleteLockInRate": 0.7,
+      "viabilityRate": 98.5,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "networked-logistics",
+          "uses": 2664
+        },
+        {
+          "id": "networked-artillery",
+          "uses": 2476
+        },
+        {
+          "id": "networked-infantry",
+          "uses": 2464
+        },
+        {
+          "id": "networked-strategic",
+          "uses": 1050
+        },
+        {
+          "id": "networked-systems",
+          "uses": 863
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "joint-procurement",
+          "uses": 738
+        },
+        {
+          "id": "precision-network-access",
+          "uses": 715
+        },
+        {
+          "id": "peacekeeping-assistance",
+          "uses": 670
+        },
+        {
+          "id": "illicit-transfer-interdiction",
+          "uses": 642
+        },
+        {
+          "id": "regional-code-conduct",
+          "uses": 623
+        }
+      ]
+    },
+    {
+      "nationId": "vietnam",
+      "stageId": "horizon",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 731,
+      "dominantPathRate": 0.6,
+      "dominantRoute": "license",
+      "dominantRouteRate": 24.5,
+      "averageCapabilityGain": 69.2,
+      "averageFinalCapability": 92.7,
+      "averageAutonomy": 59.2,
+      "averageInteroperability": 64.7,
+      "averageRelations": 66,
+      "averageTreasury": 47.2,
+      "averageFiscalStress": 42.5,
+      "averageEscalation": 52.7,
+      "averageSupplySecurity": 55,
+      "averageProliferation": 31,
+      "averageTreatyCompliance": 66.8,
+      "averageDecisionImpact": 25.3,
+      "sanctionsPerSession": 0.18,
+      "procurementFailureRate": 33.2,
+      "obsoleteLockInRate": 0.8,
+      "viabilityRate": 90,
+      "collapseRate": 0.2,
+      "topPrograms": [
+        {
+          "id": "horizon-logistics",
+          "uses": 2620
+        },
+        {
+          "id": "horizon-infantry",
+          "uses": 2506
+        },
+        {
+          "id": "horizon-artillery",
+          "uses": 2466
+        },
+        {
+          "id": "horizon-strategic",
+          "uses": 1056
+        },
+        {
+          "id": "horizon-aircraft",
+          "uses": 887
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "cyber-confidence-network",
+          "uses": 714
+        },
+        {
+          "id": "resilient-supply-club",
+          "uses": 688
+        },
+        {
+          "id": "space-incident-regime",
+          "uses": 682
+        },
+        {
+          "id": "sovereign-ai-deterrent",
+          "uses": 667
+        },
+        {
+          "id": "human-control-protocol",
+          "uses": 660
+        }
+      ]
+    },
+    {
+      "nationId": "indonesia",
+      "stageId": "total-war",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 708,
+      "dominantPathRate": 0.8,
+      "dominantRoute": "license",
+      "dominantRouteRate": 24.2,
+      "averageCapabilityGain": 52.9,
+      "averageFinalCapability": 89.8,
+      "averageAutonomy": 47.4,
+      "averageInteroperability": 68.8,
+      "averageRelations": 65.6,
+      "averageTreasury": 136.9,
+      "averageFiscalStress": 23.8,
+      "averageEscalation": 41,
+      "averageSupplySecurity": 55.6,
+      "averageProliferation": 15.9,
+      "averageTreatyCompliance": 33.3,
+      "averageDecisionImpact": 18.3,
+      "sanctionsPerSession": 0.09,
+      "procurementFailureRate": 31,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 99.6,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "total-war-logistics",
+          "uses": 2706
+        },
+        {
+          "id": "total-war-infantry",
+          "uses": 2469
+        },
+        {
+          "id": "total-war-naval",
+          "uses": 2425
+        },
+        {
+          "id": "total-war-strategic",
+          "uses": 1067
+        },
+        {
+          "id": "total-war-armor",
+          "uses": 892
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "licensed-mass-production",
+          "uses": 742
+        },
+        {
+          "id": "emergency-aid",
+          "uses": 741
+        },
+        {
+          "id": "combined-standards",
+          "uses": 719
+        },
+        {
+          "id": "strategic-embargo",
+          "uses": 612
+        },
+        {
+          "id": "neutral-procurement",
+          "uses": 595
+        }
+      ]
+    },
+    {
+      "nationId": "indonesia",
+      "stageId": "reconstruction",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 726,
+      "dominantPathRate": 0.8,
+      "dominantRoute": "license",
+      "dominantRouteRate": 24,
+      "averageCapabilityGain": 54.6,
+      "averageFinalCapability": 88.5,
+      "averageAutonomy": 50.5,
+      "averageInteroperability": 66.2,
+      "averageRelations": 73.1,
+      "averageTreasury": 135.6,
+      "averageFiscalStress": 22.7,
+      "averageEscalation": 32.3,
+      "averageSupplySecurity": 47.9,
+      "averageProliferation": 9.4,
+      "averageTreatyCompliance": 42.8,
+      "averageDecisionImpact": 19,
+      "sanctionsPerSession": 0.09,
+      "procurementFailureRate": 30.5,
+      "obsoleteLockInRate": 2.9,
+      "viabilityRate": 95.6,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "reconstruction-logistics",
+          "uses": 2699
+        },
+        {
+          "id": "reconstruction-infantry",
+          "uses": 2501
+        },
+        {
+          "id": "reconstruction-naval",
+          "uses": 2368
+        },
+        {
+          "id": "reconstruction-strategic",
+          "uses": 1090
+        },
+        {
+          "id": "reconstruction-systems",
+          "uses": 867
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "arsenal-reconstruction-credit",
+          "uses": 793
+        },
+        {
+          "id": "decolonization-security-compact",
+          "uses": 701
+        },
+        {
+          "id": "demobilization-control",
+          "uses": 671
+        },
+        {
+          "id": "atomic-oversight",
+          "uses": 633
+        },
+        {
+          "id": "mutual-defense",
+          "uses": 611
+        }
+      ]
+    },
+    {
+      "nationId": "indonesia",
+      "stageId": "bipolar",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 705,
+      "dominantPathRate": 0.8,
+      "dominantRoute": "license",
+      "dominantRouteRate": 23.3,
+      "averageCapabilityGain": 59.8,
+      "averageFinalCapability": 90.7,
+      "averageAutonomy": 53.9,
+      "averageInteroperability": 63,
+      "averageRelations": 68.5,
+      "averageTreasury": 93.9,
+      "averageFiscalStress": 33.3,
+      "averageEscalation": 53.4,
+      "averageSupplySecurity": 51.6,
+      "averageProliferation": 29.7,
+      "averageTreatyCompliance": 58,
+      "averageDecisionImpact": 24.5,
+      "sanctionsPerSession": 0.12,
+      "procurementFailureRate": 30.6,
+      "obsoleteLockInRate": 0.9,
+      "viabilityRate": 98.3,
+      "collapseRate": 0.1,
+      "topPrograms": [
+        {
+          "id": "bipolar-logistics",
+          "uses": 2735
+        },
+        {
+          "id": "bipolar-infantry",
+          "uses": 2462
+        },
+        {
+          "id": "bipolar-naval",
+          "uses": 2440
+        },
+        {
+          "id": "bipolar-strategic",
+          "uses": 1010
+        },
+        {
+          "id": "bipolar-aircraft",
+          "uses": 879
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "alliance-standardization",
+          "uses": 749
+        },
+        {
+          "id": "hotline-arms-control",
+          "uses": 715
+        },
+        {
+          "id": "indigenous-deterrent",
+          "uses": 696
+        },
+        {
+          "id": "proxy-military-aid",
+          "uses": 632
+        },
+        {
+          "id": "nonaligned-diversification",
+          "uses": 605
+        }
+      ]
+    },
+    {
+      "nationId": "indonesia",
+      "stageId": "networked",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 715,
+      "dominantPathRate": 0.6,
+      "dominantRoute": "license",
+      "dominantRouteRate": 24.1,
+      "averageCapabilityGain": 64.6,
+      "averageFinalCapability": 92.5,
+      "averageAutonomy": 42.2,
+      "averageInteroperability": 73.5,
+      "averageRelations": 77,
+      "averageTreasury": 84.6,
+      "averageFiscalStress": 34,
+      "averageEscalation": 42,
+      "averageSupplySecurity": 50,
+      "averageProliferation": 9.7,
+      "averageTreatyCompliance": 57.6,
+      "averageDecisionImpact": 21.7,
+      "sanctionsPerSession": 0.09,
+      "procurementFailureRate": 30.6,
+      "obsoleteLockInRate": 0.7,
+      "viabilityRate": 98.3,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "networked-logistics",
+          "uses": 2735
+        },
+        {
+          "id": "networked-infantry",
+          "uses": 2492
+        },
+        {
+          "id": "networked-naval",
+          "uses": 2420
+        },
+        {
+          "id": "networked-strategic",
+          "uses": 1016
+        },
+        {
+          "id": "networked-systems",
+          "uses": 888
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "joint-procurement",
+          "uses": 789
+        },
+        {
+          "id": "precision-network-access",
+          "uses": 671
+        },
+        {
+          "id": "illicit-transfer-interdiction",
+          "uses": 668
+        },
+        {
+          "id": "responsible-export-controls",
+          "uses": 645
+        },
+        {
+          "id": "peacekeeping-assistance",
+          "uses": 632
+        }
+      ]
+    },
+    {
+      "nationId": "indonesia",
+      "stageId": "horizon",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 757,
+      "dominantPathRate": 0.9,
+      "dominantRoute": "license",
+      "dominantRouteRate": 23.6,
+      "averageCapabilityGain": 70.2,
+      "averageFinalCapability": 95.1,
+      "averageAutonomy": 55.2,
+      "averageInteroperability": 70.6,
+      "averageRelations": 68.3,
+      "averageTreasury": 51.8,
+      "averageFiscalStress": 41.6,
+      "averageEscalation": 49.9,
+      "averageSupplySecurity": 53.7,
+      "averageProliferation": 29.4,
+      "averageTreatyCompliance": 65.5,
+      "averageDecisionImpact": 25.2,
+      "sanctionsPerSession": 0.12,
+      "procurementFailureRate": 30.2,
+      "obsoleteLockInRate": 1.6,
+      "viabilityRate": 90.4,
+      "collapseRate": 0.1,
+      "topPrograms": [
+        {
+          "id": "horizon-logistics",
+          "uses": 2790
+        },
+        {
+          "id": "horizon-infantry",
+          "uses": 2418
+        },
+        {
+          "id": "horizon-naval",
+          "uses": 2383
+        },
+        {
+          "id": "horizon-strategic",
+          "uses": 1058
+        },
+        {
+          "id": "horizon-systems",
+          "uses": 865
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "resilient-supply-club",
+          "uses": 764
+        },
+        {
+          "id": "cyber-confidence-network",
+          "uses": 689
+        },
+        {
+          "id": "sovereign-ai-deterrent",
+          "uses": 688
+        },
+        {
+          "id": "human-control-protocol",
+          "uses": 649
+        },
+        {
+          "id": "space-incident-regime",
+          "uses": 639
+        }
+      ]
+    },
+    {
+      "nationId": "philippines",
+      "stageId": "total-war",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 659,
+      "dominantPathRate": 1.9,
+      "dominantRoute": "joint",
+      "dominantRouteRate": 22.7,
+      "averageCapabilityGain": 54.5,
+      "averageFinalCapability": 92.5,
+      "averageAutonomy": 37.4,
+      "averageInteroperability": 90.4,
+      "averageRelations": 71.5,
+      "averageTreasury": 135.7,
+      "averageFiscalStress": 23.2,
+      "averageEscalation": 41,
+      "averageSupplySecurity": 51.5,
+      "averageProliferation": 15.8,
+      "averageTreatyCompliance": 33.3,
+      "averageDecisionImpact": 17.5,
+      "sanctionsPerSession": 0.11,
+      "procurementFailureRate": 26.5,
+      "obsoleteLockInRate": 0,
+      "viabilityRate": 99,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "total-war-systems",
+          "uses": 2692
+        },
+        {
+          "id": "total-war-aircraft",
+          "uses": 2592
+        },
+        {
+          "id": "total-war-naval",
+          "uses": 2495
+        },
+        {
+          "id": "total-war-strategic",
+          "uses": 1040
+        },
+        {
+          "id": "total-war-armor",
+          "uses": 851
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "emergency-aid",
+          "uses": 781
+        },
+        {
+          "id": "combined-standards",
+          "uses": 764
+        },
+        {
+          "id": "licensed-mass-production",
+          "uses": 732
+        },
+        {
+          "id": "scientific-mission",
+          "uses": 601
+        },
+        {
+          "id": "neutral-procurement",
+          "uses": 568
+        }
+      ]
+    },
+    {
+      "nationId": "philippines",
+      "stageId": "reconstruction",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 710,
+      "dominantPathRate": 1.5,
+      "dominantRoute": "joint",
+      "dominantRouteRate": 22.7,
+      "averageCapabilityGain": 56.8,
+      "averageFinalCapability": 91.8,
+      "averageAutonomy": 41.6,
+      "averageInteroperability": 90.1,
+      "averageRelations": 78.1,
+      "averageTreasury": 131.7,
+      "averageFiscalStress": 22.8,
+      "averageEscalation": 33.1,
+      "averageSupplySecurity": 43.4,
+      "averageProliferation": 8.9,
+      "averageTreatyCompliance": 42.7,
+      "averageDecisionImpact": 18.1,
+      "sanctionsPerSession": 0.1,
+      "procurementFailureRate": 26,
+      "obsoleteLockInRate": 8.1,
+      "viabilityRate": 88.8,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "reconstruction-systems",
+          "uses": 2712
+        },
+        {
+          "id": "reconstruction-aircraft",
+          "uses": 2522
+        },
+        {
+          "id": "reconstruction-naval",
+          "uses": 2453
+        },
+        {
+          "id": "reconstruction-strategic",
+          "uses": 1014
+        },
+        {
+          "id": "reconstruction-logistics",
+          "uses": 853
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "arsenal-reconstruction-credit",
+          "uses": 834
+        },
+        {
+          "id": "decolonization-security-compact",
+          "uses": 702
+        },
+        {
+          "id": "demobilization-control",
+          "uses": 663
+        },
+        {
+          "id": "atomic-oversight",
+          "uses": 628
+        },
+        {
+          "id": "mutual-defense",
+          "uses": 609
+        }
+      ]
+    },
+    {
+      "nationId": "philippines",
+      "stageId": "bipolar",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 693,
+      "dominantPathRate": 1.4,
+      "dominantRoute": "joint",
+      "dominantRouteRate": 22.7,
+      "averageCapabilityGain": 61.9,
+      "averageFinalCapability": 93.9,
+      "averageAutonomy": 44.6,
+      "averageInteroperability": 87,
+      "averageRelations": 73.3,
+      "averageTreasury": 84.5,
+      "averageFiscalStress": 34.3,
+      "averageEscalation": 55.2,
+      "averageSupplySecurity": 47,
+      "averageProliferation": 29.2,
+      "averageTreatyCompliance": 57.6,
+      "averageDecisionImpact": 23.7,
+      "sanctionsPerSession": 0.18,
+      "procurementFailureRate": 26.2,
+      "obsoleteLockInRate": 2.3,
+      "viabilityRate": 96.2,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "bipolar-systems",
+          "uses": 2675
+        },
+        {
+          "id": "bipolar-aircraft",
+          "uses": 2612
+        },
+        {
+          "id": "bipolar-naval",
+          "uses": 2397
+        },
+        {
+          "id": "bipolar-strategic",
+          "uses": 992
+        },
+        {
+          "id": "bipolar-logistics",
+          "uses": 876
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "alliance-standardization",
+          "uses": 819
+        },
+        {
+          "id": "hotline-arms-control",
+          "uses": 694
+        },
+        {
+          "id": "indigenous-deterrent",
+          "uses": 672
+        },
+        {
+          "id": "proxy-military-aid",
+          "uses": 615
+        },
+        {
+          "id": "nonaligned-diversification",
+          "uses": 602
+        }
+      ]
+    },
+    {
+      "nationId": "philippines",
+      "stageId": "networked",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 710,
+      "dominantPathRate": 1.1,
+      "dominantRoute": "joint",
+      "dominantRouteRate": 22.7,
+      "averageCapabilityGain": 66.4,
+      "averageFinalCapability": 95.4,
+      "averageAutonomy": 32.1,
+      "averageInteroperability": 93.5,
+      "averageRelations": 81.4,
+      "averageTreasury": 74.3,
+      "averageFiscalStress": 35.3,
+      "averageEscalation": 45,
+      "averageSupplySecurity": 45,
+      "averageProliferation": 10.3,
+      "averageTreatyCompliance": 57.3,
+      "averageDecisionImpact": 21,
+      "sanctionsPerSession": 0.12,
+      "procurementFailureRate": 25.6,
+      "obsoleteLockInRate": 3.9,
+      "viabilityRate": 93.3,
+      "collapseRate": 0,
+      "topPrograms": [
+        {
+          "id": "networked-aircraft",
+          "uses": 2687
+        },
+        {
+          "id": "networked-systems",
+          "uses": 2681
+        },
+        {
+          "id": "networked-naval",
+          "uses": 2403
+        },
+        {
+          "id": "networked-strategic",
+          "uses": 1021
+        },
+        {
+          "id": "networked-logistics",
+          "uses": 911
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "joint-procurement",
+          "uses": 821
+        },
+        {
+          "id": "precision-network-access",
+          "uses": 644
+        },
+        {
+          "id": "regional-code-conduct",
+          "uses": 644
+        },
+        {
+          "id": "peacekeeping-assistance",
+          "uses": 638
+        },
+        {
+          "id": "responsible-export-controls",
+          "uses": 628
+        }
+      ]
+    },
+    {
+      "nationId": "philippines",
+      "stageId": "horizon",
+      "sessions": 1000,
+      "doctrineCoverage": 6,
+      "uniquePaths": 746,
+      "dominantPathRate": 1,
+      "dominantRoute": "joint",
+      "dominantRouteRate": 22.7,
+      "averageCapabilityGain": 71.3,
+      "averageFinalCapability": 97.3,
+      "averageAutonomy": 46.5,
+      "averageInteroperability": 92.2,
+      "averageRelations": 72.9,
+      "averageTreasury": 42.5,
+      "averageFiscalStress": 42.7,
+      "averageEscalation": 53.5,
+      "averageSupplySecurity": 49,
+      "averageProliferation": 29.4,
+      "averageTreatyCompliance": 65.7,
+      "averageDecisionImpact": 25,
+      "sanctionsPerSession": 0.17,
+      "procurementFailureRate": 26.8,
+      "obsoleteLockInRate": 2.8,
+      "viabilityRate": 84.5,
+      "collapseRate": 0.4,
+      "topPrograms": [
+        {
+          "id": "horizon-systems",
+          "uses": 2716
+        },
+        {
+          "id": "horizon-aircraft",
+          "uses": 2631
+        },
+        {
+          "id": "horizon-naval",
+          "uses": 2380
+        },
+        {
+          "id": "horizon-strategic",
+          "uses": 1056
+        },
+        {
+          "id": "horizon-logistics",
+          "uses": 833
+        }
+      ],
+      "topPolicies": [
+        {
+          "id": "resilient-supply-club",
+          "uses": 768
+        },
+        {
+          "id": "cyber-confidence-network",
+          "uses": 683
+        },
+        {
+          "id": "sovereign-ai-deterrent",
+          "uses": 681
+        },
+        {
+          "id": "space-incident-regime",
+          "uses": 667
+        },
+        {
+          "id": "human-control-protocol",
+          "uses": 638
+        }
+      ]
+    }
+  ],
+  "byStage": [
+    {
+      "stageId": "total-war",
+      "sessions": 13000,
+      "averageCapabilityGain": 47.5,
+      "averageEscalation": 45.9,
+      "averageTreatyCompliance": 33.3,
+      "viabilityRate": 99.8,
+      "collapseRate": 0
+    },
+    {
+      "stageId": "reconstruction",
+      "sessions": 13000,
+      "averageCapabilityGain": 50,
+      "averageEscalation": 36.8,
+      "averageTreatyCompliance": 43.3,
+      "viabilityRate": 98,
+      "collapseRate": 0
+    },
+    {
+      "stageId": "bipolar",
+      "sessions": 13000,
+      "averageCapabilityGain": 53.9,
+      "averageEscalation": 57,
+      "averageTreatyCompliance": 59.3,
+      "viabilityRate": 99.3,
+      "collapseRate": 0
+    },
+    {
+      "stageId": "networked",
+      "sessions": 13000,
+      "averageCapabilityGain": 57.5,
+      "averageEscalation": 47.1,
+      "averageTreatyCompliance": 58.1,
+      "viabilityRate": 99,
+      "collapseRate": 0
+    },
+    {
+      "stageId": "horizon",
+      "sessions": 13000,
+      "averageCapabilityGain": 61.2,
+      "averageEscalation": 53.5,
+      "averageTreatyCompliance": 67.3,
+      "viabilityRate": 97.1,
+      "collapseRate": 0.1
+    }
+  ],
+  "byDoctrine": [
+    {
+      "doctrine": "arsenal",
+      "sessions": 10855,
+      "averageCapabilityGain": 54,
+      "averageAutonomy": 75,
+      "averageEscalation": 46.7,
+      "viabilityRate": 99.4
+    },
+    {
+      "doctrine": "alliance",
+      "sessions": 10855,
+      "averageCapabilityGain": 54.5,
+      "averageAutonomy": 58.2,
+      "averageEscalation": 44.5,
+      "viabilityRate": 99.3
+    },
+    {
+      "doctrine": "nonaligned",
+      "sessions": 10855,
+      "averageCapabilityGain": 54,
+      "averageAutonomy": 64.2,
+      "averageEscalation": 48.8,
+      "viabilityRate": 97.6
+    },
+    {
+      "doctrine": "deterrent",
+      "sessions": 10855,
+      "averageCapabilityGain": 53.5,
+      "averageAutonomy": 75,
+      "averageEscalation": 61.7,
+      "viabilityRate": 96.1
+    },
+    {
+      "doctrine": "exporter",
+      "sessions": 10790,
+      "averageCapabilityGain": 53.9,
+      "averageAutonomy": 73.5,
+      "averageEscalation": 47.1,
+      "viabilityRate": 99.9
+    },
+    {
+      "doctrine": "institutionalist",
+      "sessions": 10790,
+      "averageCapabilityGain": 54.2,
+      "averageAutonomy": 60.6,
+      "averageEscalation": 39.4,
+      "viabilityRate": 99.5
+    }
+  ],
+  "findings": [
+    {
+      "priority": "P2",
+      "id": "state-collapse",
+      "title": "재정·공급 붕괴가 예외적 범위로 억제됨",
+      "evidence": "philippines/horizon 붕괴율 0.4%, 평균 재정 42.5, 공급안보 49.",
+      "remediation": "저산업 국가에 원조→면허→독자생산 단계 전환 보너스와 제재 긴급비축을 제공하십시오."
+    },
+    {
+      "priority": "P2",
+      "id": "small-power-viability",
+      "title": "중소국도 외교·면허 경로로 경쟁력을 유지함",
+      "evidence": "philippines/horizon 생존 가능률 84.5%, 전력 증가 71.3, 실패율 26.8%.",
+      "remediation": "정비권·기술자 교육·부품 현지화가 포함된 소규모 공동개발과 지역 공동비축을 강화하십시오."
+    },
+    {
+      "priority": "P2",
+      "id": "obsolete-lock-in",
+      "title": "잉여장비 의존이 장기 기술고착으로 이어지지 않음",
+      "evidence": "philippines/reconstruction 구식체계 고착 8.1%, 상호운용 90.1, 공급안보 43.4.",
+      "remediation": "직도입 2회 뒤 현지정비 또는 면허생산을 요구하고 세대교체 비용을 사전에 표시하십시오."
+    },
+    {
+      "priority": "P2",
+      "id": "route-dominance",
+      "title": "독자·면허·공동개발·수입 경로가 경쟁함",
+      "evidence": "usa/total-war에서 독자 개발 비중 34.1%, 고유 경로 636개.",
+      "remediation": "반복 조달에 한계효용 감소와 공급국 협상 피로를 적용하고 혼합 규격의 비용과 다변화의 제재 회복력을 함께 조정하십시오."
+    },
+    {
+      "priority": "P2",
+      "id": "arms-race-escalation",
+      "title": "군축·핫라인이 군비경쟁의 오판 위험을 상쇄함",
+      "evidence": "ussr/bipolar 평균 긴장 64.5, 비확산 위험 45.4, 조약 신뢰 60.2.",
+      "remediation": "전략무기 사업 단계마다 사전통보·사찰·핫라인 선택을 제시하고 비밀개발의 누적 노출 위험을 높이십시오."
+    },
+    {
+      "priority": "P2",
+      "id": "decision-impact",
+      "title": "각 결정이 전력·자율성·외교·공급망에 추적 가능한 변화를 만듦",
+      "evidence": "philippines/total-war 결정당 평균 상태변화 17.5, 지배 경로율 1.9%.",
+      "remediation": "선택 전 1·3·5년 예상치와 사후 원인 추적을 같은 카드에 표시하십시오."
+    }
+  ]
+}

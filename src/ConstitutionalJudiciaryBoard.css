@@ -1,0 +1,57 @@
+.game-shell.design-v2 .deck-content .constitutional-judiciary-board.ce5-constitution {
+  display:grid; gap:20px; min-width:0; padding:24px; overflow:visible;
+  color:var(--ui-text,#edf0ec); background:var(--ui-surface,#18212b);
+  border:1px solid var(--ui-border,#34424c); border-radius:8px;
+}
+.game-shell.design-v2 .deck-content .ce5-constitution :is(section,article,div,nav,label,header,dl,dt,dd) { min-width:0; }
+.game-shell.design-v2 .deck-content .ce5-constitution :is(p,li,dd,strong) { font-size:16px; line-height:1.65; overflow-wrap:anywhere; }
+.game-shell.design-v2 .deck-content .ce5-constitution :is(p,h3,h4,h5,dl,dd) { margin:0; }
+.game-shell.design-v2 .deck-content .ce5-constitution :is(h3,h4,h5) { color:var(--ui-text,#edf0ec); font-family:inherit; line-height:1.4; letter-spacing:0; }
+.game-shell.design-v2 .deck-content .ce5-constitution h3 { font-size:26px; }
+.game-shell.design-v2 .deck-content .ce5-constitution h4 { font-size:21px; }
+.game-shell.design-v2 .deck-content .ce5-constitution h5 { font-size:18px; }
+.game-shell.design-v2 .deck-content .ce5-constitution :is(label,dt,button,select,summary) { font-size:14px; line-height:1.5; font-weight:400; }
+.game-shell.design-v2 .deck-content .ce5-constitution :is(small,.cj-meta,.cj-eyebrow) { font-size:12px; line-height:1.6; color:var(--ui-muted,#9dacb8); overflow-wrap:anywhere; }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-eyebrow { display:flex; align-items:center; flex-wrap:wrap; gap:8px; letter-spacing:.07em; color:var(--ui-accent,#c7a16c); }
+.game-shell.design-v2 .deck-content .ce5-constitution :is(button,select,summary) { min-height:44px; max-width:100%; border-radius:8px; white-space:normal; }
+.game-shell.design-v2 .deck-content .ce5-constitution button { display:inline-flex; justify-content:center; align-items:center; gap:8px; padding:10px 16px; border:1px solid var(--ui-border,#34424c); background:var(--ui-raised,#202c38); color:var(--ui-text,#edf0ec); box-shadow:none; cursor:pointer; }
+.game-shell.design-v2 .deck-content .ce5-constitution button:disabled { opacity:.48; cursor:not-allowed; }
+.game-shell.design-v2 .deck-content .ce5-constitution button:hover:not(:disabled) { border-color:var(--ui-accent,#c7a16c); }
+.game-shell.design-v2 .deck-content .ce5-constitution :is(button,select,summary,[tabindex]):focus-visible { outline:2px solid var(--ui-accent,#c7a16c); outline-offset:3px; }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-primary { color:var(--ui-ink,#1c2831); background:var(--ui-accent,#c7a16c); border-color:var(--ui-accent,#c7a16c); font-weight:600; }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-heading { display:grid; grid-template-columns:minmax(0,1fr) minmax(180px,.35fr); align-items:start; gap:20px; }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-heading > div { display:grid; gap:10px; }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-status { border-left:2px solid var(--ui-accent,#c7a16c); padding-left:16px; }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-workviews { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-workviews [aria-pressed=true] { color:var(--ui-accent,#c7a16c); border-color:var(--ui-accent,#c7a16c); background:var(--ui-bg,#10161d); }
+.game-shell.design-v2 .deck-content .ce5-constitution :is(.cj-panel,.cj-review,.cj-detail,.cj-callout) { display:grid; gap:16px; padding:20px; background:var(--ui-bg,#10161d); border:1px solid var(--ui-border,#34424c); border-radius:8px; }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-review { border-color:var(--ui-accent,#c7a16c); }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-detail { background:var(--ui-surface,#18212b); }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-select { display:grid; gap:8px; color:var(--ui-muted,#9dacb8); }
+.game-shell.design-v2 .deck-content .ce5-constitution select { display:block; width:100%; min-width:0; padding:10px 12px; color:var(--ui-text,#edf0ec); border:1px solid var(--ui-border,#34424c); background:var(--ui-raised,#202c38); text-overflow:ellipsis; }
+.game-shell.design-v2 .deck-content .ce5-constitution :is(.cj-split,.cj-kpis) { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-kpis > div { display:grid; gap:4px; border-left:2px solid var(--ui-border,#34424c); padding:4px 0 4px 12px; }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-kpis dt { color:var(--ui-muted,#9dacb8); }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-kpis dd { color:var(--ui-text,#edf0ec); font-weight:600; }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-actions { display:flex; flex-wrap:wrap; gap:10px; }
+.game-shell.design-v2 .deck-content .ce5-constitution :is(.cj-warning,.cj-result) { padding:14px 16px; border-left:3px solid var(--ui-accent,#c7a16c); background:var(--ui-raised,#202c38); color:var(--ui-text,#edf0ec); }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-complete { color:#b9d2c7; }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:0; padding:0; list-style:none; }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-steps li { padding:12px; border:1px solid var(--ui-border,#34424c); border-radius:8px; color:var(--ui-muted,#9dacb8); font-size:14px; }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-steps [aria-current=step] { color:var(--ui-accent,#c7a16c); border-color:var(--ui-accent,#c7a16c); }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-fold { padding:12px 16px; border:1px solid var(--ui-border,#34424c); border-radius:8px; }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-fold summary { display:flex; align-items:center; cursor:pointer; color:var(--ui-text,#edf0ec); }
+.game-shell.design-v2 .deck-content .ce5-constitution .cj-fold[open] > :not(summary) { margin-top:14px; }
+.game-shell.design-v2 .deck-content .ce5-constitution :is(.cj-changes,.cj-requirements) { display:grid; gap:10px; margin:0; padding-left:20px; }
+@media(max-width:900px) {
+  .game-shell.design-v2 .deck-content .constitutional-judiciary-board.ce5-constitution { padding:18px; }
+  .game-shell.design-v2 .deck-content .ce5-constitution :is(.cj-heading,.cj-split) { grid-template-columns:minmax(0,1fr); }
+}
+@media(max-width:600px) {
+  .game-shell.design-v2 .deck-content .constitutional-judiciary-board.ce5-constitution { padding:14px; gap:16px; }
+  .game-shell.design-v2 .deck-content .ce5-constitution :is(.cj-panel,.cj-review,.cj-detail,.cj-callout) { padding:14px; }
+  .game-shell.design-v2 .deck-content .ce5-constitution :is(.cj-workviews,.cj-kpis,.cj-steps) { grid-template-columns:minmax(0,1fr); }
+  .game-shell.design-v2 .deck-content .ce5-constitution .cj-actions { display:grid; grid-template-columns:minmax(0,1fr); }
+  .game-shell.design-v2 .deck-content .ce5-constitution .cj-actions button { width:100%; }
+  .game-shell.design-v2 .deck-content .ce5-constitution h3 { font-size:23px; }
+}

@@ -1,0 +1,66 @@
+.operation-field { padding: 20px; margin-block: 18px; border: 1px solid #3a4b4c; border-radius: 14px; background: #182427; color: #e8ece6; min-width: 0; font-size: 14px; line-height: 1.6; }
+.operation-field-header, .operation-field-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.operation-field h2, .operation-field h3, .operation-field h4, .operation-field p { margin: 0; }
+.operation-field h2 { margin-top: 5px; font-size: 22px; }
+.operation-field h3 { margin-top: 7px; font-size: 21px; }
+.operation-field h4 { font-size: 14px; margin-bottom: 10px; }
+.operation-field-header p, .operation-field-kicker, .operation-field-disclaimer { color: #aebdb9; font-size: 12px; line-height: 1.6; }
+.operation-field-layout { margin-top: 18px; display: grid; grid-template-columns: minmax(170px, .8fr) minmax(0, 3fr); gap: 16px; }
+.operation-field-list { display: flex; flex-direction: column; gap: 8px; max-height: 480px; overflow-y: auto; }
+.operation-field button { font: inherit; font-size: 14px; min-height: 44px; cursor: pointer; border: 1px solid #597171; color: #eaf0e7; background: #253738; border-radius: 8px; padding: 10px 12px; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.operation-field button:hover:not(:disabled), .operation-field button[aria-pressed="true"] { border-color: #d8c68e; background: #344844; }
+.operation-field button:focus-visible { outline: 3px solid #f0cf70; outline-offset: 3px; }
+.operation-field button:disabled { cursor: not-allowed; opacity: .55; }
+.operation-field-list strong, .operation-field-list span { display: block; overflow-wrap: anywhere; }
+.operation-field-list span { margin-top: 5px; font-size: 12px; color: #bdccc6; }
+.operation-field-detail { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.operation-field-state { font-size: 12px; color: #e4d291; font-weight: 700; }
+.operation-field-scene { display: grid; grid-template-columns: minmax(0, 1fr) 35px minmax(0, 1fr); align-items: center; padding: 18px; border-radius: 12px; background: linear-gradient(110deg, #243b37, #263038); border: 1px solid #47605a; }
+.operation-field-scene div { display: flex; flex-direction: column; gap: 7px; min-width: 0; overflow-wrap: anywhere; }
+.operation-field-scene small, .operation-field-scene span { font-size: 12px; color: #bfcac3; }
+.operation-field-scene .operation-field-link { text-align: center; color: #c9d5c6; font-size: 25px; }
+.operation-field-scene .operation-field-link.active { color: #f0cf70; }
+.operation-field-metrics { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.operation-field-metrics div { min-width: 0; border: 1px solid #425453; border-radius: 8px; padding: 10px; }
+.operation-field-metrics dt { color: #b6c6c1; font-size: 12px; line-height: 1.5; }
+.operation-field-metrics dd { margin: 7px 0 0; font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+.operation-field-receipt { border-left: 3px solid #a1b895; background: #202f2d; border-radius: 5px; padding: 14px; }
+.operation-field-receipt p, .operation-field-empty, .operation-field-stopped { font-size: 14px; line-height: 1.65; }
+.operation-field-receipt .operation-field-metrics { margin-block: 12px; }
+.operation-field-receipt small { color: #c1cabe; font-size: 12px; line-height: 1.6; }
+.operation-field-empty { padding: 16px 0; color: #c3cec6; }
+.operation-field-stopped { background: #394037; border: 1px solid #7b8668; border-radius: 8px; padding: 12px; }
+.operation-field-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.operation-field-actions p { max-width: 560px; color: #c7d1c9; font-size: 12px; line-height: 1.6; }
+.operation-field-actions button { flex-shrink: 0; border-color: #b89465; }
+.operation-field-identity { color: #a8b8b2; font-size: 12px; }
+.operation-field-identity summary { cursor: pointer; min-height: 44px; box-sizing: border-box; padding-block: 10px; font-size: 14px; }
+.operation-field-identity p { overflow-wrap: anywhere; margin-top: 6px; }
+.operation-field > .operation-field-disclaimer { margin-top: 14px; }
+/* Outrank the legacy readable-ui deck rules, regardless of stylesheet load order. */
+.game-shell.readable-ui .deck-content .operation-field :where(p, span, dt, dd, label, summary) { font-size: 14px; line-height: 1.65; }
+.game-shell.readable-ui .deck-content .operation-field strong { font-size: 14px; line-height: 1.6; }
+.game-shell.readable-ui .deck-content .operation-field button { min-height: 44px; font-size: 14px; line-height: 1.6; white-space: normal; overflow-wrap: anywhere; }
+.game-shell.readable-ui .deck-content .operation-field :where(small, em),
+.game-shell.readable-ui .deck-content .operation-field .operation-field-header p,
+.game-shell.readable-ui .deck-content .operation-field .operation-field-kicker,
+.game-shell.readable-ui .deck-content .operation-field .operation-field-disclaimer,
+.game-shell.readable-ui .deck-content .operation-field .operation-field-list span,
+.game-shell.readable-ui .deck-content .operation-field .operation-field-state,
+.game-shell.readable-ui .deck-content .operation-field .operation-field-scene span,
+.game-shell.readable-ui .deck-content .operation-field .operation-field-metrics dt,
+.game-shell.readable-ui .deck-content .operation-field .operation-field-identity p { font-size: 12px; line-height: 1.65; }
+.game-shell.readable-ui .deck-content .operation-field .operation-field-metrics dd { font-size: 15px; line-height: 1.6; }
+.game-shell.readable-ui .deck-content .operation-field .operation-field-scene .operation-field-link { font-size: 25px; }
+@media (max-width: 700px) {
+  .operation-field { padding: 14px; }
+  .operation-field-layout { grid-template-columns: minmax(0, 1fr); }
+  .operation-field-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 190px; }
+  .operation-field-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .operation-field-actions { align-items: stretch; flex-direction: column; }
+  .operation-field-actions button { text-align: center; }
+  .operation-field-scene { padding: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .operation-field *, .operation-field *::before, .operation-field *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

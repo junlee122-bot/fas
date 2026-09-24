@@ -1,0 +1,8 @@
+.access-scope-art { margin: 0; width: 160px; max-width: 100%; min-width: 0; }
+.access-scope-art figcaption { margin-top: 6px; color: #b6c5cb; font: 500 12px/1.6 var(--font-ui, sans-serif); overflow-wrap: anywhere; }
+.game-shell.design-v2 .deck-content .military-access-boundaries > section { grid-template-columns: minmax(0, 1fr) 160px; align-content: start; padding: 18px; border: 1px solid #54636d; border-radius: 5px; background: #18232c; }
+.game-shell.design-v2 .deck-content .military-access-boundaries > section > :not(.access-scope-art) { grid-column: 1; }
+.game-shell.design-v2 .deck-content .military-access-boundaries > section > .access-scope-art { grid-column: 2; grid-row: 1 / span 4; align-self: start; }
+.game-shell.design-v2 .deck-content .military-access-boundaries > section:not(:has(.access-scope-art)) { grid-template-columns: minmax(0,1fr); }
+@media (min-width: 2300px) { .access-scope-art { width: 210px; } .game-shell.design-v2 .deck-content .military-access-boundaries > section { grid-template-columns: minmax(0,1fr) 210px; } }
+@media (max-width: 1500px) { .game-shell.design-v2 .deck-content .military-access-boundaries > section { grid-template-columns: minmax(0,1fr); } .game-shell.design-v2 .deck-content .military-access-boundaries > section > .access-scope-art { grid-column: 1; grid-row: auto; } }

@@ -1,0 +1,22 @@
+[
+  {
+    "slug": "transit-corridor",
+    "job_id": "4c0e3e92-d1b4-4a85-974c-4562b99f8060",
+    "width": 3504,
+    "height": 2336,
+    "originalBytes": 12198443,
+    "webpBytes": 8159006,
+    "sha256": "17be634b0e251b30c9a76727e9730908d747173c861101091c9b0017ee12ae82",
+    "losslessVerified": true
+  },
+  {
+    "slug": "naval-basing",
+    "job_id": "da037362-e551-471f-8988-72434fb31e2d",
+    "width": 3504,
+    "height": 2336,
+    "originalBytes": 14490084,
+    "webpBytes": 9382368,
+    "sha256": "86d711bdaffe1bd360fd0f3710f6cd11743e3dc785510708a55ddaac62874ca0",
+    "losslessVerified": true
+  }
+]
