@@ -13,11 +13,19 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  # Publishing branches share a lock; other refs cannot cancel a live deployment.
+  group: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/agent/expand-campaign-depth') && 'pages' || format('pages-review-{0}', github.ref) }}
   cancel-in-progress: true
 
 jobs:
+  validate:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/validate.yml
+
   build:
+    needs: validate
+    if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/agent/expand-campaign-depth' }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -31,11 +39,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Verify land map geometry
-        run: |
-          npm run test:land-geography
-          npm run audit:land-geography
 
       - name: Build GitHub Pages site
         run: npm run build:pages
